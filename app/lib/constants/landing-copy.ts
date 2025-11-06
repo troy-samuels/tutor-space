@@ -1,10 +1,10 @@
 export const landingCopy = {
   hero: {
-    headline: "Run your tutoring business from one tab.",
+    headline: "Keep 100% of what you earn. Teach on your terms. Get your time back.",
     subheadline:
-      "TutorLingua unifies your website, bookings, payments, CRM, and AI classroom tools so you can teach more and manage less.",
+      "TutorLingua gives you everything to run your independent tutoring business—beautiful site, effortless bookings, smart payments, student CRM, and AI teaching tools. All in one place.",
     primaryCTA: "Start free",
-    secondaryCTA: "See TutorLingua in action",
+    secondaryCTA: "See how it works",
     variants: {
       outcomeHeadline: "Cut admin work and stay fully booked.",
       financialHeadline: "Keep 100% of every lesson—no more platform cuts.",
@@ -22,70 +22,70 @@ export const landingCopy = {
   },
 
   problems: {
-    headline: "If you recognise these headaches, TutorLingua was made for you.",
+    headline: "You deserve tools that work as hard as you do.",
     subtitle:
-      "Spreadsheets, DMs, and marketplace fees are holding your business back. It’s time to upgrade your toolkit.",
+      "Whether you're just starting out or ready to level up from marketplace teaching, there's a better way to run your tutoring business.",
     items: [
       {
         icon: "TrendingDown",
-        title: "Marketplace commissions eat your revenue",
+        title: "Build your business without the platform tax",
         description:
-          "Paying 15-30% to Italki or Preply forever? That’s thousands lost every year once you have regular students.",
+          "Marketplaces are great for discovery, but once you have regular students, keeping 100% of your earnings changes everything. Imagine what you could do with an extra $300-$600 every month.",
       },
       {
         icon: "Layers",
-        title: "Too many disconnected tools",
+        title: "Everything you need in one simple platform",
         description:
-          "Calendly, Stripe, Google Docs, Trello, WhatsApp, Typeform… juggling 8+ tools just to run one lesson is exhausting.",
+          "No more juggling Calendly, Stripe, Google Docs, WhatsApp, and six other tools. Manage your entire tutoring business from a single, beautifully designed dashboard.",
       },
       {
         icon: "Clock",
-        title: "Admin work steals hours of teaching time",
+        title: "Spend your time teaching, not managing",
         description:
-          "Copying Zoom links, chasing payments, writing parent updates, planning lessons from scratch — none of it is why you became a tutor.",
+          "Automated bookings, instant Zoom links, smart reminders, and AI-powered lesson prep mean you can focus on what you love—helping students grow.",
       },
     ],
   },
 
   solution: {
-    headline: "One platform for your entire tutoring business.",
-    subheadline: "Built with independent tutors, tested across 40+ languages.",
+    headline: "Everything you need to run your independent business.",
+    subheadline: "Built with tutors, for tutors. Simple to start, powerful as you grow.",
     features: [
       {
         icon: "Globe",
-        title: "Instant tutor site + parent credibility page",
+        title: "Your professional home on the web",
         description:
-          "Launch a beautiful profile, link-in-bio, and parent proof page with testimonials, progress stats, and session packages in minutes.",
+          "Launch a stunning tutor website with your bio, services, testimonials, and booking calendar in minutes. Look professional, build trust with parents, and own your online presence.",
       },
       {
         icon: "Calendar",
-        title: "Smart scheduling & Zoom automation",
+        title: "Bookings that run on autopilot",
         description:
-          "Set availability once. TutorLingua handles time zones, calendar sync, packages, buffer times, and auto-generates Zoom links.",
+          "Set your availability once and let students book instantly. Time zones, Zoom links, calendar sync, and reminders all happen automatically—so you can focus on teaching.",
       },
       {
         icon: "Wallet",
-        title: "Payments without the middleman",
+        title: "Get paid upfront, keep every dollar",
         description:
-          "Stripe and optional PayPal checkout, up-front payments, invoices, reminders, and refunds—no marketplace commissions, ever.",
+          "Accept payments through Stripe or PayPal with zero commission. Create session packages, send invoices, and handle refunds—all built in. Your earnings stay yours.",
       },
       {
         icon: "Users",
-        title: "Lead hub + student CRM",
+        title: "Turn followers into students",
         description:
-          "Capture leads from Instagram, TikTok, WhatsApp, and your site. Convert them to students, track lessons, tasks, and notes in one place.",
+          "Capture leads from Instagram, TikTok, and WhatsApp, then nurture them with smart follow-ups. Track every conversation, lesson, and milestone in one organized CRM.",
       },
       {
         icon: "Sparkles",
-        title: "AI teaching assistant",
+        title: "AI tools that save you hours",
         description:
-          "Generate CEFR-aligned lesson plans, homework, vocab drills, and 24/7 conversation partners tailored to each student.",
+          "Generate lesson plans, homework assignments, and vocabulary exercises in seconds. Give students a 24/7 AI conversation partner so they can practice between sessions.",
       },
       {
         icon: "CheckCircle",
-        title: "Automated communication",
+        title: "Stay connected without the effort",
         description:
-          "Send polished parent summaries, review requests, nurture sequences, and reminders automatically after every lesson.",
+          "Automatically send lesson summaries to parents, request reviews from happy students, and keep everyone informed with smart reminders and updates.",
       },
     ],
   },
@@ -175,19 +175,19 @@ export const landingCopy = {
   },
 
   pricing: {
-    headline: "Plans that grow with your tutoring business",
+    headline: "Simple pricing that makes sense",
     subheadline:
-      "Start free on Professional, upgrade to Growth when you want automated marketing, and move to Studio when you’re building a team.",
+      "Start free on Professional. Upgrade to Growth when you're ready to scale. Move to Studio when you're building a team.",
     comparisonNote:
-      "Marketplace fees on $2,000/month revenue cost $300-$600. TutorLingua lets you keep it all while upgrading your brand.",
+      "With TutorLingua, you pay a small flat fee and keep 100% of your earnings. No commissions, no surprises—just straightforward pricing that helps your business thrive.",
     tiers: [
       {
         name: "Professional",
         price: "$29",
         period: "/month",
-        description: "Everything you need to run 1:1 tutoring",
+        description: "Perfect for independent tutors getting started",
         features: [
-          "Tutor site & parent credibility page",
+          "Beautiful tutor site & credibility page",
           "Unlimited bookings & session packages",
           "Stripe/PayPal payments + invoicing",
           "Student CRM with lesson notes",
@@ -201,13 +201,13 @@ export const landingCopy = {
         price: "$59",
         period: "/month",
         badge: "Most popular",
-        description: "Scale your audience and keep leads warm",
+        description: "For tutors ready to scale beyond word-of-mouth",
         features: [
           "Everything in Professional",
-          "Lead hub, pipelines & nurture automations",
-          "AI marketing copy and content calendar",
-          "Advanced analytics & conversion funnels",
-          "WhatsApp + email campaigns",
+          "Lead capture, pipelines & smart follow-ups",
+          "AI marketing tools and content ideas",
+          "Advanced analytics & booking insights",
+          "WhatsApp + email campaign automation",
         ],
         cta: "Upgrade to Growth",
         highlighted: true,
@@ -216,12 +216,12 @@ export const landingCopy = {
         name: "Studio",
         price: "$129",
         period: "/month",
-        description: "For multi-tutor teams and premium experiences",
+        description: "Build a language school, not just a side hustle",
         features: [
           "Everything in Growth",
           "Group sessions & workshops",
-          "Shared resource marketplace access",
-          "Executive dashboard + revenue forecasts",
+          "Shared resource library access",
+          "Executive dashboard with forecasting",
           "Team seats with role-based permissions",
         ],
         cta: "Talk to sales",
@@ -231,25 +231,25 @@ export const landingCopy = {
   },
 
   comparison: {
-    headline: "Why tutors graduate from marketplaces to TutorLingua",
+    headline: "The natural next step in your tutoring journey",
     caption:
-      "On $1,500/month revenue, marketplaces take $225–$450. TutorLingua costs a flat $29–$129 with far more control and automation.",
+      "Marketplaces are a great place to find your first students. TutorLingua is where you build a thriving independent business. Many tutors use both—marketplaces for discovery, TutorLingua for everything else.",
     columns: [
       { label: "", marketplace: "", platform: "" },
-      { label: "Commission", marketplace: "15-30%", platform: "0%" },
-      { label: "Own Branding + Site", marketplace: "Limited", platform: "✅" },
-      { label: "Student Ownership", marketplace: "Students belong to the platform", platform: "Data stays with you" },
-      { label: "Automations", marketplace: "Basic", platform: "Full admin + AI" },
-      { label: "Parent Reporting", marketplace: "Manual", platform: "Automated summaries" },
-      { label: "Monthly Cost", marketplace: '"Free" + fees', platform: "$29-129" },
+      { label: "Commission on earnings", marketplace: "15-30%", platform: "0%" },
+      { label: "Your own branded website", marketplace: "Limited profile", platform: "✅ Full site" },
+      { label: "Student relationships", marketplace: "Shared with platform", platform: "All yours" },
+      { label: "Automation & AI tools", marketplace: "Basic features", platform: "Comprehensive" },
+      { label: "Parent communication", marketplace: "Manual", platform: "Automated" },
+      { label: "Monthly investment", marketplace: '"Free" + ongoing fees', platform: "$29-129 flat" },
     ],
   },
 
   testimonials: {
-    headline: "Loved by tutors in 40+ countries",
+    headline: "Real tutors, real results",
     featured: {
       quote:
-        "Preply was taking $700+ a month in commissions. With TutorLingua I pay $59 and keep the rest, plus parents rave about the automatic updates.",
+        "I was paying Preply $700+ every month in commissions. Now I pay TutorLingua $59 and keep the rest—that's over $7,500 saved this year. Plus, parents love the automatic progress updates and my business feels so much more professional.",
       author: "Sara Martínez",
       role: "Spanish Tutor, 38 students",
       image: "/testimonials/sara.jpg",
@@ -257,19 +257,19 @@ export const landingCopy = {
     list: [
       {
         quote:
-          "The lead hub + WhatsApp templates revived so many cold leads. I booked 12 trial lessons in a week without touching a spreadsheet.",
+          "The lead tools brought my Instagram followers to life. I booked 12 trial lessons in one week using the automated follow-ups—all without a single spreadsheet.",
         author: "Chen Wei",
         role: "Mandarin Tutor",
       },
       {
         quote:
-          "AI lesson plans + conversation partner save me at least five hours every week. I finally have breathing room to grow.",
+          "The AI lesson planner and conversation partner save me at least 5 hours every week. I finally have time to actually grow my business instead of just running it.",
         author: "Amélie Dubois",
         role: "French Tutor",
       },
       {
         quote:
-          "Parents LOVE the credibility page. Payments arrive before class, and every lesson summary goes out automatically.",
+          "My credibility page has been a game-changer for parent trust. Payments come in before every class, and lesson summaries go out automatically. I look like I have a full team behind me.",
         author: "Marcus Johnson",
         role: "English Tutor",
       },
@@ -277,47 +277,47 @@ export const landingCopy = {
   },
 
   faq: {
-    headline: "Questions tutors ask before switching",
+    headline: "Everything you're wondering about",
     items: [
       {
-        question: "Can I use TutorLingua alongside marketplaces?",
+        question: "Can I use TutorLingua alongside marketplaces like Preply?",
         answer:
-          "Absolutely. Keep your marketplace profile for discovery, but route direct students through TutorLingua to eliminate fees and automate admin.",
+          "Absolutely! Many tutors keep their marketplace profiles for finding new students, then use TutorLingua to manage regular students, handle bookings, and save on commissions. It's the best of both worlds.",
       },
       {
-        question: "How long does setup take?",
+        question: "What if I'm not technical? Is this easy to use?",
         answer:
-          "Most tutors publish their site, services, and availability in under 15 minutes. We provide templates, import your testimonials, and walk you through everything.",
+          "If you can use Instagram and Google Docs, you can use TutorLingua. Most tutors have their site live in under 15 minutes using our templates. And if you get stuck, our support team is here to help.",
       },
       {
-        question: "Do my students need to be tech-savvy?",
+        question: "How quickly can I get started?",
         answer:
-          "If they can shop online, they can book lessons. Pick a time, pay, and the Zoom link arrives instantly. Reminders keep them on track.",
+          "Really quickly! Most tutors publish their site, add their services, and start accepting bookings in under 15 minutes. We provide templates, helpful guides, and everything you need to get up and running.",
       },
       {
-        question: "How does AI fit into teaching?",
+        question: "Will my students find it easy to book lessons?",
         answer:
-          "TutorLingua’s AI assistant helps with lesson plans, conversation practice, vocab drills, parent updates, and marketing copy. You’re always in control and can edit anything.",
+          "Yes. If your students can shop online, they can book with you. They pick a time, pay securely, and get their Zoom link instantly. Automatic reminders help them show up on time, too.",
       },
       {
-        question: "Is my data secure?",
+        question: "How does the AI actually help with teaching?",
         answer:
-          "Yes. You own your student data, can export anytime, and we follow strict privacy and security practices (see our Security Playbook).",
+          "Our AI tools help you create lesson plans, generate homework, build vocabulary exercises, write parent updates, and even provide 24/7 conversation practice for your students. You're always in control and can customize everything.",
       },
       {
-        question: "What support do I get?",
+        question: "What if I want to leave? Is my data stuck here?",
         answer:
-          "Email support on Professional, priority support on Growth, and a dedicated success manager for Studio. Plus tutorials, templates, and community office hours.",
+          "Not at all. Your data always belongs to you. You can export all your student information, lesson notes, and invoices anytime. No lock-in, no questions asked.",
       },
     ],
   },
 
   finalCTA: {
-    headline: "Stop leaking revenue to platform fees.",
-    subheadline: "Build your independent tutoring business with TutorLingua in under 15 minutes.",
+    headline: "Ready to build your independent tutoring business?",
+    subheadline: "Join thousands of tutors who've made the move. Set up your TutorLingua site in under 15 minutes and start keeping more of what you earn.",
     calculatorLabel: "Your current monthly revenue:",
-    button: "Start your free account",
-    finePrint: "14 days free. No credit card. Cancel anytime.",
+    button: "Start free—no credit card needed",
+    finePrint: "14 days free. No credit card required. Cancel anytime.",
     trustBadges: ["Stripe Verified", "GDPR Compliant", "SOC 2 Ready"],
   },
 

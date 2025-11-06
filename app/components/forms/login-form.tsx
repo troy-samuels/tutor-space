@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { signIn, signInWithOAuth, type AuthActionState } from "@/lib/actions/auth";
 
 const initialState: AuthActionState = { error: undefined, success: undefined };
@@ -13,12 +14,15 @@ export function LoginForm() {
     initialState
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [isOauthPending, startOauthTransition] = useTransition();
+  const t = useTranslations("auth");
+  const common = useTranslations("common");
 
   return (
     <form action={formAction} className="space-y-6">
       <div className="space-y-2">
         <label htmlFor="email" className="block text-sm font-medium text-foreground">
-          Email address
+          {t("emailLabel")}
         </label>
         <input
           id="email"
@@ -26,13 +30,14 @@ export function LoginForm() {
           type="email"
           required
           className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
+          autoComplete="email"
         />
       </div>
 
       <div className="space-y-2">
         <label htmlFor="password" className="block text-sm font-medium text-foreground">
-          Password
+          {t("passwordLabel")}
         </label>
         <div className="relative">
           <input
@@ -42,19 +47,20 @@ export function LoginForm() {
             required
             minLength={6}
             className="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            autoComplete="current-password"
           />
           <button
             type="button"
             className="absolute inset-y-0 right-2 inline-flex items-center text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
         <div className="text-right">
           <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-            Forgot password?
+            {t("forgotPassword")}
           </Link>
         </div>
       </div>
@@ -76,7 +82,7 @@ export function LoginForm() {
         className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
         disabled={isPending}
       >
-        {isPending ? "Signing in..." : "Log in"}
+        {isPending ? t("signingIn") : common("login")}
       </button>
 
       <div className="space-y-3">
@@ -86,15 +92,20 @@ export function LoginForm() {
           </div>
           <div className="relative flex justify-center">
             <span className="bg-background px-2 text-xs uppercase text-muted-foreground">
-              Or continue with
+              {t("orContinue")}
             </span>
           </div>
         </div>
         <button
-          type="submit"
-          formAction={signInWithOAuth.bind(null, "google")}
-          aria-label="Continue with Google"
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background text-sm font-semibold text-foreground transition hover:bg-muted"
+          type="button"
+          onClick={() => {
+            startOauthTransition(async () => {
+              await signInWithOAuth("google");
+            });
+          }}
+          aria-label={t("signInWith", { provider: "Google" })}
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isOauthPending}
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -114,14 +125,14 @@ export function LoginForm() {
               fill="#EA4335"
             />
           </svg>
-          <span>Google</span>
+          <span>{t("signInWith", { provider: "Google" })}</span>
         </button>
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {t("noAccountCta")}{" "}
         <Link href="/signup" className="font-semibold text-primary hover:underline">
-          Create one
+          {t("createOne")}
         </Link>
       </p>
     </form>

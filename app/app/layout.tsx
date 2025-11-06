@@ -4,6 +4,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import { defaultLocale, locales } from "@/lib/i18n/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -83,7 +85,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+  const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value ?? defaultLocale;
+  const locale = (locales as readonly string[]).includes(cookieLocale)
+    ? cookieLocale
+    : defaultLocale;
 
   let messages;
   try {
@@ -98,7 +103,10 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <LocaleSwitcher />
+            {children}
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

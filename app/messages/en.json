@@ -20,7 +20,8 @@
     "password": "Password",
     "name": "Name",
     "phone": "Phone",
-    "message": "Message"
+    "message": "Message",
+    "language": "Language"
   },
   "navigation": {
     "home": "Home",
@@ -39,12 +40,24 @@
     "signupTitle": "Request Access",
     "emailPlaceholder": "Enter your email",
     "passwordPlaceholder": "Enter your password",
+    "brandTitle": "TutorLingua",
+    "dashboardSubtitle": "Log in to your tutor dashboard",
+    "studentAccessQuestion": "Need student access?",
+    "studentLoginLink": "Student login",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password",
     "loginButton": "Log In",
     "signupButton": "Request Access",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "forgotPassword": "Forgot password?",
-    "signInWith": "Sign in with {provider}"
+    "signInWith": "Sign in with {provider}",
+    "signingIn": "Signing in...",
+    "orContinue": "Or continue with",
+    "noAccountCta": "Don't have an account?",
+    "createOne": "Create one"
   },
   "booking": {
     "title": "Book a lesson with {tutorName}",
