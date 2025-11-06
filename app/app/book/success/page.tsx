@@ -1,0 +1,385 @@
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
+import Link from "next/link";
+
+interface SuccessPageProps {
+  searchParams: Promise<{
+    session_id?: string;
+    booking_id?: string;
+  }>;
+}
+
+type TutorProfileInfo = {
+  full_name: string | null;
+  email: string | null;
+  timezone: string | null;
+  payment_instructions: string | null;
+  venmo_handle: string | null;
+  paypal_email: string | null;
+  zelle_phone: string | null;
+  stripe_payment_link: string | null;
+  custom_payment_url: string | null;
+  custom_video_name: string | null;
+} | null;
+
+type BookingSuccessRecord = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  timezone: string;
+  status: string | null;
+  payment_status: string | null;
+  payment_amount: number | null;
+  currency: string | null;
+  tutor_id: string;
+  student_id: string | null;
+  meeting_url: string | null;
+  meeting_provider: string | null;
+  students: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+  services: {
+    name: string | null;
+  } | null;
+  profiles: TutorProfileInfo | TutorProfileInfo[] | null;
+};
+
+export default async function BookingSuccessPage({ searchParams }: SuccessPageProps) {
+  const { booking_id } = await searchParams;
+
+  if (!booking_id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold mb-4">Booking Not Found</h1>
+          <p className="text-gray-600">
+            We couldn&apos;t find your booking information. Please check your email for confirmation.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const adminClient = createServiceRoleClient();
+
+  if (!adminClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold mb-4">Service Unavailable</h1>
+          <p className="text-gray-600">
+            Please check your email for booking confirmation.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Get booking details with tutor payment info
+  const { data: bookingData } = await adminClient
+    .from("bookings")
+    .select(`
+      id,
+      scheduled_at,
+      duration_minutes,
+      timezone,
+      status,
+      payment_status,
+      payment_amount,
+      currency,
+      tutor_id,
+      student_id,
+      students (
+        full_name,
+        email
+      ),
+      services (
+        name
+      ),
+      profiles!bookings_tutor_id_fkey (
+        full_name,
+        email,
+        timezone,
+        payment_instructions,
+        venmo_handle,
+        paypal_email,
+        zelle_phone,
+        stripe_payment_link,
+        custom_payment_url,
+        custom_video_name
+      )
+    `)
+    .eq("id", booking_id)
+    .single();
+
+  const booking = (bookingData ?? null) as BookingSuccessRecord | null;
+
+  // Also get meeting_url and meeting_provider from booking
+  const meetingUrl = booking?.meeting_url ?? null;
+  const meetingProvider = booking?.meeting_provider ?? null;
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold mb-4">Booking Not Found</h1>
+          <p className="text-gray-600">
+            Please check your email for confirmation details.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const tutorProfile = Array.isArray(booking.profiles)
+    ? booking.profiles[0] ?? null
+    : booking.profiles;
+
+  const zonedStart = toZonedTime(
+    new Date(booking.scheduled_at),
+    booking.timezone
+  );
+  const zonedEnd = new Date(zonedStart.getTime() + booking.duration_minutes * 60000);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+      <div className="max-w-2xl w-full">
+        <div className="bg-white rounded-lg border border-gray-200 p-8 md:p-12 text-center">
+          {/* Success Icon */}
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Booking Request Received!
+          </h1>
+
+          <p className="text-gray-600 mb-8">
+            Your booking request has been submitted. You&apos;ll receive a confirmation email at{" "}
+            <strong>{booking.students?.email}</strong> with payment instructions.
+          </p>
+
+          {/* Booking Details */}
+          <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
+            <h2 className="font-semibold text-lg mb-4">Booking Details</h2>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tutor:</span>
+                <span className="font-medium">{tutorProfile?.full_name}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Service:</span>
+                <span className="font-medium">{booking.services?.name}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Student:</span>
+                <span className="font-medium">{booking.students?.full_name}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Date:</span>
+                <span className="font-medium">
+                  {format(zonedStart, "EEEE, MMMM d, yyyy")}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Time:</span>
+                <span className="font-medium">
+                  {format(zonedStart, "h:mm a")} - {format(zonedEnd, "h:mm a")}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Timezone:</span>
+                <span className="font-medium">{booking.timezone}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Duration:</span>
+                <span className="font-medium">{booking.duration_minutes} minutes</span>
+              </div>
+
+              {booking.payment_amount && (
+                <div className="flex justify-between pt-3 border-t border-gray-200">
+                  <span className="text-gray-600">Lesson Price:</span>
+                  <span className="font-bold">
+                    {booking.currency?.toUpperCase()} {booking.payment_amount}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Meeting Link */}
+          {meetingUrl && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-blue-900 mb-3">🎥 Join Your Lesson</h3>
+              <p className="text-sm text-blue-800 mb-4">
+                Your lesson will take place on {
+                  meetingProvider === "zoom_personal" ? "Zoom" :
+                  meetingProvider === "google_meet" ? "Google Meet" :
+                  meetingProvider === "custom" ? (tutorProfile?.custom_video_name || "Video Platform") :
+                  "Video Call"
+                }
+              </p>
+              <a
+                href={meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+                Join Meeting
+              </a>
+              <p className="text-xs text-blue-600 mt-3 break-all">{meetingUrl}</p>
+            </div>
+          )}
+
+          {/* Payment Instructions */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8 text-left">
+            <h3 className="font-semibold text-yellow-900 mb-3">💳 Payment Instructions</h3>
+
+            {tutorProfile?.payment_instructions ||
+             tutorProfile?.venmo_handle ||
+             tutorProfile?.paypal_email ||
+             tutorProfile?.zelle_phone ||
+             tutorProfile?.stripe_payment_link ||
+             tutorProfile?.custom_payment_url ? (
+              <div className="space-y-3 text-sm">
+                {tutorProfile?.payment_instructions && (
+                  <div className="text-yellow-800 mb-3 pb-3 border-b border-yellow-200">
+                    <p className="whitespace-pre-line">{tutorProfile?.payment_instructions}</p>
+                  </div>
+                )}
+
+                {tutorProfile?.venmo_handle && (
+                  <div>
+                    <span className="text-yellow-700 font-medium">Venmo: </span>
+                    <span className="text-yellow-900">@{tutorProfile?.venmo_handle}</span>
+                  </div>
+                )}
+
+                {tutorProfile?.paypal_email && (
+                  <div>
+                    <span className="text-yellow-700 font-medium">PayPal: </span>
+                    <a
+                      href={`https://paypal.me/${tutorProfile?.paypal_email}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {tutorProfile?.paypal_email}
+                    </a>
+                  </div>
+                )}
+
+                {tutorProfile?.zelle_phone && (
+                  <div>
+                    <span className="text-yellow-700 font-medium">Zelle: </span>
+                    <span className="text-yellow-900">{tutorProfile?.zelle_phone}</span>
+                  </div>
+                )}
+
+                {tutorProfile?.stripe_payment_link && (
+                  <div>
+                    <a
+                      href={tutorProfile?.stripe_payment_link ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Pay via Stripe →
+                    </a>
+                  </div>
+                )}
+
+                {tutorProfile?.custom_payment_url && (
+                  <div>
+                    <a
+                      href={tutorProfile?.custom_payment_url ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Pay Now →
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-yellow-800">
+                Your tutor will send you payment instructions via email shortly.
+                Please check <strong>{booking.students?.email}</strong> for details.
+              </p>
+            )}
+          </div>
+
+          {/* Next Steps */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
+            <h3 className="font-semibold text-blue-900 mb-3">What&apos;s Next?</h3>
+            <ul className="text-sm text-blue-800 space-y-2">
+              <li className="flex gap-2">
+                <span>1.</span>
+                <span><strong>Complete payment</strong> using the instructions above</span>
+              </li>
+              <li className="flex gap-2">
+                <span>2.</span>
+                <span>Check your email for confirmation and meeting details</span>
+              </li>
+              <li className="flex gap-2">
+                <span>3.</span>
+                <span>Your tutor will confirm once payment is received</span>
+              </li>
+              <li className="flex gap-2">
+                <span>4.</span>
+                <span>You&apos;ll receive a reminder 24 hours before your lesson</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Action Button */}
+          <Link
+            href="/"
+            className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Back to Home
+          </Link>
+
+          <p className="text-xs text-gray-500 mt-6">
+            Booking ID: {booking.id}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

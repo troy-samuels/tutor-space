@@ -1,0 +1,84 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Borrar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "confirm": "Confirme",
+    "back": "Volver",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "error": "Se ha producido un error",
+    "success": "¡Éxito!",
+    "welcome": "Bienvenido",
+    "logout": "Cerrar sesión",
+    "login": "Conectarse",
+    "signup": "Inscríbete",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "phone": "Teléfono",
+    "message": "Mensaje"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "dashboard": "Cuadro de mandos",
+    "students": "Estudiantes",
+    "accessRequests": "Solicitudes de acceso",
+    "services": "Servicios",
+    "availability": "Disponibilidad",
+    "bookings": "Reservas",
+    "analytics": "Analítica",
+    "settings": "Ajustes",
+    "profile": "Perfil"
+  },
+  "auth": {
+    "loginTitle": "Acceso de estudiantes",
+    "signupTitle": "Solicitar acceso",
+    "emailPlaceholder": "Introduzca su dirección de correo electrónico",
+    "passwordPlaceholder": "Introduzca su contraseña",
+    "loginButton": "Iniciar sesión",
+    "signupButton": "Solicitar acceso",
+    "noAccount": "¿No tiene cuenta?",
+    "hasAccount": "¿Ya tiene una cuenta?",
+    "forgotPassword": "¿Ha olvidado su contraseña?",
+    "signInWith": "Iniciar sesión con {proveedor}"
+  },
+  "booking": {
+    "title": "Reserve una clase con {tutorName}",
+    "selectService": "Seleccione un servicio",
+    "availableTimes": "Horarios disponibles",
+    "duration": "Duración",
+    "price": "Precio",
+    "bookNow": "Reserve ahora",
+    "noAvailability": "Sin disponibilidad en los próximos 14 días",
+    "contactDirectly": "Póngase en contacto con {tutorName} directamente para programar una clase"
+  },
+  "accessRequest": {
+    "pending": "Solicitud de acceso pendiente",
+    "approved": "Aprobado el acceso al calendario",
+    "denied": "Solicitud de acceso denegada",
+    "suspended": "Acceso temporalmente suspendido",
+    "pendingMessage": "Su solicitud para reservar clases con {tutorName} está siendo revisada. Recibirás un correo electrónico una vez aprobada.",
+    "approvedMessage": "¡Buenas noticias! {tutorName} ha aprobado tu solicitud para acceder a su calendario de reservas.",
+    "deniedMessage": "Lamentablemente, {tutorName} no puede aceptar su solicitud de reserva en este momento.",
+    "requestAccess": "Solicitar acceso al calendario",
+    "signInToBook": "Iniciar sesión para reservar clases"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido de nuevo",
+    "overview": "Visión general",
+    "todaysLessons": "Lecciones de hoy",
+    "upcomingBookings": "Próximas reservas",
+    "recentActivity": "Actividad reciente",
+    "pendingRequests": "Solicitudes de acceso pendientes",
+    "stats": {
+      "totalStudents": "Total Estudiantes",
+      "thisWeek": "Esta semana",
+      "thisMonth": "Este mes",
+      "revenue": "Ingresos"
+    }
+  }
+}

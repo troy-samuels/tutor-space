@@ -1,0 +1,84 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "error": "An error occurred",
+    "success": "Success!",
+    "welcome": "Welcome",
+    "logout": "Log out",
+    "login": "Log in",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "phone": "Phone",
+    "message": "Message"
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "accessRequests": "Access Requests",
+    "services": "Services",
+    "availability": "Availability",
+    "bookings": "Bookings",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "auth": {
+    "loginTitle": "Student Login",
+    "signupTitle": "Request Access",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "loginButton": "Log In",
+    "signupButton": "Request Access",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "forgotPassword": "Forgot password?",
+    "signInWith": "Sign in with {provider}"
+  },
+  "booking": {
+    "title": "Book a lesson with {tutorName}",
+    "selectService": "Select a Service",
+    "availableTimes": "Available Times",
+    "duration": "Duration",
+    "price": "Price",
+    "bookNow": "Book Now",
+    "noAvailability": "No availability in the next 14 days",
+    "contactDirectly": "Please contact {tutorName} directly to schedule a lesson"
+  },
+  "accessRequest": {
+    "pending": "Access Request Pending",
+    "approved": "Calendar Access Approved!",
+    "denied": "Access Request Denied",
+    "suspended": "Access Temporarily Suspended",
+    "pendingMessage": "Your request to book lessons with {tutorName} is under review. You'll receive an email once approved.",
+    "approvedMessage": "Great news! {tutorName} has approved your request to access their booking calendar.",
+    "deniedMessage": "Unfortunately, {tutorName} is unable to accept your booking request at this time.",
+    "requestAccess": "Request Calendar Access",
+    "signInToBook": "Sign in to Book Lessons"
+  },
+  "dashboard": {
+    "welcome": "Welcome back{name}",
+    "overview": "Overview",
+    "todaysLessons": "Today's Lessons",
+    "upcomingBookings": "Upcoming Bookings",
+    "recentActivity": "Recent Activity",
+    "pendingRequests": "Pending Access Requests",
+    "stats": {
+      "totalStudents": "Total Students",
+      "thisWeek": "This Week",
+      "thisMonth": "This Month",
+      "revenue": "Revenue"
+    }
+  }
+}

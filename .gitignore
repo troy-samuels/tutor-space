@@ -1,0 +1,21 @@
+# Environment
+.env*
+
+# Node / Next
+node_modules/
+app/.next/
+app/out/
+
+# TypeScript build info
+app/tsconfig.tsbuildinfo
+
+# Logs & coverage
+*.log
+app/coverage/
+
+# OS files
+.DS_Store
+
+# Supabase local config
+supabase/.branches
+supabase/.temp
