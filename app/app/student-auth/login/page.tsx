@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-import { StudentLoginForm } from "@/components/student-auth/StudentLoginForm";
 import Link from "next/link";
+import { StudentLoginForm } from "@/components/student-auth/StudentLoginForm";
 
 export const metadata: Metadata = {
   title: "Student Login | TutorLingua",
@@ -13,27 +13,24 @@ export default function StudentLoginPage({
   searchParams: Promise<{ tutor?: string; redirect?: string }>;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-cream via-brand-cream/40 to-white flex items-center justify-center px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-cream via-brand-cream/40 to-white px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
+        <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-brand-brown mb-2">
+            <h1 className="mb-2 text-3xl font-bold text-brand-brown">
               TutorLingua
             </h1>
           </Link>
           <p className="text-gray-600">Student Login</p>
         </div>
 
-        {/* Login Form Card */}
-        <div className="bg-white rounded-2xl border border-brand-brown/20 shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+        <div className="rounded-2xl border border-brand-brown/20 bg-white p-8 shadow-lg">
+          <h2 className="mb-6 text-2xl font-semibold text-gray-900">
             Welcome back
           </h2>
 
           <StudentLoginForm searchParams={searchParams} />
 
-          {/* Footer Links */}
           <div className="mt-6 text-center text-sm text-gray-600">
             <p>
               Don&apos;t have an account?{" "}
@@ -47,7 +44,6 @@ export default function StudentLoginPage({
           </div>
         </div>
 
-        {/* Help Text */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
             Are you a tutor?{" "}

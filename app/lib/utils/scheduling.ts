@@ -1,5 +1,5 @@
 import { addDays, startOfDay } from "date-fns";
-import { utcToZonedTime, zonedTimeToUtc, formatInTimeZone } from "date-fns-tz";
+import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import type { AvailabilitySlotInput } from "@/lib/validators/availability";
 
 export type GeneratedSlot = {
@@ -26,7 +26,7 @@ export function generateBookingSlots({
 
   for (let offset = 0; offset < days; offset += 1) {
     const dayStart = startOfDay(addDays(startDate, offset));
-    const zonedDate = utcToZonedTime(dayStart, timezone);
+    const zonedDate = toZonedTime(dayStart, timezone);
     const dayOfWeek = zonedDate.getDay();
 
     const daySlots = availability.filter(
@@ -42,8 +42,8 @@ export function generateBookingSlots({
       const endZoned = new Date(zonedDate);
       endZoned.setHours(endHours, endMinutes, 0, 0);
 
-      const startUtc = zonedTimeToUtc(startZoned, timezone).toISOString();
-      const endUtc = zonedTimeToUtc(endZoned, timezone).toISOString();
+      const startUtc = fromZonedTime(startZoned, timezone).toISOString();
+      const endUtc = fromZonedTime(endZoned, timezone).toISOString();
 
       results.push({
         start: startUtc,

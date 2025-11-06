@@ -44,8 +44,14 @@ function createSupabaseClient(request: NextRequest, response: NextResponse) {
 }
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // Handle Supabase session
+  const response = await updateSession(request);
 
   if (!routeMatches(pathname, PROTECTED_ROUTES)) {
     return response;
@@ -91,6 +97,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
