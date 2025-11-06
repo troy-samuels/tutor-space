@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 import { cn } from "@/lib/utils";
 
-export function PricingSection() {
-  const { pricing } = landingCopy;
+type PricingSectionProps = {
+  pricing: LandingCopy["pricing"];
+};
+
+export function PricingSection({ pricing }: PricingSectionProps) {
 
   return (
     <section id="pricing" className="bg-brand-white py-20 sm:py-24">
@@ -17,7 +20,10 @@ export function PricingSection() {
 
         {/* Pricing cards */}
         <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-3">
-          {pricing.tiers.map((tier) => (
+          {pricing.tiers.map((tier) => {
+            const isContactCta = tier.name === "Studio";
+
+            return (
             <div
               key={tier.name}
               className={cn(
@@ -110,7 +116,7 @@ export function PricingSection() {
 
               {/* CTA */}
               <Link
-                href={tier.cta === "Contact Sales" ? "/contact" : "/signup"}
+                href={isContactCta ? "/contact" : "/signup"}
                 className={cn(
                   "mt-8 block rounded-md px-6 py-3 text-center text-base font-semibold shadow-sm transition-all",
                   tier.highlighted
@@ -121,7 +127,8 @@ export function PricingSection() {
                 {tier.cta}
               </Link>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Comparison note */}

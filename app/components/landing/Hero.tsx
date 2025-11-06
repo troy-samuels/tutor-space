@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 
-export function Hero() {
-  const { hero, socialProof } = landingCopy;
+type HeroProps = {
+  hero: LandingCopy["hero"];
+  socialProof: LandingCopy["socialProof"];
+};
+
+export function Hero({ hero, socialProof }: HeroProps) {
 
   return (
     <section className="relative overflow-hidden bg-brand-white py-20 sm:py-32">

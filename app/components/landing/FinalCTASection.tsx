@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 
-export function FinalCTASection() {
-  const { finalCTA } = landingCopy;
+type FinalCTASectionProps = {
+  finalCTA: LandingCopy["finalCTA"];
+};
+
+export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
   const [revenue, setRevenue] = useState(2000);
 
   // Calculate savings
@@ -42,7 +45,7 @@ export function FinalCTASection() {
               <span className="text-4xl font-bold text-brand-brown">
                 ${revenue.toLocaleString()}
               </span>
-              <span className="text-gray-600 ml-2">/month</span>
+              <span className="text-gray-600 ml-2">{finalCTA.calculatorUnit}</span>
             </div>
 
             {/* Slider */}
@@ -58,30 +61,30 @@ export function FinalCTASection() {
             />
 
             <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>$500</span>
-              <span>$10,000</span>
+              <span>{finalCTA.rangeMinLabel}</span>
+              <span>{finalCTA.rangeMaxLabel}</span>
             </div>
 
             {/* Calculation breakdown */}
             <div className="mt-8 space-y-3 border-t border-gray-200 pt-6">
               <div className="flex justify-between text-gray-700">
-                <span>Marketplace Commission (avg 25%):</span>
+                <span>{finalCTA.commissionLabel}</span>
                 <span className="font-medium text-red-600">
                   -${marketplaceFees.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between text-gray-700">
-                <span>Our Platform Cost:</span>
+                <span>{finalCTA.platformCostLabel}</span>
                 <span className="font-medium">-${platformCost}</span>
               </div>
               <div className="flex justify-between text-xl font-bold border-t border-gray-200 pt-3">
-                <span className="text-brand-black">Monthly Savings:</span>
+                <span className="text-brand-black">{finalCTA.monthlySavingsLabel}</span>
                 <span className="text-brand-brown">
                   +${monthlySavings.toLocaleString()}
                 </span>
               </div>
               <div className="text-center mt-4 p-4 bg-brand-cream rounded-lg">
-                <div className="text-sm text-gray-600">Annual Savings</div>
+                <div className="text-sm text-gray-600">{finalCTA.annualSavingsLabel}</div>
                 <div className="text-3xl font-bold text-brand-brown mt-1">
                   ${annualSavings.toLocaleString()}
                 </div>

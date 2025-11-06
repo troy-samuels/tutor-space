@@ -21,8 +21,8 @@ export async function signUp(
 
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = (formData.get("password") as string) ?? "";
-  const confirmPassword = (formData.get("confirm_password") as string) ?? "";
   const fullName = (formData.get("full_name") as string)?.trim();
+  const username = (formData.get("username") as string)?.trim().toLowerCase();
   const role = (formData.get("role") as string) || "tutor";
   const plan = (formData.get("plan") as string) || "professional";
 
@@ -30,8 +30,16 @@ export async function signUp(
     return { error: "Please enter an email address." };
   }
 
-  if (password !== confirmPassword) {
-    return { error: "Passwords do not match." };
+  if (!username) {
+    return { error: "Please choose a username." };
+  }
+
+  const usernamePattern = /^[a-z0-9-]{3,32}$/;
+  if (!usernamePattern.test(username)) {
+    return {
+      error:
+        "Usernames must be 3-32 characters and can only include lowercase letters, numbers, or dashes.",
+    };
   }
 
   const adminClient = createServiceRoleClient();
@@ -100,6 +108,7 @@ export async function signUp(
     options: {
       data: {
         full_name: fullName,
+        username,
         role,
         plan,
       },

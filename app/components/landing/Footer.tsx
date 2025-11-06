@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 
-export function Footer() {
-  const { footer } = landingCopy;
+type FooterProps = {
+  footer: LandingCopy["footer"];
+};
+
+export function Footer({ footer }: FooterProps) {
 
   return (
     <footer className="bg-brand-black text-brand-white">

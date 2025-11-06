@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "next-intl/server";
+import { getLandingCopy } from "@/lib/constants/landing-copy";
 import { Navigation } from "@/components/landing/Navigation";
 import { Hero } from "@/components/landing/Hero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
@@ -22,19 +24,22 @@ export default async function LandingPage() {
     redirect("/dashboard");
   }
 
+  const locale = await getLocale();
+  const copy = getLandingCopy(locale);
+
   return (
     <div className="min-h-screen bg-brand-white">
-      <Navigation />
-      <Hero />
-      <ProblemSection />
-      <SolutionSection />
-      <HowItWorks />
-      <PricingSection />
-      <ComparisonSection />
-      <TestimonialsSection />
-      <FAQSection />
-      <FinalCTASection />
-      <Footer />
+      <Navigation navigation={copy.navigation} />
+      <Hero hero={copy.hero} socialProof={copy.socialProof} />
+      <ProblemSection problems={copy.problems} />
+      <SolutionSection solution={copy.solution} />
+      <HowItWorks howItWorks={copy.howItWorks} />
+      <PricingSection pricing={copy.pricing} />
+      <ComparisonSection comparison={copy.comparison} />
+      <TestimonialsSection testimonials={copy.testimonials} />
+      <FAQSection faq={copy.faq} />
+      <FinalCTASection finalCTA={copy.finalCTA} />
+      <Footer footer={copy.footer} />
     </div>
   );
 }

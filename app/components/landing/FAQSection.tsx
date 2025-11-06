@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 import { cn } from "@/lib/utils";
 
-export function FAQSection() {
-  const { faq } = landingCopy;
+type FAQSectionProps = {
+  faq: LandingCopy["faq"];
+};
+
+export function FAQSection({ faq }: FAQSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (

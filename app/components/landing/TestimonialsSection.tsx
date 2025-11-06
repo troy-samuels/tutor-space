@@ -1,7 +1,10 @@
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 
-export function TestimonialsSection() {
-  const { testimonials } = landingCopy;
+type TestimonialsSectionProps = {
+  testimonials: LandingCopy["testimonials"];
+};
+
+export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) {
 
   return (
     <section id="testimonials" className="bg-brand-cream py-20 sm:py-24">

@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 import { AuthButton } from "@/components/auth/auth-button";
 import { MobileMenu } from "@/components/navigation/MobileMenu";
 import { MobileMenuButton } from "@/components/navigation/MobileMenuButton";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
-export function Navigation() {
-  const { navigation } = landingCopy;
+type NavigationProps = {
+  navigation: LandingCopy["navigation"];
+};
+
+export function Navigation({ navigation }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (

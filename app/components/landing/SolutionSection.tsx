@@ -1,4 +1,4 @@
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 import {
   Globe,
   Calendar,
@@ -18,8 +18,11 @@ const iconMap: Record<string, LucideIcon> = {
   CheckCircle,
 };
 
-export function SolutionSection() {
-  const { solution } = landingCopy;
+type SolutionSectionProps = {
+  solution: LandingCopy["solution"];
+};
+
+export function SolutionSection({ solution }: SolutionSectionProps) {
 
   return (
     <section id="features" className="bg-brand-white py-20 sm:py-24">
@@ -34,7 +37,7 @@ export function SolutionSection() {
         <div className="mx-auto mt-16 max-w-7xl">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {solution.features.map((feature, index) => {
-              const Icon = iconMap[feature.icon];
+              const Icon = iconMap[feature.icon] ?? Globe;
 
               return (
                 <div

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 import { UserPlus, Settings, Share2, LucideIcon } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -8,8 +8,11 @@ const iconMap: Record<string, LucideIcon> = {
   Share2,
 };
 
-export function HowItWorks() {
-  const { howItWorks } = landingCopy;
+type HowItWorksProps = {
+  howItWorks: LandingCopy["howItWorks"];
+};
+
+export function HowItWorks({ howItWorks }: HowItWorksProps) {
 
   return (
     <section id="how-it-works" className="bg-brand-cream py-20 sm:py-24">
@@ -23,7 +26,7 @@ export function HowItWorks() {
         <div className="mx-auto mt-16 max-w-5xl">
           <div className="space-y-12">
             {howItWorks.steps.map((step, index) => {
-              const Icon = iconMap[step.icon];
+              const Icon = iconMap[step.icon] ?? UserPlus;
 
               return (
                 <div

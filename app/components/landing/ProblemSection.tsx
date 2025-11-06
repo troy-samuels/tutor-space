@@ -1,4 +1,4 @@
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 import { TrendingDown, Layers, Clock, LucideIcon } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -7,8 +7,11 @@ const iconMap: Record<string, LucideIcon> = {
   Clock,
 };
 
-export function ProblemSection() {
-  const { problems } = landingCopy;
+type ProblemSectionProps = {
+  problems: LandingCopy["problems"];
+};
+
+export function ProblemSection({ problems }: ProblemSectionProps) {
 
   return (
     <section className="bg-brand-cream py-20 sm:py-24">
@@ -22,7 +25,7 @@ export function ProblemSection() {
         <div className="mx-auto mt-16 max-w-7xl">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {problems.items.map((problem, index) => {
-              const Icon = iconMap[problem.icon];
+              const Icon = iconMap[problem.icon] ?? TrendingDown;
 
               return (
                 <div

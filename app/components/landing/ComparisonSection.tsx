@@ -1,7 +1,10 @@
-import { landingCopy } from "@/lib/constants/landing-copy";
+import type { LandingCopy } from "@/lib/constants/landing-copy";
 
-export function ComparisonSection() {
-  const { comparison } = landingCopy;
+type ComparisonSectionProps = {
+  comparison: LandingCopy["comparison"];
+};
+
+export function ComparisonSection({ comparison }: ComparisonSectionProps) {
 
   return (
     <section className="bg-brand-cream py-20 sm:py-24">
@@ -18,13 +21,13 @@ export function ComparisonSection() {
             <thead>
               <tr className="border-b border-gray-200 bg-brand-brown/5">
                 <th className="py-5 px-6 text-left text-base font-semibold text-brand-black">
-                  Feature
+                  {comparison.tableHeaders.feature}
                 </th>
                 <th className="py-5 px-6 text-center text-base font-semibold text-gray-600">
-                  Marketplaces
+                  {comparison.tableHeaders.marketplace}
                 </th>
                 <th className="py-5 px-6 text-center text-base font-semibold text-brand-brown">
-                  Our Platform
+                  {comparison.tableHeaders.platform}
                 </th>
               </tr>
             </thead>
