@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
-import { Instagram, Music4, Facebook, Twitter, CalendarDays, CheckCircle2 } from "lucide-react";
+import { Instagram, Mail, CalendarDays, CheckCircle2, Music4, Facebook, Twitter } from "lucide-react";
+import { generateCompleteProfileSchema } from "@/lib/utils/structured-data";
 
 type ProfileRecord = {
   id: string;
@@ -20,7 +21,12 @@ type ProfileRecord = {
   tiktok_handle: string | null;
   facebook_handle: string | null;
   x_handle: string | null;
+  email: string | null;
   created_at: string | null;
+  average_rating: number | null;
+  testimonial_count: number | null;
+  total_students: number | null;
+  total_lessons: number | null;
 };
 
 type ProfilePageParams = {
@@ -35,7 +41,7 @@ export async function generateMetadata({
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, tagline, bio, avatar_url, username")
+    .select("full_name, tagline, bio, avatar_url, username, languages_taught, average_rating, testimonial_count, total_students")
     .eq("username", params.username.toLowerCase())
     .single();
 
@@ -45,23 +51,63 @@ export async function generateMetadata({
     };
   }
 
-  const title = profile.full_name
-    ? `${profile.full_name} | TutorLingua`
-    : `${profile.username} | TutorLingua`;
+  // Extract languages
+  const languages = Array.isArray(profile.languages_taught)
+    ? profile.languages_taught
+    : profile.languages_taught
+      ?.split(",")
+      .map((lang: string) => lang.trim())
+      .filter(Boolean) ?? [];
+  
+  const languagesList = languages.join(", ") || "Language";
+  const primaryLanguage = languages[0] || "Language";
+
+  const title = `${profile.full_name || profile.username} - ${primaryLanguage} Tutor | TutorLingua`;
+  
+  const ratingText = profile.average_rating && profile.testimonial_count 
+    ? ` ${profile.average_rating.toFixed(1)}★ rating from ${profile.testimonial_count} students.`
+    : "";
+  
+  const studentsText = profile.total_students && profile.total_students > 0
+    ? ` Teaching ${profile.total_students}+ students.`
+    : "";
+
   const description =
     profile.tagline ??
-    profile.bio?.slice(0, 120)?.concat(profile.bio.length > 120 ? "…" : "") ??
-    "TutorLingua profile";
+    `${languagesList} tutor ${profile.full_name || profile.username}.${ratingText}${studentsText} Book lessons directly with no commission fees on TutorLingua.`;
 
   return {
     title,
     description,
+    keywords: [
+      profile.full_name || "",
+      ...languages.map((lang: string) => `${lang} tutor`),
+      ...languages.map((lang: string) => `learn ${lang}`),
+      ...languages.map((lang: string) => `${lang} lessons`),
+      params.username,
+      "online language tutor",
+      "private language lessons",
+    ].filter(Boolean),
+    alternates: {
+      canonical: `/profile/${profile.username ?? params.username}`,
+    },
     openGraph: {
-      title,
+      title: `${profile.full_name || profile.username} - ${languagesList} Tutor`,
       description,
       type: "profile",
-      url: `https://tutorlingua.co/@${profile.username ?? params.username}`,
-      images: profile.avatar_url ? [{ url: profile.avatar_url }] : undefined,
+      url: `https://tutorlingua.co/profile/${profile.username ?? params.username}`,
+      images: profile.avatar_url ? [{ 
+        url: profile.avatar_url,
+        width: 400,
+        height: 400,
+        alt: `${profile.full_name || profile.username} - ${primaryLanguage} Tutor Profile Picture`,
+      }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: `${profile.full_name || profile.username}`,
+      description: `${languagesList} tutor on TutorLingua${ratingText}`,
+      images: profile.avatar_url ? [profile.avatar_url] : undefined,
     },
   };
 }
@@ -98,6 +144,12 @@ const SOCIAL_LINKS = [
     label: "X",
     href: (handle: string) => `https://x.com/${handle.replace(/^@/, "")}`,
   },
+  {
+    key: "email",
+    icon: Mail,
+    label: "Email",
+    href: (email: string) => `mailto:${email}`,
+  },
 ] as const;
 
 export default async function PublicProfilePage({ params }: { params: ProfilePageParams }) {
@@ -106,7 +158,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, username, tagline, bio, languages_taught, timezone, website_url, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, created_at"
+      "id, full_name, username, tagline, bio, languages_taught, timezone, website_url, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email, created_at, average_rating, testimonial_count, total_students, total_lessons"
     )
     .eq("username", params.username.toLowerCase())
     .single<ProfileRecord>();
@@ -122,14 +174,53 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
       .map((lang) => lang.trim())
       .filter(Boolean) ?? [];
 
+  // Fetch tutor's services for structured data
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, name, description, duration_minutes, price, currency")
+    .eq("tutor_id", profile.id)
+    .eq("is_active", true)
+    .limit(10);
+
+  // TODO: Fetch approved testimonials when testimonials table is created
+  // For now, using empty array until testimonials feature is implemented
+  const testimonials: any[] = [];
+
+  // Generate comprehensive structured data
+  const structuredData = generateCompleteProfileSchema(
+    {
+      id: profile.id,
+      username: profile.username || params.username,
+      full_name: profile.full_name || "",
+      bio: profile.bio || "",
+      tagline: profile.tagline || undefined,
+      avatar_url: profile.avatar_url || undefined,
+      languages_taught: languages,
+      website_url: profile.website_url || undefined,
+      instagram_handle: profile.instagram_handle || undefined,
+      timezone: profile.timezone || undefined,
+      average_rating: profile.average_rating || undefined,
+      testimonial_count: profile.testimonial_count || undefined,
+      total_students: profile.total_students || undefined,
+      total_lessons: profile.total_lessons || undefined,
+    },
+    services || [],
+    testimonials
+  );
+
   const socials = SOCIAL_LINKS.map((social) => {
-    const handle = normaliseHandle(profile[social.key as keyof ProfileRecord] as string | null);
-    if (!handle) return null;
+    const value = profile[social.key as keyof ProfileRecord] as string | null;
+    if (!value) return null;
+    
+    // For Instagram, normalize the handle
+    const display = social.key === "instagram_handle" ? normaliseHandle(value) : value;
+    if (!display) return null;
+    
     return {
       label: social.label,
-      url: social.href(handle),
+      url: social.href(value),
       Icon: social.icon,
-      display: handle,
+      display: display,
     };
   }).filter(Boolean) as Array<{
     label: string;
@@ -146,6 +237,14 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-cream via-brand-cream/40 to-brand-white">
+      {/* Structured Data for SEO & LLMs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      
       <header className="border-b border-brand-brown/20 bg-white/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-6 sm:px-6">
           <Link

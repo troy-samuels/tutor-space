@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useActionState, useEffect, useMemo, useState } from "react";
-import { Instagram, Facebook, Twitter, Music4, Upload, CalendarClock, Minus, Plus } from "lucide-react";
+import { Instagram, Mail, Upload, CalendarClock, Minus, Plus, Music4, Facebook, Twitter } from "lucide-react";
 import type { ProfileFormValues } from "@/lib/validators/profile";
 import { updateProfile, type ProfileActionState } from "@/lib/actions/profile";
 
@@ -338,9 +338,9 @@ export function ProfileSettingsForm({
 
       <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Social proof & contact</h2>
+          <h2 className="text-lg font-semibold text-foreground">Contact & Social</h2>
           <p className="text-sm text-muted-foreground">
-            Add handles so prospective students can follow you on social media.
+            Connect your social media profiles so students can follow you and stay updated.
           </p>
         </div>
 
@@ -350,25 +350,38 @@ export function ProfileSettingsForm({
             label="Instagram"
             name="instagram_handle"
             defaultValue={mergedValues.instagram_handle}
+            placeholder="@yourhandle"
           />
           <SocialInput
             icon={<Music4 className="h-4 w-4 text-brand-brown" />}
             label="TikTok"
             name="tiktok_handle"
             defaultValue={mergedValues.tiktok_handle}
+            placeholder="@yourhandle"
           />
           <SocialInput
             icon={<Facebook className="h-4 w-4 text-brand-brown" />}
             label="Facebook"
             name="facebook_handle"
             defaultValue={mergedValues.facebook_handle}
+            placeholder="@yourhandle"
           />
           <SocialInput
             icon={<Twitter className="h-4 w-4 text-brand-brown" />}
             label="X (Twitter)"
             name="x_handle"
             defaultValue={mergedValues.x_handle}
+            placeholder="@yourhandle"
           />
+          <Field label="Contact email" htmlFor="contact_email" helper="Shown on your public profile">
+            <div className="flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{mergedValues.full_name ? `Contact via your profile` : 'Set after saving'}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Students can email you through your booking page automatically
+            </p>
+          </Field>
         </div>
       </section>
 
@@ -420,11 +433,13 @@ function SocialInput({
   label,
   name,
   defaultValue,
+  placeholder,
 }: {
   icon: React.ReactNode;
   label: string;
   name: string;
   defaultValue?: string;
+  placeholder?: string;
 }) {
   return (
     <label className="flex flex-col gap-2 text-sm text-foreground">
@@ -435,7 +450,7 @@ function SocialInput({
       <input
         name={name}
         defaultValue={defaultValue}
-        placeholder="handle"
+        placeholder={placeholder || "handle"}
         className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
       />
     </label>
