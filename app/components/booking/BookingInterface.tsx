@@ -8,6 +8,7 @@ import type { StudentLessonHistoryData } from "@/lib/actions/student-lessons";
 import StudentInfoForm from "./StudentInfoForm";
 import { StudentLessonHistory } from "./StudentLessonHistory";
 import Image from "next/image";
+import { formatCurrency } from "@/lib/utils";
 
 interface Service {
   id: string;
@@ -145,8 +146,7 @@ export default function BookingInterface({
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-lg">
-                          {service.price_currency.toUpperCase()}{" "}
-                          {service.price_amount}
+                          {formatCurrency(service.price_amount, service.price_currency)}
                         </p>
                       </div>
                     </div>

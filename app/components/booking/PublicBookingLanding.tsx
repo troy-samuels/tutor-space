@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LogIn, UserPlus, Mail, Globe, Instagram } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface TutorInfo {
   id: string;
@@ -161,7 +162,7 @@ export function PublicBookingLanding({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">{service.duration_minutes} minutes</span>
                   <span className="font-semibold text-brand-brown">
-                    {service.price_currency?.toUpperCase()} {service.price_amount}
+                    {formatCurrency(service.price_amount, service.price_currency)}
                   </span>
                 </div>
               </div>
