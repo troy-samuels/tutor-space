@@ -34,10 +34,10 @@ export function StudentProgressList({ students, className }: StudentProgressList
   if (students.length === 0) {
     return (
       <Card className="border border-dashed border-primary/30 bg-primary/5">
-        <CardHeader>
+        <CardHeader className="p-6 pb-2">
           <CardTitle className="text-base font-semibold">No student insights yet</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <CardContent className="space-y-3 px-6 pb-6 pt-0 text-sm text-muted-foreground">
           <p>Add at least one student and log a lesson to unlock progress insights.</p>
           <Link
             href="/students"
@@ -59,7 +59,7 @@ export function StudentProgressList({ students, className }: StudentProgressList
 
         return (
           <Card key={student.id} className="border border-border bg-background/80 shadow-sm backdrop-blur">
-            <CardHeader className="space-y-3">
+            <CardHeader className="space-y-3 p-6 pb-2">
               <div className="flex flex-col gap-1">
                 <CardTitle className="text-base font-semibold text-foreground">
                   {student.name}
@@ -80,7 +80,7 @@ export function StudentProgressList({ students, className }: StudentProgressList
                 </span>
               ) : null}
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 px-6 pb-6 pt-0">
               <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Completed</p>

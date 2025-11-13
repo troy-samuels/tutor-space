@@ -25,13 +25,13 @@ export function UpcomingSessions({ sessions, className }: UpcomingSessionsProps)
 
   return (
     <Card className={cn(className)}>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex-row items-center justify-between space-y-0 p-6 pb-2">
         <CardTitle className="text-base font-semibold">Today &amp; Tomorrow</CardTitle>
         <Button asChild size="sm" variant="ghost">
           <Link href="/bookings">View all</Link>
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-6 pb-6 pt-0">
         {hasSessions ? (
           <ul className="space-y-3">
             {sessions.map((session) => (
@@ -97,10 +97,10 @@ UpcomingSessions.Skeleton = function UpcomingSessionsSkeleton({
 }) {
   return (
     <Card className={cn(className)}>
-      <CardHeader>
+      <CardHeader className="p-6 pb-2">
         <CardTitle className="text-base font-semibold">Upcoming sessions</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-6 pb-6 pt-0">
         {Array.from({ length: 3 }).map((_, index) => (
           <div key={index} className="h-20 animate-pulse rounded-lg bg-muted/40" />
         ))}

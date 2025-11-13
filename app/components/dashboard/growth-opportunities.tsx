@@ -77,10 +77,10 @@ export function GrowthOpportunities({ plan }: GrowthOpportunitiesProps) {
 
   return (
     <Card className="border border-dashed border-primary/40 bg-primary/5">
-      <CardHeader>
+      <CardHeader className="p-6 pb-2">
         <CardTitle className="text-base font-semibold">Grow your business</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-5 px-6 pb-6 pt-0">
         {items.map((item) => (
           <div key={item.title} className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
