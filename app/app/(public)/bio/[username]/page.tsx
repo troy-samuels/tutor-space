@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram, Music4, Facebook, Twitter, MessageCircle, Mail } from "lucide-react";
+import { Instagram, Mail, Music4, Facebook, Twitter } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { LinkRecord } from "@/lib/actions/links";
 
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: BioParams }): Promi
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, tagline, username")
+    .select("full_name, tagline, username, avatar_url")
     .eq("username", params.username.toLowerCase())
     .single();
 
@@ -44,11 +44,15 @@ export async function generateMetadata({ params }: { params: BioParams }): Promi
   return {
     title: `${name} | TutorLingua Link Hub`,
     description,
+    alternates: {
+      canonical: `/bio/${profile.username ?? params.username}`,
+    },
     openGraph: {
       title: `${name} | TutorLingua Link Hub`,
       description,
       type: "website",
       url: `https://tutorlingua.co/bio/${profile.username ?? params.username}`,
+      images: profile.avatar_url ? [{ url: profile.avatar_url }] : undefined,
     },
   };
 }
@@ -135,6 +139,11 @@ export default async function BioPage({ params }: { params: BioParams }) {
                 <Twitter className="h-4 w-4" /> X
               </SocialLink>
             ) : null}
+            {profile.email ? (
+              <SocialLink href={`mailto:${profile.email}`}>
+                <Mail className="h-4 w-4" /> Email
+              </SocialLink>
+            ) : null}
           </div>
         </div>
 
@@ -159,29 +168,21 @@ export default async function BioPage({ params }: { params: BioParams }) {
           )}
         </section>
 
-        <section className="w-full max-w-xl space-y-3 text-sm text-muted-foreground">
-          <a
-            href={`https://wa.me/?text=Hi%20${encodeURIComponent(profile.full_name ?? profile.username ?? "")}%20I%27m%20interested%20in%20lessons.`}
-            className="flex items-center justify-between rounded-3xl border border-brand-brown/20 bg-white px-4 py-3 font-semibold text-brand-brown transition hover:bg-brand-brown/10"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" /> WhatsApp
-            </span>
-            <span className="text-xs text-muted-foreground">Message the tutor</span>
-          </a>
-          {profile.email ? (
+        <section className="w-full max-w-xl">
+          <p className="text-center text-xs text-muted-foreground mb-4">
+            Follow @tutorlingua.co on Instagram for platform updates
+          </p>
+          <div className="flex justify-center">
             <a
-              href={`mailto:${profile.email}`}
-              className="flex items-center justify-between rounded-3xl border border-brand-brown/20 bg-white px-4 py-3 font-semibold text-brand-brown transition hover:bg-brand-brown/10"
+              href="https://instagram.com/tutorlingua.co"
+              className="inline-flex items-center gap-2 rounded-full border border-brand-brown/30 px-4 py-2 text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/10"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <span className="flex items-center gap-2">
-                <Mail className="h-4 w-4" /> Email
-              </span>
-              <span className="text-xs text-muted-foreground">{profile.email}</span>
+              <Instagram className="h-4 w-4" />
+              @tutorlingua.co
             </a>
-          ) : null}
+          </div>
         </section>
       </main>
     </div>
