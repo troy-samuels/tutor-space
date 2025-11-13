@@ -13,20 +13,6 @@ type NavigationTile = {
   section: string;
 };
 
-const NAV_DESCRIPTIONS: Record<string, string> = {
-  "/dashboard": "View KPIs, metrics, and sprint progress at a glance.",
-  "/bookings": "Manage upcoming lessons, payments, and reminders.",
-  "/students": "Open your CRM to review notes and progress.",
-  "/services": "Publish or edit the lessons and packages you sell.",
-  "/messages": "Respond to student requests and lead inquiries.",
-  "/digital-products": "Sell printable resources and async lessons.",
-  "/availability": "Update your booking windows and time buffers.",
-  "/marketing/links": "Refresh your link hub and social CTAs.",
-  "/marketing/email": "Send nurture sequences and broadcasts.",
-  "/analytics": "Watch revenue, conversion, and channel trends.",
-  "/ai": "Generate copy, lesson notes, and parent updates with AI.",
-};
-
 type NavigationTileGridProps = {
   plan: "professional" | "growth" | "studio";
 };
@@ -52,7 +38,7 @@ export function NavigationTileGrid({ plan }: NavigationTileGridProps) {
       if (item.disabled) return;
 
       const cleanedLabel = item.label.replace(/\s+\(Soon\)$/i, "");
-      const description = NAV_DESCRIPTIONS[item.href] ?? `Navigate to ${cleanedLabel}`;
+      const description = item.description ?? `Navigate to ${cleanedLabel}`;
 
       tiles.push({
         href: item.href,
