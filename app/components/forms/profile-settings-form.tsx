@@ -37,6 +37,7 @@ export function ProfileSettingsForm({
       tiktok_handle: "",
       facebook_handle: "",
       x_handle: "",
+      email: "",
       booking_enabled: true,
       auto_accept_bookings: false,
       buffer_time_minutes: 0,
@@ -373,15 +374,19 @@ export function ProfileSettingsForm({
             defaultValue={mergedValues.x_handle}
             placeholder="@yourhandle"
           />
-          <Field label="Contact email" htmlFor="contact_email" helper="Shown on your public profile">
-            <div className="flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm">
+          <div className="flex flex-col gap-2 text-sm text-foreground sm:col-span-2">
+            <span className="flex items-center gap-2 font-medium text-foreground">
+              <Mail className="h-4 w-4 text-brand-brown" />
+              <span>Contact Email</span>
+            </span>
+            <div className="flex items-center gap-2 rounded-xl border border-input bg-muted/30 px-4 py-2.5 text-sm shadow-sm">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{mergedValues.full_name ? `Contact via your profile` : 'Set after saving'}</span>
+              <span className="font-medium text-foreground">{mergedValues.email || 'Email not available'}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Students can email you through your booking page automatically
+            <p className="text-xs text-muted-foreground">
+              Your contact email is set during signup. Students can reach you through your public profile.
             </p>
-          </Field>
+          </div>
         </div>
       </section>
 

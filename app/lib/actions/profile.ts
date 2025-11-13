@@ -67,6 +67,7 @@ export async function updateProfile(
     tiktok_handle: (formData.get("tiktok_handle") as string) ?? "",
     facebook_handle: (formData.get("facebook_handle") as string) ?? "",
     x_handle: (formData.get("x_handle") as string) ?? "",
+    email: (formData.get("email") as string) ?? "",
     booking_enabled: formData.get("booking_enabled") === "on",
     auto_accept_bookings: formData.get("auto_accept_bookings") === "on",
     buffer_time_minutes: Number.isNaN(bufferMinutes) ? 0 : bufferMinutes,

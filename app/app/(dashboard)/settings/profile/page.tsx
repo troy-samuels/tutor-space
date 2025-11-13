@@ -10,7 +10,7 @@ export default async function ProfileSettingsPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "full_name, username, tagline, bio, languages_taught, timezone, website_url, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, booking_enabled, auto_accept_bookings, buffer_time_minutes"
+      "full_name, username, tagline, bio, languages_taught, timezone, website_url, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email, booking_enabled, auto_accept_bookings, buffer_time_minutes"
     )
     .eq("id", user?.id ?? "")
     .single();
@@ -18,6 +18,7 @@ export default async function ProfileSettingsPage() {
   const initialValues = profile
     ? {
         ...profile,
+        email: profile.email ?? user?.email ?? "",
         languages_taught: Array.isArray(profile.languages_taught)
           ? profile.languages_taught.join(", ")
           : profile.languages_taught ?? "",

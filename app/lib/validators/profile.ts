@@ -16,6 +16,7 @@ export const profileSchema = z.object({
   tiktok_handle: z.string().optional().or(z.literal("")),
   facebook_handle: z.string().optional().or(z.literal("")),
   x_handle: z.string().optional().or(z.literal("")),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
   booking_enabled: z.boolean().default(true),
   auto_accept_bookings: z.boolean().default(false),
   buffer_time_minutes: z.number().min(0, "Buffer time must be zero or more"),
