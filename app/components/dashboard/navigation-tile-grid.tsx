@@ -64,7 +64,7 @@ export function NavigationTileGrid({ plan }: NavigationTileGridProps) {
           className="group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
         >
           <Card className="h-full rounded-3xl border border-border/60 bg-background/95 shadow-sm transition duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/50 group-hover:shadow-md">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 p-6 pb-2">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {tile.section}
@@ -73,9 +73,9 @@ export function NavigationTileGrid({ plan }: NavigationTileGridProps) {
                   {tile.label}
                 </CardTitle>
               </div>
-              <tile.Icon className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
+              <tile.Icon className="h-5 w-5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="px-6 pb-6 pt-0">
               <p className="text-sm text-muted-foreground">{tile.description}</p>
             </CardContent>
           </Card>
