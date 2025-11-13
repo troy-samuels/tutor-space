@@ -66,10 +66,10 @@ export function EmptyStates({
   if (states.length === 0) {
     return (
       <Card className="border-dashed border-primary/30 bg-primary/5">
-        <CardHeader>
+        <CardHeader className="p-6 pb-2">
           <CardTitle className="text-base font-semibold">You&apos;re all set 🎉</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
+        <CardContent className="space-y-2 px-6 pb-6 pt-0 text-sm text-muted-foreground">
           <p>Your dashboard is configured. Keep an eye on bookings and follow-ups here.</p>
           <Button asChild size="sm" variant="secondary">
             <Link
@@ -91,10 +91,10 @@ export function EmptyStates({
           key={state.title}
           className="border border-dashed border-border bg-muted/10 shadow-sm backdrop-blur"
         >
-          <CardHeader>
+          <CardHeader className="p-6 pb-2">
             <CardTitle className="text-base font-semibold">{state.title}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <CardContent className="space-y-2 px-6 pb-6 pt-0 text-sm text-muted-foreground">
             <p>{state.description}</p>
             <Button asChild size="sm">
               <Link
