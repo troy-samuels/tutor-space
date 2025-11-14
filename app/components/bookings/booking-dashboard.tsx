@@ -6,7 +6,11 @@ import { createBooking, markBookingAsPaid } from "@/lib/actions/bookings";
 import type { StudentRecord } from "@/lib/actions/students";
 import { ensureStudent } from "@/lib/actions/students";
 import type { AvailabilitySlotInput } from "@/lib/validators/availability";
-import { generateBookingSlots, type GeneratedSlot } from "@/lib/utils/scheduling";
+import {
+  generateBookingSlots,
+  type GeneratedSlot,
+  type TimeWindow,
+} from "@/lib/utils/scheduling";
 import { formatInTimeZone } from "date-fns-tz";
 
 type ServiceSummary = {
@@ -21,6 +25,7 @@ type BookingDashboardProps = {
   services: ServiceSummary[];
   timezone: string;
   availability: AvailabilitySlotInput[];
+  busyWindows: TimeWindow[];
 };
 
 type BookingFormState = {
@@ -38,6 +43,7 @@ export function BookingDashboard({
   services,
   timezone,
   availability,
+  busyWindows,
 }: BookingDashboardProps) {
   const [bookingList, setBookingList] = useState<BookingRecord[]>(bookings);
   const [formState, setFormState] = useState<BookingFormState>(() => ({
@@ -63,7 +69,11 @@ export function BookingDashboard({
 
   const generatedSlots = useMemo(() => {
     if (!formState.serviceId) return [];
-    const baseSlots = generateBookingSlots({ availability, timezone });
+    const baseSlots = generateBookingSlots({
+      availability,
+      timezone,
+      busyWindows,
+    });
     return baseSlots.filter((slot) =>
       bookingList.every((booking) => {
         const bookingStart = new Date(booking.scheduled_at).getTime();
@@ -71,7 +81,7 @@ export function BookingDashboard({
         return bookingStart !== slotStart;
       })
     );
-  }, [availability, formState.serviceId, timezone, bookingList]);
+  }, [availability, formState.serviceId, timezone, bookingList, busyWindows]);
 
   function resetForm() {
     setFormState((prev) => ({

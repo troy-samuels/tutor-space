@@ -13,6 +13,7 @@ import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FinalCTASection } from "@/components/landing/FinalCTASection";
 import { Footer } from "@/components/landing/Footer";
+import { StructuredData } from "@/components/landing/StructuredData";
 
 export default async function LandingPage() {
   const supabase = await createClient();
@@ -29,6 +30,7 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-brand-white">
+      <StructuredData faq={copy.faq} />
       <Navigation navigation={copy.navigation} />
       <Hero hero={copy.hero} socialProof={copy.socialProof} />
       <ProblemSection problems={copy.problems} />

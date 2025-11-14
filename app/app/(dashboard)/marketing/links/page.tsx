@@ -27,25 +27,25 @@ export default async function LinkInBioPage() {
     return null;
   }
 
-  const [{ data: profile }, { data: links }, analytics] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "full_name, username, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle"
-      )
-      .eq("id", user.id)
-      .single<MarketingProfile>(),
-    supabase
-      .from("links")
-      .select("*")
-      .eq("tutor_id", user.id)
-      .order("sort_order", { ascending: true }) as Promise<{ data: LinkRecord[] | null }>,
-    buildAnalytics(supabase, user.id),
-  ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(
+      "full_name, username, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle"
+    )
+    .eq("id", user.id)
+    .single<MarketingProfile>();
+
+  const { data: links } = await supabase
+    .from("links")
+    .select("*")
+    .eq("tutor_id", user.id)
+    .order("sort_order", { ascending: true });
+
+  const analytics = await buildAnalytics(supabase, user.id);
 
   return (
     <LinkManager
-      initialLinks={links ?? []}
+      initialLinks={(links as LinkRecord[] | null) ?? []}
       profile={{
         full_name: profile?.full_name ?? "Tutor",
         username: profile?.username ?? "",

@@ -9,11 +9,17 @@ export type GeneratedSlot = {
   time_label: string;
 };
 
+export type TimeWindow = {
+  start: string;
+  end: string;
+};
+
 type GenerateSlotParams = {
   availability: AvailabilitySlotInput[];
   timezone: string;
   days?: number;
   startDate?: Date;
+  busyWindows?: TimeWindow[];
 };
 
 export function generateBookingSlots({
@@ -21,8 +27,19 @@ export function generateBookingSlots({
   timezone,
   days = 14,
   startDate = new Date(),
+  busyWindows = [],
 }: GenerateSlotParams): GeneratedSlot[] {
   const results: GeneratedSlot[] = [];
+  const normalizedBusy = busyWindows
+    .map((window) => {
+      const startMs = Date.parse(window.start);
+      const endMs = Date.parse(window.end);
+      if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+        return null;
+      }
+      return { start: startMs, end: endMs };
+    })
+    .filter((window): window is { start: number; end: number } => Boolean(window));
 
   for (let offset = 0; offset < days; offset += 1) {
     const dayStart = startOfDay(addDays(startDate, offset));
@@ -44,6 +61,18 @@ export function generateBookingSlots({
 
       const startUtc = fromZonedTime(startZoned, timezone).toISOString();
       const endUtc = fromZonedTime(endZoned, timezone).toISOString();
+
+      const slotStartMs = Date.parse(startUtc);
+      const slotEndMs = Date.parse(endUtc);
+      const overlapsBusy =
+        normalizedBusy.length > 0 &&
+        normalizedBusy.some(
+          (window) => slotStartMs < window.end && slotEndMs > window.start
+        );
+
+      if (overlapsBusy) {
+        return;
+      }
 
       results.push({
         start: startUtc,

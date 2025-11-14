@@ -3,6 +3,48 @@ import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import Stripe from "stripe";
+import { sendDigitalProductDeliveryEmail } from "@/lib/emails/digital-products";
+import { sendPaymentReceiptEmail } from "@/lib/emails/booking-emails";
+
+type ServiceRoleClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
+
+type BookingDetails = {
+  payment_amount: number | null;
+  currency: string | null;
+  scheduled_at: string | null;
+  timezone: string | null;
+  services: {
+    name: string | null;
+    price_amount: number | null;
+    price_currency: string | null;
+  } | null;
+  students: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+  tutor: {
+    full_name: string | null;
+  } | null;
+};
+
+type DigitalProductPurchaseDetails = {
+  id: string;
+  buyer_email: string;
+  buyer_name: string | null;
+  download_token: string;
+  products: {
+    title: string | null;
+    tutor_id: string;
+  } | null;
+  tutor: {
+    full_name: string | null;
+  } | null;
+};
+
+type StripeSubscriptionPayload = Stripe.Subscription & {
+  current_period_start: number;
+  current_period_end: number;
+};
 
 /**
  * Stripe webhook handler
@@ -70,7 +112,7 @@ export async function POST(req: NextRequest) {
 
       case "customer.subscription.created":
       case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
+        const subscription = event.data.object as StripeSubscriptionPayload;
         await handleSubscriptionUpdate(subscription, supabase);
         break;
       }
@@ -113,10 +155,15 @@ export async function POST(req: NextRequest) {
  */
 async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
-  supabase: ReturnType<typeof createServiceRoleClient>
+  supabase: ServiceRoleClient
 ) {
-  const bookingId = session.metadata?.bookingId;
+  const productPurchaseId = session.metadata?.digital_product_purchase_id;
+  if (productPurchaseId) {
+    await handleDigitalProductPurchase(session, supabase, productPurchaseId);
+    return;
+  }
 
+  const bookingId = session.metadata?.bookingId;
   if (!bookingId) {
     console.log("No bookingId in session metadata");
     return;
@@ -129,6 +176,9 @@ async function handleCheckoutSessionCompleted(
       status: "confirmed", // Change from pending to confirmed
       payment_status: "paid",
       stripe_payment_intent_id: session.payment_intent as string,
+      payment_amount:
+        typeof session.amount_total === "number" ? session.amount_total : null,
+      currency: session.currency?.toUpperCase() ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", bookingId);
@@ -140,8 +190,110 @@ async function handleCheckoutSessionCompleted(
 
   console.log(`✅ Booking ${bookingId} marked as paid`);
 
-  // TODO: Send confirmation email here
+  const { data: bookingDetails } = await supabase
+    .from("bookings")
+    .select(
+      `
+        id,
+        scheduled_at,
+        timezone,
+        payment_amount,
+        currency,
+        services (
+          name,
+          price_amount,
+          price_currency
+        ),
+        students (
+          full_name,
+          email
+        ),
+        tutor:profiles!bookings_tutor_id_fkey (
+          full_name
+        )
+      `
+    )
+    .eq("id", bookingId)
+    .single<BookingDetails>();
+
+  const studentEmail = bookingDetails?.students?.email;
+  const amountCents =
+    bookingDetails?.payment_amount ??
+    bookingDetails?.services?.price_amount ??
+    (typeof session.amount_total === "number" ? session.amount_total : 0);
+  const currency =
+    bookingDetails?.currency ??
+    bookingDetails?.services?.price_currency ??
+    session.currency?.toUpperCase() ??
+    "USD";
+
+  if (studentEmail && amountCents > 0) {
+    await sendPaymentReceiptEmail({
+      studentName: bookingDetails?.students?.full_name ?? "Student",
+      studentEmail,
+      tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
+      serviceName: bookingDetails?.services?.name ?? "Lesson",
+      scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+      timezone: bookingDetails?.timezone ?? "UTC",
+      amountCents,
+      currency,
+      paymentMethod: (session.payment_method_types?.[0] ?? "card").toUpperCase(),
+      invoiceNumber:
+        typeof session.invoice === "string" ? session.invoice : undefined,
+    });
+  }
+
   // TODO: Create calendar event if calendar is connected
+}
+
+async function handleDigitalProductPurchase(
+  session: Stripe.Checkout.Session,
+  supabase: ServiceRoleClient,
+  purchaseId: string
+) {
+  const { data: purchase, error } = await supabase
+    .from("digital_product_purchases")
+    .select(
+      `
+      id,
+      buyer_email,
+      buyer_name,
+      download_token,
+      products:digital_products (
+        title,
+        tutor_id
+      ),
+      tutor:profiles!digital_product_purchases_tutor_id_fkey (
+        full_name
+      )
+    `
+    )
+    .eq("id", purchaseId)
+    .single<DigitalProductPurchaseDetails>();
+
+  if (error || !purchase) {
+    console.error("Digital product purchase not found", error);
+    return;
+  }
+
+  await supabase
+    .from("digital_product_purchases")
+    .update({
+      status: "paid",
+      completed_at: new Date().toISOString(),
+      stripe_session_id: session.id,
+    })
+    .eq("id", purchase.id);
+
+  const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/api/digital-products/download/${purchase.download_token}`;
+
+  await sendDigitalProductDeliveryEmail({
+    to: purchase.buyer_email,
+    studentName: purchase.buyer_name,
+    tutorName: purchase.tutor?.full_name || "Your tutor",
+    productTitle: purchase.products?.title || "Your purchase",
+    downloadUrl,
+  });
 }
 
 /**
@@ -149,8 +301,8 @@ async function handleCheckoutSessionCompleted(
  * Update profile with subscription details
  */
 async function handleSubscriptionUpdate(
-  subscription: Stripe.Subscription,
-  supabase: ReturnType<typeof createServiceRoleClient>
+  subscription: StripeSubscriptionPayload,
+  supabase: ServiceRoleClient
 ) {
   const customerId = subscription.customer as string;
 
@@ -217,7 +369,7 @@ async function handleSubscriptionUpdate(
  */
 async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription,
-  supabase: ReturnType<typeof createServiceRoleClient>
+  supabase: ServiceRoleClient
 ) {
   const customerId = subscription.customer as string;
 

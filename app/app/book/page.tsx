@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { generateBookingSlots } from "@/lib/utils/scheduling";
 import type { AvailabilitySlotInput } from "@/lib/validators/availability";
+import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
 
 export default async function BookPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const supabase = await createClient();
@@ -32,10 +33,15 @@ export default async function BookPage({ searchParams }: { searchParams?: Record
     .eq("tutor_id", service.tutor_id);
 
   const timezone = profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const busyWindows = await getCalendarBusyWindows({
+    tutorId: service.tutor_id,
+    days: 14,
+  });
   const slots = generateBookingSlots({
     availability: (availability as AvailabilitySlotInput[] | null) ?? [],
     timezone,
     days: 14,
+    busyWindows,
   }).slice(0, 12);
 
   return (

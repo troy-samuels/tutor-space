@@ -3,8 +3,9 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const adminClient = createServiceRoleClient();
 
   if (!adminClient) {
@@ -15,12 +16,12 @@ export async function POST(
   const { data: link, error: linkError } = await adminClient
     .from("links")
     .select("click_count, tutor_id, is_visible")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (linkError) {
     console.error("[Links] Failed to fetch link for click tracking", {
-      linkId: params.id,
+      linkId: id,
       error: linkError.message,
     });
   }
@@ -35,12 +36,12 @@ export async function POST(
       click_count: (link.click_count ?? 0) + 1,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("tutor_id", link.tutor_id);
 
   if (updateError) {
     console.error("[Links] Failed to increment click count", {
-      linkId: params.id,
+      linkId: id,
       error: updateError.message,
     });
     return NextResponse.json({ success: false }, { status: 500 });
@@ -51,7 +52,7 @@ export async function POST(
   const forwardedFor = request.headers.get("x-forwarded-for") ?? null;
 
   const { error: logError } = await adminClient.from("link_events").insert({
-    link_id: params.id,
+    link_id: id,
     tutor_id: link.tutor_id,
     clicked_at: new Date().toISOString(),
     user_agent: userAgent,
@@ -61,7 +62,7 @@ export async function POST(
 
   if (logError) {
     console.error("[Links] Failed to log link click event", {
-      linkId: params.id,
+      linkId: id,
       error: logError.message,
     });
   }

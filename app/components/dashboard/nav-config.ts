@@ -13,6 +13,9 @@ import {
   Mail,
   MessageCircle,
   Package,
+  FileText,
+  Star,
+  Globe,
   LucideIcon,
 } from "lucide-react";
 
@@ -24,6 +27,8 @@ export type NavItem = {
   icon: LucideIcon;
   disabled?: boolean;
   description?: string;
+  plan?: PlanName;
+  order?: number;
 };
 
 export type NavSection = {
@@ -36,7 +41,9 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Run the Business",
     items: [
-      { href: "/dashboard", label: "Overview", icon: BarChart3, description: "View KPIs, metrics, and sprint progress at a glance." },
+      { href: "/dashboard", label: "Overview", icon: BarChart3, description: "View KPIs, metrics, and sprint progress at a glance.", order: 1 },
+      // Pages (Mini‑Site hub) — unlocked for now; advanced customization will be gated in-page.
+      { href: "/pages", label: "Pages", icon: Globe, description: "Create About, Lessons, and Reviews pages with preview.", order: 2 },
       { href: "/bookings", label: "Bookings", icon: CalendarDays, description: "Manage upcoming lessons, payments, and reminders." },
       { href: "/students", label: "Students", icon: Users, description: "Open your CRM to review notes and progress." },
       { href: "/services", label: "Services", icon: Briefcase, description: "Publish or edit the lessons and packages you sell." },
@@ -55,6 +62,12 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/marketing/email", label: "Email Campaigns", icon: Mail, description: "Send nurture sequences and broadcasts." },
       { href: "/analytics", label: "Analytics", icon: LineChart, description: "Watch revenue, conversion, and channel trends." },
       { href: "/ai", label: "AI Tools", icon: Target, description: "Generate copy, lesson notes, and parent updates with AI." },
+      // Mini‑Site (Hybrid) subpages — visible and gated under Growth. Marked as "Soon" to avoid 404s until built.
+      { href: "/pages/about", label: "About (Soon)", icon: FileText, disabled: true, description: "Tell your teaching story and qualifications." },
+      { href: "/pages/lessons", label: "Lessons (Soon)", icon: GraduationCap, disabled: true, description: "List lesson types, packages, and pricing." },
+      { href: "/pages/reviews", label: "Reviews (Soon)", icon: Star, disabled: true, description: "Showcase parent and student testimonials." },
+      { href: "/pages/resources", label: "Resources (Soon)", icon: BookOpen, disabled: true, description: "Share useful study links and materials." },
+      { href: "/pages/contact", label: "Contact (Soon)", icon: MessageCircle, disabled: true, description: "Let parents and students reach you quickly." },
     ],
   },
   {

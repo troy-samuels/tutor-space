@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export type AvatarProps = React.HTMLAttributes<HTMLDivElement>;
@@ -9,7 +10,7 @@ export function Avatar({ className, children, ...props }: AvatarProps) {
   return (
     <div
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-sm font-medium text-muted-foreground",
+        "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-gradient-to-br from-brand-brown/20 to-brand-brown/10",
         className,
       )}
       {...props}
@@ -19,19 +20,32 @@ export function Avatar({ className, children, ...props }: AvatarProps) {
   );
 }
 
-export type AvatarImageProps = React.ImgHTMLAttributes<HTMLImageElement>;
+export type AvatarImageProps = {
+  src?: string;
+  alt: string;
+  className?: string;
+};
 
-export function AvatarImage({ className, alt, ...props }: AvatarImageProps) {
+export function AvatarImage({ src, alt, className }: AvatarImageProps) {
+  const [error, setError] = React.useState(false);
+
+  if (!src || error) {
+    return null;
+  }
+
   return (
-    <img
+    <Image
+      src={src}
       alt={alt}
-      className={cn("h-full w-full object-cover", className)}
-      {...props}
+      fill
+      sizes="40px"
+      className={cn("object-cover", className)}
+      onError={() => setError(true)}
     />
   );
 }
 
-export type AvatarFallbackProps = React.HTMLAttributes<HTMLSpanElement>;
+export type AvatarFallbackProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function AvatarFallback({
   className,
@@ -39,11 +53,11 @@ export function AvatarFallback({
   ...props
 }: AvatarFallbackProps) {
   return (
-    <span
-      className={cn("flex h-full w-full items-center justify-center", className)}
+    <div
+      className={cn("absolute inset-0 flex items-center justify-center font-semibold text-brand-brown text-sm", className)}
       {...props}
     >
       {children}
-    </span>
+    </div>
   );
 }

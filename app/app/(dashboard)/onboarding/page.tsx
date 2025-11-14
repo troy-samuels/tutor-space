@@ -1,13 +1,17 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   CheckCircle2,
   Circle,
   Facebook,
   Instagram,
   Music4,
+  TrendingUp,
   Twitter,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { LaunchKitSelector } from "@/components/onboarding/launch-kit-selector";
+import { type LaunchTopicId } from "@/lib/constants/launch-topics";
 
 const STEPS = [
   {
@@ -33,10 +37,25 @@ type OnboardingProfile = {
   bio: string | null;
   tagline: string | null;
   full_name: string | null;
+  launch_topic: LaunchTopicId | null;
+  stripe_payment_link: string | null;
+  custom_payment_url: string | null;
   instagram_handle: string | null;
   tiktok_handle: string | null;
   facebook_handle: string | null;
   x_handle: string | null;
+};
+
+type SprintTask = {
+  id: string;
+  label: string;
+  description: string;
+  completed: boolean;
+  action?: ReactNode;
+  cta?: {
+    label: string;
+    href: string;
+  };
 };
 
 const SOCIAL_CHANNELS = [
@@ -80,14 +99,74 @@ export default async function OnboardingPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "username, bio, tagline, full_name, instagram_handle, tiktok_handle, facebook_handle, x_handle"
+      "username, bio, tagline, full_name, launch_topic, stripe_payment_link, custom_payment_url, instagram_handle, tiktok_handle, facebook_handle, x_handle"
     )
     .eq("id", user?.id ?? "")
     .single();
 
+  const { count: serviceCount } = await supabase
+    .from("services")
+    .select("id", { count: "exact", head: true })
+    .eq("tutor_id", user?.id ?? "");
+
+  const { count: availabilityCount } = await supabase
+    .from("availability")
+    .select("id", { count: "exact", head: true })
+    .eq("tutor_id", user?.id ?? "");
+
   const profileComplete = Boolean(
     profile?.username && profile?.bio && profile?.tagline && profile?.full_name
   );
+
+  const hasLaunchKit = Boolean(profile?.launch_topic);
+  const hasBrandPass = profileComplete;
+  const hasServicePackage = (serviceCount ?? 0) > 0;
+  const hasPaymentLink = Boolean(profile?.stripe_payment_link || profile?.custom_payment_url);
+  const hasAvailability = (availabilityCount ?? 0) > 0;
+  const hasPaymentInfra = hasPaymentLink && hasAvailability;
+
+  const sprintTasks: SprintTask[] = [
+    {
+      id: "launch-kit",
+      label: "Choose your launch kit",
+      description: "Select a topic so we can scaffold your landing copy and proof blocks.",
+      completed: hasLaunchKit,
+      action: <LaunchKitSelector currentTopic={profile?.launch_topic ?? null} />,
+    },
+    {
+      id: "brand-copy",
+      label: "Dial in your brand & messaging",
+      description: "Upload your hero photo, brand story, and positioning statement.",
+      completed: hasBrandPass,
+      cta: {
+        label: "Open profile settings",
+        href: "/settings/profile",
+      },
+    },
+    {
+      id: "services",
+      label: "Publish your first service package",
+      description: "Add at least one 1:1 package (or bundle) with pricing and buffers.",
+      completed: hasServicePackage,
+      cta: {
+        label: "Create a service",
+        href: "/services",
+      },
+    },
+    {
+      id: "payments",
+      label: "Connect payments + availability",
+      description: "Link Stripe (or payment URL) and publish your booking windows.",
+      completed: hasPaymentInfra,
+      cta: {
+        label: "Finish payments",
+        href: hasPaymentLink ? "/availability" : "/settings/payments",
+      },
+    },
+  ];
+
+  const completedCount = sprintTasks.filter((task) => task.completed).length;
+  const sprintProgress = Math.round((completedCount / sprintTasks.length) * 100);
 
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 rounded-3xl border border-border bg-background p-8 shadow-sm">
@@ -97,6 +176,56 @@ export default async function OnboardingPage() {
           Let&apos;s get your tutor site ready so students can start booking within minutes.
         </p>
       </header>
+
+      <section className="rounded-2xl border border-border/70 bg-white/80 px-5 py-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Launch Sprint progress</p>
+            <p className="text-xs text-muted-foreground">
+              Complete the four sprint tasks to keep Professional free until your first booking.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-brand-brown/30 px-3 py-1 text-xs font-semibold text-brand-brown">
+            <TrendingUp className="h-4 w-4" />
+            {sprintProgress}% done
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          {sprintTasks.map((task) => (
+            <div
+              key={task.id}
+              className="rounded-2xl border border-dashed border-border/70 bg-muted/30 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
+                    task.completed ? "bg-emerald-600 text-white" : "bg-brand-brown/10 text-brand-brown"
+                  }`}
+                  aria-hidden
+                >
+                  {task.completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{task.label}</p>
+                  <p className="text-xs text-muted-foreground">{task.description}</p>
+
+                  {task.action ? (
+                    <div className="mt-4">{task.action}</div>
+                  ) : task.cta ? (
+                    <Link
+                      href={task.cta.href}
+                      className="mt-4 inline-flex h-10 items-center justify-center rounded-full border border-input px-4 text-xs font-semibold text-foreground transition hover:bg-muted"
+                    >
+                      {task.cta.label}
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="space-y-5">
         {STEPS.map((step, index) => (

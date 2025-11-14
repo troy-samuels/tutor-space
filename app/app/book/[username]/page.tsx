@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { generateBookableSlots, filterFutureSlots, groupSlotsByDate } from "@/lib/utils/slots";
 import { addDays } from "date-fns";
@@ -7,10 +8,78 @@ import { PublicBookingLanding } from "@/components/booking/PublicBookingLanding"
 import { AccessRequestStatus } from "@/components/booking/AccessRequestStatus";
 import { checkStudentAccess } from "@/lib/actions/student-auth";
 import { getStudentLessonHistory } from "@/lib/actions/student-lessons";
+import { generateTutorPersonSchema, generateServiceSchema, generateBreadcrumbSchema } from "@/lib/utils/structured-data";
 
 interface BookPageProps {
   params: Promise<{ username: string }>;
   searchParams: Promise<{ service?: string }>;
+}
+
+export async function generateMetadata({ params }: BookPageProps): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = await createClient();
+  
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, username, bio, tagline, avatar_url, languages_taught")
+    .eq("username", username)
+    .eq("role", "tutor")
+    .single();
+
+  if (!profile) {
+    return {
+      title: "Tutor Not Found | TutorLingua",
+    };
+  }
+
+  const tutorName = profile.full_name ?? profile.username ?? username;
+  
+  // Extract languages for rich metadata
+  const languages = Array.isArray(profile.languages_taught)
+    ? profile.languages_taught
+    : profile.languages_taught
+      ?.split(",")
+      .map((lang: string) => lang.trim())
+      .filter(Boolean) ?? [];
+  
+  const languagesList = languages.length > 0 ? languages.join(", ") : "multiple languages";
+  
+  const description = profile.tagline ?? 
+    `Book ${languagesList} lessons with ${tutorName}. View real-time availability, select a service, and schedule your session instantly. No commission fees. Direct booking on TutorLingua.`;
+
+  return {
+    title: `Book ${tutorName} - ${languagesList.split(",")[0] || "Language"} Tutor | TutorLingua`,
+    description,
+    keywords: [
+      `${tutorName}`,
+      ...languages.map((lang: string) => `${lang} tutor`),
+      ...languages.map((lang: string) => `learn ${lang} online`),
+      "book language lessons",
+      "online tutoring",
+      username,
+    ],
+    alternates: {
+      canonical: `/book/${profile.username ?? username}`,
+    },
+    openGraph: {
+      title: `Book ${languagesList} lessons with ${tutorName}`,
+      description,
+      type: "profile",
+      url: `https://tutorlingua.co/book/${profile.username ?? username}`,
+      images: profile.avatar_url ? [{ 
+        url: profile.avatar_url,
+        width: 400,
+        height: 400,
+        alt: `${tutorName} - ${languagesList} Tutor`,
+      }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: `Book ${tutorName}`,
+      description: `${languagesList} lessons available. Book instantly on TutorLingua.`,
+      images: profile.avatar_url ? [profile.avatar_url] : undefined,
+    },
+  };
 }
 
 export default async function BookPage({ params, searchParams }: BookPageProps) {
@@ -27,7 +96,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
   // Get tutor profile by username
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, full_name, username, email, timezone, bio, avatar_url, instagram_handle, website_url")
+    .select("id, full_name, username, email, timezone, bio, tagline, avatar_url, instagram_handle, website_url, languages_taught, average_rating, testimonial_count")
     .eq("username", username)
     .eq("role", "tutor")
     .single();
@@ -184,8 +253,62 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
   // Group by date
   const groupedSlots = groupSlotsByDate(futureSlots, timezone);
 
+  // Prepare languages array
+  const languages = Array.isArray(profile.languages_taught)
+    ? profile.languages_taught
+    : profile.languages_taught
+      ?.split(",")
+      .map((lang: string) => lang.trim())
+      .filter(Boolean) ?? [];
+
+  // Generate structured data for SEO & LLMs
+  const tutorSchema = generateTutorPersonSchema(
+    {
+      id: profile.id,
+      username: profile.username || username,
+      full_name: profile.full_name || "",
+      bio: profile.bio || "",
+      tagline: profile.tagline || undefined,
+      avatar_url: profile.avatar_url || undefined,
+      languages_taught: languages,
+      website_url: profile.website_url || undefined,
+      instagram_handle: profile.instagram_handle || undefined,
+      timezone: profile.timezone || undefined,
+      average_rating: profile.average_rating || undefined,
+      testimonial_count: profile.testimonial_count || undefined,
+    },
+    services.map(s => ({
+      id: s.id,
+      name: s.name,
+      description: s.description || "",
+      duration_minutes: s.duration_minutes,
+      price: s.price_amount * 100, // Convert to cents
+      currency: s.price_currency,
+    }))
+  );
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: `${profile.full_name || username}`, url: `/profile/${username}` },
+    { name: "Book a Lesson", url: `/book/${username}` },
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Structured Data for SEO & LLMs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(tutorSchema),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbSchema),
+        }}
+      />
+      
       <BookingInterface
         tutor={{
           id: profile.id,

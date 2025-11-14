@@ -47,6 +47,8 @@ export async function signUp(
 
   let existingUser: User | null = null;
 
+  let usernameTaken = false;
+
   if (adminClient) {
     try {
       const { data, error: existingUserError } =
@@ -68,9 +70,27 @@ export async function signUp(
       }
 
       existingUser = data?.users?.find(user => user.email === email) ?? null;
+
+      if (!existingUser) {
+        const { data: usernameMatch, error: usernameError } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("username", username)
+          .maybeSingle();
+
+        if (usernameError && usernameError.code !== "PGRST116") {
+          console.error("[Auth] Failed to check username availability", usernameError);
+        }
+
+        usernameTaken = Boolean(usernameMatch);
+      }
     } catch (error) {
       console.error("[Auth] Unexpected error while checking existing user", error);
     }
+  }
+
+  if (usernameTaken) {
+    return { error: "That username is already taken. Please choose another." };
   }
 
   if (existingUser) {

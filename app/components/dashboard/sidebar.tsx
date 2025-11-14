@@ -2,75 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  CalendarDays,
-  Users,
-  Briefcase,
-  Lightbulb,
-  BookOpen,
-  GraduationCap,
-  Rocket,
-  LineChart,
-  Target,
-  Layers,
-  LucideIcon,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { Lock } from "lucide-react";
+import {
+  NAV_SECTIONS,
+  type NavSection,
+  type NavItem,
+  type PlanName,
+} from "@/components/dashboard/nav-config";
 
 type SidebarProps = {
   className?: string;
   onNavigate?: () => void;
 };
-
-type PlanName = "growth" | "studio";
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  disabled?: boolean;
-};
-
-type NavSection = {
-  label: string;
-  items: NavItem[];
-  plan?: PlanName;
-};
-
-const NAV_SECTIONS: NavSection[] = [
-  {
-    label: "Run the Business",
-    items: [
-      { href: "/dashboard", label: "Overview", icon: BarChart3 },
-      { href: "/bookings", label: "Bookings", icon: CalendarDays },
-      { href: "/students", label: "Students", icon: Users },
-      { href: "/services", label: "Services", icon: Briefcase },
-      { href: "/availability", label: "Availability", icon: Lightbulb },
-      { href: "/resources", label: "Resources (Soon)", icon: BookOpen, disabled: true },
-      { href: "/lesson-plans", label: "Lesson Plans (Soon)", icon: GraduationCap, disabled: true },
-    ],
-  },
-  {
-    label: "Grow (Premium)",
-    plan: "growth",
-    items: [
-      { href: "/marketing/links", label: "Link in Bio", icon: Rocket },
-      { href: "/analytics", label: "Analytics", icon: LineChart },
-      { href: "/ai", label: "AI Tools", icon: Target },
-    ],
-  },
-  {
-    label: "Studio Add-Ons",
-    plan: "studio",
-    items: [
-      { href: "/studio/group-sessions", label: "Group Sessions (Soon)", icon: Users, disabled: true },
-      { href: "/studio/marketplace", label: "Marketplace (Soon)", icon: Layers, disabled: true },
-      { href: "/studio/ceo-dashboard", label: "CEO Dashboard (Soon)", icon: BarChart3, disabled: true },
-    ],
-  },
-];
 
 export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname();
@@ -86,10 +31,6 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
       <div className="px-4 pb-6 text-xl font-semibold tracking-tight">TutorLingua</div>
       <nav className="flex-1 space-y-6">
         {NAV_SECTIONS.map((section) => {
-          if (section.plan && !canAccessSection(section.plan)) {
-            return <PlanUpgradeTeaser key={section.label} plan={section.plan} />;
-          }
-
           return (
             <div key={section.label}>
               <p className="px-4 text-xs font-semibold uppercase text-muted-foreground">
@@ -98,11 +39,16 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
               <div className="mt-2 space-y-1">
                 {section.items.map((item) => {
                   const isActive = pathname === item.href;
-                  const disabled = item.disabled;
+                  const disabled = !!item.disabled;
+                  const requiredPlan = (item as any).plan ?? section.plan;
+                  const lockedByPlan = requiredPlan ? !canAccessSection(requiredPlan) : false;
+                  const locked = lockedByPlan || disabled;
+                  const href = lockedByPlan ? `/upgrade?plan=${requiredPlan}` : disabled ? "#" : item.href;
+
                   return (
                     <Link
-                      key={item.href}
-                      href={disabled ? "#" : item.href}
+                      key={`${section.label}-${item.label}`}
+                      href={href}
                       onClick={(event) => {
                         if (disabled) {
                           event.preventDefault();
@@ -114,18 +60,19 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
                       tabIndex={disabled ? -1 : 0}
                       className={cn(
                         "flex items-center gap-3 rounded-md px-4 py-2 text-sm transition-colors",
-                        disabled
-                          ? "cursor-not-allowed border border-dashed border-border/60 text-muted-foreground/60"
+                        locked
+                          ? "border border-dashed border-border/60 text-muted-foreground/70"
                           : isActive
                               ? "bg-primary/10 text-primary"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className={cn("h-4 w-4", locked ? "text-muted-foreground/70" : undefined)} />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {disabled ? (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
-                          Soon
+                      {locked ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+                          <Lock className="h-3 w-3" />
+                          {lockedByPlan ? ((requiredPlan as any) === "growth" ? "Growth" : "Studio") : "Soon"}
                         </span>
                       ) : null}
                     </Link>

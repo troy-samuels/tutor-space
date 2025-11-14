@@ -67,11 +67,11 @@ export default async function StudentsPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-foreground">Students</h1>
-          <p className="text-sm text-muted-foreground">
-            Track every learner’s progress, payments, and lesson notes in one tutor-focused CRM.
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-2 flex-1">
+          <h1 className="text-3xl font-bold text-foreground">Students</h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Track every learner&apos;s progress, payments, and lesson notes in one tutor-focused CRM.
           </p>
           {lastUpdate ? (
             <p className="text-xs text-muted-foreground/80">
@@ -79,11 +79,11 @@ export default async function StudentsPage() {
             </p>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="outline" asChild>
+        <div className="flex flex-wrap gap-3 shrink-0">
+          <Button variant="outline" asChild className="whitespace-nowrap">
             <Link href="/students/import">Import students</Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="whitespace-nowrap bg-brand-brown hover:bg-brand-brown/90 text-white">
             <Link href="/bookings/new">Schedule lesson</Link>
           </Button>
         </div>
@@ -125,14 +125,14 @@ export default async function StudentsPage() {
         </div>
 
         {students.length === 0 ? (
-          <Card className="border border-dashed border-primary/30 bg-primary/5">
-            <CardContent className="space-y-3 p-6 text-sm text-muted-foreground">
-              <p>No students yet. Import your roster or invite a learner from your booking link.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm">
-                  <Link href="/students/import">Import students</Link>
+          <Card className="border border-dashed border-muted-foreground/30 bg-muted/20">
+            <CardContent className="space-y-4 p-8 text-center">
+              <p className="text-sm text-muted-foreground">No students yet. Import your roster or invite a learner from your booking link.</p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <Button asChild className="bg-brand-brown hover:bg-brand-brown/90 text-white">
+                  <Link href="/students/import">Add students</Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild>
                   <Link href="/bookings/new">Invite a learner</Link>
                 </Button>
               </div>
@@ -226,16 +226,30 @@ export default async function StudentsPage() {
   );
 }
 
-function OverviewCard({ icon, label, value, helper }: { icon: ReactNode; label: string; value: string | number; helper: string }) {
+function OverviewCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string | number;
+  helper: string;
+}) {
   return (
-    <Card className="border border-border bg-background/80 shadow-sm backdrop-blur">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        {icon}
+    <Card className="flex h-full flex-col rounded-3xl border border-border/60 bg-white/90 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1.5">
+        <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </CardTitle>
+        <div className="rounded-full bg-muted/60 p-1.5 text-muted-foreground">
+          {icon}
+        </div>
       </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-        <p className="text-xs text-muted-foreground">{helper}</p>
+      <CardContent className="px-4 pb-4 pt-1.5">
+        <p className="text-2xl font-semibold leading-tight text-foreground">{value}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -243,9 +257,9 @@ function OverviewCard({ icon, label, value, helper }: { icon: ReactNode; label: 
 
 function MetricPill({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-semibold text-foreground">{value}</p>
+    <div className="rounded-2xl border border-border/60 bg-white/80 p-2.5 shadow-sm">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }

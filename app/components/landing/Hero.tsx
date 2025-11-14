@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { LandingCopy } from "@/lib/constants/landing-copy";
+import { LanguageRolodex } from "./LanguageRolodex";
 
 type HeroProps = {
   hero: LandingCopy["hero"];
@@ -13,8 +14,13 @@ export function Hero({ hero, socialProof }: HeroProps) {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Hero content */}
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-brand-black sm:text-6xl">
-            {hero.headline}
+          <h1 className="text-4xl font-bold tracking-tight text-brand-black sm:text-6xl space-y-2">
+            <span className="block">
+              All-in-One Platform for Language Tutors
+            </span>
+            <span className="block text-brand-brown">
+              <LanguageRolodex />
+            </span>
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-700 sm:text-xl">
             {hero.subheadline}

@@ -1,9 +1,11 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
 
 const initialState: AuthActionState = { error: undefined, success: undefined };
+const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
+type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
 
 export function SignupForm() {
   const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
@@ -11,6 +13,161 @@ export function SignupForm() {
     initialState
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameValue, setUsernameValue] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
+  const [usernameMessage, setUsernameMessage] = useState("");
+  const lastRequestId = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetUsernameFeedback = useCallback(() => {
+    setUsernameStatus("idle");
+    setUsernameMessage("");
+  }, []);
+
+  const performAvailabilityRequest = useCallback(
+    async (value: string, requestId: number) => {
+      try {
+        const response = await fetch(
+          `/api/username/check?username=${encodeURIComponent(value)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const payload: {
+          available?: boolean;
+          status?: UsernameStatus | "invalid" | "error";
+          message?: string;
+        } | null = await response.json().catch(() => null);
+
+        if (lastRequestId.current !== requestId) {
+          return;
+        }
+
+        if (!response.ok) {
+          const status = payload?.status === "invalid" ? "invalid" : "error";
+          setUsernameStatus(status);
+          setUsernameMessage(
+            payload?.message ??
+              (status === "invalid"
+                ? "Usernames must be 3-32 characters using lowercase letters, numbers, or dashes."
+                : "We couldn't verify that username. Please try again.")
+          );
+          return;
+        }
+
+        setUsernameStatus(payload?.available ? "available" : "taken");
+        setUsernameMessage(
+          payload?.available
+            ? `Great choice! @${value} is available.`
+            : "That username is already taken. Try another."
+        );
+      } catch (error) {
+        if (lastRequestId.current !== requestId) {
+          return;
+        }
+        setUsernameStatus("error");
+        setUsernameMessage("We couldn't verify that username. Please try again.");
+      }
+    },
+    []
+  );
+
+  const handleUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = event.target.value;
+    const sanitizedValue = rawValue.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    setUsernameValue(sanitizedValue);
+    if (usernameStatus !== "idle") {
+      resetUsernameFeedback();
+    }
+  };
+
+  const handleUsernameBlur = async () => {
+    const value = usernameValue.trim();
+
+    if (!value) {
+      resetUsernameFeedback();
+      return;
+    }
+
+    if (value.length < 3) {
+      setUsernameStatus("idle");
+      setUsernameMessage("");
+      return;
+    }
+
+    if (!USERNAME_PATTERN.test(value)) {
+      setUsernameStatus("invalid");
+      setUsernameMessage(
+        "Usernames must be 3-32 characters and can only include lowercase letters, numbers, or dashes."
+      );
+      return;
+    }
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    const requestId = Date.now();
+    lastRequestId.current = requestId;
+    setUsernameStatus("checking");
+    setUsernameMessage("Checking availability...");
+    void performAvailabilityRequest(value, requestId);
+  };
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    if (!usernameValue) {
+      resetUsernameFeedback();
+      return;
+    }
+
+    if (usernameValue.length < 3) {
+      setUsernameStatus("idle");
+      setUsernameMessage("");
+      return;
+    }
+
+    if (!USERNAME_PATTERN.test(usernameValue)) {
+      setUsernameStatus("invalid");
+      setUsernameMessage(
+        "Usernames must be 3-32 characters and can only include lowercase letters, numbers, or dashes."
+      );
+      return;
+    }
+
+    const requestId = Date.now();
+    lastRequestId.current = requestId;
+    setUsernameStatus("checking");
+    setUsernameMessage("Checking availability...");
+
+    debounceRef.current = window.setTimeout(() => {
+      void performAvailabilityRequest(usernameValue, requestId);
+    }, 350);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [usernameValue, performAvailabilityRequest, resetUsernameFeedback]);
+
+  const usernameStatusClass =
+    usernameStatus === "available"
+      ? "text-emerald-600"
+      : usernameStatus === "taken" || usernameStatus === "invalid" || usernameStatus === "error"
+        ? "text-destructive"
+        : "text-muted-foreground";
+  const usernameDescriptionIds = usernameMessage
+    ? "signup-username-helper signup-username-status"
+    : "signup-username-helper";
 
   return (
     <form action={formAction} className="space-y-6">
@@ -53,6 +210,9 @@ export function SignupForm() {
           <input
             id="username"
             name="username"
+            value={usernameValue}
+            onChange={handleUsernameChange}
+            onBlur={handleUsernameBlur}
             type="text"
             required
             minLength={3}
@@ -61,11 +221,22 @@ export function SignupForm() {
             placeholder="username"
             pattern="^[a-z0-9\-]+$"
             title="Use 3-32 lowercase letters, numbers, or dashes."
+            autoComplete="username"
+            aria-describedby={usernameDescriptionIds}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground" id="signup-username-helper">
           This becomes your public profile link: <span className="font-semibold">tutorlingua.com/@username</span>
         </p>
+        {usernameMessage && (
+          <p
+            className={`text-xs ${usernameStatusClass}`}
+            id="signup-username-status"
+            aria-live="polite"
+          >
+            {usernameMessage}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -90,6 +261,37 @@ export function SignupForm() {
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
+      </div>
+
+      {/* Terms and Privacy Acceptance */}
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          id="terms"
+          name="terms"
+          required
+          className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+        />
+        <label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
+          I agree to the{" "}
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary font-semibold hover:underline"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary font-semibold hover:underline"
+          >
+            Privacy Policy
+          </Link>
+        </label>
       </div>
 
       {state?.error && (

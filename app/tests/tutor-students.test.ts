@@ -5,6 +5,11 @@ import { __tutorStudentsTesting } from "../lib/actions/tutor-students.ts";
 
 const { approveStudentAccessWithClients } = __tutorStudentsTesting;
 
+type ApproveSupabaseClient = Parameters<typeof approveStudentAccessWithClients>[0];
+type ApproveAdminClient = Parameters<typeof approveStudentAccessWithClients>[1];
+type ApproveOptions = Parameters<typeof approveStudentAccessWithClients>[3];
+type SendApprovedEmailFn = NonNullable<ApproveOptions>["sendApprovedEmail"];
+
 type SelectChain<T> = {
   filters: Array<{ column: string; value: unknown }>;
   eq: (column: string, value: unknown) => SelectChain<T>;
@@ -47,6 +52,16 @@ function createUpdateChain(): UpdateChain {
   return chain;
 }
 
+type AdminClientWithChains = ApproveAdminClient & {
+  chains: {
+    studentSelect: SelectChain<unknown>;
+    studentUpdate: UpdateChain;
+    requestSelect?: SelectChain<unknown>;
+    requestUpdate: UpdateChain;
+    profileSelect?: SelectChain<unknown>;
+  };
+};
+
 function buildAdminClient({
   studentSelect,
   requestSelect,
@@ -55,11 +70,11 @@ function buildAdminClient({
   studentSelect: SelectChain<unknown>;
   requestSelect?: SelectChain<unknown>;
   profileSelect?: SelectChain<unknown>;
-}) {
+}): AdminClientWithChains {
   const studentUpdate = createUpdateChain();
   const requestUpdate = createUpdateChain();
 
-  return {
+  const client = {
     chains: {
       studentSelect,
       studentUpdate,
@@ -97,9 +112,11 @@ function buildAdminClient({
       }
     },
   };
+
+  return client as unknown as AdminClientWithChains;
 }
 
-function createSupabaseClient(userId: string) {
+function createSupabaseClient(userId: string): ApproveSupabaseClient {
   return {
     auth: {
       async getUser() {
@@ -109,7 +126,7 @@ function createSupabaseClient(userId: string) {
         };
       },
     },
-  };
+  } as ApproveSupabaseClient;
 }
 
 const tutorId = "tutor-123";
@@ -122,14 +139,14 @@ test("approveStudentAccessWithClients rejects unauthorized student", async () =>
   const adminClient = buildAdminClient({ studentSelect });
 
   const result = await approveStudentAccessWithClients(
-    supabase as Parameters<typeof approveStudentAccessWithClients>[0],
-    adminClient as Parameters<typeof approveStudentAccessWithClients>[1],
+    supabase,
+    adminClient,
     {
       requestId,
       studentId,
     },
     {
-      sendApprovedEmail: async () => {},
+      sendApprovedEmail: async () => ({ success: true, data: null }),
     }
   );
 
@@ -178,13 +195,14 @@ test("approveStudentAccessWithClients scopes updates by tutor", async () => {
   });
 
   let emailCalled = false;
-  const sendApprovedEmail = async () => {
+  const sendApprovedEmail: SendApprovedEmailFn = async () => {
     emailCalled = true;
+    return { success: true, data: null };
   };
 
   const result = await approveStudentAccessWithClients(
-    supabase as Parameters<typeof approveStudentAccessWithClients>[0],
-    adminClient as Parameters<typeof approveStudentAccessWithClients>[1],
+    supabase,
+    adminClient,
     {
       requestId,
       studentId,

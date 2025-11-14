@@ -9,6 +9,7 @@
     "lint": "eslint",
     "translate": "node scripts/translate-deepl.js",
     "test": "node --loader ./scripts/ts-loader.mjs --test",
+    "type-check": "tsc --noEmit",
     "smoke": "npm run lint && npm test"
   },
   "dependencies": {

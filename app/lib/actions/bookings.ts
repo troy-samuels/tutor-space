@@ -5,7 +5,9 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
 import { validateServicePricing } from "@/lib/utils/booking-validation";
 import {
+  sendBookingCancelledEmail,
   sendBookingConfirmationEmail,
+  sendPaymentReceiptEmail,
   sendTutorBookingNotificationEmail,
 } from "@/lib/emails/booking-emails";
 import { getActivePackages } from "@/lib/actions/packages";
@@ -457,7 +459,28 @@ export async function markBookingAsPaid(bookingId: string) {
   // Verify the booking belongs to this tutor
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, tutor_id")
+    .select(
+      `
+        id,
+        tutor_id,
+        scheduled_at,
+        timezone,
+        payment_amount,
+        currency,
+        services (
+          name,
+          price_amount,
+          price_currency
+        ),
+        students (
+          full_name,
+          email
+        ),
+        tutor:profiles!bookings_tutor_id_fkey (
+          full_name
+        )
+      `
+    )
     .eq("id", bookingId)
     .single();
 
@@ -482,6 +505,30 @@ export async function markBookingAsPaid(bookingId: string) {
   if (updateError) {
     console.error("Failed to update booking:", updateError);
     return { error: "Failed to mark booking as paid. Please try again." };
+  }
+
+  const studentEmail = booking.students?.email;
+  const amountCents =
+    booking.payment_amount ??
+    (booking.services?.price_amount ?? 0);
+  const currency =
+    booking.currency ??
+    booking.services?.price_currency ??
+    "USD";
+
+  if (studentEmail && amountCents > 0) {
+    await sendPaymentReceiptEmail({
+      studentName: booking.students?.full_name ?? "Student",
+      studentEmail,
+      tutorName: booking.tutor?.full_name ?? "Your tutor",
+      serviceName: booking.services?.name ?? "Lesson",
+      scheduledAt: booking.scheduled_at,
+      timezone: booking.timezone ?? "UTC",
+      amountCents,
+      currency,
+      paymentMethod: "Manual payment",
+      notes: "Marked as paid by your tutor",
+    });
   }
 
   return { success: true };
@@ -543,7 +590,25 @@ export async function cancelBooking(bookingId: string) {
   // Verify the booking belongs to this tutor
   const { data: booking, error: fetchError } = await supabase
     .from("bookings")
-    .select("id, tutor_id, status")
+    .select(
+      `
+        id,
+        tutor_id,
+        status,
+        scheduled_at,
+        timezone,
+        services (
+          name
+        ),
+        students (
+          full_name,
+          email
+        ),
+        tutor:profiles!bookings_tutor_id_fkey (
+          full_name
+        )
+      `
+    )
     .eq("id", bookingId)
     .single();
 
@@ -580,6 +645,18 @@ export async function cancelBooking(bookingId: string) {
   if (!refundResult.success) {
     console.warn("Failed to refund package minutes:", refundResult.error);
     // Don't fail the cancellation if refund fails - just log it
+  }
+
+  const studentEmail = booking.students?.email;
+  if (studentEmail) {
+    await sendBookingCancelledEmail({
+      studentName: booking.students?.full_name ?? "Student",
+      studentEmail,
+      tutorName: booking.tutor?.full_name ?? "Your tutor",
+      serviceName: booking.services?.name ?? "Lesson",
+      scheduledAt: booking.scheduled_at,
+      timezone: booking.timezone ?? "UTC",
+    });
   }
 
   return { success: true };

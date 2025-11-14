@@ -21,6 +21,7 @@ export function RequestAccessForm({
     password: "",
     phone: "",
     message: "",
+    acceptedTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -28,9 +29,10 @@ export function RequestAccessForm({
   const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   }
 
@@ -42,6 +44,12 @@ export function RequestAccessForm({
     // Basic validation
     if (formData.password.length < 8) {
       setError("Password must be at least 8 characters long");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.acceptedTerms) {
+      setError("You must accept the Terms of Service and Privacy Policy to continue");
       setLoading(false);
       return;
     }
@@ -222,6 +230,39 @@ export function RequestAccessForm({
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-brown focus:border-transparent transition resize-none"
           placeholder="Tell your tutor a bit about your learning goals..."
         />
+      </div>
+
+      {/* Terms and Privacy Acceptance */}
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          id="acceptedTerms"
+          name="acceptedTerms"
+          checked={formData.acceptedTerms}
+          onChange={handleChange}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-brown focus:ring-brand-brown focus:ring-offset-0 cursor-pointer"
+          required
+        />
+        <label htmlFor="acceptedTerms" className="text-sm text-gray-700 cursor-pointer">
+          I agree to the{" "}
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-brown font-semibold hover:underline"
+          >
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-brown font-semibold hover:underline"
+          >
+            Privacy Policy
+          </a>
+        </label>
       </div>
 
       {/* Submit Button */}

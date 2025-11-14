@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import type { ComponentProps } from "react";
 import { AccessRequestsList } from "@/components/students/AccessRequestsList";
 
 export const metadata = {
   title: "Student Access Requests | TutorLingua",
   description: "Manage student calendar access requests",
 };
+
+type AccessRequestsListProps = ComponentProps<typeof AccessRequestsList>;
+type AccessRequestShape = AccessRequestsListProps["pending"][number];
 
 export default async function AccessRequestsPage() {
   const supabase = await createClient();
@@ -46,10 +50,40 @@ export default async function AccessRequestsPage() {
     console.error("Failed to fetch access requests:", error);
   }
 
+  const normalizedRequests: AccessRequestShape[] =
+    (requests ?? [])
+      .map((request) => {
+        const student = Array.isArray(request.students)
+          ? request.students[0]
+          : request.students;
+
+        if (!student) {
+          return null;
+        }
+
+        return {
+          id: request.id,
+          status: request.status,
+          requested_at: request.requested_at ?? new Date().toISOString(),
+          resolved_at: request.resolved_at ?? null,
+          tutor_notes: request.tutor_notes ?? null,
+          student_message: request.student_message ?? null,
+          students: {
+            id: student.id ?? "",
+            full_name: student.full_name ?? "Student",
+            email: student.email ?? "",
+            phone: student.phone ?? null,
+            calendar_access_status: student.calendar_access_status ?? "pending",
+            created_at: student.created_at ?? new Date().toISOString(),
+          },
+        } satisfies AccessRequestShape;
+      })
+      .filter((request): request is AccessRequestShape => Boolean(request));
+
   // Separate by status
-  const pending = requests?.filter((r) => r.status === "pending") || [];
-  const approved = requests?.filter((r) => r.status === "approved") || [];
-  const denied = requests?.filter((r) => r.status === "denied") || [];
+  const pending = normalizedRequests.filter((r) => r.status === "pending");
+  const approved = normalizedRequests.filter((r) => r.status === "approved");
+  const denied = normalizedRequests.filter((r) => r.status === "denied");
 
   return (
     <div className="space-y-8">

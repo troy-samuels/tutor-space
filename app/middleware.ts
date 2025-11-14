@@ -8,6 +8,7 @@ const PROTECTED_ROUTES = [
   "/bookings",
   "/students",
   "/services",
+  "/pages",
   "/settings",
   "/analytics",
   "/marketing",

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { sendLessonReminderEmail } from "@/lib/emails/reminder-emails";
+import { queueReengageAutomation } from "@/lib/server/email-automations";
+import { resend, EMAIL_CONFIG } from "@/lib/resend";
+import {
+  BroadcastCampaignEmail,
+  BroadcastCampaignEmailText,
+} from "@/emails/broadcast-campaign";
 
 type ReminderLessonRecord = {
   id: string;
@@ -23,6 +29,35 @@ type ReminderLessonRecord = {
     custom_video_name: string | null;
   } | null;
 };
+
+type CampaignRecipient = {
+  id: string;
+  campaign_id: string;
+  student_email: string;
+  student_name: string | null;
+  personalization_subject: string | null;
+  personalization_body: string | null;
+  email_campaigns: {
+    tutor_id: string;
+    kind: string | null;
+    profiles?: {
+      full_name: string | null;
+    } | null;
+  } | null;
+  students: {
+    id: string;
+    email_opt_out: boolean;
+    email_unsubscribe_token: string | null;
+  } | null;
+};
+
+type TutorAutomationSettings = {
+  id: string;
+  full_name: string | null;
+  auto_reengage_days: number | null;
+};
+
+const PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
 
 /**
  * Cron job to send lesson reminders
@@ -123,11 +158,14 @@ export async function GET(request: Request) {
     const results = {
       reminders24h: 0,
       reminders1h: 0,
+      campaignSent: 0,
+      campaignFailed: 0,
+      automationsQueued: 0,
       errors: [] as string[],
     };
 
     // Send 24-hour reminders
-    const lessons24h = (lessons24hData ?? []) as ReminderLessonRecord[];
+    const lessons24h = normalizeLessonRecords(lessons24hData);
     if (lessons24h.length > 0) {
       for (const lesson of lessons24h) {
         try {
@@ -169,7 +207,7 @@ export async function GET(request: Request) {
     }
 
     // Send 1-hour reminders
-    const lessons1h = (lessons1hData ?? []) as ReminderLessonRecord[];
+    const lessons1h = normalizeLessonRecords(lessons1hData);
     if (lessons1h.length > 0) {
       for (const lesson of lessons1h) {
         try {
@@ -210,14 +248,16 @@ export async function GET(request: Request) {
       }
     }
 
+    results.automationsQueued += await enqueueReengagementAutomations(adminClient);
+    const campaignResult = await processEmailCampaignQueue(adminClient);
+    results.campaignSent += campaignResult.sent;
+    results.campaignFailed += campaignResult.failed;
+
     if (results.errors.length > 0) {
       console.error("[Cron] Reminder errors:", results.errors);
     }
 
-    console.info("[Cron] Lesson reminders dispatched", {
-      reminders24h: results.reminders24h,
-      reminders1h: results.reminders1h,
-    });
+    console.info("[Cron] Jobs dispatched", results);
 
     return NextResponse.json({
       success: true,
@@ -231,4 +271,244 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function normalizeLessonRecords(
+  records: unknown
+): ReminderLessonRecord[] {
+  const lessons =
+    (records as Array<
+      ReminderLessonRecord & {
+        students:
+          | ReminderLessonRecord["students"]
+          | ReminderLessonRecord["students"][];
+        services:
+          | ReminderLessonRecord["services"]
+          | ReminderLessonRecord["services"][];
+        profiles:
+          | ReminderLessonRecord["profiles"]
+          | ReminderLessonRecord["profiles"][];
+      }
+    > | null) ?? [];
+
+  return lessons.map((lesson) => ({
+    ...lesson,
+    students: Array.isArray(lesson.students)
+      ? lesson.students[0]
+      : lesson.students,
+    services: Array.isArray(lesson.services)
+      ? lesson.services[0]
+      : lesson.services,
+    profiles: Array.isArray(lesson.profiles)
+      ? lesson.profiles[0]
+      : lesson.profiles,
+  }));
+}
+
+async function processEmailCampaignQueue(adminClient: ReturnType<typeof createServiceRoleClient>) {
+  if (!adminClient) return { sent: 0, failed: 0 };
+  const nowIso = new Date().toISOString();
+  const { data } = await adminClient
+    .from("email_campaign_recipients")
+    .select(
+      `
+        id,
+        campaign_id,
+        student_email,
+        student_name,
+        personalization_subject,
+        personalization_body,
+        email_campaigns (
+          tutor_id,
+          kind,
+          profiles!email_campaigns_tutor_id_fkey (
+            full_name
+          )
+        ),
+        students (
+          id,
+          email_opt_out,
+          email_unsubscribe_token
+        )
+      `
+    )
+    .eq("status", "pending")
+    .lte("scheduled_for", nowIso)
+    .order("created_at", { ascending: true })
+    .limit(50);
+
+  const pending = (data ?? []) as CampaignRecipient[];
+  if (pending.length === 0) {
+    return { sent: 0, failed: 0 };
+  }
+
+  const campaignIds = new Set<string>();
+  let sent = 0;
+  let failed = 0;
+
+  for (const recipient of pending) {
+    const student = recipient.students;
+    campaignIds.add(recipient.campaign_id);
+
+    if (!student || student.email_opt_out) {
+      await adminClient
+        .from("email_campaign_recipients")
+        .update({ status: "skipped", error_message: "Opted out" })
+        .eq("id", recipient.id);
+      continue;
+    }
+
+    const tutorName =
+      recipient.email_campaigns?.profiles?.full_name?.trim() || "Your tutor";
+    const subject = recipient.personalization_subject || "TutorLingua update";
+    const body = recipient.personalization_body || "";
+
+    try {
+      const unsubscribeToken = student.email_unsubscribe_token;
+      const unsubscribeUrl = unsubscribeToken
+        ? `${PUBLIC_APP_URL}/email-unsubscribe?token=${unsubscribeToken}`
+        : undefined;
+
+      const html = BroadcastCampaignEmail({
+        subject,
+        tutorName,
+        studentName: recipient.student_name || "there",
+        body,
+        unsubscribeUrl,
+      });
+      const text = BroadcastCampaignEmailText({
+        subject,
+        tutorName,
+        studentName: recipient.student_name || "there",
+        body,
+        unsubscribeUrl,
+      });
+
+      await resend.emails.send({
+        from: EMAIL_CONFIG.from,
+        to: recipient.student_email,
+        subject,
+        html,
+        text,
+      });
+
+      await adminClient
+        .from("email_campaign_recipients")
+        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .eq("id", recipient.id);
+
+      sent++;
+    } catch (error) {
+      console.error("[Cron] Failed to send campaign email", error);
+      await adminClient
+        .from("email_campaign_recipients")
+        .update({
+          status: "failed",
+          error_message: String(error),
+        })
+        .eq("id", recipient.id);
+      failed++;
+    }
+  }
+
+  for (const campaignId of campaignIds) {
+    const { count } = await adminClient
+      .from("email_campaign_recipients")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId)
+      .eq("status", "pending");
+
+    const statusUpdate =
+      (count ?? 0) === 0
+        ? { status: "sent", sent_at: new Date().toISOString() }
+        : { status: "sending" };
+
+    await adminClient
+      .from("email_campaigns")
+      .update(statusUpdate)
+      .eq("id", campaignId);
+  }
+
+  return { sent, failed };
+}
+
+async function enqueueReengagementAutomations(
+  adminClient: ReturnType<typeof createServiceRoleClient>
+) {
+  if (!adminClient) return 0;
+  const { data: tutors } = await adminClient
+    .from("profiles")
+    .select("id, full_name, auto_reengage_enabled, auto_reengage_days")
+    .eq("auto_reengage_enabled", true);
+
+  if (!tutors || tutors.length === 0) {
+    return 0;
+  }
+
+  const tutorMap = new Map<string, TutorAutomationSettings>();
+  tutors.forEach((tutor) => {
+    tutorMap.set(tutor.id, {
+      id: tutor.id,
+      full_name: tutor.full_name,
+      auto_reengage_days: tutor.auto_reengage_days ?? 30,
+    });
+  });
+
+  const tutorIds = tutors.map((tutor) => tutor.id);
+
+  const { data: students } = await adminClient
+    .from("students")
+    .select(
+      "id, tutor_id, full_name, email, email_opt_out, status, updated_at, last_reengage_email_at"
+    )
+    .in("tutor_id", tutorIds)
+    .in("status", ["inactive", "paused"]);
+
+  if (!students || students.length === 0) {
+    return 0;
+  }
+
+  let queued = 0;
+  const now = new Date();
+
+  for (const student of students) {
+    if (queued >= 25) break;
+    if (!student.email || student.email_opt_out) continue;
+
+    const settings = tutorMap.get(student.tutor_id);
+    if (!settings) continue;
+
+    const thresholdDays = settings.auto_reengage_days ?? 30;
+    const thresholdDate = new Date(now.getTime() - thresholdDays * 24 * 60 * 60 * 1000);
+    const lastTouch = student.updated_at ? new Date(student.updated_at) : new Date(0);
+    const lastReengage = student.last_reengage_email_at
+      ? new Date(student.last_reengage_email_at)
+      : new Date(0);
+
+    if (lastTouch > thresholdDate) continue;
+    if (lastReengage > thresholdDate) continue;
+
+    try {
+      await queueReengageAutomation({
+        tutorId: student.tutor_id,
+        tutorName: settings.full_name || "Your tutor",
+        studentId: student.id,
+        studentEmail: student.email,
+        studentName: student.full_name,
+        sendAt: now.toISOString(),
+        client: adminClient,
+      });
+
+      await adminClient
+        .from("students")
+        .update({ last_reengage_email_at: now.toISOString() })
+        .eq("id", student.id);
+
+      queued++;
+    } catch (error) {
+      console.error("[Cron] Failed to queue reengagement email", error);
+    }
+  }
+
+  return queued;
 }

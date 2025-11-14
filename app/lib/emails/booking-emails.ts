@@ -9,6 +9,14 @@ import {
   TutorBookingNotificationEmail,
   TutorBookingNotificationEmailText,
 } from "@/emails/tutor-booking-notification";
+import {
+  BookingCancelledEmail,
+  BookingCancelledEmailText,
+} from "@/emails/booking-cancelled";
+import {
+  PaymentReceiptEmail,
+  PaymentReceiptEmailText,
+} from "@/emails/payment-receipt";
 
 interface SendBookingConfirmationParams {
   studentName: string;
@@ -163,5 +171,107 @@ export async function sendTutorBookingNotificationEmail(
   } catch (error) {
     console.error("Error sending tutor notification email:", error);
     return { success: false, error: "Failed to send email" };
+  }
+}
+
+type SendBookingCancelledParams = {
+  studentName: string;
+  studentEmail: string;
+  tutorName: string;
+  serviceName: string;
+  scheduledAt: string;
+  timezone: string;
+  reason?: string;
+  rescheduleUrl?: string;
+};
+
+export async function sendBookingCancelledEmail(params: SendBookingCancelledParams) {
+  try {
+    const html = BookingCancelledEmail({
+      studentName: params.studentName,
+      tutorName: params.tutorName,
+      serviceName: params.serviceName,
+      scheduledAt: params.scheduledAt,
+      timezone: params.timezone,
+      reason: params.reason,
+      rescheduleUrl: params.rescheduleUrl,
+    });
+
+    const text = BookingCancelledEmailText({
+      studentName: params.studentName,
+      tutorName: params.tutorName,
+      serviceName: params.serviceName,
+      scheduledAt: params.scheduledAt,
+      timezone: params.timezone,
+      reason: params.reason,
+      rescheduleUrl: params.rescheduleUrl,
+    });
+
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: params.studentEmail,
+      subject: `Lesson cancelled - ${params.serviceName}`,
+      html,
+      text,
+    });
+  } catch (error) {
+    console.error("Error sending booking cancelled email:", error);
+  }
+}
+
+type SendPaymentReceiptParams = {
+  studentName: string;
+  studentEmail: string;
+  tutorName: string;
+  serviceName: string;
+  scheduledAt: string;
+  timezone: string;
+  amountCents: number;
+  currency: string;
+  paymentMethod: string;
+  invoiceNumber?: string;
+  invoiceUrl?: string;
+  notes?: string;
+};
+
+export async function sendPaymentReceiptEmail(params: SendPaymentReceiptParams) {
+  try {
+    const html = PaymentReceiptEmail({
+      studentName: params.studentName,
+      tutorName: params.tutorName,
+      serviceName: params.serviceName,
+      scheduledAt: params.scheduledAt,
+      timezone: params.timezone,
+      amount: params.amountCents,
+      currency: params.currency,
+      paymentMethod: params.paymentMethod,
+      invoiceNumber: params.invoiceNumber,
+      invoiceUrl: params.invoiceUrl,
+      notes: params.notes,
+    });
+
+    const text = PaymentReceiptEmailText({
+      studentName: params.studentName,
+      tutorName: params.tutorName,
+      serviceName: params.serviceName,
+      scheduledAt: params.scheduledAt,
+      timezone: params.timezone,
+      amount: params.amountCents,
+      currency: params.currency,
+      paymentMethod: params.paymentMethod,
+      invoiceNumber: params.invoiceNumber,
+      invoiceUrl: params.invoiceUrl,
+      notes: params.notes,
+    });
+
+    await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: params.studentEmail,
+      subject: `Payment receipt - ${params.serviceName}`,
+      html,
+      text,
+    });
+  } catch (error) {
+    console.error("Error sending payment receipt email:", error);
   }
 }

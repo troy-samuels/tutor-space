@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MetricCards, type MetricCardConfig } from "@/components/dashboard/metric-cards";
 import { UpcomingSessions, type UpcomingSession } from "@/components/dashboard/upcoming-sessions";
-import { EmptyStates } from "@/components/dashboard/empty-states";
 import { GrowthOpportunities } from "@/components/dashboard/growth-opportunities";
 import {
   StudentProgressList,
@@ -14,6 +13,7 @@ import { getTutorStudentInsights } from "@/lib/data/student-insights";
 import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
 import { CountdownBanner } from "@/components/dashboard/countdown-banner";
 import { NavigationTileGrid } from "@/components/dashboard/navigation-tile-grid";
+import { LaunchSprintAccordion } from "@/components/dashboard/launch-sprint-accordion";
 
 const REQUIRED_PROFILE_FIELDS = ["username", "bio", "tagline"] as const;
 
@@ -216,43 +216,88 @@ export default async function DashboardPage() {
       {/* Countdown Banner - Only visible during first 30 days */}
       {withinFirst30Days && <CountdownBanner daysRemaining={daysRemaining} />}
 
-      <section className="relative overflow-hidden rounded-3xl border border-primary/20 bg-background/80 p-8 shadow-sm backdrop-blur">
-        <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-primary/10" />
-        <div className="absolute -right-28 bottom-0 h-28 w-28 rounded-full bg-primary/10" />
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-primary/70">
-              {formatDate(new Date())}
-            </p>
-            <h1 className="mt-1 text-3xl font-semibold text-foreground">
-              Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Keep an eye on your lessons, revenue, and growth experiments from one command center.
-            </p>
-            {publicProfileUrl ? (
+      {withinFirst30Days ? (
+        <LaunchSprintSection
+          eyebrow="Launch sprint"
+          title="Fast Launch 🚀"
+          description="Complete these four steps to get your public profile, services, and booking flow live."
+        >
+          <LaunchSprintAccordion
+            steps={[
+              {
+                id: "profile",
+                title: "Complete your tutor profile",
+                description: "Add your photo, teaching focus, and tagline so parents know who you are.",
+                href: "/settings/profile",
+                ctaLabel: "Update profile",
+                complete: profileComplete,
+              },
+              {
+                id: "services",
+                title: "Publish your flagship service",
+                description: "List a lesson or package with price, duration, and clear outcomes.",
+                href: "/services",
+                ctaLabel: hasServices ? "Edit services" : "Create service",
+                complete: hasServices,
+              },
+              {
+                id: "availability",
+                title: "Share your availability",
+                description: "Sync your calendar or set recurring time blocks so families can book you.",
+                href: "/availability",
+                ctaLabel: hasAvailability ? "Update availability" : "Add availability",
+                complete: hasAvailability,
+              },
+              {
+                id: "students",
+                title: "Import or invite students",
+                description: "Bring in your current roster or invite a new student to test the flow.",
+                href: "/students/import",
+                ctaLabel: hasStudents ? "View students" : "Add students",
+                complete: hasStudents,
+              },
+            ]}
+          />
+        </LaunchSprintSection>
+      ) : (
+        <section className="relative overflow-hidden rounded-3xl border border-primary/20 bg-background/80 p-8 shadow-sm backdrop-blur">
+          <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-primary/10" />
+          <div className="absolute -right-28 bottom-0 h-28 w-28 rounded-full bg-primary/10" />
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-primary/70">
+                {formatDate(new Date())}
+              </p>
+              <h1 className="mt-1 text-3xl font-semibold text-foreground">
+                Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Keep an eye on your lessons, revenue, and growth experiments from one command center.
+              </p>
+              {publicProfileUrl ? (
+                <Link
+                  href={publicProfileUrl}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/10"
+                >
+                  View public profile
+                </Link>
+              ) : null}
+            </div>
+            <div className="flex flex-col items-start gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 lg:items-end">
+              <span className="text-xs font-semibold uppercase tracking-wide text-primary/70">
+                Current plan
+              </span>
+              <span className="text-lg font-semibold capitalize text-primary">{planName}</span>
               <Link
-                href={publicProfileUrl}
-                className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/10"
+                href="/upgrade"
+                className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/10"
               >
-                View public profile
+                Explore plans
               </Link>
-            ) : null}
+            </div>
           </div>
-          <div className="flex flex-col items-start gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 lg:items-end">
-            <span className="text-xs font-semibold uppercase tracking-wide text-primary/70">
-              Current plan
-            </span>
-            <span className="text-lg font-semibold capitalize text-primary">{planName}</span>
-            <Link
-              href="/upgrade"
-              className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/10"
-            >
-              Explore plans
-            </Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Suspense fallback={<MetricCards.Skeleton />}>
         <MetricCards metrics={metrics} />
@@ -277,18 +322,6 @@ export default async function DashboardPage() {
         {studentProgressContent}
       </ResponsiveSection>
 
-      {withinFirst30Days ? (
-        <LaunchSprintSection>
-          <Suspense fallback={<EmptyStates.Skeleton />}>
-            <EmptyStates
-              profileComplete={profileComplete}
-              hasServices={hasServices}
-              hasAvailability={hasAvailability}
-              hasStudents={hasStudents}
-            />
-          </Suspense>
-        </LaunchSprintSection>
-      ) : null}
     </div>
   );
 }
@@ -325,18 +358,26 @@ function ResponsiveSection({
   );
 }
 
-function LaunchSprintSection({ children }: { children: ReactNode }) {
+function LaunchSprintSection({
+  children,
+  title = "Launch sprint checklist",
+  description = "Knock out these setup tasks to launch confidently and keep parents in the loop.",
+  eyebrow = "First 30 days",
+}: {
+  children: ReactNode;
+  title?: string;
+  description?: string;
+  eyebrow?: string;
+}) {
   return (
     <section className="rounded-3xl border border-primary/30 bg-primary/5 p-6 shadow-sm backdrop-blur">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-primary/70">
-            First 30 days
+            {eyebrow}
           </span>
-          <h2 className="text-xl font-semibold text-foreground">Launch sprint checklist</h2>
-          <p className="text-sm text-muted-foreground">
-            Knock out these setup tasks to launch confidently and keep parents in the loop.
-          </p>
+          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
       <div className="mt-6">{children}</div>

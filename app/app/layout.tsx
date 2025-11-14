@@ -18,16 +18,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TutorLingua – The operating system for language tutors",
+  title: "Language Tutor Platform - Bookings, Payments & CRM for Independent Tutors | TutorLingua",
   description:
-    "TutorLingua gives independent language tutors a branded site, smart bookings, payments, CRM, and AI-powered teaching tools in one place.",
+    "Replace 10+ tools with one platform. Language tutors get booking pages, payments, student CRM, and AI lesson planning. Free forever. No commissions. Start in 15 minutes.",
   keywords: [
-    "tutor corner",
     "language tutor platform",
     "tutor booking system",
+    "independent tutor software",
     "tutor CRM",
+    "online tutoring platform",
+    "calendly alternative for tutors",
+    "tutor website builder",
+    "language teacher booking software",
+    "tutor corner",
     "AI lesson planner",
-    "online tutoring software",
   ],
   authors: [{ name: "TutorLingua" }],
   creator: "TutorLingua",
@@ -35,6 +39,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   ),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -58,7 +65,7 @@ export const metadata: Metadata = {
     description:
       "Run your tutoring business from one tab with TutorLingua: branded site, bookings, payments, CRM, and AI assistance.",
     images: ["/og-image.png"],
-    creator: "@tutorhub",
+    creator: "@tutorlingua.co",
   },
   robots: {
     index: true,

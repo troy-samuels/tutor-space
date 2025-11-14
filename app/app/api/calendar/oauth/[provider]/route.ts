@@ -13,16 +13,20 @@ type TokenResponse = {
   token_type?: string;
 };
 
-export async function GET(request: NextRequest, { params }: { params: { provider: string } }) {
-  const provider = params.provider as (typeof SUPPORTED_CALENDAR_PROVIDERS)[number];
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ provider: string }> }
+) {
+  const { provider } = await params;
+  const typedProvider = provider as (typeof SUPPORTED_CALENDAR_PROVIDERS)[number];
 
-  if (!SUPPORTED_CALENDAR_PROVIDERS.includes(provider)) {
+  if (!SUPPORTED_CALENDAR_PROVIDERS.includes(typedProvider)) {
     return redirectWithMessage(request, {
       error: "unsupported_provider",
     });
   }
 
-  const config = getProviderConfig(provider);
+  const config = getProviderConfig(typedProvider);
   if (!config) {
     return redirectWithMessage(request, {
       error: "provider_not_configured",
@@ -34,8 +38,9 @@ export async function GET(request: NextRequest, { params }: { params: { provider
   const state = searchParams.get("state");
   const oauthError = searchParams.get("error");
 
-  const cookieName = `calendar_oauth_state_${provider}`;
-  const storedState = cookies().get(cookieName)?.value;
+  const cookieName = `calendar_oauth_state_${typedProvider}`;
+  const cookieStore = await cookies();
+  const storedState = cookieStore.get(cookieName)?.value;
 
   if (oauthError) {
     return redirectWithMessage(request, {
@@ -49,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { provider
     });
   }
 
-  cookies().delete(cookieName);
+  cookieStore.delete(cookieName);
 
   const supabase = await createClient();
   const {
@@ -115,7 +120,7 @@ export async function GET(request: NextRequest, { params }: { params: { provider
     }
 
     const profileData = await profileResponse.json();
-    if (provider === "google") {
+    if (typedProvider === "google") {
       providerAccountId = profileData.id ?? profileData.sub ?? null;
       accountEmail = profileData.email ?? null;
       accountName = profileData.name ?? null;
@@ -156,7 +161,7 @@ export async function GET(request: NextRequest, { params }: { params: { provider
   const { error: upsertError } = await supabase.from("calendar_connections").upsert(
     {
       tutor_id: user.id,
-      provider,
+      provider: typedProvider,
       provider_account_id: providerAccountId,
       account_email: accountEmail,
       account_name: accountName,
@@ -181,7 +186,7 @@ export async function GET(request: NextRequest, { params }: { params: { provider
   }
 
   return redirectWithMessage(request, {
-    success: provider,
+    success: typedProvider,
   });
 }
 

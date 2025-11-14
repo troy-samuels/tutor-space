@@ -239,6 +239,20 @@ export function BookingConfirmationEmail({
               `
               }
 
+              <!-- Cancellation Policy Notice -->
+              <div style="background-color: #FEE2E2; border-left: 4px solid #DC2626; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <h3 style="margin: 0 0 10px 0; color: #991B1B; font-size: 16px; font-weight: 600;">⚠️ Cancellation Policy</h3>
+                <p style="margin: 0 0 10px 0; color: #7F1D1D; font-size: 14px; line-height: 1.6;">
+                  <strong>12+ hours notice:</strong> Full refund or rescheduling available
+                </p>
+                <p style="margin: 0; color: #7F1D1D; font-size: 14px; line-height: 1.6;">
+                  <strong>Less than 12 hours:</strong> No refund, exchange, or rescheduling available. The full lesson fee is forfeited.
+                </p>
+                <p style="margin: 10px 0 0 0; color: #7F1D1D; font-size: 12px;">
+                  Please cancel or reschedule at least 12 hours before your lesson to avoid charges.
+                </p>
+              </div>
+
               <!-- Contact Info -->
               <p style="margin: 0 0 10px 0; color: #333; font-size: 16px; line-height: 1.6;">
                 If you have any questions, feel free to reach out to ${tutorName}:
@@ -365,6 +379,13 @@ PAYMENT INFORMATION:
   }
 
   text += `
+⚠️ CANCELLATION POLICY:
+-----------------------
+• 12+ hours notice: Full refund or rescheduling available
+• Less than 12 hours: No refund, exchange, or rescheduling available. Full lesson fee is forfeited.
+
+Please cancel or reschedule at least 12 hours before your lesson to avoid charges.
+
 QUESTIONS?
 ----------
 If you have any questions, reach out to ${tutorName} at ${tutorEmail}

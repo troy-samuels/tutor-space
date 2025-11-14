@@ -12,6 +12,29 @@ type StudentDetailPageProps = {
   };
 };
 
+type StudentBookingRecord = {
+  id: string;
+  scheduled_at: string | null;
+  duration_minutes: number | null;
+  status: string;
+  payment_status: string | null;
+  payment_amount: number | null;
+  currency: string | null;
+  service: {
+    name: string | null;
+  } | null;
+};
+
+type StudentLessonNoteRecord = {
+  id: string;
+  created_at: string | null;
+  notes: string | null;
+  homework: string | null;
+  student_performance: string | null;
+  areas_to_focus: string[] | null;
+  topics_covered: string[] | null;
+};
+
 export default async function StudentDetailPage({ params }: StudentDetailPageProps) {
   const { studentId } = params;
   const supabase = await createClient();
@@ -55,21 +78,25 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     .order("created_at", { ascending: false })
     .limit(10);
 
-  const totalPaidCents = (bookings ?? [])
+  const bookingRecords: StudentBookingRecord[] = (bookings as StudentBookingRecord[] | null) ?? [];
+  const lessonNoteRecords: StudentLessonNoteRecord[] =
+    (lessonNotes as StudentLessonNoteRecord[] | null) ?? [];
+
+  const totalPaidCents = bookingRecords
     .filter((booking) => booking.payment_status === "paid" && booking.payment_amount)
     .reduce((sum, booking) => sum + (booking.payment_amount ?? 0), 0);
 
-  const outstandingCents = (bookings ?? [])
+  const outstandingCents = bookingRecords
     .filter((booking) => booking.payment_status === "unpaid" && booking.payment_amount)
     .reduce((sum, booking) => sum + (booking.payment_amount ?? 0), 0);
 
-  const nextBooking = bookings?.find((booking) => {
+  const nextBooking = bookingRecords.find((booking) => {
     if (!booking.scheduled_at) return false;
     const isFuture = new Date(booking.scheduled_at) > new Date();
     return isFuture && (booking.status === "confirmed" || booking.status === "pending");
   });
 
-  const currency = nextBooking?.currency ?? bookings?.[0]?.currency ?? "USD";
+  const currency = nextBooking?.currency ?? bookingRecords[0]?.currency ?? "USD";
 
   return (
     <div className="space-y-8">
@@ -143,9 +170,9 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
             </Button>
           </CardHeader>
           <CardContent>
-            {bookings && bookings.length > 0 ? (
+            {bookingRecords.length > 0 ? (
               <div className="space-y-4">
-                {bookings.slice(0, 8).map((booking) => (
+                {bookingRecords.slice(0, 8).map((booking) => (
                   <div
                     key={booking.id}
                     className="flex flex-col gap-2 rounded-xl border border-border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
@@ -232,8 +259,8 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {lessonNotes && lessonNotes.length > 0 ? (
-            lessonNotes.map((note) => (
+          {lessonNoteRecords.length > 0 ? (
+            lessonNoteRecords.map((note) => (
               <div
                 key={note.id}
                 className="rounded-xl border border-border/60 bg-muted/20 p-4 text-sm"
