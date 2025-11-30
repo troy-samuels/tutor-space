@@ -1,10 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useEffect, useMemo, useState } from "react";
-import { Instagram, Mail, Upload, CalendarClock, Minus, Plus, Music4, Facebook, Twitter } from "lucide-react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
+import { Instagram, Mail, Upload, CalendarClock, Minus, Plus, Music4, Facebook, Twitter, Globe } from "lucide-react";
 import type { ProfileFormValues } from "@/lib/validators/profile";
 import { updateProfile, type ProfileActionState } from "@/lib/actions/profile";
+import { setLocale } from "@/lib/i18n/actions";
+import { locales } from "@/lib/i18n/config";
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  es: "Español",
+};
 
 const initialState: ProfileActionState = {};
 
@@ -22,6 +31,17 @@ export function ProfileSettingsForm({
   const [bioCount, setBioCount] = useState(initialValues.bio?.length ?? 0);
   const [avatarPreview, setAvatarPreview] = useState(initialValues.avatar_url ?? "");
   const [bufferMinutes, setBufferMinutes] = useState(initialValues.buffer_time_minutes ?? 0);
+
+  const locale = useLocale();
+  const router = useRouter();
+  const [isLocaleChanging, startLocaleTransition] = useTransition();
+
+  const handleLocaleChange = (newLocale: string) => {
+    startLocaleTransition(async () => {
+      await setLocale(newLocale);
+      router.refresh();
+    });
+  };
 
   const mergedValues = useMemo(() => {
     return {
@@ -80,7 +100,7 @@ export function ProfileSettingsForm({
     <form action={formAction} className="space-y-8" encType="multipart/form-data">
       <input type="hidden" name="existing_avatar_url" value={mergedValues.avatar_url ?? ""} />
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-foreground">Brand identity</h2>
           <p className="text-sm text-muted-foreground">
@@ -90,7 +110,7 @@ export function ProfileSettingsForm({
         </div>
 
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-brand-brown/20 bg-brand-cream">
+          <div className="relative h-28 w-28 overflow-hidden rounded-3xl shadow-sm bg-muted">
             {avatarPreview ? (
               <Image
                 src={avatarPreview}
@@ -100,7 +120,7 @@ export function ProfileSettingsForm({
                 className="object-cover"
               />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-brand-brown">
+              <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-primary">
                 {(mergedValues.full_name?.slice(0, 1) ??
                   mergedValues.username?.slice(0, 1) ??
                   "T"
@@ -114,7 +134,7 @@ export function ProfileSettingsForm({
             Use a bright, welcoming headshot. Square images (min 400×400px) look best on your TutorLingua
               site and marketing graphics.
             </p>
-            <label className="inline-flex items-center gap-2 rounded-full bg-brand-brown px-4 py-2 text-xs font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90">
+            <label className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90">
               <Upload className="h-4 w-4" />
               <span>{avatarPreview ? "Replace photo" : "Upload photo"}</span>
               <input
@@ -129,7 +149,7 @@ export function ProfileSettingsForm({
         </div>
       </section>
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-foreground">Public profile</h2>
           <p className="text-sm text-muted-foreground">
@@ -144,7 +164,7 @@ export function ProfileSettingsForm({
               name="full_name"
               defaultValue={mergedValues.full_name}
               required
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </Field>
 
@@ -155,7 +175,7 @@ export function ProfileSettingsForm({
               defaultValue={mergedValues.username}
               required
               pattern="^[a-z0-9-]+$"
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </Field>
 
@@ -169,7 +189,7 @@ export function ProfileSettingsForm({
               name="tagline"
               defaultValue={mergedValues.tagline}
               required
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </Field>
 
@@ -179,7 +199,7 @@ export function ProfileSettingsForm({
               name="languages_taught"
               defaultValue={mergedValues.languages_taught}
               required
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </Field>
         </div>
@@ -193,13 +213,13 @@ export function ProfileSettingsForm({
             minLength={40}
             rows={6}
             onChange={(event) => setBioCount(event.target.value.length)}
-            className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm leading-relaxed shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+            className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm leading-relaxed shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <p className="mt-1 text-xs text-muted-foreground">{bioCount} / 600 characters</p>
         </Field>
       </section>
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <section id="availability" className="rounded-3xl shadow-sm bg-white/90 p-6 shadow-sm backdrop-blur">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-foreground">Availability & timezone</h2>
           <p className="text-sm text-muted-foreground">
@@ -213,7 +233,7 @@ export function ProfileSettingsForm({
               id="timezone"
               name="timezone"
               defaultValue={mergedValues.timezone}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {timezones.map((tz) => (
                 <option key={tz} value={tz}>
@@ -229,13 +249,13 @@ export function ProfileSettingsForm({
               name="website_url"
               defaultValue={mergedValues.website_url}
               placeholder="https://..."
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </Field>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-foreground">Bookings & sessions</h2>
           <p className="text-sm text-muted-foreground">
@@ -244,12 +264,12 @@ export function ProfileSettingsForm({
         </div>
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <label className="flex items-start gap-3 rounded-2xl border border-brand-brown/20 bg-brand-brown/5 px-4 py-4 text-sm text-foreground">
+          <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground">
             <input
               type="checkbox"
               name="booking_enabled"
               defaultChecked={mergedValues.booking_enabled}
-              className="mt-1 h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown"
+              className="mt-1 h-4 w-4 rounded border-foreground text-primary focus:ring-primary"
             />
             <span>
               <span className="font-semibold">Accept new bookings</span>
@@ -259,12 +279,12 @@ export function ProfileSettingsForm({
             </span>
           </label>
 
-          <label className="flex items-start gap-3 rounded-2xl border border-brand-brown/20 bg-white/60 px-4 py-4 text-sm text-foreground">
+          <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground">
             <input
               type="checkbox"
               name="auto_accept_bookings"
               defaultChecked={mergedValues.auto_accept_bookings}
-              className="mt-1 h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown"
+              className="mt-1 h-4 w-4 rounded border-foreground text-primary focus:ring-primary"
             />
             <span>
               <span className="font-semibold">Auto-confirm paid sessions</span>
@@ -285,27 +305,27 @@ export function ProfileSettingsForm({
               Give yourself breathing room for notes, prep, and overrun.
             </span>
           </label>
-          <div className="mt-4 space-y-3 rounded-3xl border border-brand-brown/25 bg-brand-brown/5 p-5">
+          <div className="mt-4 space-y-3 rounded-3xl border border-foreground/25 bg-primary/5 p-5">
             <input type="hidden" id="buffer_time_minutes" name="buffer_time_minutes" value={bufferMinutes} />
             <div className="flex items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={() => changeBuffer(-5)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-brown/40 bg-white text-brand-brown shadow-sm transition hover:bg-brand-brown/10 focus:outline-none focus:ring-2 focus:ring-brand-brown/40"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/40 bg-white text-primary shadow-sm transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
                 aria-label="Decrease buffer time"
               >
                 <Minus className="h-4 w-4" />
               </button>
-              <div className="flex flex-col items-center gap-1 text-brand-brown" aria-live="polite">
+              <div className="flex flex-col items-center gap-1 text-primary" aria-live="polite">
                 <span className="text-3xl font-semibold">{bufferMinutes}</span>
-                <span className="text-xs font-semibold uppercase tracking-wide text-brand-brown/80">
+                <span className="text-xs font-semibold uppercase tracking-wide text-primary/80">
                   minutes
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => changeBuffer(5)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-brown/40 bg-white text-brand-brown shadow-sm transition hover:bg-brand-brown/10 focus:outline-none focus:ring-2 focus:ring-brand-brown/40"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/40 bg-white text-primary shadow-sm transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
                 aria-label="Increase buffer time"
               >
                 <Plus className="h-4 w-4" />
@@ -317,10 +337,10 @@ export function ProfileSettingsForm({
                   key={minutes}
                   type="button"
                   onClick={() => setBufferMinutes(minutes)}
-                  className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand-brown/40 ${
+                  className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary/40 ${
                     bufferMinutes === minutes
-                      ? "bg-brand-brown text-brand-white shadow-sm"
-                      : "border border-brand-brown/30 bg-white text-brand-brown hover:bg-brand-brown/10"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "border border-foreground/30 bg-white text-primary hover:bg-primary/10"
                   }`}
                 >
                   {minutes === 0 ? "No buffer" : `${minutes} min`}
@@ -330,14 +350,47 @@ export function ProfileSettingsForm({
           </div>
         </div>
 
-        <p className="mt-4 flex items-center gap-2 rounded-2xl border border-dashed border-brand-brown/30 bg-brand-brown/5 px-4 py-3 text-xs text-muted-foreground">
-          <CalendarClock className="h-4 w-4 text-brand-brown" />
+        <p className="mt-4 flex items-center gap-2 rounded-2xl border border-dashed border-foreground/30 bg-primary/5 px-4 py-3 text-xs text-muted-foreground">
+          <CalendarClock className="h-4 w-4 text-primary" />
           Calendar sync is configured from <strong className="font-semibold">Settings → Calendar sync</strong>.
           Once connected, bookings respect your external events automatically.
         </p>
       </section>
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-foreground">Interface language</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose your preferred language for the TutorLingua dashboard.
+          </p>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex flex-col gap-2 text-sm text-foreground">
+            <span className="flex items-center gap-2 font-medium text-foreground">
+              <Globe className="h-4 w-4 text-primary" />
+              <span>Display language</span>
+            </span>
+            <select
+              value={locale}
+              onChange={(event) => handleLocaleChange(event.target.value)}
+              disabled={isLocaleChanging}
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60 sm:w-auto sm:min-w-[200px]"
+            >
+              {locales.map((value) => (
+                <option key={value} value={value}>
+                  {LANGUAGE_LABELS[value] ?? value.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              This changes the language of menus and interface elements throughout the app.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-foreground">Contact & Social</h2>
           <p className="text-sm text-muted-foreground">
@@ -347,28 +400,28 @@ export function ProfileSettingsForm({
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <SocialInput
-            icon={<Instagram className="h-4 w-4 text-brand-brown" />}
+            icon={<Instagram className="h-4 w-4 text-primary" />}
             label="Instagram"
             name="instagram_handle"
             defaultValue={mergedValues.instagram_handle}
             placeholder="@yourhandle"
           />
           <SocialInput
-            icon={<Music4 className="h-4 w-4 text-brand-brown" />}
+            icon={<Music4 className="h-4 w-4 text-primary" />}
             label="TikTok"
             name="tiktok_handle"
             defaultValue={mergedValues.tiktok_handle}
             placeholder="@yourhandle"
           />
           <SocialInput
-            icon={<Facebook className="h-4 w-4 text-brand-brown" />}
+            icon={<Facebook className="h-4 w-4 text-primary" />}
             label="Facebook"
             name="facebook_handle"
             defaultValue={mergedValues.facebook_handle}
             placeholder="@yourhandle"
           />
           <SocialInput
-            icon={<Twitter className="h-4 w-4 text-brand-brown" />}
+            icon={<Twitter className="h-4 w-4 text-primary" />}
             label="X (Twitter)"
             name="x_handle"
             defaultValue={mergedValues.x_handle}
@@ -376,7 +429,7 @@ export function ProfileSettingsForm({
           />
           <div className="flex flex-col gap-2 text-sm text-foreground sm:col-span-2">
             <span className="flex items-center gap-2 font-medium text-foreground">
-              <Mail className="h-4 w-4 text-brand-brown" />
+              <Mail className="h-4 w-4 text-primary" />
               <span>Contact Email</span>
             </span>
             <div className="flex items-center gap-2 rounded-xl border border-input bg-muted/30 px-4 py-2.5 text-sm shadow-sm">
@@ -405,7 +458,7 @@ export function ProfileSettingsForm({
       <button
         type="submit"
         disabled={isPending}
-        className="inline-flex h-11 items-center justify-center rounded-full bg-brand-brown px-6 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending ? "Saving..." : "Save profile"}
       </button>
@@ -456,7 +509,7 @@ function SocialInput({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder || "handle"}
-        className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+        className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
     </label>
   );

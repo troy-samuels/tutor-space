@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { SUPPORTED_CALENDAR_PROVIDERS, getProviderConfig } from "@/lib/calendar/config";
 import { encrypt } from "@/lib/utils/crypto";
+import { RateLimiters } from "@/lib/middleware/rate-limit";
 
 type TokenResponse = {
   access_token: string;
@@ -17,6 +18,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
+  // SECURITY: Rate limit OAuth callbacks to prevent abuse
+  const rateLimitResult = await RateLimiters.api(request);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: rateLimitResult.error },
+      { status: 429 }
+    );
+  }
+
   const { provider } = await params;
   const typedProvider = provider as (typeof SUPPORTED_CALENDAR_PROVIDERS)[number];
 
@@ -42,16 +52,31 @@ export async function GET(
   const cookieStore = await cookies();
   const storedState = cookieStore.get(cookieName)?.value;
 
+  // Parse state to check for popup mode
+  let stateId: string | null = null;
+  let isPopup = false;
+
+  if (state) {
+    try {
+      const stateData = JSON.parse(Buffer.from(state, "base64").toString("utf-8"));
+      stateId = stateData.id;
+      isPopup = stateData.popup === true;
+    } catch {
+      // Fallback for old state format (plain UUID)
+      stateId = state;
+    }
+  }
+
   if (oauthError) {
     return redirectWithMessage(request, {
       error: oauthError,
-    });
+    }, isPopup);
   }
 
-  if (!code || !state || !storedState || state !== storedState) {
+  if (!code || !state || !storedState || stateId !== storedState) {
     return redirectWithMessage(request, {
       error: "invalid_state",
-    });
+    }, isPopup);
   }
 
   cookieStore.delete(cookieName);
@@ -64,7 +89,7 @@ export async function GET(
   if (!user) {
     return redirectWithMessage(request, {
       error: "unauthenticated",
-    });
+    }, isPopup);
   }
 
   const tokenPayload = new URLSearchParams({
@@ -95,13 +120,13 @@ export async function GET(
     console.error("[Calendar OAuth] token exchange failed", error);
     return redirectWithMessage(request, {
       error: "token_exchange_failed",
-    });
+    }, isPopup);
   }
 
   if (!tokenResponse?.access_token) {
     return redirectWithMessage(request, {
       error: "missing_access_token",
-    });
+    }, isPopup);
   }
 
   let accountEmail: string | null = null;
@@ -155,7 +180,7 @@ export async function GET(
     console.error("[Calendar OAuth] encryption failed", error);
     return redirectWithMessage(request, {
       error: "encryption_failed",
-    });
+    }, isPopup);
   }
 
   const { error: upsertError } = await supabase.from("calendar_connections").upsert(
@@ -182,17 +207,23 @@ export async function GET(
     console.error("[Calendar OAuth] saving connection failed", upsertError);
     return redirectWithMessage(request, {
       error: "persist_failed",
-    });
+    }, isPopup);
   }
 
   return redirectWithMessage(request, {
     success: typedProvider,
-  });
+  }, isPopup);
 }
 
-function redirectWithMessage(request: NextRequest, params: { success?: string; error?: string }) {
+function redirectWithMessage(
+  request: NextRequest,
+  params: { success?: string; error?: string },
+  isPopup: boolean = false
+) {
   const origin = request.nextUrl.origin;
-  const target = new URL("/settings/calendar", origin);
+  // Redirect popups to callback page that auto-closes, regular flows to settings
+  const targetPath = isPopup ? "/calendar-callback" : "/settings/calendar";
+  const target = new URL(targetPath, origin);
   if (params.success) {
     target.searchParams.set("connected", params.success);
   }

@@ -3,18 +3,20 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "link";
+type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "link" | "destructive";
 type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    "bg-brand-brown text-brand-white hover:bg-brand-brown/90 focus-visible:ring-brand-brown",
+    "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary",
   secondary:
-    "bg-brand-brown/10 text-brand-brown hover:bg-brand-brown/20 focus-visible:ring-brand-brown/40",
+    "bg-secondary text-secondary-foreground hover:bg-secondary/80 focus-visible:ring-primary/40",
   outline:
-    "border border-input bg-background text-foreground hover:bg-muted focus-visible:ring-brand-brown/40",
-  ghost: "text-muted-foreground hover:bg-muted focus-visible:ring-brand-brown/40",
-  link: "text-brand-brown underline-offset-4 hover:underline focus-visible:ring-transparent",
+    "bg-background text-foreground hover:bg-muted focus-visible:ring-primary/40",
+  ghost: "text-muted-foreground hover:bg-muted focus-visible:ring-primary/40",
+  link: "text-primary underline-offset-4 hover:underline focus-visible:ring-transparent",
+  destructive:
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -41,8 +43,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
 
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children as React.ReactElement, {
-        className: cn(classes, (children.props as { className?: string })?.className),
+      const child = children as React.ReactElement<{ className?: string }>;
+      return React.cloneElement(child, {
+        className: cn(classes, child.props?.className),
         ...props,
       });
     }

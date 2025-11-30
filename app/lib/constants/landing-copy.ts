@@ -139,10 +139,10 @@ export type LandingCopy = {
 
 const landingCopyEn: LandingCopy = {
   hero: {
-    headline: "Teaching languages has never been so simple. Tutoring just got easier",
+    headline: "Built for tutors.",
     subheadline:
-      "More students. Higher income. Less admin. Keep 100% of your earnings.",
-    primaryCTA: "Start free",
+      "$29 or £19 a month. All tools. No add-on fees.",
+    primaryCTA: "Start now",
     secondaryCTA: "See how it works",
     variants: {
       outcomeHeadline: "Less admin. More students.",
@@ -152,7 +152,7 @@ const landingCopyEn: LandingCopy = {
   },
 
   socialProof: {
-    text: "Trusted by thousands of language tutors building independent businesses",
+    text: "Used by language tutors on Preply, iTalki, and Verbling to own their repeat business",
     tutors: [
       { name: "Sarai A.", language: "Spanish Teacher" },
       { name: "Thomas B.", language: "French Tutor" },
@@ -161,100 +161,82 @@ const landingCopyEn: LandingCopy = {
   },
 
   problems: {
-    headline: "An all-in-one platform built to deliver your language lessons.",
+    headline: "Your business is scattered. It shouldn't be.",
     subtitle:
-      "Move beyond marketplaces. Run your tutoring business the professional way.",
+      "Students on Preply. Bookings on Calendly. Links on Beacons. TutorLingua brings it all together.",
     items: [
       {
         icon: "Layers",
-        title: "One platform, not ten",
+        title: "Built for tutors only",
         description:
-          "Booking, payments, CRM, and video—all included.",
+          "Unlike generic tools. Everything you need. Nothing you don't.",
       },
       {
         icon: "Users",
-        title: "Students book you directly",
+        title: "Own your repeat business",
         description:
-          "No marketplace. No commissions. All yours.",
+          "Marketplaces find students. You keep them. No commissions.",
       },
       {
         icon: "Clock",
-        title: "Teach more, admin less",
+        title: "Students book instantly",
         description:
-          "Automated reminders, zoom links, and lesson prep.",
+          "Share your link. They pick a time. You get paid. Done.",
       },
     ],
   },
 
   solution: {
-    headline: "Everything you need to run your independent business.",
-    subheadline: "Simple to start, powerful as you grow.",
+    headline: "Everything you need. Nothing you don't.",
+    subheadline: "Built for language tutors. Ready in 10 minutes.",
     features: [
       {
         icon: "Globe",
-        title: "Professional website in minutes",
+        title: "Your professional hub",
         description:
-          "Launch your tutor site with bio, services, testimonials, and booking calendar. Own your presence.",
+          "Website plus link-in-bio. Share on Instagram, TikTok, marketplace profiles. One link to everything.",
       },
       {
         icon: "Calendar",
-        title: "Bookings on autopilot",
+        title: "Direct bookings",
         description:
-          "Set availability once. Students book instantly. Zoom links, reminders, and calendar sync happen automatically.",
-      },
-      {
-        icon: "Wallet",
-        title: "Get paid upfront. Zero commission.",
-        description:
-          "Stripe and PayPal payments built in. Create packages, send invoices, handle refunds. Keep every dollar.",
+          "Students pick a time. Pay upfront. Get Zoom links automatically. No chasing payments. No back-and-forth.",
       },
       {
         icon: "Users",
-        title: "Turn followers into students",
+        title: "Track your students",
         description:
-          "Capture leads from Instagram, TikTok, WhatsApp. Smart follow-ups and organized CRM included.",
-      },
-      {
-        icon: "Sparkles",
-        title: "AI tools save hours weekly",
-        description:
-          "Generate lesson plans, homework, and vocab exercises instantly. 24/7 AI conversation partner for students.",
-      },
-      {
-        icon: "CheckCircle",
-        title: "Automated parent communication",
-        description:
-          "Lesson summaries, review requests, and updates sent automatically. Keep everyone informed effortlessly.",
+          "Save notes after each lesson. Remember what you taught. Track progress over time. All in one place.",
       },
     ],
   },
 
   howItWorks: {
-    headline: "Launch in 15 minutes",
+    headline: "Ready in 10 minutes",
     steps: [
       {
         number: 1,
         icon: "UserPlus",
-        title: "Build your site",
+        title: "Share your link",
         description:
-          "Add bio, languages, pricing, testimonials. Your professional site goes live instantly.",
+          "Put it on Instagram. Add it to TikTok. Include it in your Preply bio. Share it everywhere.",
       },
       {
         number: 2,
-        icon: "Settings",
-        title: "Set services and availability",
+        icon: "Calendar",
+        title: "Students book directly",
         description:
-          "List lessons and packages. Set availability once. Billing and Zoom links run automatically.",
+          "They pick a time. Pay upfront. Get their Zoom link instantly. You get a notification.",
       },
       {
         number: 3,
-        icon: "Share2",
-        title: "Share and book students",
+        icon: "Users",
+        title: "You track everything",
         description:
-          "Share your link on Instagram, TikTok, WhatsApp, email. Students book instantly.",
+          "All your students in one place. Notes, schedules, payments. No more scattered tools.",
       },
     ],
-    cta: "Create your TutorLingua site",
+    cta: "Start free",
   },
 
   featuresDeepDive: {
@@ -314,80 +296,45 @@ const landingCopyEn: LandingCopy = {
   },
 
   pricing: {
-    headline: "Simple pricing",
-    subheadline:
-      "Start free forever. Upgrade when you're ready to scale.",
-    comparisonNote:
-      "Keep 100% of your earnings. No commissions.",
+    headline: "$29 or £19 a month",
+    subheadline: "One flat price for every tutor.",
+    comparisonNote: "All features included. No add-on fees. Cancel anytime.",
     tiers: [
       {
-        name: "Professional",
-        price: "Free",
-        period: "forever",
-        description: "For getting started",
+        name: "Full access",
+        price: "$29 or £19",
+        period: "per month",
+        badge: "All features",
+        description: "One plan. Full platform.",
         features: [
-          "Up to 20 students",
-          "1 active service",
-          "Basic bookings",
-          "Payment collection",
-          "Video meeting links",
-          "Email reminders",
+          "Site, links, and bookings in one place",
+          "Pay upfront with Stripe or PayPal",
+          "Notes and tasks for each student",
+          "Email and WhatsApp nudges built in",
+          "No add-on fees. Stop when you want.",
         ],
-        cta: "Start free",
-        highlighted: false,
-      },
-      {
-        name: "Growth",
-        price: "$29",
-        period: "/month",
-        badge: "Most popular",
-        description: "For growing your business",
-        features: [
-          "Everything in Professional",
-          "Unlimited students & services",
-          "Session packages",
-          "Link-in-bio with analytics",
-          "Advanced scheduling",
-          "Priority support",
-        ],
-        cta: "Upgrade to Growth",
+        cta: "Start now",
         highlighted: true,
-      },
-      {
-        name: "Studio",
-        price: "$99",
-        period: "/month",
-        description: "Coming Q2 2025",
-        features: [
-          "Everything in Growth",
-          "Group sessions (coming soon)",
-          "Team accounts (coming soon)",
-          "Marketplace access (Q3 2025)",
-          "Advanced AI tools (Q3 2025)",
-        ],
-        cta: "Join waitlist",
-        highlighted: false,
       },
     ],
   },
 
   comparison: {
-    headline: "Take full control of your business",
+    headline: "Built for tutors. Not for everyone.",
     caption:
-      "Run your tutoring business your way. Set your prices. Own your students. Build your brand.",
+      "Generic link tools work for anyone. TutorLingua works for language tutors specifically.",
     tableHeaders: {
-      feature: "What you control",
-      marketplace: "Marketplaces",
+      feature: "What you get",
+      marketplace: "Generic tools",
       platform: "TutorLingua",
     },
     columns: [
       { label: "", marketplace: "", platform: "" },
-      { label: "Your earnings", marketplace: "70-85%", platform: "100%" },
-      { label: "Your pricing", marketplace: "Platform sets rates", platform: "You decide" },
-      { label: "Your students", marketplace: "Shared pool", platform: "Your private list" },
-      { label: "Your schedule", marketplace: "Limited flexibility", platform: "Full control" },
-      { label: "Your branding", marketplace: "Generic profile", platform: "Custom site & links" },
-      { label: "Your data", marketplace: "Platform owns it", platform: "You own & export it" },
+      { label: "Booking system", marketplace: "Separate tool", platform: "Built in" },
+      { label: "Payment collection", marketplace: "Separate tool", platform: "Built in" },
+      { label: "Student notes & CRM", marketplace: "Not included", platform: "Built in" },
+      { label: "Lesson tracking", marketplace: "Not included", platform: "Built in" },
+      { label: "Professional website", marketplace: "Link page only", platform: "Full site + links" },
     ],
   },
 
@@ -395,7 +342,7 @@ const landingCopyEn: LandingCopy = {
     headline: "Real tutors, real results",
     featured: {
       quote:
-        "Saved $7,500 this year switching from Preply. Parents love the automated updates and my business looks professional.",
+        "I stay on Preply for new students. But repeat lessons go through TutorLingua. Saved me $7,500 in commissions this year.",
       author: "Sarai A.",
       role: "Spanish Teacher",
       image: "/testimonials/sara.jpg",
@@ -403,13 +350,13 @@ const landingCopyEn: LandingCopy = {
     list: [
       {
         quote:
-          "Booked 12 trial lessons in one week using automated follow-ups. No spreadsheets needed.",
+          "My Instagram followers can finally book me directly. 12 lessons booked in the first week.",
         author: "Thomas B.",
         role: "French Tutor",
       },
       {
         quote:
-          "Credibility page changed everything for parent trust. Automated payments and summaries make me look like a full team.",
+          "All my students in one place. Notes, schedules, payments. No more scattered spreadsheets.",
         author: "Ricardo M.",
         role: "Portuguese Tutor",
       },
@@ -420,52 +367,52 @@ const landingCopyEn: LandingCopy = {
     headline: "Common questions",
     items: [
       {
-        question: "Can I use TutorLingua with marketplaces?",
+        question: "Do I need to leave Preply or iTalki?",
         answer:
-          "Yes. Keep marketplace profiles for discovery. Use TutorLingua to manage students and avoid commissions.",
+          "No. Use marketplaces to get discovered. Use TutorLingua for direct bookings from your followers and repeat students.",
       },
       {
-        question: "Is this easy to use if I'm not technical?",
+        question: "Is this easy to use?",
         answer:
-          "If you can use Instagram, you can use TutorLingua. Most tutors launch in 15 minutes with our templates.",
+          "If you can use Instagram, you can use TutorLingua. Most tutors are ready in 10 minutes.",
       },
       {
-        question: "How quickly can I start?",
+        question: "How do students book?",
         answer:
-          "Under 15 minutes. Publish your site, add services, and accept bookings immediately.",
+          "They click your link. Pick a time. Pay. Get their Zoom link instantly. Done.",
       },
       {
-        question: "Will students find booking easy?",
+        question: "Do I keep all my earnings?",
         answer:
-          "Yes. They pick a time, pay securely, and get their Zoom link instantly. Automatic reminders included.",
+          "Yes. No commissions on direct bookings through TutorLingua. You keep 100%.",
       },
       {
-        question: "How does AI help with teaching?",
+        question: "Can I track my students?",
         answer:
-          "Creates lesson plans, homework, vocab exercises, and parent updates. Provides 24/7 conversation practice for students.",
+          "Yes. Save notes after each lesson. Track progress. All your students in one organized place.",
       },
       {
-        question: "Can I export my data if I leave?",
+        question: "Can I leave anytime?",
         answer:
-          "Yes. Your data is yours. Export all student info, notes, and invoices anytime. No lock-in.",
+          "Yes. Export all your data. No lock-in. Cancel anytime.",
       },
     ],
   },
 
   finalCTA: {
-    headline: "Ready to build your business?",
+    headline: "Ready to own your business?",
     subheadline:
-      "Launch in 15 minutes. Keep more of what you earn.",
+      "Free to start. Ready in 10 minutes. No credit card needed.",
     calculatorLabel: "Monthly revenue:",
     calculatorUnit: "/month",
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Marketplace fees (25%):",
-    platformCostLabel: "TutorLingua:",
+    platformCostLabel: "TutorLingua ($29 / £19):",
     monthlySavingsLabel: "Monthly savings:",
     annualSavingsLabel: "Annual savings",
-    button: "Start free—no credit card",
-    finePrint: "14 days free. Cancel anytime.",
+    button: "Start free",
+    finePrint: "Free forever. Upgrade anytime.",
     trustBadges: ["Stripe Verified", "GDPR Compliant", "SOC 2 Ready"],
   },
 
@@ -480,7 +427,7 @@ const landingCopyEn: LandingCopy = {
   },
 
   footer: {
-    tagline: "TutorLingua — the operating system for independent language tutors",
+    tagline: "TutorLingua — Own your repeat business. Built for language tutors.",
     sections: [
       {
         title: "Product",
@@ -507,6 +454,7 @@ const landingCopyEn: LandingCopy = {
           { label: "Contact", href: "/contact" },
           { label: "Privacy", href: "/privacy" },
           { label: "Terms", href: "/terms" },
+          { label: "Admin", href: "/admin/login" },
         ],
       },
     ],
@@ -516,11 +464,11 @@ const landingCopyEn: LandingCopy = {
 
 const landingCopyEs: LandingCopy = {
   hero: {
-    headline: "Enseñar idiomas nunca fue tan simple. Ser tutor ahora es más fácil",
+    headline: "Creado para tutores.",
     subheadline:
-      "Más estudiantes. Mayores ingresos. Menos admin. Quédate con el 100% de tus ganancias.",
-    primaryCTA: "Empieza gratis",
-    secondaryCTA: "Descubre cómo funciona",
+      "$29 o £19 al mes. Todas las funciones. Sin extras.",
+    primaryCTA: "Empieza ahora",
+    secondaryCTA: "Ver cómo funciona",
     variants: {
       outcomeHeadline: "Menos admin. Más estudiantes.",
       financialHeadline: "Quédate con el 100%—sin comisiones.",
@@ -529,7 +477,7 @@ const landingCopyEs: LandingCopy = {
   },
 
   socialProof: {
-    text: "Miles de tutores de idiomas confían en TutorLingua para construir negocios independientes",
+    text: "Usado por tutores de idiomas en Preply, iTalki y Verbling para ser dueños de su negocio repetido",
     tutors: [
       { name: "Sarai A.", language: "Profesora de español" },
       { name: "Thomas B.", language: "Tutor de francés" },
@@ -538,100 +486,82 @@ const landingCopyEs: LandingCopy = {
   },
 
   problems: {
-    headline: "Herramientas que trabajan tan duro como tú.",
+    headline: "Tu negocio está disperso. No debería estarlo.",
     subtitle:
-      "Supera los marketplaces. Gestiona tu negocio profesionalmente.",
+      "Estudiantes en Preply. Reservas en Calendly. Enlaces en Beacons. TutorLingua lo une todo.",
     items: [
       {
         icon: "Layers",
-        title: "Una plataforma, no diez",
+        title: "Creado solo para tutores",
         description:
-          "Reservas, pagos, CRM y video—todo incluido.",
+          "A diferencia de herramientas genéricas. Todo lo que necesitas. Nada que no.",
       },
       {
         icon: "Users",
-        title: "Estudiantes reservan directamente contigo",
+        title: "Dueño de tu negocio repetido",
         description:
-          "Sin marketplace. Sin comisiones. Todo tuyo.",
+          "Marketplaces encuentran estudiantes. Tú los mantienes. Sin comisiones.",
       },
       {
         icon: "Clock",
-        title: "Enseña más, administra menos",
+        title: "Estudiantes reservan al instante",
         description:
-          "Recordatorios automáticos, enlaces zoom y preparación de clases.",
+          "Comparte tu enlace. Eligen horario. Pagas. Listo.",
       },
     ],
   },
 
   solution: {
-    headline: "Todo lo que necesitas para dirigir tu negocio independiente.",
-    subheadline: "Fácil de comenzar, potente a medida que creces.",
+    headline: "Todo lo que necesitas. Nada que no.",
+    subheadline: "Creado para tutores de idiomas. Listo en 10 minutos.",
     features: [
       {
         icon: "Globe",
-        title: "Sitio web profesional en minutos",
+        title: "Tu hub profesional",
         description:
-          "Lanza tu sitio con biografía, servicios, testimonios y calendario. Controla tu presencia online.",
+          "Sitio web más link-in-bio. Comparte en Instagram, TikTok, perfiles marketplace. Un enlace a todo.",
       },
       {
         icon: "Calendar",
-        title: "Reservas en piloto automático",
+        title: "Reservas directas",
         description:
-          "Configura disponibilidad una vez. Estudiantes reservan al instante. Enlaces Zoom, recordatorios y sincronización automáticos.",
-      },
-      {
-        icon: "Wallet",
-        title: "Cobra por adelantado. Sin comisiones.",
-        description:
-          "Pagos Stripe y PayPal integrados. Crea paquetes, envía facturas, gestiona reembolsos. Quédate con todo.",
+          "Estudiantes eligen horario. Pagan por adelantado. Reciben enlaces Zoom automáticamente. Sin perseguir pagos. Sin ida y vuelta.",
       },
       {
         icon: "Users",
-        title: "Convierte seguidores en estudiantes",
+        title: "Rastrea tus estudiantes",
         description:
-          "Captura leads de Instagram, TikTok, WhatsApp. Seguimientos inteligentes y CRM organizado incluidos.",
-      },
-      {
-        icon: "Sparkles",
-        title: "Herramientas IA ahorran horas semanales",
-        description:
-          "Genera planes de clase, tareas y vocabulario al instante. Compañero de conversación IA 24/7 para estudiantes.",
-      },
-      {
-        icon: "CheckCircle",
-        title: "Comunicación automatizada con padres",
-        description:
-          "Resúmenes de clase, solicitudes de reseñas y actualizaciones enviadas automáticamente. Mantén a todos informados sin esfuerzo.",
+          "Guarda notas después de cada lección. Recuerda lo que enseñaste. Sigue el progreso con el tiempo. Todo en un lugar.",
       },
     ],
   },
 
   howItWorks: {
-    headline: "Lanza en 15 minutos",
+    headline: "Listo en 10 minutos",
     steps: [
       {
         number: 1,
         icon: "UserPlus",
-        title: "Construye tu sitio",
+        title: "Comparte tu enlace",
         description:
-          "Añade biografía, idiomas, precios, testimonios. Tu sitio profesional se publica al instante.",
+          "Ponlo en Instagram. Añádelo a TikTok. Inclúyelo en tu bio de Preply. Compártelo en todas partes.",
       },
       {
         number: 2,
-        icon: "Settings",
-        title: "Define servicios y disponibilidad",
+        icon: "Calendar",
+        title: "Estudiantes reservan directamente",
         description:
-          "Lista clases y paquetes. Establece disponibilidad una vez. Facturación y enlaces Zoom funcionan automáticamente.",
+          "Eligen horario. Pagan por adelantado. Reciben su enlace Zoom al instante. Recibes notificación.",
       },
       {
         number: 3,
-        icon: "Share2",
-        title: "Comparte y reserva estudiantes",
+        icon: "Users",
+        title: "Tú lo rastreas todo",
         description:
-          "Comparte tu enlace en Instagram, TikTok, WhatsApp, email. Estudiantes reservan al instante.",
+          "Todos tus estudiantes en un lugar. Notas, horarios, pagos. No más herramientas dispersas.",
       },
     ],
-    cta: "Crea tu sitio en TutorLingua",
+    cta: "Empieza gratis",
   },
 
   featuresDeepDive: {
@@ -691,80 +621,45 @@ const landingCopyEs: LandingCopy = {
   },
 
   pricing: {
-    headline: "Precios sencillos",
-    subheadline:
-      "Empieza gratis para siempre. Actualiza cuando estés listo para escalar.",
-    comparisonNote:
-      "Quédate con el 100% de tus ingresos. Sin comisiones.",
+    headline: "$29 o £19 al mes",
+    subheadline: "Un solo precio para tutores.",
+    comparisonNote: "Acceso completo. Sin extras. Cancela cuando quieras.",
     tiers: [
       {
-        name: "Professional",
-        price: "Gratis",
-        period: "para siempre",
-        description: "Para empezar",
+        name: "Acceso total",
+        price: "$29 o £19",
+        period: "al mes",
+        badge: "Todo incluido",
+        description: "Un plan. Toda la plataforma.",
         features: [
-          "Hasta 20 estudiantes",
-          "1 servicio activo",
-          "Reservas básicas",
-          "Cobro de pagos",
-          "Enlaces de videollamada",
-          "Recordatorios por email",
+          "Sitio y reservas en un solo lugar",
+          "Cobros por Stripe o PayPal",
+          "Notas y tareas por alumno",
+          "Emails y recordatorios listos",
+          "Sin extras. Cancela cuando quieras.",
         ],
-        cta: "Empieza gratis",
-        highlighted: false,
-      },
-      {
-        name: "Growth",
-        price: "$29",
-        period: "/mes",
-        badge: "Más popular",
-        description: "Para hacer crecer tu negocio",
-        features: [
-          "Todo en Professional",
-          "Estudiantes y servicios ilimitados",
-          "Paquetes de sesiones",
-          "Link-in-bio con analítica",
-          "Programación avanzada",
-          "Soporte prioritario",
-        ],
-        cta: "Sube a Growth",
+        cta: "Empieza ahora",
         highlighted: true,
-      },
-      {
-        name: "Studio",
-        price: "$99",
-        period: "/mes",
-        description: "Próximamente Q2 2025",
-        features: [
-          "Todo en Growth",
-          "Sesiones grupales (próximamente)",
-          "Cuentas de equipo (próximamente)",
-          "Acceso marketplace (Q3 2025)",
-          "Herramientas IA avanzadas (Q3 2025)",
-        ],
-        cta: "Únete a lista de espera",
-        highlighted: false,
       },
     ],
   },
 
   comparison: {
-    headline: "Toma control total de tu negocio",
+    headline: "Creado para tutores. No para todos.",
     caption:
-      "Dirige tu negocio de tutoría a tu manera. Define tus precios. Posee tus estudiantes. Construye tu marca.",
+      "Herramientas genéricas funcionan para cualquiera. TutorLingua funciona específicamente para tutores de idiomas.",
     tableHeaders: {
-      feature: "Lo que controlas",
-      marketplace: "Marketplaces",
+      feature: "Lo que obtienes",
+      marketplace: "Herramientas genéricas",
       platform: "TutorLingua",
     },
     columns: [
       { label: "", marketplace: "", platform: "" },
-      { label: "Tus ganancias", marketplace: "70-85%", platform: "100%" },
-      { label: "Tus precios", marketplace: "Plataforma decide", platform: "Tú decides" },
-      { label: "Tus estudiantes", marketplace: "Base compartida", platform: "Tu lista privada" },
-      { label: "Tu horario", marketplace: "Flexibilidad limitada", platform: "Control total" },
-      { label: "Tu marca", marketplace: "Perfil genérico", platform: "Sitio y enlaces personalizados" },
-      { label: "Tus datos", marketplace: "Plataforma los posee", platform: "Tú los posees y exportas" },
+      { label: "Sistema de reservas", marketplace: "Herramienta separada", platform: "Integrado" },
+      { label: "Cobro de pagos", marketplace: "Herramienta separada", platform: "Integrado" },
+      { label: "Notas y CRM de estudiantes", marketplace: "No incluido", platform: "Integrado" },
+      { label: "Seguimiento de lecciones", marketplace: "No incluido", platform: "Integrado" },
+      { label: "Sitio web profesional", marketplace: "Solo página de enlaces", platform: "Sitio completo + enlaces" },
     ],
   },
 
@@ -772,23 +667,23 @@ const landingCopyEs: LandingCopy = {
     headline: "Tutores reales, resultados reales",
     featured: {
       quote:
-        "Ahorré $7.500 este año al cambiar de Preply. A los padres les encantan las actualizaciones automáticas y mi negocio se ve profesional.",
-      author: "Sara Martínez",
-      role: "Tutora de español, 38 estudiantes",
+        "Me quedo en Preply para nuevos estudiantes. Pero lecciones repetidas van por TutorLingua. Me ahorró $7.500 en comisiones este año.",
+      author: "Sarai A.",
+      role: "Tutora de español",
       image: "/testimonials/sara.jpg",
     },
     list: [
       {
         quote:
-          "Reservé 12 clases de prueba en una semana con seguimientos automáticos. Sin hojas de cálculo.",
-        author: "Chen Wei",
-        role: "Tutor de mandarín",
+          "Mis seguidores de Instagram finalmente pueden reservarme directamente. 12 lecciones reservadas en la primera semana.",
+        author: "Thomas B.",
+        role: "Tutor de francés",
       },
       {
         quote:
-          "Página de credibilidad cambió todo para confianza de padres. Pagos y resúmenes automáticos me hacen parecer un equipo completo.",
-        author: "Marcus Johnson",
-        role: "Tutor de inglés",
+          "Todos mis estudiantes en un lugar. Notas, horarios, pagos. No más hojas de cálculo dispersas.",
+        author: "Ricardo M.",
+        role: "Tutor de portugués",
       },
     ],
   },
@@ -797,52 +692,52 @@ const landingCopyEs: LandingCopy = {
     headline: "Preguntas comunes",
     items: [
       {
-        question: "¿Puedo usar TutorLingua con marketplaces?",
+        question: "¿Necesito dejar Preply o iTalki?",
         answer:
-          "Sí. Mantén perfiles en marketplaces para descubrimiento. Usa TutorLingua para gestionar estudiantes y evitar comisiones.",
+          "No. Usa marketplaces para ser descubierto. Usa TutorLingua para reservas directas de tus seguidores y estudiantes repetidos.",
       },
       {
-        question: "¿Es fácil de usar si no soy técnico?",
+        question: "¿Es fácil de usar?",
         answer:
-          "Si usas Instagram, puedes usar TutorLingua. La mayoría lanza en 15 minutos con nuestras plantillas.",
+          "Si usas Instagram, puedes usar TutorLingua. La mayoría está listo en 10 minutos.",
       },
       {
-        question: "¿Cuánto tardo en empezar?",
+        question: "¿Cómo reservan los estudiantes?",
         answer:
-          "Menos de 15 minutos. Publica tu sitio, añade servicios y acepta reservas inmediatamente.",
+          "Hacen clic en tu enlace. Eligen horario. Pagan. Reciben su enlace Zoom al instante. Listo.",
       },
       {
-        question: "¿Les será fácil reservar a mis estudiantes?",
+        question: "¿Me quedo con todas mis ganancias?",
         answer:
-          "Sí. Eligen horario, pagan seguro y reciben enlace Zoom al instante. Recordatorios automáticos incluidos.",
+          "Sí. Sin comisiones en reservas directas a través de TutorLingua. Te quedas con el 100%.",
       },
       {
-        question: "¿Cómo ayuda la IA en la enseñanza?",
+        question: "¿Puedo rastrear mis estudiantes?",
         answer:
-          "Crea planes de clase, tareas, vocabulario y actualizaciones para padres. Ofrece práctica conversación 24/7 para estudiantes.",
+          "Sí. Guarda notas después de cada lección. Rastrea progreso. Todos tus estudiantes en un lugar organizado.",
       },
       {
-        question: "¿Puedo exportar mis datos si me voy?",
+        question: "¿Puedo irme en cualquier momento?",
         answer:
-          "Sí. Tus datos son tuyos. Exporta info de estudiantes, notas y facturas cuando quieras. Sin permanencia.",
+          "Sí. Exporta todos tus datos. Sin permanencia. Cancela cuando quieras.",
       },
     ],
   },
 
   finalCTA: {
-    headline: "¿Listo para construir tu negocio?",
+    headline: "¿Listo para ser dueño de tu negocio?",
     subheadline:
-      "Lanza en 15 minutos. Quédate con más de lo que ganas.",
+      "Gratis para empezar. Listo en 10 minutos. Sin tarjeta necesaria.",
     calculatorLabel: "Ingresos mensuales:",
     calculatorUnit: "/mes",
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Comisiones marketplace (25%):",
-    platformCostLabel: "TutorLingua:",
+    platformCostLabel: "TutorLingua ($29 / £19):",
     monthlySavingsLabel: "Ahorro mensual:",
     annualSavingsLabel: "Ahorro anual",
-    button: "Empieza gratis—sin tarjeta",
-    finePrint: "14 días gratis. Cancela cuando quieras.",
+    button: "Empieza gratis",
+    finePrint: "Gratis para siempre. Actualiza cuando quieras.",
     trustBadges: ["Stripe verificado", "Cumplimos con GDPR", "Listo para SOC 2"],
   },
 
@@ -857,7 +752,7 @@ const landingCopyEs: LandingCopy = {
   },
 
   footer: {
-    tagline: "TutorLingua: el sistema operativo para tutores de idiomas independientes",
+    tagline: "TutorLingua — Sé dueño de tu negocio repetido. Creado para tutores de idiomas.",
     sections: [
       {
         title: "Producto",
@@ -884,6 +779,7 @@ const landingCopyEs: LandingCopy = {
           { label: "Contacto", href: "/contact" },
           { label: "Privacidad", href: "/privacy" },
           { label: "Términos", href: "/terms" },
+          { label: "Admin", href: "/admin/login" },
         ],
       },
     ],
@@ -904,6 +800,6 @@ export function getLandingCopy(locale: string | Locale): LandingCopy {
 }
 
 export type HeroVariant = keyof LandingCopy["hero"]["variants"];
-export type PricingTier = LandingCopy["pricing"]["tiers"][number];
+export type LandingPricingTier = LandingCopy["pricing"]["tiers"][number];
 export type Testimonial = LandingCopy["testimonials"]["list"][number];
-export type FAQItem = LandingCopy["faq"]["items"][number];
+export type LandingFAQItem = LandingCopy["faq"]["items"][number];

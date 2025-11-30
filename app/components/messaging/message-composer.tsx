@@ -38,7 +38,7 @@ export function MessageComposer({ threadId, placeholder }: MessageComposerProps)
       <button
         type="submit"
         disabled={isPending}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-brown text-white shadow transition hover:bg-brand-brown/90 disabled:opacity-60"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-60"
         aria-label="Send message"
       >
         {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUpCircle className="h-5 w-5" />}

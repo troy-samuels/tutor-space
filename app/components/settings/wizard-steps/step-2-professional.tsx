@@ -99,7 +99,7 @@ export function Step2Professional({
     setErrors((prev) => ({ ...prev, avatar_url: undefined }));
   };
 
-  const useSampleBio = (bio: string) => {
+  const applySampleBio = (bio: string) => {
     handleChange("bio", bio);
   };
 
@@ -182,7 +182,7 @@ export function Step2Professional({
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="relative h-32 w-32 overflow-hidden rounded-3xl border-2 border-brand-brown/20 bg-brand-cream">
+          <div className="relative h-32 w-32 overflow-hidden rounded-3xl border-2 border-border bg-muted">
             {avatarPreview ? (
               <Image
                 src={avatarPreview}
@@ -192,7 +192,7 @@ export function Step2Professional({
                 className="object-cover"
               />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-3xl font-semibold text-brand-brown">
+              <span className="flex h-full w-full items-center justify-center text-3xl font-semibold text-primary">
                 {getInitials()}
               </span>
             )}
@@ -203,7 +203,7 @@ export function Step2Professional({
               Use a bright, welcoming headshot. Square images look best on your
               profile.
             </p>
-            <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-brand-brown px-5 py-2.5 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90">
+            <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90">
               <Upload className="h-4 w-4" />
               <span>{avatarPreview ? "Replace photo" : "Upload photo"}</span>
               <input
@@ -235,7 +235,7 @@ export function Step2Professional({
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.tagline
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         />
         <div className="flex items-center justify-between">
@@ -266,7 +266,7 @@ export function Step2Professional({
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.bio
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         />
         <div className="flex items-center justify-between">
@@ -289,8 +289,8 @@ export function Step2Professional({
 
         {/* Sample Bios */}
         {!formData.bio && (
-          <div className="rounded-xl border border-brand-brown/20 bg-brand-cream/30 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-brand-brown">
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-primary">
               <Sparkles className="h-4 w-4" />
               <span>Need inspiration? Try these examples:</span>
             </div>
@@ -299,8 +299,8 @@ export function Step2Professional({
                 <button
                   key={index}
                   type="button"
-                  onClick={() => useSampleBio(bio)}
-                  className="block w-full rounded-lg bg-white p-3 text-left text-xs text-muted-foreground transition hover:bg-brand-brown/5 hover:text-foreground"
+                  onClick={() => applySampleBio(bio)}
+                  className="block w-full rounded-lg bg-white p-3 text-left text-xs text-muted-foreground transition hover:bg-primary/5 hover:text-foreground"
                 >
                   {bio}
                 </button>
@@ -327,7 +327,7 @@ export function Step2Professional({
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.languages_taught
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         />
         {errors.languages_taught && (
@@ -344,7 +344,7 @@ export function Step2Professional({
           type="button"
           onClick={handleSubmit}
           disabled={isSaving}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-brand-brown px-8 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? (
             <>

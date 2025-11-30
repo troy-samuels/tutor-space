@@ -39,7 +39,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
     <li
       ref={setNodeRef}
       style={style}
-      className={`rounded-2xl border border-brand-brown/25 bg-white px-4 py-4 shadow-sm transition ${
+      className={`rounded-2xl border border-border bg-white px-4 py-4 shadow-sm transition ${
         isDragging ? "opacity-70" : ""
       }`}
     >
@@ -47,7 +47,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
         <div className="flex flex-1 items-start gap-3">
           <button
             type="button"
-            className="mt-1 text-muted-foreground transition hover:text-brand-brown focus:outline-none"
+            className="mt-1 text-muted-foreground transition hover:text-primary focus:outline-none"
             {...listeners}
             {...attributes}
             aria-label="Drag to reorder"
@@ -62,7 +62,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
             ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <span>{link.button_style ?? "default"}</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand-brown/10 px-2 py-0.5 text-brand-brown">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-primary">
                 {link.is_visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                 {link.is_visible ? "Visible" : "Hidden"}
               </span>
@@ -74,7 +74,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
           <button
             type="button"
             onClick={() => setIsEditing((prev) => !prev)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-brand-brown/30 text-brand-brown transition hover:bg-brand-brown/10 focus:outline-none focus:ring-2 focus:ring-brand-brown/40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-primary transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
             aria-label="Edit link"
           >
             <Pencil className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
           <button
             type="button"
             onClick={onToggleVisibility}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-brand-brown/30 text-brand-brown transition hover:bg-brand-brown/10 focus:outline-none focus:ring-2 focus:ring-brand-brown/40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-primary transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
             aria-label={link.is_visible ? "Hide link" : "Show link"}
           >
             {link.is_visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -90,7 +90,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
           <button
             type="button"
             onClick={onDelete}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-brand-brown/30 text-destructive transition hover:bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-destructive/40"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-destructive transition hover:bg-destructive/10 focus:outline-none focus:ring-2 focus:ring-destructive/40"
             aria-label="Remove link"
           >
             <Trash2 className="h-4 w-4" />
@@ -99,7 +99,7 @@ export function SortableLinkItem({ link, onChange, onToggleVisibility, onDelete 
       </div>
 
       {isEditing ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-brand-brown/40 bg-brand-brown/5 p-4">
+        <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted/50 p-4">
           <LinkEditor
             variant="update"
             initialValues={linkValues}

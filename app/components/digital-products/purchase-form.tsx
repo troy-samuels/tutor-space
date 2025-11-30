@@ -66,7 +66,7 @@ export function ProductPurchaseForm({
         type="button"
         onClick={startCheckout}
         disabled={isPending || !email}
-        className="inline-flex h-11 min-w-[180px] items-center justify-center gap-2 rounded-xl bg-brand-brown px-4 text-sm font-semibold text-white shadow transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-11 min-w-[180px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
         {isPending ? "Redirecting..." : "Buy now"}

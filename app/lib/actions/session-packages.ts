@@ -7,22 +7,7 @@ import {
   sessionPackageSchema,
   type SessionPackageInput,
 } from "@/lib/validators/session-package";
-
-export type SessionPackageRecord = {
-  id: string;
-  tutor_id: string;
-  service_id: string | null;
-  name: string;
-  description: string | null;
-  session_count: number | null;
-  total_minutes: number;
-  price_cents: number;
-  currency: string;
-  stripe_price_id: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
+import type { SessionPackageRecord } from "@/lib/types/session-package";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -52,7 +37,7 @@ function getStripe(): Stripe | null {
   }
 
   stripeClient = new Stripe(stripeSecretKey, {
-    apiVersion: "2024-06-20",
+    apiVersion: "2025-09-30.clover",
   });
 
   return stripeClient;
@@ -236,6 +221,57 @@ export async function updateSessionPackage(
   revalidatePath("/@");
 
   return { data };
+}
+
+export async function hasActivePackage(
+  studentId: string,
+  tutorId: string
+): Promise<boolean> {
+  const { supabase } = await requireUser();
+
+  try {
+    // Check if there are any active, non-expired purchases for this student
+    // from packages belonging to this tutor
+    const { data: purchases, error } = await supabase
+      .from("session_package_purchases")
+      .select(`
+        id,
+        remaining_minutes,
+        expires_at,
+        status,
+        package:session_package_templates!inner (
+          tutor_id
+        )
+      `)
+      .eq("student_id", studentId)
+      .eq("status", "active")
+      .eq("package.tutor_id", tutorId);
+
+    if (error) {
+      console.error("[session-packages] Error checking active packages:", error);
+      return false;
+    }
+
+    if (!purchases || purchases.length === 0) {
+      return false;
+    }
+
+    // Check if any purchase has remaining minutes and hasn't expired
+    const now = new Date();
+    const hasActive = purchases.some((purchase) => {
+      const remainingMinutes = purchase.remaining_minutes || 0;
+      const isExpired = purchase.expires_at
+        ? new Date(purchase.expires_at) < now
+        : false;
+
+      return remainingMinutes > 0 && !isExpired;
+    });
+
+    return hasActive;
+  } catch (err) {
+    console.error("[session-packages] Unexpected error in hasActivePackage:", err);
+    return false;
+  }
 }
 
 export async function deleteSessionPackage(packageId: string) {

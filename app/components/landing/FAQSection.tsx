@@ -15,7 +15,7 @@ export function FAQSection({ faq }: FAQSectionProps) {
     <section className="bg-brand-white py-20 sm:py-24">
       <div className="mx-auto max-w-4xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-brand-black sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {faq.headline}
           </h2>
         </div>
@@ -24,18 +24,18 @@ export function FAQSection({ faq }: FAQSectionProps) {
           {faq.items.map((item, index) => (
             <div
               key={index}
-              className="rounded-2xl bg-brand-cream overflow-hidden transition-all"
+              className="rounded-2xl bg-muted overflow-hidden transition-all"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full flex items-center justify-between p-6 text-left transition-colors hover:bg-brand-cream/80"
+                className="w-full flex items-center justify-between p-6 text-left transition-colors hover:bg-muted/80"
               >
-                <span className="text-lg font-semibold text-brand-black pr-8">
+                <span className="text-lg font-semibold text-foreground pr-8">
                   {item.question}
                 </span>
                 <svg
                   className={cn(
-                    "h-6 w-6 flex-none text-brand-brown transition-transform",
+                    "h-6 w-6 flex-none text-primary transition-transform",
                     openIndex === index ? "rotate-180" : ""
                   )}
                   fill="none"

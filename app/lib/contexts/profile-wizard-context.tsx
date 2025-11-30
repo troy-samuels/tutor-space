@@ -45,7 +45,7 @@ type ProfileWizardContextValue = {
   updateStep3: (data: Partial<Step3Data>) => void;
   updateStep4: (data: Partial<Step4Data>) => void;
   setAvatarFile: (file: File | null) => void;
-  saveProgress: () => Promise<{ success: boolean; error?: string }>;
+  saveProgress: () => Promise<{ success: boolean; error?: string; avatarUrl?: string }>;
   isLoading: boolean;
   saveError: string | null;
 };

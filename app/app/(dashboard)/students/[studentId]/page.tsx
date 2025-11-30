@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock, DollarSign, NotebookPen } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, DollarSign, Globe, NotebookPen, AlertTriangle, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 type StudentDetailPageProps = {
-  params: {
+  params: Promise<{
     studentId: string;
-  };
+  }>;
 };
 
 type StudentBookingRecord = {
@@ -36,7 +36,7 @@ type StudentLessonNoteRecord = {
 };
 
 export default async function StudentDetailPage({ params }: StudentDetailPageProps) {
-  const { studentId } = params;
+  const { studentId } = await params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,7 +49,7 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, tutor_id, full_name, email, phone, proficiency_level, learning_goals, native_language, notes, status, created_at, updated_at"
+      "id, tutor_id, full_name, email, phone, proficiency_level, learning_goals, native_language, notes, status, timezone, created_at, updated_at, parent_name, parent_email, parent_phone"
     )
     .eq("tutor_id", user.id)
     .eq("id", studentId)
@@ -156,6 +156,68 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
         />
       </div>
 
+      {/* Parent/Guardian Contact Info - Shown prominently for minor students */}
+      {(student.parent_name || student.parent_email || student.parent_phone) && (
+        <Card className="border-2 border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="h-5 w-5" />
+              Minor Student - Parent/Guardian Contact
+            </CardTitle>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              This student has parent/guardian contact information on file. Use this for important communications.
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            {student.parent_name && (
+              <div className="flex items-start gap-2">
+                <User className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                    Parent/Guardian Name
+                  </p>
+                  <p className="mt-0.5 font-medium text-amber-900 dark:text-amber-100">
+                    {student.parent_name}
+                  </p>
+                </div>
+              </div>
+            )}
+            {student.parent_email && (
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400">@</div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                    Parent Email
+                  </p>
+                  <a
+                    href={`mailto:${student.parent_email}`}
+                    className="mt-0.5 block font-medium text-amber-900 hover:underline dark:text-amber-100"
+                  >
+                    {student.parent_email}
+                  </a>
+                </div>
+              </div>
+            )}
+            {student.parent_phone && (
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400">📞</div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                    Parent Phone
+                  </p>
+                  <a
+                    href={`tel:${student.parent_phone}`}
+                    className="mt-0.5 block font-medium text-amber-900 hover:underline dark:text-amber-100"
+                  >
+                    {student.parent_phone}
+                  </a>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 border border-border bg-background/80 shadow-sm backdrop-blur">
           <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -223,6 +285,13 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Contact</p>
               <p className="mt-1 text-foreground">{student.email}</p>
               {student.phone ? <p className="text-muted-foreground">{student.phone}</p> : null}
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Timezone</p>
+              <p className="mt-1 inline-flex items-center gap-1.5 text-foreground">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                {student.timezone ?? "UTC"}
+              </p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Goals</p>

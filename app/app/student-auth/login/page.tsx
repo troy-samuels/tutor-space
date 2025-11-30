@@ -13,18 +13,18 @@ export default function StudentLoginPage({
   searchParams: Promise<{ tutor?: string; redirect?: string }>;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-cream via-brand-cream/40 to-white px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-muted via-muted/40 to-white px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block">
-            <h1 className="mb-2 text-3xl font-bold text-brand-brown">
+            <h1 className="mb-2 text-3xl font-bold text-primary">
               TutorLingua
             </h1>
           </Link>
           <p className="text-gray-600">Student Login</p>
         </div>
 
-        <div className="rounded-2xl border border-brand-brown/20 bg-white p-8 shadow-lg">
+        <div className="rounded-2xl border border-border bg-white p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-semibold text-gray-900">
             Welcome back
           </h2>
@@ -35,10 +35,10 @@ export default function StudentLoginPage({
             <p>
               Don&apos;t have an account?{" "}
               <Link
-                href="/student-auth/request-access"
-                className="font-semibold text-brand-brown hover:underline"
+                href="/student-auth/signup"
+                className="font-semibold text-primary hover:underline"
               >
-                Request Access
+                Sign up
               </Link>
             </p>
           </div>
@@ -47,7 +47,7 @@ export default function StudentLoginPage({
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
             Are you a tutor?{" "}
-            <Link href="/login" className="text-brand-brown hover:underline">
+            <Link href="/login" className="text-primary hover:underline">
               Tutor login
             </Link>
           </p>

@@ -2,74 +2,66 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Rocket, LineChart, Users, Layers } from "lucide-react";
+import { Rocket, LineChart, Users, CreditCard, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { track, trackOnce } from "@/lib/analytics";
-
-type GrowthPlan = "professional" | "growth" | "studio";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type GrowthOpportunitiesProps = {
-  plan: GrowthPlan;
+  plan: PlatformBillingPlan;
 };
 
-const professionalItems = [
+const lifetimeItems = [
   {
-    title: "Unlock Growth tools",
-    description:
-      "Access lead funnels, Link in Bio analytics, and AI marketing prompts to stay fully booked.",
-    href: "/upgrade?plan=growth",
+    title: "Share your booking link",
+    description: "Drive students to your 0% fee booking page and keep every repeat lesson.",
+    href: "/pages",
     icon: Rocket,
-    cta: "Upgrade to Growth",
+    cta: "Open page builder",
   },
   {
-    title: "Activate Studio suite",
-    description:
-      "Sell curriculum, run group sessions, and track executive metrics to scale beyond solo tutoring.",
-    href: "/upgrade?plan=studio",
-    icon: Layers,
-    cta: "Explore Studio",
-  },
-];
-
-const growthItems = [
-  {
-    title: "Activate Studio suite",
-    description:
-      "Upgrade to unlock group sessions, marketplace listings, and the executive dashboard.",
-    href: "/upgrade?plan=studio",
-    icon: Layers,
-    cta: "Upgrade to Studio",
+    title: "Connect payouts",
+    description: "Finish Stripe Connect onboarding so payments land in your account automatically.",
+    href: "/settings/payments",
+    icon: CreditCard,
+    cta: "Connect Stripe",
   },
   {
-    title: "Optimize your funnels",
-    description: "Review analytics to double down on the channels bringing in your best students.",
+    title: "Review your pipeline",
+    description: "Use analytics to double down on channels bringing in your best students.",
     href: "/analytics",
     icon: LineChart,
     cta: "Open analytics",
   },
-];
-
-const studioItems = [
   {
-    title: "Invite your teaching team",
-    description:
-      "Add co-tutors and assistants so they can manage sessions, resources, and student updates.",
+    title: "Invite collaborators",
+    description: "Optionally add co-tutors or assistants to manage sessions and student updates.",
     href: "/settings/team",
     icon: Users,
     cta: "Manage team",
   },
+];
+
+const waitlistItems = [
   {
-    title: "Launch marketplace offerings",
-    description: "Publish lesson plans, curriculum kits, or resource bundles in your storefront.",
-    href: "/studio/marketplace",
-    icon: Layers,
-    cta: "Open marketplace",
+    title: "Founder lifetime sold out",
+    description: "Join the waitlist to be notified if new lifetime spots open.",
+    href: "/#pricing",
+    icon: AlertTriangle,
+    cta: "Join waitlist",
+  },
+  {
+    title: "Publish your booking page",
+    description: "Go live with your services and start directing students to book directly.",
+    href: "/pages",
+    icon: Rocket,
+    cta: "Open page builder",
   },
 ];
 
 export function GrowthOpportunities({ plan }: GrowthOpportunitiesProps) {
-  const items = plan === "studio" ? studioItems : plan === "growth" ? growthItems : professionalItems;
+  const items = plan === "founder_lifetime" ? lifetimeItems : waitlistItems;
 
   useEffect(() => {
     trackOnce("upgrade_prompt_view", { plan });

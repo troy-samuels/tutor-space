@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { SessionPackageRecord } from "@/lib/actions/session-packages";
-import type { ServiceRecord } from "@/lib/actions/services";
+import type { SessionPackageRecord } from "@/lib/types/session-package";
+import type { ServiceRecord } from "@/lib/types/service";
 import {
   sessionPackageFormSchema,
   type SessionPackageFormValues,
@@ -21,7 +21,7 @@ type Props = {
 
 export function PackageForm({ service, initialValues, loading, onCancel, onSubmit }: Props) {
   const form = useForm<SessionPackageFormValues>({
-    resolver: zodResolver(sessionPackageFormSchema),
+    resolver: zodResolver(sessionPackageFormSchema) as unknown as Resolver<SessionPackageFormValues>,
     defaultValues: {
       name: initialValues?.name ?? `${service.name} bundle`,
       description: initialValues?.description ?? "",
@@ -60,7 +60,7 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
           <input
             type="text"
             {...form.register("name")}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </Field>
         <Field label="Active" helper="Inactive packages stay off your booking funnel.">
@@ -68,7 +68,7 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
             <input
               type="checkbox"
               {...form.register("is_active")}
-              className="h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown"
+              className="h-4 w-4 rounded shadow-sm text-primary focus:ring-primary"
               defaultChecked={form.getValues("is_active")}
             />
             Show in booking flow
@@ -78,7 +78,7 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
           <textarea
             rows={2}
             {...form.register("description")}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm leading-relaxed shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm leading-relaxed shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="E.g. 5-session conversation boost to prepare for exchange travel."
           />
         </Field>
@@ -96,7 +96,7 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
                 return Number.isNaN(parsed) ? null : parsed;
               },
             })}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="Optional"
           />
         </Field>
@@ -105,7 +105,7 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
             type="number"
             min={service.duration_minutes}
             {...form.register("total_minutes", { valueAsNumber: true })}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           {form.watch("session_count") ? (
             <p className="mt-1 text-[11px] text-muted-foreground">
@@ -119,7 +119,7 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
               type="number"
               min={0}
             {...form.register("price", { valueAsNumber: true })}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
               {form.watch("currency")}
@@ -132,14 +132,14 @@ export function PackageForm({ service, initialValues, loading, onCancel, onSubmi
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-9 items-center justify-center rounded-full bg-brand-brown px-5 text-xs font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {initialValues ? "Save package" : "Create package"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="text-xs font-semibold text-muted-foreground transition hover:text-brand-brown"
+          className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
           disabled={loading}
         >
           Cancel

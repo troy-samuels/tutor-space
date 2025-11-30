@@ -4,7 +4,15 @@ type AnalyticsPayload = Record<string, unknown>;
 
 export function track(event: string, payload: AnalyticsPayload = {}) {
   if (typeof window === "undefined") return;
-  // Replace with PostHog/Segment integration when available.
+  const posthog = (window as unknown as { posthog?: { capture?: (event: string, payload?: AnalyticsPayload) => void } }).posthog;
+  if (posthog?.capture) {
+    posthog.capture(event, payload);
+  }
+  const sentry = (window as unknown as { Sentry?: { captureMessage?: (message: string, context?: unknown) => void } }).Sentry;
+  if (sentry?.captureMessage) {
+    sentry.captureMessage(`analytics:${event}`, { extra: payload });
+  }
+  // Local breadcrumb for debugging when analytics SDKs are not yet wired.
   if (process.env.NODE_ENV !== "production") {
     console.info(`[analytics] ${event}`, payload);
   }

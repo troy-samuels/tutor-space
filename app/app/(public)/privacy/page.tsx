@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-4xl px-6 py-6">
-          <Link href="/" className="text-sm font-semibold text-brand-brown hover:underline">
+          <Link href="/" className="text-sm font-semibold text-primary hover:underline">
             ← Back to TutorLingua
           </Link>
         </div>
@@ -89,7 +89,7 @@ export default function PrivacyPolicyPage() {
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">4.2 With Service Providers</h3>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
-              <li><strong>Payment Processing:</strong> Stripe (credit card processing)</li>
+              <li><strong>Payment Processing:</strong> Stripe (credit card processing). Tutors can connect their own Stripe accounts (Stripe Connect) so student payments are processed directly to the tutor’s Stripe account. TutorLingua doesn’t store full card data and isn’t the merchant of record for tutor services.</li>
               <li><strong>Email Services:</strong> Resend (transactional and marketing emails)</li>
               <li><strong>Video Conferencing:</strong> Zoom, Google Meet (if integrated by tutor)</li>
               <li><strong>Database & Hosting:</strong> Supabase, Vercel</li>
@@ -146,7 +146,7 @@ export default function PrivacyPolicyPage() {
             </ul>
             <p className="text-gray-700 leading-relaxed">
               To exercise these rights, contact us at{" "}
-              <a href="mailto:privacy@tutorlingua.co" className="text-brand-brown font-semibold hover:underline">
+              <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">
                 privacy@tutorlingua.co
               </a>.
             </p>
@@ -205,13 +205,13 @@ export default function PrivacyPolicyPage() {
             <div className="mt-4 space-y-2 text-gray-700">
               <p>
                 <strong>Email:</strong>{" "}
-                <a href="mailto:privacy@tutorlingua.co" className="text-brand-brown font-semibold hover:underline">
+                <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">
                   privacy@tutorlingua.co
                 </a>
               </p>
               <p>
                 <strong>General Inquiries:</strong>{" "}
-                <a href="mailto:hello@tutorlingua.co" className="text-brand-brown font-semibold hover:underline">
+                <a href="mailto:hello@tutorlingua.co" className="text-primary font-semibold hover:underline">
                   hello@tutorlingua.co
                 </a>
               </p>
@@ -224,7 +224,7 @@ export default function PrivacyPolicyPage() {
         <div className="mx-auto max-w-4xl px-6 py-8 text-center text-sm text-gray-600">
           <p>
             © {new Date().getFullYear()} TutorLingua. All rights reserved. •{" "}
-            <Link href="/terms" className="text-brand-brown hover:underline">
+            <Link href="/terms" className="text-primary hover:underline">
               Terms of Service
             </Link>
           </p>

@@ -7,36 +7,33 @@ type PricingSectionProps = {
 };
 
 export function PricingSection({ pricing }: PricingSectionProps) {
-
   return (
-    <section id="pricing" className="bg-brand-white py-20 sm:py-24">
+    <section id="pricing" className="bg-background py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-brand-black sm:text-4xl">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {pricing.headline}
           </h2>
-          <p className="mt-4 text-lg text-gray-600">{pricing.subheadline}</p>
+          <p className="mt-4 text-lg text-muted-foreground">{pricing.subheadline}</p>
         </div>
 
-        {/* Pricing cards */}
-        <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-3">
+        {/* Pricing card - centered */}
+        <div className="mx-auto mt-12 flex justify-center">
           {pricing.tiers.map((tier) => {
-            const isContactCta = tier.name === "Studio";
-
             return (
             <div
               key={tier.name}
               className={cn(
-                "relative rounded-3xl p-8 shadow-sm ring-1",
+                "relative w-full max-w-md rounded-3xl p-8 shadow-lg",
                 tier.highlighted
-                  ? "bg-brand-brown text-brand-white ring-brand-brown shadow-xl scale-105"
-                  : "bg-brand-cream text-brand-black ring-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
               )}
             >
               {/* Badge */}
               {tier.badge && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex rounded-full bg-brand-cream px-4 py-1.5 text-sm font-semibold text-brand-brown shadow-md">
+                  <span className="inline-flex rounded-full bg-muted px-4 py-1.5 text-sm font-semibold text-primary shadow-md">
                     {tier.badge}
                   </span>
                 </div>
@@ -46,7 +43,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
               <h3
                 className={cn(
                   "text-2xl font-bold",
-                  tier.highlighted ? "text-brand-white" : "text-brand-brown"
+                  tier.highlighted ? "text-primary-foreground" : "text-primary"
                 )}
               >
                 {tier.name}
@@ -57,7 +54,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                 <span
                   className={cn(
                     "text-5xl font-bold tracking-tight",
-                    tier.highlighted ? "text-brand-white" : "text-brand-black"
+                    tier.highlighted ? "text-primary-foreground" : "text-foreground"
                   )}
                 >
                   {tier.price}
@@ -65,7 +62,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                 <span
                   className={cn(
                     "text-base font-semibold",
-                    tier.highlighted ? "text-brand-white/80" : "text-gray-600"
+                    tier.highlighted ? "text-primary-foreground/80" : "text-gray-600"
                   )}
                 >
                   {tier.period}
@@ -76,7 +73,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
               <p
                 className={cn(
                   "mt-4 text-sm",
-                  tier.highlighted ? "text-brand-white/90" : "text-gray-600"
+                  tier.highlighted ? "text-primary-foreground/90" : "text-gray-600"
                 )}
               >
                 {tier.description}
@@ -89,7 +86,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                     <svg
                       className={cn(
                         "h-6 w-5 flex-none",
-                        tier.highlighted ? "text-brand-white" : "text-brand-brown"
+                        tier.highlighted ? "text-primary-foreground" : "text-primary"
                       )}
                       viewBox="0 0 20 20"
                       fill="currentColor"
@@ -104,7 +101,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                       className={cn(
                         "text-sm",
                         tier.highlighted
-                          ? "text-brand-white/90"
+                          ? "text-primary-foreground/90"
                           : "text-gray-700"
                       )}
                     >
@@ -116,12 +113,12 @@ export function PricingSection({ pricing }: PricingSectionProps) {
 
               {/* CTA */}
               <Link
-                href={isContactCta ? "/contact" : "/signup"}
+                href="/signup"
                 className={cn(
                   "mt-8 block rounded-md px-6 py-3 text-center text-base font-semibold shadow-sm transition-all",
                   tier.highlighted
-                    ? "bg-brand-white text-brand-brown hover:bg-brand-white/90"
-                    : "bg-brand-brown text-brand-white hover:bg-brand-brown/90"
+                    ? "bg-background text-primary hover:bg-background/90"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
               >
                 {tier.cta}

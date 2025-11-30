@@ -5,7 +5,7 @@ import { MessageComposer } from "@/components/messaging/message-composer";
 import type { ConversationThread, ConversationMessage } from "@/lib/actions/messaging";
 
 type PageProps = {
-  searchParams?: { thread?: string };
+  searchParams: Promise<{ thread?: string }>;
 };
 
 export default async function TutorMessagesPage({ searchParams }: PageProps) {
@@ -18,7 +18,7 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
     redirect("/login?redirect=/messages");
   }
 
-  const params = searchParams ?? {};
+  const params = (await searchParams) ?? {};
 
   const { data: threads } = await supabase
     .from("conversation_threads")
@@ -76,7 +76,7 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
       <aside className="rounded-3xl border border-border bg-white/70 p-4 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-semibold text-foreground">Conversations</p>
-          <Link href="/students" className="text-xs font-semibold text-brand-brown hover:underline">
+          <Link href="/students" className="text-xs font-semibold text-primary hover:underline">
             Start new
           </Link>
         </div>
@@ -94,8 +94,8 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
                   href={isActive ? "/messages" : `/messages?thread=${thread.id}`}
                   className={`block rounded-2xl border px-3 py-3 text-sm transition ${
                     isActive
-                      ? "border-brand-brown bg-brand-brown/10"
-                      : "border-border hover:border-brand-brown/30"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/30"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -103,7 +103,7 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
                       {thread.students?.full_name ?? "Unnamed student"}
                     </p>
                     {thread.unread_for_tutor ? (
-                      <span className="h-2.5 w-2.5 rounded-full bg-brand-brown" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-primary" />
                     ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-2">
@@ -143,19 +143,29 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
               ) : (
                 messages.map((message) => {
                   const isTutor = message.sender_role === "tutor";
+                  const senderLabel = isTutor
+                    ? "You"
+                    : activeThread?.students?.full_name ?? "Student";
                   return (
                     <div key={message.id} className={`flex ${isTutor ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                           isTutor
-                            ? "rounded-br-none bg-brand-brown text-white"
+                            ? "rounded-br-none bg-primary text-primary-foreground"
                             : "rounded-bl-none bg-muted/60 text-foreground"
                         }`}
                       >
+                        <p
+                          className={`mb-1 text-[11px] font-semibold ${
+                            isTutor ? "text-primary-foreground/80" : "text-muted-foreground/90"
+                          }`}
+                        >
+                          {senderLabel}
+                        </p>
                         <p className="whitespace-pre-line">{message.body}</p>
                         <p
                           className={`mt-1 text-[10px] uppercase tracking-wide ${
-                            isTutor ? "text-white/70" : "text-muted-foreground/70"
+                            isTutor ? "text-primary-foreground/70" : "text-muted-foreground/70"
                           }`}
                         >
                           {new Date(message.created_at).toLocaleString(undefined, {

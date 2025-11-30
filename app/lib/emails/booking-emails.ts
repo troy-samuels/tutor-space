@@ -17,6 +17,10 @@ import {
   PaymentReceiptEmail,
   PaymentReceiptEmailText,
 } from "@/emails/payment-receipt";
+import {
+  PaymentFailedEmail,
+  PaymentFailedEmailText,
+} from "@/emails/payment-failed";
 
 interface SendBookingConfirmationParams {
   studentName: string;
@@ -273,5 +277,55 @@ export async function sendPaymentReceiptEmail(params: SendPaymentReceiptParams) 
     });
   } catch (error) {
     console.error("Error sending payment receipt email:", error);
+  }
+}
+
+type SendPaymentFailedParams = {
+  userEmail: string;
+  userName: string;
+  planName: string;
+  amountDue: string;
+  nextRetryDate?: string;
+  updatePaymentUrl: string;
+};
+
+/**
+ * Send payment failed notification email to user
+ */
+export async function sendPaymentFailedEmail(params: SendPaymentFailedParams) {
+  try {
+    const html = PaymentFailedEmail({
+      userName: params.userName,
+      planName: params.planName,
+      amountDue: params.amountDue,
+      nextRetryDate: params.nextRetryDate,
+      updatePaymentUrl: params.updatePaymentUrl,
+    });
+
+    const text = PaymentFailedEmailText({
+      userName: params.userName,
+      planName: params.planName,
+      amountDue: params.amountDue,
+      nextRetryDate: params.nextRetryDate,
+      updatePaymentUrl: params.updatePaymentUrl,
+    });
+
+    const { error } = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: params.userEmail,
+      subject: `Action required: Payment failed for ${params.planName}`,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("Failed to send payment failed email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending payment failed email:", error);
+    return { success: false, error: "Failed to send email" };
   }
 }

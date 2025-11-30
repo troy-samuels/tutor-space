@@ -8,6 +8,9 @@ import { stripe } from "@/lib/stripe";
 
 const BUCKET = "digital-products";
 
+// Maximum file size: 100MB
+const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+
 const productSchema = z.object({
   title: z.string().min(3, "Title is required"),
   description: z.string().max(2000).optional(),
@@ -98,6 +101,9 @@ export async function createDigitalProduct(
     if (!(file instanceof File) || file.size === 0) {
       return { error: "Upload a file to sell." };
     }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return { error: "File too large. Maximum size is 100MB." };
+    }
     try {
       storagePath = await uploadDigitalFile(user.id, file);
     } catch (error) {
@@ -110,7 +116,10 @@ export async function createDigitalProduct(
     return { error: "Provide a download link for link-only products." };
   }
 
-  const priceCents = Math.round(parsed.data.price * 100);
+  // Convert price to cents using string manipulation to avoid floating-point precision issues
+  const priceString = parsed.data.price.toFixed(2);
+  const [dollars, cents] = priceString.split(".");
+  const priceCents = parseInt(dollars, 10) * 100 + parseInt(cents || "0", 10);
 
   const stripeProduct = await stripe.products.create({
     name: parsed.data.title,

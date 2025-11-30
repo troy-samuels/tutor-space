@@ -2,6 +2,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import Link from "next/link";
+import { RequestRefundButton } from "@/components/refunds/RequestRefundButton";
 
 interface SuccessPageProps {
   searchParams: Promise<{
@@ -47,7 +48,7 @@ type BookingSuccessRecord = {
 };
 
 export default async function BookingSuccessPage({ searchParams }: SuccessPageProps) {
-  const { booking_id } = await searchParams;
+  const { booking_id, session_id } = await searchParams;
 
   if (!booking_id) {
     return (
@@ -165,12 +166,17 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Booking Request Received!
+            {booking.payment_status === "paid" ? "Booking Confirmed!" : "Booking Request Received!"}
           </h1>
 
           <p className="text-gray-600 mb-8">
-            Your booking request has been submitted. You&apos;ll receive a confirmation email at{" "}
-            <strong>{booking.students?.email}</strong> with payment instructions.
+            {booking.payment_status === "paid" ? (
+              <>Your payment was successful and your booking is confirmed. You&apos;ll receive a confirmation email at{" "}
+              <strong>{booking.students?.email}</strong>.</>
+            ) : (
+              <>Your booking request has been submitted. You&apos;ll receive a confirmation email at{" "}
+              <strong>{booking.students?.email}</strong> with payment instructions.</>
+            )}
           </p>
 
           {/* Booking Details */}
@@ -265,16 +271,17 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
             </div>
           )}
 
-          {/* Payment Instructions */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8 text-left">
-            <h3 className="font-semibold text-yellow-900 mb-3">💳 Payment Instructions</h3>
+          {/* Payment Instructions (only show for unpaid bookings) */}
+          {booking.payment_status !== "paid" && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-yellow-900 mb-3">💳 Payment Instructions</h3>
 
-            {tutorProfile?.payment_instructions ||
-             tutorProfile?.venmo_handle ||
-             tutorProfile?.paypal_email ||
-             tutorProfile?.zelle_phone ||
-             tutorProfile?.stripe_payment_link ||
-             tutorProfile?.custom_payment_url ? (
+              {tutorProfile?.payment_instructions ||
+               tutorProfile?.venmo_handle ||
+               tutorProfile?.paypal_email ||
+               tutorProfile?.zelle_phone ||
+               tutorProfile?.stripe_payment_link ||
+               tutorProfile?.custom_payment_url ? (
               <div className="space-y-3 text-sm">
                 {tutorProfile?.payment_instructions && (
                   <div className="text-yellow-800 mb-3 pb-3 border-b border-yellow-200">
@@ -342,38 +349,92 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
                 Please check <strong>{booking.students?.email}</strong> for details.
               </p>
             )}
-          </div>
+            </div>
+          )}
+
+          {/* Payment Confirmation (only show for paid bookings) */}
+          {booking.payment_status === "paid" && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-green-900 mb-3">✅ Payment Confirmed</h3>
+              <p className="text-sm text-green-800">
+                Your payment has been processed successfully. The funds will be transferred to your tutor.
+              </p>
+              {booking.payment_amount && (
+                <div className="mt-3 text-sm">
+                  <span className="text-green-700 font-medium">Amount paid: </span>
+                  <span className="text-green-900 font-bold">
+                    {booking.currency?.toUpperCase()} {(booking.payment_amount / 100).toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Next Steps */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
             <h3 className="font-semibold text-blue-900 mb-3">What&apos;s Next?</h3>
             <ul className="text-sm text-blue-800 space-y-2">
-              <li className="flex gap-2">
-                <span>1.</span>
-                <span><strong>Complete payment</strong> using the instructions above</span>
-              </li>
-              <li className="flex gap-2">
-                <span>2.</span>
-                <span>Check your email for confirmation and meeting details</span>
-              </li>
-              <li className="flex gap-2">
-                <span>3.</span>
-                <span>Your tutor will confirm once payment is received</span>
-              </li>
-              <li className="flex gap-2">
-                <span>4.</span>
-                <span>You&apos;ll receive a reminder 24 hours before your lesson</span>
-              </li>
+              {booking.payment_status !== "paid" && (
+                <>
+                  <li className="flex gap-2">
+                    <span>1.</span>
+                    <span><strong>Complete payment</strong> using the instructions above</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>2.</span>
+                    <span>Check your email for confirmation and meeting details</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>3.</span>
+                    <span>Your tutor will confirm once payment is received</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>4.</span>
+                    <span>You&apos;ll receive a reminder 24 hours before your lesson</span>
+                  </li>
+                </>
+              )}
+              {booking.payment_status === "paid" && (
+                <>
+                  <li className="flex gap-2">
+                    <span>1.</span>
+                    <span>Check your email for confirmation details</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>2.</span>
+                    <span>Add the lesson to your calendar</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>3.</span>
+                    <span>You&apos;ll receive a reminder 24 hours before your lesson</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>4.</span>
+                    <span>Join the meeting link at the scheduled time</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
           {/* Action Button */}
-          <Link
-            href="/"
-            className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Back to Home
-          </Link>
+          <div className="flex items-center gap-3 justify-center">
+            <Link
+              href="/"
+              className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Back to Home
+            </Link>
+            {booking.payment_status === "paid" && booking.student_id && (
+              <RequestRefundButton
+                tutorId={booking.tutor_id}
+                bookingId={booking.id}
+                amountCents={booking.payment_amount ?? 0}
+                currency={booking.currency ?? "USD"}
+                actor="student"
+              />
+            )}
+          </div>
 
           <p className="text-xs text-gray-500 mt-6">
             Booking ID: {booking.id}

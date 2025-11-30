@@ -1,9 +1,63 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ServiceFormValues, ServiceInput } from "@/lib/validators/service";
+import type {
+  ServiceFormValues,
+  ServiceInput,
+  ServiceOfferType,
+} from "@/lib/validators/service";
 import { serviceFormSchema } from "@/lib/validators/service";
+import { FlowProgress } from "@/components/flows/FlowProgress";
+
+const OFFER_OPTIONS: Array<{
+  value: ServiceOfferType;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "subscription",
+    title: "Ongoing subscription",
+    description: "Recurring monthly billing for long-term students.",
+  },
+  {
+    value: "lesson_block",
+    title: "Lesson block / plan",
+    description: "Pre-paid sets of lessons or curriculum blocks.",
+  },
+  {
+    value: "one_off",
+    title: "One-off lesson",
+    description: "Standard single bookings paid per session.",
+  },
+  {
+    value: "trial",
+    title: "Trial or intro",
+    description: "Short, lower-friction intro sessions to start relationships.",
+  },
+];
+
+const SERVICE_STAGES = [
+  {
+    id: "basics",
+    title: "Offer basics",
+    helper: "Name, description, and positioning",
+    fields: ["name", "description", "offer_type"] as const,
+  },
+  {
+    id: "pricing",
+    title: "Pricing & length",
+    helper: "Duration, price, and currency",
+    fields: ["duration_minutes", "price", "currency"] as const,
+  },
+  {
+    id: "publish",
+    title: "Policies & publish",
+    helper: "Capacity and approvals",
+    fields: ["max_students_per_session"] as const,
+  },
+] as const;
 
 type Props = {
   initialValues?: {
@@ -16,6 +70,7 @@ type Props = {
     is_active: boolean;
     requires_approval: boolean;
     max_students_per_session: number;
+    offer_type: ServiceOfferType;
   };
   defaultCurrency: string;
   loading?: boolean;
@@ -25,7 +80,7 @@ type Props = {
 
 export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel, onSubmit }: Props) {
   const form = useForm<ServiceFormValues>({
-    resolver: zodResolver(serviceFormSchema),
+    resolver: zodResolver(serviceFormSchema) as unknown as Resolver<ServiceFormValues>,
     defaultValues: {
       name: initialValues?.name ?? "",
       description: initialValues?.description ?? "",
@@ -35,139 +90,253 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
       is_active: initialValues?.is_active ?? true,
       requires_approval: initialValues?.requires_approval ?? false,
       max_students_per_session: initialValues?.max_students_per_session ?? 1,
+      offer_type: initialValues?.offer_type ?? "one_off",
     },
   });
 
+  const [stageIndex, setStageIndex] = useState(0);
+  const lastStage = stageIndex === SERVICE_STAGES.length - 1;
+  const currentStage = SERVICE_STAGES[stageIndex];
+  const selectedOfferType = form.watch("offer_type");
+
+  const submitForm = form.handleSubmit((values) => {
+    // Convert price to cents using string manipulation to avoid floating-point precision issues
+    // E.g., 19.99 should become 1999 cents, not 1998 or 2000
+    const priceString = values.price.toFixed(2);
+    const [dollars, cents] = priceString.split(".");
+    const priceCents = parseInt(dollars, 10) * 100 + parseInt(cents || "0", 10);
+
+    const payload: ServiceInput = {
+      name: values.name,
+      description: values.description ?? "",
+      duration_minutes: values.duration_minutes,
+      price_cents: priceCents,
+      currency: values.currency,
+      is_active: values.is_active,
+      requires_approval: values.requires_approval,
+      max_students_per_session: values.max_students_per_session,
+      offer_type: values.offer_type,
+    };
+    onSubmit(payload);
+  });
+
+  const handleFlowSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    if (!lastStage) {
+      event.preventDefault();
+      const fields = currentStage.fields as unknown as (keyof ServiceFormValues)[];
+      const valid = fields.length === 0 ? true : await form.trigger(fields);
+      if (valid) {
+        setStageIndex((prev) => Math.min(prev + 1, SERVICE_STAGES.length - 1));
+      }
+      return;
+    }
+
+    submitForm(event);
+  };
+
+  const handleBack = () => {
+    setStageIndex((prev) => Math.max(prev - 1, 0));
+  };
+
   return (
-    <form
-      onSubmit={form.handleSubmit((values) => {
-        const payload: ServiceInput = {
-          name: values.name,
-          description: values.description ?? "",
-          duration_minutes: values.duration_minutes,
-          price_cents: Math.round(values.price * 100),
-          currency: values.currency,
-          is_active: values.is_active,
-          requires_approval: values.requires_approval,
-          max_students_per_session: values.max_students_per_session,
-        };
-        onSubmit(payload);
-      })}
-      className="space-y-6"
-    >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Service name" error={form.formState.errors.name?.message}>
-          <input
-            type="text"
-            {...form.register("name")}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
-            placeholder="E.g. Conversational Spanish (60 min)"
-          />
-        </Field>
-        <div className="flex flex-col gap-2 text-sm">
-          <span className="font-medium text-foreground">Visibility</span>
-          <label className="flex items-center gap-2 text-xs text-foreground">
-            <input
-              type="checkbox"
-              {...form.register("is_active")}
-              className="h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown"
-              defaultChecked={form.getValues("is_active")}
-            />
-            Show on TutorLingua site
-          </label>
-          <span className="text-xs text-muted-foreground">
-            Hidden services stay off your booking page.
-          </span>
-        </div>
-        <Field label="Description" error={form.formState.errors.description?.message} className="sm:col-span-2">
-          <textarea
-            {...form.register("description")}
-            rows={3}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm leading-relaxed shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
-            placeholder="Who is this for? What results can they expect?"
-          />
-        </Field>
-      </div>
+    <form onSubmit={handleFlowSubmit} className="space-y-6">
+      <FlowProgress steps={[...SERVICE_STAGES]} activeIndex={stageIndex} />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Duration" error={form.formState.errors.duration_minutes?.message}>
-          <div className="relative">
-            <input
-              type="number"
-              min={15}
-              step={5}
-              {...form.register("duration_minutes", { valueAsNumber: true })}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
-            />
-            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
-              min
-            </span>
+      {stageIndex === 0 ? (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Service name" error={form.formState.errors.name?.message}>
+              <input
+                type="text"
+                {...form.register("name")}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="E.g. Conversational Spanish (60 min)"
+              />
+            </Field>
+            <Field
+              label="Description"
+              error={form.formState.errors.description?.message}
+              className="sm:col-span-2"
+            >
+              <textarea
+                {...form.register("description")}
+                rows={3}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm leading-relaxed shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                placeholder="Who is this for? What results can they expect?"
+              />
+            </Field>
           </div>
-        </Field>
 
-        <Field label="Price" error={form.formState.errors.price?.message}>
-          <div className="relative">
-            <input
-              type="number"
-              min={0}
-              step={1}
-              {...form.register("price", { valueAsNumber: true })}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
-            />
-            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
-              {form.watch("currency")}
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-foreground">Offer type</span>
+              {form.formState.errors.offer_type ? (
+                <span className="text-xs font-medium text-destructive">
+                  {form.formState.errors.offer_type.message}
+                </span>
+              ) : null}
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {OFFER_OPTIONS.map((option) => {
+                const isSelected = selectedOfferType === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm shadow-sm transition ${
+                      isSelected ? "border-primary bg-primary/10" : "border-border hover:border-primary/70"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      value={option.value}
+                      {...form.register("offer_type")}
+                      className="mt-1 h-4 w-4 rounded text-primary focus:ring-primary"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">{option.title}</span>
+                        {option.value === "trial" ? (
+                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                            conversion boost
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {option.description}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </Field>
-
-        <Field label="Currency" error={form.formState.errors.currency?.message}>
-          <input
-            type="text"
-            maxLength={3}
-            {...form.register("currency")}
-            className="w-full uppercase rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
-          />
-        </Field>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Max students" error={form.formState.errors.max_students_per_session?.message}>
-          <input
-            type="number"
-            min={1}
-            {...form.register("max_students_per_session", { valueAsNumber: true })}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
-          />
-        </Field>
-        <div className="flex flex-col gap-2 text-sm">
-          <span className="font-medium text-foreground">Approval</span>
-          <label className="flex items-center gap-2 text-xs text-foreground">
-            <input
-              type="checkbox"
-              {...form.register("requires_approval")}
-              className="h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown"
-              defaultChecked={form.getValues("requires_approval")}
-            />
-            Requires approval before confirming
-          </label>
-          <span className="text-xs text-muted-foreground">
-            Require manual confirmation for each booking.
-          </span>
         </div>
-      </div>
+      ) : null}
+
+      {stageIndex === 1 ? (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Duration" error={form.formState.errors.duration_minutes?.message}>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={15}
+                  step={5}
+                  {...form.register("duration_minutes", { valueAsNumber: true })}
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
+                  min
+                </span>
+              </div>
+            </Field>
+
+            <Field label="Price" error={form.formState.errors.price?.message}>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  {...form.register("price", { valueAsNumber: true })}
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
+                  {form.watch("currency")}
+                </span>
+              </div>
+            </Field>
+
+            <Field label="Currency" error={form.formState.errors.currency?.message}>
+              <input
+                type="text"
+                maxLength={3}
+                {...form.register("currency")}
+                className="w-full uppercase rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+              />
+            </Field>
+          </div>
+        </div>
+      ) : null}
+
+      {stageIndex === 2 ? (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field
+              label="Max students"
+              error={form.formState.errors.max_students_per_session?.message}
+            >
+              <input
+                type="number"
+                min={1}
+                {...form.register("max_students_per_session", { valueAsNumber: true })}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </Field>
+            <div className="flex flex-col gap-2 text-sm">
+              <span className="font-medium text-foreground">Approval</span>
+              <label className="flex items-center gap-2 text-xs text-foreground">
+                <input
+                  type="checkbox"
+                  {...form.register("requires_approval")}
+                  className="h-4 w-4 rounded text-primary focus:ring-primary"
+                  defaultChecked={form.getValues("requires_approval")}
+                />
+                Requires approval before confirming
+              </label>
+              <span className="text-xs text-muted-foreground">
+                Require manual confirmation for each booking.
+              </span>
+            </div>
+            <div className="flex flex-col gap-2 text-sm">
+              <span className="font-medium text-foreground">Visibility</span>
+              <label className="flex items-center gap-2 text-xs text-foreground">
+                <input
+                  type="checkbox"
+                  {...form.register("is_active")}
+                  className="h-4 w-4 rounded text-primary focus:ring-primary"
+                  defaultChecked={form.getValues("is_active")}
+                />
+                Show on TutorLingua site
+              </label>
+              <span className="text-xs text-muted-foreground">
+                Hidden services stay off your booking page.
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-3">
+        {stageIndex > 0 ? (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+            disabled={loading}
+          >
+            Back
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-brand-brown px-6 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {initialValues ? "Save changes" : "Create service"}
+          {loading
+            ? "Saving..."
+            : lastStage
+              ? initialValues
+                ? "Save changes"
+                : "Create service"
+              : "Continue"}
         </button>
         <button
           type="button"
-          onClick={onCancel}
-          className="text-xs font-semibold text-muted-foreground transition hover:text-brand-brown"
+          onClick={() => {
+            setStageIndex(0);
+            onCancel();
+          }}
+          className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
           disabled={loading}
         >
           Cancel

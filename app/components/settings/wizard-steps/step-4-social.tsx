@@ -124,9 +124,9 @@ export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Prop
   return (
     <div className="space-y-6">
       {/* Header with Progress */}
-      <div className="rounded-2xl border border-brand-brown/20 bg-brand-cream/30 p-5">
+      <div className="rounded-2xl border border-border bg-muted/30 p-5">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-brown text-white">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
             {filledCount > 0 ? (
               <Check className="h-6 w-6" />
             ) : (
@@ -161,7 +161,7 @@ export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Prop
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.website_url
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         />
         {errors.website_url && (
@@ -192,7 +192,7 @@ export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Prop
             className={`w-full rounded-xl border bg-white py-3 pl-8 pr-4 text-sm transition focus:outline-none focus:ring-2 ${
               errors.instagram_handle
                 ? "border-red-300 focus:ring-red-500"
-                : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+                : "border-gray-300 focus:border-primary focus:ring-primary/20"
             }`}
           />
         </div>
@@ -205,9 +205,9 @@ export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Prop
       </div>
 
       {/* Platform Instagram CTA */}
-      <div className="rounded-2xl border border-brand-brown/20 bg-brand-cream/30 p-4">
+      <div className="rounded-2xl border border-border bg-muted/30 p-4">
         <div className="flex items-center gap-3">
-          <Instagram className="h-5 w-5 text-brand-brown" />
+          <Instagram className="h-5 w-5 text-primary" />
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">
               Follow TutorLingua on Instagram
@@ -220,7 +220,7 @@ export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Prop
             href="https://instagram.com/tutorlingua.co"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 rounded-full border border-brand-brown px-4 py-2 text-xs font-semibold text-brand-brown hover:bg-brand-brown/10 transition"
+            className="shrink-0 rounded-full shadow-sm px-4 py-2 text-xs font-semibold text-foreground hover:bg-primary/10 transition"
           >
             Follow
           </a>
@@ -255,7 +255,7 @@ export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Prop
           type="button"
           onClick={handleSubmit}
           disabled={isSaving}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-brand-brown px-8 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? (
             <>

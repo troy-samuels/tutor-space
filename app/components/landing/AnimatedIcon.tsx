@@ -98,7 +98,7 @@ export function AnimatedIcon({
     // Loading state - show placeholder
     return (
       <div
-        className={`flex items-center justify-center bg-brand-cream rounded-full animate-pulse ${className}`}
+        className={`flex items-center justify-center bg-muted rounded-full animate-pulse ${className}`}
         style={{ width: size, height: size }}
         aria-label="Loading animation"
       />

@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-4xl px-6 py-6">
-          <Link href="/" className="text-sm font-semibold text-brand-brown hover:underline">
+          <Link href="/" className="text-sm font-semibold text-primary hover:underline">
             ← Back to TutorLingua
           </Link>
         </div>
@@ -112,10 +112,12 @@ export default function TermsOfServicePage() {
               When booking lessons through TutorLingua:
             </p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
-              <li>Payment terms, amounts, and methods are set by the individual tutor</li>
-              <li>TutorLingua may facilitate payment processing but is not responsible for payment disputes</li>
-              <li>Refund and cancellation policies are determined by each tutor</li>
-              <li>Students agree to the specific tutor&apos;s payment terms when booking</li>
+              <li>Students pay <strong>before</strong> a lesson is confirmed. Availability can be viewed, but bookings aren’t confirmed until payment succeeds.</li>
+              <li>Payment terms, amounts, and methods are set by the individual tutor.</li>
+              <li>Tutors can connect their own Stripe accounts (Stripe Connect), and student payments are processed directly to the tutor’s Stripe account.</li>
+              <li>TutorLingua isn’t the merchant of record for tutor services and doesn’t charge a per-transaction platform fee.</li>
+              <li>Refund and cancellation policies are determined by each tutor. TutorLingua may facilitate refunds upon request.</li>
+              <li>Students agree to the specific tutor&apos;s payment terms when booking.</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">5.2 Tutor Fees</h3>
@@ -209,7 +211,7 @@ export default function TermsOfServicePage() {
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
               Students should contact their tutor directly and TutorLingua support at{" "}
-              <a href="mailto:support@tutorlingua.co" className="text-brand-brown font-semibold hover:underline">
+              <a href="mailto:support@tutorlingua.co" className="text-primary font-semibold hover:underline">
                 support@tutorlingua.co
               </a>{" "}
               to request exceptions. All exception requests are subject to tutor and platform approval.
@@ -259,7 +261,7 @@ export default function TermsOfServicePage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Data and Privacy</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               Your privacy is important to us. Our{" "}
-              <Link href="/privacy" className="text-brand-brown font-semibold hover:underline">
+              <Link href="/privacy" className="text-primary font-semibold hover:underline">
                 Privacy Policy
               </Link>{" "}
               explains how we collect, use, and protect your personal information. By using TutorLingua, you consent to our data practices as described in the Privacy Policy.
@@ -305,7 +307,7 @@ export default function TermsOfServicePage() {
             </p>
             <p className="text-gray-700 leading-relaxed">
               For disputes with TutorLingua, you agree to first attempt to resolve the matter informally by contacting us at{" "}
-              <a href="mailto:hello@tutorlingua.co" className="text-brand-brown font-semibold hover:underline">
+              <a href="mailto:hello@tutorlingua.co" className="text-primary font-semibold hover:underline">
                 hello@tutorlingua.co
               </a>.
             </p>
@@ -335,7 +337,7 @@ export default function TermsOfServicePage() {
             </p>
             <p className="text-gray-700 mt-4">
               <strong>Email:</strong>{" "}
-              <a href="mailto:hello@tutorlingua.co" className="text-brand-brown font-semibold hover:underline">
+              <a href="mailto:hello@tutorlingua.co" className="text-primary font-semibold hover:underline">
                 hello@tutorlingua.co
               </a>
             </p>
@@ -355,7 +357,7 @@ export default function TermsOfServicePage() {
         <div className="mx-auto max-w-4xl px-6 py-8 text-center text-sm text-gray-600">
           <p>
             © {new Date().getFullYear()} TutorLingua. All rights reserved. •{" "}
-            <Link href="/privacy" className="text-brand-brown hover:underline">
+            <Link href="/privacy" className="text-primary hover:underline">
               Privacy Policy
             </Link>
           </p>

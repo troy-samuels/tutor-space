@@ -66,7 +66,7 @@ export function LanguageRolodex() {
 
   if (prefersReducedMotion) {
     return (
-      <span className="inline-block font-bold text-brand-brown">
+      <span className="inline-block font-bold text-primary">
         languages
       </span>
     );
@@ -91,7 +91,7 @@ export function LanguageRolodex() {
         {extendedLanguages.map((language, index) => (
           <span
             key={`${language}-${index}`}
-            className="block font-bold text-brand-brown whitespace-nowrap"
+            className="block font-bold text-primary whitespace-nowrap"
             style={{
               height: `${lineHeight}em`,
               lineHeight: `${lineHeight}em`,

@@ -12,36 +12,73 @@ import {
   CheckCircle,
 } from "lucide-react";
 import type { StudentLessonHistoryData } from "@/lib/actions/student-lessons";
+import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
 
 interface StudentLessonHistoryProps {
   data: StudentLessonHistoryData;
   tutorName: string;
+  tutorTimezone: string;
 }
 
 export function StudentLessonHistory({
   data,
   tutorName,
+  tutorTimezone,
 }: StudentLessonHistoryProps) {
   const [showUpcoming, setShowUpcoming] = useState(true);
   const [showPast, setShowPast] = useState(false);
+  const [stats, setStats] = useState(data.stats);
+  const [upcoming, setUpcoming] = useState(data.upcoming);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<typeof data.upcoming[number] | null>(null);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const { stats, upcoming, past } = data;
+  const past = data.past;
 
   // Convert total minutes to hours and minutes
   const totalHours = Math.floor(stats.total_minutes / 60);
   const remainingMinutes = stats.total_minutes % 60;
 
+  const handleRescheduleSuccess = (newStartIso: string) => {
+    if (!rescheduleTarget) return;
+
+    setUpcoming((prev) =>
+      [...prev].map((lesson) =>
+        lesson.id === rescheduleTarget.id
+          ? { ...lesson, scheduled_at: newStartIso }
+          : lesson
+      ).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+    );
+
+    setStats((prev) => {
+      const nextLesson =
+        prev.next_lesson && prev.next_lesson.id === rescheduleTarget.id
+          ? { ...prev.next_lesson, scheduled_at: newStartIso }
+          : prev.next_lesson;
+
+      return { ...prev, next_lesson: nextLesson };
+    });
+
+    setStatus({ type: "success", message: "Lesson rescheduled." });
+  };
+
+  const openReschedule = (lesson: typeof data.upcoming[number]) => {
+    setRescheduleTarget(lesson);
+    setRescheduleOpen(true);
+    setStatus(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Overview */}
-      <div className="bg-gradient-to-br from-brand-brown/10 to-brand-cream/30 rounded-2xl border-2 border-brand-brown/20 p-6">
+      <div className="bg-gradient-to-br from-primary/10 to-muted/30 rounded-2xl border-2 border-border p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Your Lesson Journey with {tutorName}
         </h3>
 
         <div className="grid grid-cols-2 gap-4">
           {/* Total Lessons */}
-          <div className="bg-white rounded-xl p-4 border border-brand-brown/10">
+          <div className="bg-white rounded-xl p-4 border border-border/40">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -56,7 +93,7 @@ export function StudentLessonHistory({
           </div>
 
           {/* Total Time */}
-          <div className="bg-white rounded-xl p-4 border border-brand-brown/10">
+          <div className="bg-white rounded-xl p-4 border border-border/40">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Clock className="h-4 w-4 text-blue-600" />
@@ -72,8 +109,8 @@ export function StudentLessonHistory({
 
         {/* Next Lesson Highlight */}
         {stats.next_lesson && (
-          <div className="mt-4 bg-white rounded-xl p-4 border-2 border-brand-brown/20">
-            <p className="text-xs font-semibold text-brand-brown uppercase tracking-wide mb-2">
+          <div className="mt-4 bg-white rounded-xl p-4 border-2 border-border">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
               Next Lesson
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -95,7 +132,7 @@ export function StudentLessonHistory({
                   href={stats.next_lesson.meeting_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-brand-brown text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-brown/90 transition text-sm"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm"
                 >
                   <Video className="h-4 w-4" />
                   Join Meeting
@@ -120,6 +157,18 @@ export function StudentLessonHistory({
           </div>
         )}
       </div>
+
+      {status ? (
+        <p
+          className={`rounded-xl px-4 py-3 text-sm ${
+            status.type === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-destructive/10 text-destructive"
+          }`}
+        >
+          {status.message}
+        </p>
+      ) : null}
 
       {/* Upcoming Lessons */}
       {upcoming.length > 0 && (
@@ -153,7 +202,7 @@ export function StudentLessonHistory({
               {upcoming.map((lesson) => (
                 <div
                   key={lesson.id}
-                  className="border border-gray-200 rounded-xl p-4 hover:border-brand-brown/30 transition"
+                  className="border border-gray-200 rounded-xl p-4 hover:border-primary/30 transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="flex-1">
@@ -174,17 +223,26 @@ export function StudentLessonHistory({
                         {lesson.duration_minutes} minutes • {formatDistanceToNow(new Date(lesson.scheduled_at), { addSuffix: true })}
                       </p>
                     </div>
-                    {lesson.meeting_url && lesson.status === "confirmed" && (
-                      <a
-                        href={lesson.meeting_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 bg-brand-brown text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-brown/90 transition text-sm whitespace-nowrap"
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openReschedule(lesson)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition whitespace-nowrap"
                       >
-                        <Video className="h-4 w-4" />
-                        Join Meeting
-                      </a>
-                    )}
+                        <Calendar className="h-4 w-4" />
+                        Reschedule
+                      </button>
+                      {lesson.meeting_url && lesson.status === "confirmed" && (
+                        <a
+                          href={lesson.meeting_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm whitespace-nowrap"
+                        >
+                          <Video className="h-4 w-4" />
+                          Join Meeting
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -272,6 +330,21 @@ export function StudentLessonHistory({
           </p>
         </div>
       )}
+
+      <RescheduleDialog
+        open={rescheduleOpen}
+        onOpenChange={(open) => {
+          setRescheduleOpen(open);
+          if (!open) setRescheduleTarget(null);
+        }}
+        bookingId={rescheduleTarget?.id ?? null}
+        defaultStart={rescheduleTarget?.scheduled_at}
+        timezone={tutorTimezone}
+        durationMinutes={rescheduleTarget?.duration_minutes}
+        title={rescheduleTarget ? `Move ${rescheduleTarget.service_name}` : "Reschedule lesson"}
+        subtitle={`Times shown in ${tutorTimezone}`}
+        onSuccess={handleRescheduleSuccess}
+      />
     </div>
   );
 }

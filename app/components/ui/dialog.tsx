@@ -72,7 +72,7 @@ export const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps
           <div
             ref={ref}
             className={cn(
-              "relative w-full rounded-3xl border border-border bg-background shadow-2xl",
+              "relative w-full rounded-3xl bg-background shadow-2xl",
               sizeClasses[size],
               className
             )}
@@ -103,13 +103,26 @@ export const DialogHeader = React.forwardRef<HTMLDivElement, DialogHeaderProps>(
     return (
       <div
         ref={ref}
-        className={cn("flex flex-col space-y-1.5 border-b border-border p-6", className)}
+        className={cn("flex flex-col space-y-1.5 p-6", className)}
         {...props}
       />
     );
   }
 );
 DialogHeader.displayName = "DialogHeader";
+
+export interface DialogFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+export const DialogFooter = React.forwardRef<HTMLDivElement, DialogFooterProps>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-6 pt-0", className)}
+      {...props}
+    />
+  )
+);
+DialogFooter.displayName = "DialogFooter";
 
 export interface DialogTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
 
@@ -125,6 +138,19 @@ export const DialogTitle = React.forwardRef<HTMLHeadingElement, DialogTitleProps
   }
 );
 DialogTitle.displayName = "DialogTitle";
+
+export interface DialogDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+
+export const DialogDescription = React.forwardRef<HTMLParagraphElement, DialogDescriptionProps>(
+  ({ className, ...props }, ref) => (
+    <p
+      ref={ref}
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  )
+);
+DialogDescription.displayName = "DialogDescription";
 
 export interface DialogBodyProps extends React.HTMLAttributes<HTMLDivElement> {}
 

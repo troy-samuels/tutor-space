@@ -12,18 +12,19 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
   const [revenue, setRevenue] = useState(2000);
 
   // Calculate savings
-  const platformCost = 49;
+  const currencySymbol = "$";
+  const platformCost = 29;
   const averageCommission = 0.25; // 25%
   const marketplaceFees = revenue * averageCommission;
   const monthlySavings = marketplaceFees - platformCost;
   const annualSavings = monthlySavings * 12;
 
   return (
-    <section className="bg-brand-cream py-20 sm:py-32">
+    <section className="bg-muted py-20 sm:py-32">
       <div className="mx-auto max-w-4xl px-6 lg:px-8">
         <div className="rounded-3xl bg-brand-white p-10 shadow-2xl sm:p-16">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-brand-black sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               {finalCTA.headline}
             </h2>
             <p className="mt-4 text-lg text-gray-600">
@@ -42,8 +43,9 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
 
             {/* Revenue display */}
             <div className="text-center mb-4">
-              <span className="text-4xl font-bold text-brand-brown">
-                ${revenue.toLocaleString()}
+              <span className="text-4xl font-bold text-primary">
+                {currencySymbol}
+                {revenue.toLocaleString()}
               </span>
               <span className="text-gray-600 ml-2">{finalCTA.calculatorUnit}</span>
             </div>
@@ -57,7 +59,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
               step="100"
               value={revenue}
               onChange={(e) => setRevenue(Number(e.target.value))}
-              className="w-full h-2 bg-brand-cream rounded-lg appearance-none cursor-pointer accent-brand-brown"
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
 
             <div className="flex justify-between text-xs text-gray-500 mt-2">
@@ -70,23 +72,29 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
               <div className="flex justify-between text-gray-700">
                 <span>{finalCTA.commissionLabel}</span>
                 <span className="font-medium text-red-600">
-                  -${marketplaceFees.toLocaleString()}
+                  -{currencySymbol}
+                  {marketplaceFees.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between text-gray-700">
                 <span>{finalCTA.platformCostLabel}</span>
-                <span className="font-medium">-${platformCost}</span>
-              </div>
-              <div className="flex justify-between text-xl font-bold border-t border-gray-200 pt-3">
-                <span className="text-brand-black">{finalCTA.monthlySavingsLabel}</span>
-                <span className="text-brand-brown">
-                  +${monthlySavings.toLocaleString()}
+                <span className="font-medium">
+                  -{currencySymbol}
+                  {platformCost}
                 </span>
               </div>
-              <div className="text-center mt-4 p-4 bg-brand-cream rounded-lg">
+              <div className="flex justify-between text-xl font-bold border-t border-gray-200 pt-3">
+                <span className="text-foreground">{finalCTA.monthlySavingsLabel}</span>
+                <span className="text-primary">
+                  +{currencySymbol}
+                  {monthlySavings.toLocaleString()}
+                </span>
+              </div>
+              <div className="text-center mt-4 p-4 bg-muted rounded-lg">
                 <div className="text-sm text-gray-600">{finalCTA.annualSavingsLabel}</div>
-                <div className="text-3xl font-bold text-brand-brown mt-1">
-                  ${annualSavings.toLocaleString()}
+                <div className="text-3xl font-bold text-primary mt-1">
+                  {currencySymbol}
+                  {annualSavings.toLocaleString()}
                 </div>
               </div>
             </div>
@@ -96,7 +104,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
           <div className="mt-10 text-center">
             <Link
               href="/signup"
-              className="inline-block rounded-md bg-brand-brown px-10 py-4 text-lg font-semibold text-brand-white shadow-lg transition-all hover:bg-brand-brown/90 hover:shadow-xl hover:-translate-y-0.5"
+              className="inline-block rounded-md bg-primary px-10 py-4 text-lg font-semibold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl hover:-translate-y-0.5"
             >
               {finalCTA.button}
             </Link>
@@ -111,7 +119,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
                 className="flex items-center gap-x-2 text-sm text-gray-600"
               >
                 <svg
-                  className="h-5 w-5 text-brand-brown"
+                  className="h-5 w-5 text-primary"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >

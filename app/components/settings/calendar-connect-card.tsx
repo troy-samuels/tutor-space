@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, CalendarDays } from "lucide-react";
 import {
@@ -30,21 +30,76 @@ export function CalendarConnectCard({
   const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const popupRef = useRef<Window | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const Icon = ICONS[provider];
   const isConnected = connection.connected;
+
+  // Listen for OAuth callback message from popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) return;
+
+      const data = event.data;
+      if (data?.type !== "calendar-oauth-callback") return;
+
+      if (data.success) {
+        // Refresh the page to show updated connection status
+        router.refresh();
+      } else if (data.error) {
+        setFeedback(data.error || "Calendar connection failed. Please try again.");
+      }
+
+      popupRef.current = null;
+
+      // Clear polling interval when message is received
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      // Clean up polling interval on unmount
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [router]);
 
   const handleConnect = () => {
     setFeedback(null);
     startTransition(() => {
       (async () => {
-        const result = await requestCalendarConnection(provider);
+        const result = await requestCalendarConnection(provider, { popup: true });
         if (result?.error) {
           setFeedback(result.error);
           return;
         }
         if (result?.url) {
-          window.location.href = result.url;
+          // Open OAuth in popup window instead of redirecting
+          popupRef.current = window.open(result.url, "_blank", "width=600,height=700");
+
+          if (!popupRef.current) {
+            setFeedback("Popup was blocked. Please allow popups for this site.");
+          } else {
+            // Start polling to detect if popup is closed without completing
+            pollIntervalRef.current = setInterval(() => {
+              if (popupRef.current?.closed) {
+                // Popup was closed without completing - reset state
+                if (pollIntervalRef.current) {
+                  clearInterval(pollIntervalRef.current);
+                  pollIntervalRef.current = null;
+                }
+                setFeedback("Calendar connection was cancelled. Click 'Connect' to try again.");
+                popupRef.current = null;
+              }
+            }, 500);
+          }
         }
       })();
     });
@@ -67,8 +122,8 @@ export function CalendarConnectCard({
   return (
     <div className="flex h-full flex-col justify-between rounded-2xl border border-border/60 bg-white/80 p-5 shadow-sm backdrop-blur">
       <div className="space-y-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-brown/10">
-          <Icon className="h-6 w-6 text-brand-brown" />
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+          <Icon className="h-6 w-6 text-primary" />
         </span>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
@@ -81,7 +136,7 @@ export function CalendarConnectCard({
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
           {isConnected && (connection.accountEmail || connection.accountName) ? (
-            <p className="text-xs text-brand-brown">
+            <p className="text-xs text-primary">
               {connection.accountName ?? connection.accountEmail}
             </p>
           ) : null}
@@ -102,7 +157,7 @@ export function CalendarConnectCard({
             type="button"
             onClick={handleDisconnect}
             disabled={isPending}
-            className="inline-flex h-10 w-full items-center justify-center rounded-full border border-brand-brown/40 bg-white px-4 text-xs font-semibold text-brand-brown shadow-sm transition hover:bg-brand-brown/10 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex h-10 w-full items-center justify-center rounded-full border border-border bg-white px-4 text-xs font-semibold text-foreground shadow-sm transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "Disconnecting..." : "Disconnect"}
           </button>
@@ -111,7 +166,7 @@ export function CalendarConnectCard({
             type="button"
             onClick={handleConnect}
             disabled={isPending}
-            className="inline-flex h-10 w-full items-center justify-center rounded-full bg-brand-brown px-4 text-xs font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "Starting sync..." : `Connect ${title}`}
           </button>

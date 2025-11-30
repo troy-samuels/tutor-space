@@ -1,9 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { __tutorStudentsTesting } from "../lib/actions/tutor-students.ts";
-
-const { approveStudentAccessWithClients } = __tutorStudentsTesting;
+import { approveStudentAccessWithClients } from "../lib/actions/students.ts";
 
 type ApproveSupabaseClient = Parameters<typeof approveStudentAccessWithClients>[0];
 type ApproveAdminClient = Parameters<typeof approveStudentAccessWithClients>[1];
@@ -220,12 +218,18 @@ test("approveStudentAccessWithClients scopes updates by tutor", async () => {
   const requestFilters = adminClient.chains.requestUpdate.filters;
 
   assert.ok(
-    studentFilters.some((filter) => filter.column === "tutor_id" && filter.value === tutorId),
+    studentFilters.some(
+      (filter: { column: string; value: unknown }) =>
+        filter.column === "tutor_id" && filter.value === tutorId
+    ),
     "student update must scope by tutor_id"
   );
 
   assert.ok(
-    requestFilters.some((filter) => filter.column === "tutor_id" && filter.value === tutorId),
+    requestFilters.some(
+      (filter: { column: string; value: unknown }) =>
+        filter.column === "tutor_id" && filter.value === tutorId
+    ),
     "request update must scope by tutor_id"
   );
 });

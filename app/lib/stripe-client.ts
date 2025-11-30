@@ -1,6 +1,6 @@
-import { loadStripe, Stripe } from "@stripe/stripe-js";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
 
-let stripePromise: Promise<Stripe | null>;
+let stripePromise: Promise<Stripe | null> | null = null;
 
 /**
  * Get Stripe.js instance
@@ -32,7 +32,7 @@ export async function redirectToCheckout(sessionId: string): Promise<void> {
     throw new Error("Stripe failed to load");
   }
 
-  const { error } = await stripe.redirectToCheckout({
+  const { error } = await (stripe as any).redirectToCheckout({
     sessionId,
   });
 

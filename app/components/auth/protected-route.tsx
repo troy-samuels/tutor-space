@@ -50,18 +50,6 @@ export function RoleGuard({ allow, fallback = null, children }: RoleGuardProps) 
   return <>{children}</>;
 }
 
-type PlanGateProps = {
-  require: "growth" | "studio";
-  fallback?: React.ReactNode;
-  children: React.ReactNode;
-};
-
-export function PlanGate({ require, fallback = null, children }: PlanGateProps) {
-  const { entitlements } = useAuth();
-
-  if (require === "studio" && !entitlements.studio) return fallback;
-  if (require === "growth" && !entitlements.growth) return fallback;
-
+export function PlanGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
-

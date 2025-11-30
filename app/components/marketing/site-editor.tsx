@@ -1,33 +1,33 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Collapsible } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from "@/components/ui/dialog";
 import {
-  Lock,
-  Eye,
-  Palette,
-  Type,
-  Star,
-  GraduationCap,
-  FileText,
-  BookOpen,
-  Share2,
   Check,
   Clock,
   Save,
   Rocket,
+  Palette,
+  Eye,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import { SitePreview } from "@/components/marketing/site-preview";
+import { SitePreview, type SitePageView } from "@/components/marketing/site-preview";
 import { cn } from "@/lib/utils";
-import { sendTestimonialRequest } from "@/lib/actions/engagement";
-import { updateSite, publishSite, createSite, type TutorSite, type TutorSiteService, type TutorSiteReview, type TutorSiteResource } from "@/lib/actions/tutor-sites";
-import { migrateSiteFromLocalStorage, hasLocalStorageData } from "@/lib/utils/migrate-site-data";
-
-type PlanName = "professional" | "growth" | "studio";
+import { FlowProgress } from "@/components/flows/FlowProgress";
+import {
+  updateSite,
+  publishSite,
+  createSite,
+  uploadHeroImage,
+  getPublishedSnapshot,
+  type TutorSite,
+  type TutorSiteService,
+  type TutorSiteReview,
+  type TutorSiteResource,
+} from "@/lib/actions/tutor-sites";
+import { AutoSaver } from "@/lib/utils/auto-saver";
 
 type EditorProfile = {
   id: string;
@@ -37,6 +37,7 @@ type EditorProfile = {
   bio: string;
   avatar_url: string | null;
   email?: string | null;
+  stripe_payment_link?: string | null;
 };
 
 type ServiceLite = {
@@ -58,248 +59,436 @@ type InitialSiteData = {
 type SiteEditorProps = {
   profile: EditorProfile;
   services: ServiceLite[];
-  plan: PlanName;
   students: Array<{ id: string; name: string; hasContact: boolean }>;
   defaultReviewFormUrl: string;
   initialSiteData: InitialSiteData;
 };
 
+type FontOption =
+  | "system"
+  | "serif"
+  | "mono"
+  | "rounded"
+  | "editorial"
+  | "humanist"
+  | "grotesk"
+  | "playful"
+  | "luxury"
+  | "tech";
+
 type ThemeSettings = {
   background: string;
+  backgroundStyle: "solid" | "gradient";
+  gradientFrom: string;
+  gradientTo: string;
   primary: string;
-  font: "system" | "serif" | "mono";
+  font: FontOption;
   spacing: "cozy" | "comfortable" | "compact";
 };
 
-type ReviewsDraft = Array<{ author: string; quote: string }>;
+type HeroStyle = "minimal" | "portrait" | "banner";
+type LessonsStyle = "cards" | "list";
+type ReviewsStyle = "cards" | "highlight";
 
-type PageVisibility = {
-  about: boolean;
-  lessons: boolean;
-  reviews: boolean;
-  resources: boolean;
-  contact: boolean;
+type Template = {
+  id: string;
+  name: string;
+  description: string;
+  settings: {
+    background: string;
+    backgroundStyle: "solid" | "gradient";
+    gradientFrom?: string;
+    gradientTo?: string;
+    primary: string;
+    font: FontOption;
+    spacing: "cozy" | "comfortable" | "compact";
+    heroStyle: HeroStyle;
+    lessonsStyle: LessonsStyle;
+    reviewsStyle: ReviewsStyle;
+  };
 };
 
-type ResourceLink = { id: string; label: string; url: string };
-type ContactCTA = { label: string; url: string };
+// 5 Complete Templates - Research-backed two-tone combinations
+const TEMPLATES: Template[] = [
+  {
+    id: "classic-ink",
+    name: "Classic Ink",
+    description: "Timeless black and white, clean and professional",
+    settings: {
+      background: "#FFFFFF",
+      backgroundStyle: "solid",
+      primary: "#1F2937",
+      font: "system",
+      spacing: "comfortable",
+      heroStyle: "minimal",
+      lessonsStyle: "cards",
+      reviewsStyle: "cards",
+    },
+  },
+  {
+    id: "ocean-trust",
+    name: "Ocean Trust",
+    description: "Professional blue tones, trustworthy and calm",
+    settings: {
+      background: "#F1F5F9",
+      backgroundStyle: "solid",
+      primary: "#1E40AF",
+      font: "system",
+      spacing: "comfortable",
+      heroStyle: "portrait",
+      lessonsStyle: "cards",
+      reviewsStyle: "cards",
+    },
+  },
+  {
+    id: "warm-terracotta",
+    name: "Warm Terracotta",
+    description: "Inviting warmth with approachable energy",
+    settings: {
+      background: "#FAF7F5",
+      backgroundStyle: "solid",
+      primary: "#C2410C",
+      font: "rounded",
+      spacing: "cozy",
+      heroStyle: "portrait",
+      lessonsStyle: "list",
+      reviewsStyle: "highlight",
+    },
+  },
+  {
+    id: "midnight-gold",
+    name: "Midnight Gold",
+    description: "Bold dark elegance with golden accents",
+    settings: {
+      backgroundStyle: "solid",
+      background: "#0F172A",
+      gradientFrom: "#0F172A",
+      gradientTo: "#0F172A",
+      primary: "#F59E0B",
+      font: "tech",
+      spacing: "compact",
+      heroStyle: "banner",
+      lessonsStyle: "cards",
+      reviewsStyle: "cards",
+    },
+  },
+  {
+    id: "lavender-luxe",
+    name: "Lavender Luxe",
+    description: "Creative and sophisticated with purple tones",
+    settings: {
+      background: "#FAF5FF",
+      backgroundStyle: "solid",
+      primary: "#7C3AED",
+      font: "luxury",
+      spacing: "comfortable",
+      heroStyle: "minimal",
+      lessonsStyle: "list",
+      reviewsStyle: "cards",
+    },
+  },
+];
 
-const DEFAULT_PAGE_VISIBILITY: PageVisibility = {
-  about: true,
-  lessons: true,
-  reviews: true,
-  resources: false,
-  contact: false,
+const getTemplateSwatches = (settings: Template["settings"]) => {
+  const primary = settings.primary ?? "#2563eb";
+  const secondary =
+    settings.backgroundStyle === "gradient"
+      ? settings.gradientTo || settings.gradientFrom || settings.background || "#f5f5f5"
+      : settings.background || settings.gradientFrom || "#f5f5f5";
+  return { primary, secondary };
 };
+
+// Modern Google Fonts for 2024-2025
+const FONT_OPTIONS: Array<{ value: FontOption; label: string }> = [
+  { value: "system", label: "Inter" },
+  { value: "rounded", label: "Manrope" },
+  { value: "tech", label: "Poppins" },
+  { value: "serif", label: "Lato" },
+  { value: "luxury", label: "DM Sans" },
+  { value: "grotesk", label: "Space Grotesk" },
+  { value: "humanist", label: "Plus Jakarta" },
+  { value: "editorial", label: "Playfair Display" },
+  { value: "playful", label: "Nunito" },
+  { value: "mono", label: "JetBrains Mono" },
+];
 
 export function SiteEditor({
   profile,
   services,
-  plan,
   students,
   defaultReviewFormUrl,
   initialSiteData,
 }: SiteEditorProps) {
+  const [previewPage, setPreviewPage] = useState<SitePageView>("home");
+  const [previewMode, setPreviewMode] = useState<"draft" | "published">("draft");
+  const [publishedPreview, setPublishedPreview] = useState<any | null>(null);
   const [siteId, setSiteId] = useState<string | null>(initialSiteData?.site?.id || null);
   const [status, setStatus] = useState<"draft" | "published">(initialSiteData?.site?.status || "draft");
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(
+    (initialSiteData?.site as any)?.updated_at || null
+  );
+
+  // Selected template
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   // Core content
-  const [aboutTitle, setAboutTitle] = useState(initialSiteData?.site?.about_title || profile.full_name || "Your name");
+  const [aboutTitle, setAboutTitle] = useState(initialSiteData?.site?.about_title || profile.full_name || "");
   const [aboutSubtitle, setAboutSubtitle] = useState(initialSiteData?.site?.about_subtitle || profile.tagline || "");
   const [aboutBody, setAboutBody] = useState(initialSiteData?.site?.about_body || profile.bio || "");
 
-  // Lessons selection
+  // Hero image
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(
+    (initialSiteData?.site as any)?.hero_image_url || null
+  );
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
+  const [isHeroUploading, startHeroUpload] = useTransition();
+
+  // Services selection (all selected by default)
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
-    initialSiteData?.services.map((s) => s.service_id) || services.map((s) => s.id)
+    initialSiteData?.services?.map((s) => s.service_id) ?? services.map((s) => s.id)
   );
 
   // Reviews
-  const [reviews, setReviews] = useState<ReviewsDraft>(
-    initialSiteData?.reviews.map((r) => ({ author: r.author_name, quote: r.quote })) || []
+  const [reviews] = useState<Array<{ author: string; quote: string }>>(
+    initialSiteData?.reviews?.map((r) => ({ author: r.author_name, quote: r.quote })) ?? []
   );
-  const [newReviewAuthor, setNewReviewAuthor] = useState("");
-  const [newReviewQuote, setNewReviewQuote] = useState("");
 
-  // Theme controls
+  // Theme controls (from template or existing site)
   const [theme, setTheme] = useState<ThemeSettings>({
     background: initialSiteData?.site?.theme_background || "#ffffff",
+    backgroundStyle:
+      (initialSiteData?.site?.theme_background_style as ThemeSettings["backgroundStyle"]) || "solid",
+    gradientFrom: initialSiteData?.site?.theme_gradient_from || "#f8fafc",
+    gradientTo: initialSiteData?.site?.theme_gradient_to || "#ffffff",
     primary: initialSiteData?.site?.theme_primary || "#2563eb",
     font: (initialSiteData?.site?.theme_font as ThemeSettings["font"]) || "system",
     spacing: (initialSiteData?.site?.theme_spacing as ThemeSettings["spacing"]) || "comfortable",
   });
 
-  const [pageVisibility, setPageVisibility] = useState<PageVisibility>({
+  const [heroStyle, setHeroStyle] = useState<HeroStyle>(
+    (initialSiteData?.site?.hero_layout as HeroStyle) || "minimal"
+  );
+  const [lessonsStyle, setLessonsStyle] = useState<LessonsStyle>(
+    (initialSiteData?.site?.lessons_layout as LessonsStyle) || "cards"
+  );
+  const [reviewsStyle, setReviewsStyle] = useState<ReviewsStyle>(
+    (initialSiteData?.site?.reviews_layout as ReviewsStyle) || "cards"
+  );
+
+  // Consolidated visibility toggles
+  const [visibility, setVisibility] = useState({
     about: initialSiteData?.site?.show_about ?? true,
     lessons: initialSiteData?.site?.show_lessons ?? true,
-    reviews: initialSiteData?.site?.show_reviews ?? true,
-    resources: initialSiteData?.site?.show_resources ?? false,
-    contact: initialSiteData?.site?.show_contact ?? false,
+    reviews: initialSiteData?.site?.show_reviews ?? (reviews.length > 0),
+    booking: initialSiteData?.site?.show_booking ?? true,
+    social: (initialSiteData?.site as any)?.show_social_page ?? true,
   });
 
-  const [resourceLinks, setResourceLinks] = useState<ResourceLink[]>(
-    initialSiteData?.resources.map((r) => ({ id: r.id, label: r.label, url: r.url })) || []
-  );
-  const [resourceDraft, setResourceDraft] = useState({ label: "", url: "" });
+  // Customization unlock
+  const [showCustomization, setShowCustomization] = useState(false);
 
-  const [contactCta, setContactCta] = useState<ContactCTA>({
-    label: initialSiteData?.site?.contact_cta_label || "Email me",
-    url: initialSiteData?.site?.contact_cta_url || (profile.email ? `mailto:${profile.email}` : ""),
-  });
+  // Social links from resources
+  const resourceLinks = initialSiteData?.resources?.map((r) => ({
+    id: r.id,
+    label: r.label,
+    url: r.url,
+  })) ?? [];
 
-  const [reviewFormUrl, setReviewFormUrl] = useState(defaultReviewFormUrl);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [lessonHighlight, setLessonHighlight] = useState("");
-  const [incentive, setIncentive] = useState("");
-  const [requestStatus, setRequestStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [isPendingRequest, startRequest] = useTransition();
+  const handleTemplateSelect = (template: Template) => {
+    setSelectedTemplateId(template.id);
+    setTheme({
+      background: template.settings.background,
+      backgroundStyle: template.settings.backgroundStyle,
+      gradientFrom: template.settings.gradientFrom || template.settings.background,
+      gradientTo: template.settings.gradientTo || template.settings.background,
+      primary: template.settings.primary,
+      font: template.settings.font,
+      spacing: template.settings.spacing,
+    });
+    setHeroStyle(template.settings.heroStyle);
+    setLessonsStyle(template.settings.lessonsStyle);
+    setReviewsStyle(template.settings.reviewsStyle);
+  };
 
-  // Migration effect - run once on mount
-  useEffect(() => {
-    async function handleMigration() {
-      // Only migrate if no database site exists but localStorage data does
-      if (!initialSiteData?.site && hasLocalStorageData(profile.id)) {
-        const result = await migrateSiteFromLocalStorage(profile.id);
-        if (result.success) {
-          // Reload page to get fresh data from database
-          window.location.reload();
-        }
-      }
-    }
-    handleMigration();
-  }, [profile.id, initialSiteData?.site]);
+  const handleHeroFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const selectedServices = useMemo(
-    () => services.filter((s) => selectedServiceIds.includes(s.id)),
-    [services, selectedServiceIds]
-  );
-
-  const canCustomizeTheme = plan === "growth" || plan === "studio";
-  const studentsWithContact = useMemo(
-    () => students.filter((student) => student.hasContact),
-    [students]
-  );
-
-  useEffect(() => {
-    if (studentsWithContact.length === 0) {
-      setSelectedStudentId("");
+    // Simple validation
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setHeroUploadError("Please upload a JPG, PNG, or WebP image");
       return;
     }
-    if (!selectedStudentId) {
-      setSelectedStudentId(studentsWithContact[0].id);
-    }
-  }, [studentsWithContact, selectedStudentId]);
 
-  const hasStudents = students.length > 0;
-  const hasReviewableStudent = studentsWithContact.length > 0;
-  const reviewRequestDisabled =
-    !hasReviewableStudent ||
-    !selectedStudentId ||
-    !lessonHighlight.trim() ||
-    !reviewFormUrl.trim() ||
-    isPendingRequest;
-
-  const createId = () =>
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2, 9);
-
-  const togglePageSection = (section: keyof PageVisibility) => {
-    setPageVisibility((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
-  const addResourceLink = () => {
-    if (!resourceDraft.label.trim() || !resourceDraft.url.trim()) {
+    if (file.size > 5 * 1024 * 1024) {
+      setHeroUploadError("Image must be smaller than 5MB");
       return;
     }
-    setResourceLinks((prev) => [
-      ...prev,
-      {
-        id: createId(),
-        label: resourceDraft.label.trim(),
-        url: resourceDraft.url.trim(),
-      },
-    ]);
-    setResourceDraft({ label: "", url: "" });
-  };
 
-  const removeResourceLink = (id: string) => {
-    setResourceLinks((prev) => prev.filter((link) => link.id !== id));
-  };
+    setHeroUploadError(null);
 
-  const handleReviewRequest = () => {
-    if (reviewRequestDisabled) return;
-    setRequestStatus(null);
-    startRequest(async () => {
-      const result = await sendTestimonialRequest({
-        studentId: selectedStudentId,
-        lessonHighlight: lessonHighlight.trim(),
-        testimonialUrl: reviewFormUrl.trim(),
-        incentive: incentive.trim() ? incentive.trim() : undefined,
-      });
+    // Create object URL for immediate preview
+    const objectUrl = URL.createObjectURL(file);
+    setHeroImageUrl(objectUrl);
 
-      if (result && "error" in result && result.error) {
-        setRequestStatus({ type: "error", message: result.error });
-        return;
+    // Upload to storage
+    startHeroUpload(async () => {
+      const result = await uploadHeroImage(file);
+      if ("error" in result) {
+        setHeroUploadError(result.error || "Failed to upload image");
+        setHeroImageUrl(null);
+      } else if (result.url) {
+        // Update with the permanent URL
+        setHeroImageUrl(result.url);
       }
-
-      setLessonHighlight("");
-      setIncentive("");
-      setRequestStatus({
-        type: "success",
-        message: "Review request sent successfully.",
-      });
     });
   };
+
+  // Auto-save with debouncing
+  const autoSaverRef = useRef<AutoSaver | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  useEffect(() => {
+    autoSaverRef.current = new AutoSaver({
+      debounceMs: 2000,
+      retries: 1,
+      onSaving: () => setAutoSaveStatus("saving"),
+      onSaved: () => {
+        setAutoSaveStatus("saved");
+        setLastSaved(new Date());
+      },
+      onError: () => setAutoSaveStatus("error"),
+    });
+    return () => {
+      autoSaverRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Skip auto-save on initial mount
+    if (!siteId) return;
+
+    setAutoSaveStatus("idle");
+
+    autoSaverRef.current?.trigger(async () => {
+      const siteData: any = {
+        about_title: aboutTitle,
+        about_subtitle: aboutSubtitle,
+        about_body: aboutBody,
+        hero_image_url: heroImageUrl,
+        show_about: visibility.about,
+        show_lessons: visibility.lessons,
+        show_reviews: visibility.reviews,
+        show_booking: visibility.booking,
+        show_social_page: visibility.social,
+        theme_background: theme.background,
+        theme_background_style: theme.backgroundStyle,
+        theme_gradient_from: theme.gradientFrom,
+        theme_gradient_to: theme.gradientTo,
+        theme_primary: theme.primary,
+        theme_font: theme.font,
+        theme_spacing: theme.spacing,
+        hero_layout: heroStyle,
+        lessons_layout: lessonsStyle,
+        reviews_layout: reviewsStyle,
+        booking_cta_label: "Book a class",
+        booking_cta_url: profile.stripe_payment_link || (profile.username ? `/book/${profile.username}` : ""),
+        booking_headline: "Ready to start?",
+        booking_subcopy: "Pick a time that works for you",
+        show_contact: false,
+        show_digital: false,
+        contact_cta_label: "Email me",
+        contact_cta_url: profile.email ? `mailto:${profile.email}` : "",
+      };
+      if (lastUpdatedAt) {
+        siteData._prev_updated_at = lastUpdatedAt;
+      }
+      try {
+        const result: any = await updateSite(siteId, siteData);
+        if (result?.success) {
+          if (result.updated_at) setLastUpdatedAt(result.updated_at);
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    });
+
+    return;
+  }, [
+    aboutTitle,
+    aboutSubtitle,
+    aboutBody,
+    heroImageUrl,
+    theme,
+    visibility,
+    selectedServiceIds,
+    heroStyle,
+    lessonsStyle,
+    reviewsStyle,
+    siteId,
+    profile.stripe_payment_link,
+    profile.username,
+    profile.email,
+  ]);
 
   const handleSaveDraft = async () => {
     setIsSaving(true);
     setSaveMessage(null);
 
-    const siteData = {
+    const siteData: any = {
       about_title: aboutTitle,
       about_subtitle: aboutSubtitle,
       about_body: aboutBody,
+      hero_image_url: heroImageUrl,
+      show_about: visibility.about,
+      show_lessons: visibility.lessons,
+      show_reviews: visibility.reviews,
+      show_booking: visibility.booking,
+      show_social_page: visibility.social,
       theme_background: theme.background,
+      theme_background_style: theme.backgroundStyle,
+      theme_gradient_from: theme.gradientFrom,
+      theme_gradient_to: theme.gradientTo,
       theme_primary: theme.primary,
       theme_font: theme.font,
       theme_spacing: theme.spacing,
-      show_about: pageVisibility.about,
-      show_lessons: pageVisibility.lessons,
-      show_reviews: pageVisibility.reviews,
-      show_resources: pageVisibility.resources,
-      show_contact: pageVisibility.contact,
-      contact_cta_label: contactCta.label,
-      contact_cta_url: contactCta.url,
-      services: selectedServiceIds,
-      reviews: reviews.map((r) => ({ author_name: r.author, quote: r.quote })),
-      resources: resourceLinks.map((r) => ({ label: r.label, url: r.url })),
+      hero_layout: heroStyle,
+      lessons_layout: lessonsStyle,
+      reviews_layout: reviewsStyle,
+      booking_cta_label: "Book a class",
+      booking_cta_url: profile.stripe_payment_link || (profile.username ? `/book/${profile.username}` : ""),
+      booking_headline: "Ready to start?",
+      booking_subcopy: "Pick a time that works for you",
+      show_contact: false,
+      show_digital: false,
+      contact_cta_label: "Email me",
+      contact_cta_url: profile.email ? `mailto:${profile.email}` : "",
     };
+    if (lastUpdatedAt) {
+      siteData._prev_updated_at = lastUpdatedAt;
+    }
 
     try {
       if (siteId) {
-        // Update existing site
-        const result = await updateSite(siteId, siteData);
-        if (result.error) {
-          setSaveMessage(result.error);
-        } else {
-          setSaveMessage("Draft saved successfully");
+        const result: any = await updateSite(siteId, siteData);
+        if (result.success) {
+          if (result.updated_at) setLastUpdatedAt(result.updated_at);
+          setSaveMessage("Draft saved");
           setTimeout(() => setSaveMessage(null), 3000);
         }
       } else {
-        // Create new site
-        const result = await createSite(siteData);
-        if (result.error) {
-          setSaveMessage(result.error);
-        } else {
-          setSiteId(result.site?.id || null);
-          setSaveMessage("Draft saved successfully");
+        const result: any = await createSite(siteData);
+        if (result.success && result.site) {
+          setSiteId(result.site.id);
+          if (result.site.updated_at) setLastUpdatedAt(result.site.updated_at);
+          setSaveMessage("Draft saved");
           setTimeout(() => setSaveMessage(null), 3000);
         }
       }
@@ -312,7 +501,6 @@ export function SiteEditor({
 
   const handlePublish = async () => {
     if (!siteId) {
-      // Need to save first
       await handleSaveDraft();
       return;
     }
@@ -322,23 +510,61 @@ export function SiteEditor({
 
     try {
       const result = await publishSite(siteId);
-      if (result.error) {
-        setSaveMessage(result.error);
-      } else {
+      if (result.success) {
         setStatus("published");
-        setSaveMessage("Site published successfully!");
+        setSaveMessage("Site published!");
         setTimeout(() => setSaveMessage(null), 3000);
       }
     } catch (error) {
-      setSaveMessage("Failed to publish site");
+      setSaveMessage("Failed to publish");
     } finally {
       setIsPublishing(false);
     }
   };
 
+  const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id));
+  const pageSteps = [
+    {
+      id: "brand",
+      title: "Brand basics",
+      helper: "Headline, tagline, and about copy",
+      complete: Boolean(aboutTitle.trim() && aboutSubtitle.trim() && aboutBody.trim()),
+    },
+    {
+      id: "offers",
+      title: "Offers & booking",
+      helper: "Select services and keep booking enabled",
+      complete: selectedServiceIds.length > 0 && visibility.booking,
+    },
+    {
+      id: "publish",
+      title: "Publish",
+      helper: "Save a draft and go live",
+      complete: status === "published",
+    },
+  ];
+  const completedPageSteps = pageSteps.filter((step) => step.complete).length;
+  const activePageStep = Math.min(completedPageSteps, pageSteps.length - 1);
+
+  // Load published snapshot when toggled
+  useEffect(() => {
+    (async () => {
+      if (previewMode !== "published" || !siteId) {
+        setPublishedPreview(null);
+        return;
+      }
+      const result = await getPublishedSnapshot(siteId);
+      if ((result as any)?.success) {
+        setPublishedPreview((result as any).snapshot);
+      } else {
+        setPublishedPreview(null);
+      }
+    })();
+  }, [previewMode, siteId]);
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      {/* Toolbar */}
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border/60 bg-background/90 p-4 shadow-sm backdrop-blur">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold text-foreground">Pages Builder</h1>
@@ -354,501 +580,415 @@ export function SiteEditor({
             </span>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {saveMessage && (
-            <span className="text-sm font-medium text-muted-foreground">{saveMessage}</span>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setShowPreview(true)}
-            className="gap-2"
-          >
-            <Eye className="h-4 w-4" />
-            Preview
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleSaveDraft}
-            disabled={isSaving}
-            className="gap-2"
-          >
-            <Save className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          {autoSaveStatus === "saving" ? (
+            <span className="text-xs text-muted-foreground">Saving...</span>
+          ) : autoSaveStatus === "saved" ? (
+            <span className="text-xs text-emerald-600">Saved {lastSaved ? `at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ""}</span>
+          ) : autoSaveStatus === "error" ? (
+            <span className="text-xs text-red-600">Error saving</span>
+          ) : saveMessage ? (
+            <span className="text-sm text-muted-foreground">{saveMessage}</span>
+          ) : null}
+          <Button onClick={handleSaveDraft} disabled={isSaving} variant="outline" size="sm">
+            <Save className="h-4 w-4 mr-1.5" />
             {isSaving ? "Saving..." : "Save Draft"}
           </Button>
-          <Button
-            type="button"
-            onClick={handlePublish}
-            disabled={isPublishing}
-            className="gap-2"
-          >
-            <Rocket className="h-4 w-4" />
-            {isPublishing ? "Publishing..." : "Publish"}
+          <Button onClick={handlePublish} disabled={isPublishing || isSaving} size="sm">
+            <Rocket className="h-4 w-4 mr-1.5" />
+            {isPublishing ? "Publishing..." : "Publish Site"}
           </Button>
         </div>
       </div>
 
-      {/* Collapsible Sections */}
-      <div className="space-y-4">
-        {/* About Section */}
-        <Collapsible title="About" icon={<FileText className="h-4 w-4" />} defaultOpen={true}>
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Title</label>
-              <Input
-                value={aboutTitle}
-                onChange={(e) => setAboutTitle(e.target.value)}
-                placeholder="e.g., Maria Garcia — Spanish Tutor"
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Use clear, scannable text (ui-ux.md: visual hierarchy).
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Subtitle</label>
-              <Input
-                value={aboutSubtitle}
-                onChange={(e) => setAboutSubtitle(e.target.value)}
-                placeholder="e.g., Conversation-first lessons for fast fluency"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">About text</label>
-              <textarea
-                rows={5}
-                value={aboutBody}
-                onChange={(e) => setAboutBody(e.target.value)}
-                placeholder="Write a short, friendly introduction and what students can expect."
-                className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm leading-relaxed shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Aim for 80–160 words. Keep paragraphs short (ui-ux.md: readability).
-              </p>
-            </div>
-          </div>
-        </Collapsible>
-
-        {/* Lessons Section */}
-        <Collapsible title="Lessons" icon={<GraduationCap className="h-4 w-4" />}>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Select which services to feature on your Pages mini‑site.
+      <section className="rounded-3xl border border-border/60 bg-background/90 p-5 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Guided page flow</h2>
+            <p className="text-xs text-muted-foreground">
+              Move through sections like onboarding—brand, offers, then publish.
             </p>
-            <div className="grid gap-2">
-              {services.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No active services yet. Create one in Services.
-                </p>
-              ) : (
-                services.map((svc) => {
-                  const checked = selectedServiceIds.includes(svc.id);
-                  return (
-                    <label
-                      key={svc.id}
-                      className={cn(
-                        "flex items-center justify-between rounded-2xl border px-3 py-2 text-sm",
-                        checked ? "border-primary/40 bg-primary/5" : "border-border/60 bg-background"
-                      )}
-                    >
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate font-semibold text-foreground">{svc.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {svc.duration_minutes ? `${svc.duration_minutes} min` : ""}{" "}
-                          {svc.price != null ? `• ${formatCurrency(svc.price, svc.currency || "USD")}` : ""}
-                        </span>
+          </div>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {completedPageSteps}/{pageSteps.length} done
+          </span>
+        </div>
+        <div className="mt-3">
+          <FlowProgress
+            steps={pageSteps.map(({ id, title, helper }) => ({ id, title, helper }))}
+            activeIndex={activePageStep}
+          />
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.4fr)] lg:items-start">
+        {/* Editor */}
+        <div className="space-y-6">
+          {/* Section 1: Choose Template */}
+          <section className="rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Choose a Template
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Pick a complete design. You can customize colors and fonts after.
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {TEMPLATES.map((template) => {
+                const swatches = getTemplateSwatches(template.settings);
+                return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => handleTemplateSelect(template)}
+                    className={cn(
+                      "rounded-2xl border p-4 text-left transition",
+                      selectedTemplateId === template.id
+                        ? "border-primary bg-primary/10 ring-2 ring-primary"
+                        : "border-border/60 bg-background/50 hover:border-primary/50"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="font-semibold text-foreground">{template.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{template.description}</p>
                       </div>
+                      {selectedTemplateId === template.id ? (
+                        <Check className="h-5 w-5 text-primary flex-shrink-0 ml-2" />
+                      ) : null}
+                    </div>
+                    <div className="flex items-center">
+                      <span
+                        className="block h-6 w-6 rounded-full border-2 border-white shadow-sm"
+                        style={{ backgroundColor: swatches.secondary }}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="block -ml-2 h-6 w-6 rounded-full border-2 border-white shadow-sm"
+                        style={{ backgroundColor: swatches.primary }}
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedTemplateId ? (
+              <div className="mt-4 pt-4 border-t border-border/40">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomization(!showCustomization)}
+                  className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                >
+                  <Palette className="h-4 w-4" />
+                  Customize colors & fonts
+                  {showCustomization ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+
+                {showCustomization ? (
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Accent Color
+                      </label>
+                      <Input
+                        type="color"
+                        value={theme.primary}
+                        onChange={(e) => setTheme({ ...theme, primary: e.target.value })}
+                        className="h-10 w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Font</label>
+                      <select
+                        value={theme.font}
+                        onChange={(e) =>
+                          setTheme({ ...theme, font: e.target.value as FontOption })
+                        }
+                        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        {FONT_OPTIONS.map((font) => (
+                          <option key={font.value} value={font.value}>
+                            {font.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+
+          {/* Section 2: Your Information */}
+          <section className="rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
+            <h2 className="text-base font-semibold text-foreground">Your Information</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add your details. Fields are pre-filled from your profile.
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Title</label>
+                <Input
+                  value={aboutTitle}
+                  onChange={(e) => setAboutTitle(e.target.value)}
+                  placeholder="Your name or business name"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Tagline</label>
+                <Input
+                  value={aboutSubtitle}
+                  onChange={(e) => setAboutSubtitle(e.target.value)}
+                  placeholder="What you teach or your specialty"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">About</label>
+                <textarea
+                  rows={5}
+                  value={aboutBody}
+                  onChange={(e) => setAboutBody(e.target.value)}
+                  placeholder="Tell students about your teaching approach..."
+                  className="w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm leading-relaxed shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Hero Photo (Optional)
+                </label>
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleHeroFileChange}
+                  disabled={isHeroUploading}
+                />
+                {heroUploadError ? (
+                  <p className="mt-1 text-xs text-red-600">{heroUploadError}</p>
+                ) : null}
+                {heroImageUrl ? (
+                  <div className="mt-2 relative inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={heroImageUrl}
+                      alt="Hero"
+                      className="h-20 w-20 rounded-lg object-cover"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          {/* Section 3: What to Show */}
+          <section className="rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              What to Show on Your Page
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Toggle sections on or off. Sections with content show automatically.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">About section</span>
+                <input
+                  type="checkbox"
+                  checked={visibility.about}
+                  onChange={(e) => setVisibility({ ...visibility, about: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </label>
+
+              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">
+                  Lessons ({selectedServices.length} selected)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={visibility.lessons}
+                  onChange={(e) => setVisibility({ ...visibility, lessons: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </label>
+
+              {visibility.lessons ? (
+                <div className="ml-4 space-y-2 pl-4 border-l-2 border-primary/20">
+                  {services.map((service) => (
+                    <label key={service.id} className="flex items-start gap-2 text-sm">
                       <input
                         type="checkbox"
-                        className="h-4 w-4"
-                        checked={checked}
-                        onChange={() =>
-                          setSelectedServiceIds((prev) =>
-                            checked ? prev.filter((id) => id !== svc.id) : [...prev, svc.id]
-                          )
-                        }
+                        checked={selectedServiceIds.includes(service.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedServiceIds([...selectedServiceIds, service.id]);
+                          } else {
+                            setSelectedServiceIds(
+                              selectedServiceIds.filter((id) => id !== service.id)
+                            );
+                          }
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
                       />
+                      <span className="text-foreground">{service.name}</span>
                     </label>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </Collapsible>
-
-        {/* Reviews Section */}
-        <Collapsible title="Reviews & requests" icon={<Star className="h-4 w-4" />}>
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Drop in testimonials you want to highlight on your mini-site. You can paste snippets as you receive them.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Author</label>
-                  <Input
-                    value={newReviewAuthor}
-                    onChange={(e) => setNewReviewAuthor(e.target.value)}
-                    placeholder="Parent or student name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Quote</label>
-                  <Input
-                    value={newReviewQuote}
-                    onChange={(e) => setNewReviewQuote(e.target.value)}
-                    placeholder="Short testimonial"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (!newReviewAuthor || !newReviewQuote) return;
-                    setReviews((prev) => [...prev, { author: newReviewAuthor, quote: newReviewQuote }]);
-                    setNewReviewAuthor("");
-                    setNewReviewQuote("");
-                  }}
-                >
-                  Add review
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setReviews([])} className="text-muted-foreground">
-                  Clear
-                </Button>
-              </div>
-              {reviews.length > 0 ? (
-                <ul className="space-y-2">
-                  {reviews.map((r, i) => (
-                    <li
-                      key={`${r.author}-${i}`}
-                      className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/30 px-3 py-2 text-sm"
-                    >
-                      <span className="truncate">
-                        "{r.quote}" — <span className="font-semibold">{r.author}</span>
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setReviews((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="text-muted-foreground"
-                      >
-                        Remove
-                      </Button>
-                    </li>
                   ))}
-                </ul>
-              ) : null}
-            </div>
-
-            <div className="rounded-2xl border border-dashed border-border/70 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Request a review</p>
-                  <p className="text-xs text-muted-foreground">
-                    Send a templated email to parents or students right from TutorLingua.
-                  </p>
                 </div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Automated email
+              ) : null}
+
+              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">
+                  Testimonials ({reviews.length} reviews)
                 </span>
-              </div>
-
-              {hasReviewableStudent ? (
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Choose student</label>
-                    <select
-                      className="mt-1 block w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      value={selectedStudentId}
-                      onChange={(event) => setSelectedStudentId(event.target.value)}
-                    >
-                      {studentsWithContact.map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Lesson highlight</label>
-                    <Input
-                      value={lessonHighlight}
-                      onChange={(event) => setLessonHighlight(event.target.value)}
-                      placeholder="e.g., Nailed all 12 irregular verbs in 10 min."
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Review form link</label>
-                    <Input
-                      value={reviewFormUrl}
-                      onChange={(event) => setReviewFormUrl(event.target.value)}
-                      placeholder="https://forms.yourdomain.com/tutor-testimonials"
-                    />
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Paste any form URL (Notion, Typeform, etc.). We&apos;ll include it in the automated email.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Incentive (optional)</label>
-                    <Input
-                      value={incentive}
-                      onChange={(event) => setIncentive(event.target.value)}
-                      placeholder="e.g., 10% off the next lesson"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    className="w-full sm:w-auto"
-                    onClick={handleReviewRequest}
-                    disabled={reviewRequestDisabled}
-                  >
-                    {isPendingRequest ? "Sending..." : "Request review"}
-                  </Button>
-                  {requestStatus ? (
-                    <p
-                      className={cn(
-                        "text-xs font-medium",
-                        requestStatus.type === "success" ? "text-emerald-600" : "text-destructive"
-                      )}
-                    >
-                      {requestStatus.message}
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                  <p>
-                    You need at least one student with an email address before automated review requests are available.
-                  </p>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/students">Add students</Link>
-                  </Button>
-                </div>
-              )}
-              {!hasReviewableStudent && hasStudents ? (
-                <p className="mt-3 text-[11px] text-muted-foreground">
-                  Tip: add a parent or student email so we can deliver the request automatically.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </Collapsible>
-
-        {/* Theme Section */}
-        <Collapsible
-          title="Theme"
-          icon={<Palette className="h-4 w-4" />}
-          badge={
-            !canCustomizeTheme ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
-                <Lock className="h-3 w-3" />
-                Growth
-              </span>
-            ) : null
-          }
-        >
-          <div className="space-y-4">
-            <div className={cn("grid gap-3 sm:grid-cols-2", !canCustomizeTheme && "pointer-events-none opacity-60")}>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Background</label>
-                <Input
-                  type="color"
-                  value={theme.background}
-                  onChange={(e) => setTheme((t) => ({ ...t, background: e.target.value }))}
+                <input
+                  type="checkbox"
+                  checked={visibility.reviews}
+                  onChange={(e) => setVisibility({ ...visibility, reviews: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
                 />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Primary</label>
-                <Input
-                  type="color"
-                  value={theme.primary}
-                  onChange={(e) => setTheme((t) => ({ ...t, primary: e.target.value }))}
+              </label>
+
+              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">Booking page</span>
+                <input
+                  type="checkbox"
+                  checked={visibility.booking}
+                  onChange={(e) => setVisibility({ ...visibility, booking: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
                 />
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                  <Type className="h-3.5 w-3.5" />
-                  Font
-                </label>
-                <select
-                  className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={theme.font}
-                  onChange={(e) => setTheme((t) => ({ ...t, font: e.target.value as ThemeSettings["font"] }))}
-                >
-                  <option value="system">System</option>
-                  <option value="serif">Serif</option>
-                  <option value="mono">Mono</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Spacing</label>
-                <select
-                  className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={theme.spacing}
-                  onChange={(e) => setTheme((t) => ({ ...t, spacing: e.target.value as ThemeSettings["spacing"] }))}
-                >
-                  <option value="cozy">Cozy</option>
-                  <option value="comfortable">Comfortable</option>
-                  <option value="compact">Compact</option>
-                </select>
-              </div>
-            </div>
-            {!canCustomizeTheme ? (
-              <p className="text-xs text-muted-foreground">
-                Customize colors and typography with Growth. Your preview uses defaults.
-              </p>
-            ) : null}
-          </div>
-        </Collapsible>
+              </label>
 
-        {/* Pages & Sections */}
-        <Collapsible title="Pages & sections" icon={<BookOpen className="h-4 w-4" />}>
-          <div className="space-y-5">
-            <p className="text-sm text-muted-foreground">
-              Pick which mini-site sections are visible and keep resource/contact buttons up to date.
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(
-                [
-                  ["about", "About"],
-                  ["lessons", "Lessons"],
-                  ["reviews", "Reviews"],
-                  ["resources", "Resources"],
-                  ["contact", "Contact"],
-                ] as Array<[keyof PageVisibility, string]>
-              ).map(([section, label]) => (
-                <label
-                  key={section}
-                  className="flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2 text-sm font-semibold text-foreground"
-                >
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={pageVisibility[section]}
-                    onChange={() => togglePageSection(section)}
-                  />
-                  {label}
-                </label>
-              ))}
+              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">
+                  Social links (from profile)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={visibility.social}
+                  onChange={(e) => setVisibility({ ...visibility, social: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </label>
             </div>
+          </section>
+        </div>
 
-            <div className="space-y-3 rounded-2xl border border-border/60 bg-white/80 p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-muted-foreground" />
-                <h4 className="text-sm font-semibold text-foreground">Resource links</h4>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Label</label>
-                  <Input
-                    value={resourceDraft.label}
-                    onChange={(event) => setResourceDraft((prev) => ({ ...prev, label: event.target.value }))}
-                    placeholder="e.g., Practice deck"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Link</label>
-                  <Input
-                    value={resourceDraft.url}
-                    onChange={(event) => setResourceDraft((prev) => ({ ...prev, url: event.target.value }))}
-                    placeholder="https://"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
+        {/* Preview */}
+        <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:self-start">
+          <div className="rounded-3xl border border-border/60 bg-background/90 shadow-sm backdrop-blur overflow-hidden flex flex-col h-full">
+            <div className="border-b border-border/60 bg-background/95 px-4 py-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Mobile Preview</h3>
+              <div className="inline-flex rounded-full border border-border/60 p-0.5">
+                <button
                   type="button"
-                  onClick={addResourceLink}
-                  disabled={!resourceDraft.label.trim() || !resourceDraft.url.trim()}
+                  onClick={() => setPreviewMode("draft")}
+                  className={cn(
+                    "px-2 py-1 text-xs font-semibold rounded-full",
+                    previewMode === "draft" ? "bg-primary text-white" : "text-muted-foreground"
+                  )}
                 >
-                  Add resource
-                </Button>
-                <p className="text-[11px] text-muted-foreground">Share worksheets, playlists, or onboarding docs.</p>
+                  Draft
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode("published")}
+                  className={cn(
+                    "px-2 py-1 text-xs font-semibold rounded-full",
+                    previewMode === "published" ? "bg-primary text-white" : "text-muted-foreground"
+                  )}
+                  disabled={!siteId}
+                  aria-disabled={!siteId}
+                  title={!siteId ? "Publish or save first to enable" : undefined}
+                >
+                  Published
+                </button>
               </div>
-              {resourceLinks.length > 0 ? (
-                <ul className="space-y-2">
-                  {resourceLinks.map((link) => (
-                    <li
-                      key={link.id}
-                      className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/30 px-3 py-2 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-foreground">{link.label}</p>
-                        <p className="truncate text-xs text-muted-foreground">{link.url}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground"
-                        onClick={() => removeResourceLink(link.id)}
-                      >
-                        Remove
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground">No resources yet. Add one to show the section.</p>
-              )}
             </div>
-
-            <div className="space-y-3 rounded-2xl border border-border/60 bg-white/80 p-4 shadow-sm">
-              <h4 className="text-sm font-semibold text-foreground">Contact CTA</h4>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Button label</label>
-                  <Input
-                    value={contactCta.label}
-                    onChange={(event) => setContactCta((prev) => ({ ...prev, label: event.target.value }))}
-                    placeholder="Message me"
-                  />
+            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/30 to-muted/10 p-4 flex items-start justify-center">
+              {/* Mobile device frame */}
+              <div className="relative w-[320px] h-[568px] rounded-[2.5rem] bg-background shadow-2xl ring-1 ring-border/50 overflow-hidden flex flex-col">
+                {/* Scrollable content area */}
+                <div className="flex-1 overflow-y-auto overscroll-contain">
+              {previewMode === "published" && !publishedPreview ? (
+                <div className="text-center text-sm text-muted-foreground py-8">
+                  {siteId ? "No published version yet." : "Create and publish a site to see the published preview."}
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground">Link</label>
-                  <Input
-                    value={contactCta.url}
-                    onChange={(event) => setContactCta((prev) => ({ ...prev, url: event.target.value }))}
-                    placeholder="mailto:you@email.com or https://wa.me/..."
-                  />
+              ) : (
+                <SitePreview
+                  profile={profile}
+                  about={{
+                    title: previewMode === "published" ? (publishedPreview?.site?.about_title ?? aboutTitle) : aboutTitle,
+                    subtitle: previewMode === "published" ? (publishedPreview?.site?.about_subtitle ?? aboutSubtitle) : aboutSubtitle,
+                    body: previewMode === "published" ? (publishedPreview?.site?.about_body ?? aboutBody) : aboutBody,
+                  }}
+                  services={selectedServices}
+                  reviews={reviews}
+                  theme={
+                    previewMode === "published" && publishedPreview?.site
+                      ? {
+                          background: publishedPreview.site.theme_background || theme.background,
+                          backgroundStyle: (publishedPreview.site.theme_background_style as any) || theme.backgroundStyle,
+                          gradientFrom: publishedPreview.site.theme_gradient_from || theme.gradientFrom,
+                          gradientTo: publishedPreview.site.theme_gradient_to || theme.gradientTo,
+                          primary: publishedPreview.site.theme_primary || theme.primary,
+                          font: (publishedPreview.site.theme_font as any) || theme.font,
+                          spacing: (publishedPreview.site.theme_spacing as any) || theme.spacing,
+                        }
+                      : theme
+                  }
+                  pageVisibility={{
+                    about: previewMode === "published" ? !!publishedPreview?.site?.show_about : visibility.about,
+                    lessons: previewMode === "published" ? !!publishedPreview?.site?.show_lessons : visibility.lessons,
+                    booking: previewMode === "published" ? !!publishedPreview?.site?.show_booking : visibility.booking,
+                    reviews: previewMode === "published" ? !!publishedPreview?.site?.show_reviews : visibility.reviews,
+                    social: previewMode === "published" ? !!publishedPreview?.site?.show_social_page : visibility.social,
+                    contact: false,
+                    digital: false,
+                    faq: false,
+                    resources: false,
+                  }}
+                  heroImageUrl={previewMode === "published" ? (publishedPreview?.site?.hero_image_url ?? heroImageUrl) : heroImageUrl}
+                  galleryImages={[]}
+                  contactCTA={null}
+                  socialLinks={resourceLinks}
+                  digitalResources={[]}
+                  additionalPages={{ faq: [], resources: [] }}
+                  booking={{
+                    headline: "Ready to start?",
+                    subcopy: "Pick a time that works for you",
+                    ctaLabel: "Book a class",
+                    ctaUrl:
+                      profile.stripe_payment_link ||
+                      (profile.username ? `/book/${profile.username}` : ""),
+                  }}
+                  showDigital={false}
+                  showSocialIconsHeader={false}
+                  showSocialIconsFooter={true}
+                  heroStyle={previewMode === "published" ? ((publishedPreview?.site?.hero_layout as any) || heroStyle) : heroStyle}
+                  lessonsStyle={previewMode === "published" ? ((publishedPreview?.site?.lessons_layout as any) || lessonsStyle) : lessonsStyle}
+                  reviewsStyle={previewMode === "published" ? ((publishedPreview?.site?.reviews_layout as any) || reviewsStyle) : reviewsStyle}
+                  page={previewPage}
+                  onNavigate={setPreviewPage}
+                />
+              )}
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">Use mailto, WhatsApp, Calendly, or any landing page.</p>
             </div>
           </div>
-        </Collapsible>
+        </div>
       </div>
-
-      {/* Preview Modal */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent size="full">
-          <DialogHeader>
-            <DialogTitle>Preview</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="h-[80vh] overflow-auto">
-            <SitePreview
-              profile={profile}
-              about={{ title: aboutTitle, subtitle: aboutSubtitle, body: aboutBody }}
-              services={selectedServices}
-              reviews={reviews}
-              theme={theme}
-              pageVisibility={pageVisibility}
-              resources={resourceLinks}
-              contactCTA={contactCta}
-            />
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
     </div>
   );
-}
-
-function formatCurrency(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount / 100);
-  } catch {
-    return `$${(amount / 100).toFixed(2)}`;
-  }
 }

@@ -78,7 +78,7 @@ export function LinkEditor({
             onChange={(event) => handleChange("title", event.target.value)}
             required
             disabled={disabled}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
           />
           {errors.title ? <ErrorText>{errors.title}</ErrorText> : null}
         </Field>
@@ -92,7 +92,7 @@ export function LinkEditor({
               handleChange("button_style", event.target.value as LinkFormValues["button_style"])
             }
             disabled={disabled}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             {buttonStyleOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -113,7 +113,7 @@ export function LinkEditor({
           required
           disabled={disabled}
           placeholder="https://"
-          className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         />
         {errors.url ? <ErrorText>{errors.url}</ErrorText> : null}
       </Field>
@@ -126,7 +126,7 @@ export function LinkEditor({
             value={values.description ?? ""}
             onChange={(event) => handleChange("description", event.target.value)}
             disabled={disabled}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
           />
           {errors.description ? <ErrorText>{errors.description}</ErrorText> : null}
         </Field>
@@ -139,7 +139,7 @@ export function LinkEditor({
             onChange={(event) => handleChange("icon_url", event.target.value)}
             disabled={disabled}
             placeholder="https://..."
-            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
           />
           {errors.icon_url ? <ErrorText>{errors.icon_url}</ErrorText> : null}
         </Field>
@@ -151,7 +151,7 @@ export function LinkEditor({
           checked={values.is_visible}
           onChange={(event) => handleChange("is_visible", event.target.checked)}
           disabled={disabled}
-          className="h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-4 w-4 rounded shadow-sm text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         />
         Show this link on my public page
       </label>
@@ -160,7 +160,7 @@ export function LinkEditor({
         <button
           type="submit"
           disabled={disabled}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-brand-brown px-5 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {actionLabel}
         </button>
@@ -169,7 +169,7 @@ export function LinkEditor({
             type="button"
             onClick={resetForm}
             disabled={disabled}
-            className="text-xs font-semibold text-brand-brown hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+            className="text-xs font-semibold text-foreground hover:underline disabled:cursor-not-allowed disabled:opacity-60"
           >
             Reset
           </button>

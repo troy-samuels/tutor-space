@@ -103,7 +103,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-brand-brown px-4 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Saving..." : "Save changes"}
         </button>
@@ -130,7 +130,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
         </p>
       ) : null}
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+      <section className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
         <h2 className="text-base font-semibold text-foreground">Add a slot</h2>
         <p className="text-xs text-muted-foreground">
           Choose a day and time window when you&apos;re available. Add multiple slots per day if needed.
@@ -143,7 +143,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
               onChange={(event) =>
                 setDraft((prev) => ({ ...prev, day_of_week: Number.parseInt(event.target.value, 10) }))
               }
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {DAY_LABELS.map((day, index) => (
                 <option key={day} value={index}>
@@ -158,7 +158,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
               type="time"
               value={draft.start_time}
               onChange={(event) => setDraft((prev) => ({ ...prev, start_time: event.target.value }))}
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm">
@@ -167,7 +167,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
               type="time"
               value={draft.end_time}
               onChange={(event) => setDraft((prev) => ({ ...prev, end_time: event.target.value }))}
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-brand-brown focus:outline-none focus:ring-1 focus:ring-brand-brown"
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </label>
         </div>
@@ -179,21 +179,21 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
               onChange={(event) =>
                 setDraft((prev) => ({ ...prev, is_available: event.target.checked }))
               }
-              className="h-4 w-4 rounded border-brand-brown text-brand-brown focus:ring-brand-brown"
+              className="h-4 w-4 rounded text-primary focus:ring-primary"
             />
             Mark as bookable
           </label>
           <button
             type="button"
             onClick={handleAddSlot}
-            className="ml-auto inline-flex h-9 items-center justify-center rounded-full border border-brand-brown/40 px-4 text-xs font-semibold text-brand-brown transition hover:bg-brand-brown/10"
+            className="ml-auto inline-flex h-9 items-center justify-center rounded-full border border-border px-4 text-xs font-semibold text-primary transition hover:bg-primary/10"
           >
             Add slot
           </button>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-brand-brown/20 bg-white/90 shadow-sm backdrop-blur">
+      <section className="rounded-3xl border border-border bg-white/90 shadow-sm backdrop-blur">
         {/* Horizontal scroll container for mobile */}
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <table className="w-full table-fixed border-separate border-spacing-y-2 text-sm min-w-[600px]">
@@ -225,7 +225,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
                             slot.is_available
                               ? "bg-emerald-50 text-emerald-600"
-                              : "bg-brand-brown/10 text-brand-brown"
+                              : "bg-primary/10 text-primary"
                           }`}
                         >
                           {slot.is_available ? "Available" : "Blocked"}
@@ -236,7 +236,7 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
                           <button
                             type="button"
                             onClick={() => handleToggle(group.day_of_week, slotIndex)}
-                            className="text-xs font-semibold text-brand-brown hover:underline"
+                            className="text-xs font-semibold text-primary hover:underline"
                           >
                             {slot.is_available ? "Block" : "Unblock"}
                           </button>
@@ -310,7 +310,7 @@ function findSlotGlobalIndexByOrder(
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-2xl border border-brand-brown/20 bg-white/90 px-4 py-4 shadow-sm backdrop-blur">
+    <div className="rounded-2xl border border-border bg-white/90 px-4 py-4 shadow-sm backdrop-blur">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
     </div>

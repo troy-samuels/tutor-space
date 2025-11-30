@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSite } from "@/lib/actions/tutor-sites";
-import { SiteEditor } from "@/components/marketing/site-editor";
+import { PageBuilderWizard } from "@/components/page-builder";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type ProfileBasics = {
   id: string;
@@ -10,7 +11,8 @@ type ProfileBasics = {
   tagline: string | null;
   bio: string | null;
   avatar_url: string | null;
-  plan: "professional" | "growth" | "studio" | null;
+  plan: PlatformBillingPlan | null;
+  stripe_payment_link: string | null;
 };
 
 type ServiceLite = {
@@ -20,6 +22,8 @@ type ServiceLite = {
   duration_minutes: number | null;
   price: number | null;
   currency: string | null;
+  price_amount?: number | null;
+  price_currency?: string | null;
   is_active: boolean | null;
 };
 
@@ -43,7 +47,7 @@ export default async function PagesBuilder() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, username, tagline, bio, avatar_url, plan")
+    .select("id, full_name, username, tagline, bio, avatar_url, plan, stripe_payment_link")
     .eq("id", user.id)
     .single<ProfileBasics>();
 
@@ -59,12 +63,15 @@ export default async function PagesBuilder() {
     tagline: profile?.tagline ?? "",
     bio: profile?.bio ?? "",
     avatar_url: profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | null) ?? null,
-    plan: profile?.plan ?? "professional",
+    plan: (profile?.plan as PlatformBillingPlan | null) ?? "professional",
+    stripe_payment_link: profile?.stripe_payment_link ?? null,
   };
 
   const { data: services } = await supabase
     .from("services")
-    .select("id, name, description, duration_minutes, price, currency, is_active")
+    .select(
+      "id, name, description, duration_minutes, price, price_amount, currency, price_currency, is_active"
+    )
     .eq("tutor_id", tutorId)
     .order("created_at", { ascending: true });
 
@@ -74,7 +81,18 @@ export default async function PagesBuilder() {
     .eq("tutor_id", tutorId)
     .order("full_name", { ascending: true });
 
-  const activeServices = ((services as ServiceLite[] | null) ?? []).filter((svc) => svc.is_active);
+  const normalizedServices = ((services as ServiceLite[] | null) ?? []).map((svc) => ({
+    ...svc,
+    price:
+      typeof svc.price_amount === "number"
+        ? svc.price_amount
+        : typeof svc.price === "number"
+          ? svc.price
+          : null,
+    currency: svc.price_currency ?? svc.currency ?? null,
+  }));
+
+  const activeServices = normalizedServices.filter((svc) => svc.is_active);
   const reviewableStudents: StudentForReviews[] = (students as StudentForReviews[] | null) ?? [];
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.tutorlingua.com";
   const defaultReviewFormUrl = derivedProfile.username
@@ -86,7 +104,7 @@ export default async function PagesBuilder() {
   const existingSite = "error" in siteResult ? null : siteResult;
 
   return (
-    <SiteEditor
+    <PageBuilderWizard
       profile={{
         id: derivedProfile.id,
         full_name: derivedProfile.full_name ?? "",
@@ -95,9 +113,9 @@ export default async function PagesBuilder() {
         bio: derivedProfile.bio ?? "",
         avatar_url: derivedProfile.avatar_url ?? null,
         email: user.email ?? null,
+        stripe_payment_link: derivedProfile.stripe_payment_link,
       }}
       services={activeServices}
-      plan={(derivedProfile.plan as "professional" | "growth" | "studio") ?? "professional"}
       students={reviewableStudents.map((student) => ({
         id: student.id,
         name: student.full_name ?? "Student",

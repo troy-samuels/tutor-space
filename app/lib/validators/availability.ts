@@ -3,9 +3,9 @@ import { z } from "zod";
 export const availabilitySlotSchema = z.object({
   id: z.string().uuid().optional(),
   day_of_week: z
-    .number({ invalid_type_error: "Select a day of the week." })
+    .number()
     .int()
-    .min(0)
+    .min(0, { message: "Select a day of the week." })
     .max(6),
   start_time: z
     .string()

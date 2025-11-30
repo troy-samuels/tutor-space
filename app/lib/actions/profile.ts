@@ -128,6 +128,7 @@ export async function updatePaymentSettings(data: {
   zelle_phone: string;
   stripe_payment_link: string;
   custom_payment_url: string;
+  booking_currency: string;
 }) {
   const supabase = await createClient();
   const {
@@ -147,6 +148,12 @@ export async function updatePaymentSettings(data: {
     return { error: "Custom payment URL must be a valid URL" };
   }
 
+  const allowedCurrencies = ["USD", "EUR", "GBP", "CAD", "AUD"];
+  const bookingCurrency = data.booking_currency?.toUpperCase() || "USD";
+  if (!allowedCurrencies.includes(bookingCurrency)) {
+    return { error: "Select a valid currency" };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -156,6 +163,7 @@ export async function updatePaymentSettings(data: {
       zelle_phone: data.zelle_phone || null,
       stripe_payment_link: data.stripe_payment_link || null,
       custom_payment_url: data.custom_payment_url || null,
+      booking_currency: bookingCurrency,
     })
     .eq("id", user.id);
 
@@ -165,6 +173,7 @@ export async function updatePaymentSettings(data: {
   }
 
   revalidatePath("/settings/payments");
+  revalidatePath("/dashboard");
   revalidatePath("/book/[username]", "page");
 
   return { success: true };

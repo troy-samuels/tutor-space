@@ -87,7 +87,7 @@ export async function listCalendarConnections(): Promise<CalendarConnectionStatu
   });
 }
 
-export async function requestCalendarConnection(provider: CalendarProvider) {
+export async function requestCalendarConnection(provider: CalendarProvider, options?: { popup?: boolean }) {
   if (!SUPPORTED_CALENDAR_PROVIDERS.includes(provider)) {
     return { error: "Unsupported calendar provider." };
   }
@@ -102,13 +102,24 @@ export async function requestCalendarConnection(provider: CalendarProvider) {
     return { error: "Sign in to connect your calendar." };
   }
 
+  // Get the user's email to use as login_hint for OAuth
+  const userEmail = user.email;
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const isSecureCookie =
     process.env.NODE_ENV === "production" || appUrl.startsWith("https://");
 
-  const state = randomUUID();
+  const stateId = randomUUID();
+  // Encode popup mode in state as JSON
+  const stateData = {
+    id: stateId,
+    popup: options?.popup ?? false,
+  };
+  const state = Buffer.from(JSON.stringify(stateData)).toString("base64");
+
   const cookieName = `calendar_oauth_state_${provider}`;
-  cookies().set(cookieName, state, {
+  const cookieStore = await cookies();
+  cookieStore.set(cookieName, stateId, {
     httpOnly: true,
     secure: isSecureCookie,
     sameSite: "lax",
@@ -122,6 +133,11 @@ export async function requestCalendarConnection(provider: CalendarProvider) {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("state", state);
   url.searchParams.set("scope", config.scopes.join(" "));
+
+  // Pre-fill the user's email in the OAuth window
+  if (userEmail) {
+    url.searchParams.set("login_hint", userEmail);
+  }
 
   if (provider === "google") {
     url.searchParams.set("access_type", "offline");

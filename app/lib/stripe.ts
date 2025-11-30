@@ -95,6 +95,8 @@ export async function createCheckoutSession(params: {
     amount: number;
     quantity?: number;
   }>;
+  transferDestinationAccountId?: string; // Stripe Connect destination
+  applicationFeeCents?: number; // platform fee (in cents)
 }): Promise<Stripe.Checkout.Session> {
   const {
     customerId,
@@ -104,6 +106,8 @@ export async function createCheckoutSession(params: {
     cancelUrl,
     metadata,
     lineItems,
+    transferDestinationAccountId,
+    applicationFeeCents,
   } = params;
 
   const session = await stripe.checkout.sessions.create({
@@ -137,6 +141,16 @@ export async function createCheckoutSession(params: {
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata,
+    payment_intent_data:
+      transferDestinationAccountId != null || applicationFeeCents != null
+        ? {
+            transfer_data:
+              transferDestinationAccountId != null
+                ? { destination: transferDestinationAccountId }
+                : undefined,
+            application_fee_amount: applicationFeeCents ?? undefined,
+          }
+        : undefined,
   });
 
   return session;

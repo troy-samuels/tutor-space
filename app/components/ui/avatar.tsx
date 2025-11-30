@@ -10,7 +10,7 @@ export function Avatar({ className, children, ...props }: AvatarProps) {
   return (
     <div
       className={cn(
-        "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-gradient-to-br from-brand-brown/20 to-brand-brown/10",
+        "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-primary/10",
         className,
       )}
       {...props}
@@ -54,7 +54,7 @@ export function AvatarFallback({
 }: AvatarFallbackProps) {
   return (
     <div
-      className={cn("absolute inset-0 flex items-center justify-center font-semibold text-brand-brown text-sm", className)}
+      className={cn("absolute inset-0 flex items-center justify-center font-semibold text-primary text-sm", className)}
       {...props}
     >
       {children}

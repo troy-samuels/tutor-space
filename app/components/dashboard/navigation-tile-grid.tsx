@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NAV_SECTIONS, type PlanName } from "@/components/dashboard/nav-config";
 import type { LucideIcon } from "lucide-react";
 import { Lock } from "lucide-react";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type NavigationTile = {
   href: string;
@@ -18,14 +19,15 @@ type NavigationTile = {
 };
 
 type NavigationTileGridProps = {
-  plan: "professional" | "growth" | "studio";
+  plan: PlatformBillingPlan;
 };
 
 export function NavigationTileGrid({ plan }: NavigationTileGridProps) {
   const canAccessSection = (required?: PlanName) => {
     if (!required) return true;
-    if (required === "growth") return plan === "growth" || plan === "studio";
-    return plan === "studio";
+    if (plan === "founder_lifetime") return true;
+    if (required === "professional") return true;
+    return plan === required;
   };
 
   const tiles: NavigationTile[] = [];
@@ -103,7 +105,7 @@ export function NavigationTileGrid({ plan }: NavigationTileGridProps) {
                     {isLocked ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
                         <Lock className="h-3 w-3" />
-                        {tile.lockedReason === "plan" ? "Growth" : "Soon"}
+                        {tile.lockedReason === "plan" ? "Upgrade" : "Soon"}
                       </span>
                     ) : null}
                   </CardTitle>

@@ -58,6 +58,7 @@ export default async function BookingsPage() {
       timezone={timezone}
       availability={availability}
       busyWindows={busyWindows}
+      tutorId={tutorId}
     />
   );
 }

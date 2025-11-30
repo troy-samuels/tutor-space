@@ -8,6 +8,7 @@ import {
   CheckCircle,
   LucideIcon,
 } from "lucide-react";
+import { InteractiveCalendarDemo } from "./InteractiveCalendarDemo";
 
 const iconMap: Record<string, LucideIcon> = {
   Globe,
@@ -28,7 +29,7 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
     <section id="features" className="bg-brand-white py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-brand-black sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {solution.headline}
           </h2>
           <p className="mt-4 text-lg text-gray-600">{solution.subheadline}</p>
@@ -42,13 +43,13 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
               return (
                 <div
                   key={index}
-                  className="relative rounded-2xl bg-brand-cream p-8 transition-all hover:-translate-y-1 hover:shadow-lg group"
+                  className="relative rounded-2xl bg-muted p-8 transition-all hover:-translate-y-1 hover:shadow-lg group"
                 >
                   {/* Icon */}
                   <div className="mb-4">
-                    <div className="w-12 h-12 rounded-lg bg-brand-brown/10 flex items-center justify-center transition-transform group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center transition-transform group-hover:scale-110">
                       <Icon
-                        className="text-brand-brown"
+                        className="text-primary"
                         size={24}
                         strokeWidth={2}
                         aria-hidden="true"
@@ -56,7 +57,7 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
                     </div>
                   </div>
 
-                  <h3 className="text-xl font-semibold text-brand-brown mb-3">
+                  <h3 className="text-xl font-semibold text-primary mb-3">
                     {feature.title}
                   </h3>
                   <p className="text-gray-700 leading-relaxed">
@@ -66,6 +67,19 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
               );
             })}
           </div>
+        </div>
+
+        {/* Interactive Calendar Demo */}
+        <div className="mx-auto mt-20 max-w-4xl">
+          <div className="mb-8 text-center">
+            <h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              From scattered tools to one dashboard
+            </h3>
+            <p className="mt-3 text-lg text-gray-600">
+              Stop juggling spreadsheets, calendars, and chat apps. See all your lessons in one place.
+            </p>
+          </div>
+          <InteractiveCalendarDemo />
         </div>
       </div>
     </section>

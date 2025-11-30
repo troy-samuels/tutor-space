@@ -33,7 +33,8 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
 
       // Get redirect parameters
       const params = await searchParams;
-      const redirectUrl = params.redirect || (params.tutor ? `/book/${params.tutor}` : "/student/lessons");
+      const redirectUrl =
+        params.redirect || (params.tutor ? `/book/${params.tutor}` : "/student-auth/search");
 
       router.push(redirectUrl);
       router.refresh();
@@ -68,7 +69,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-brown focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder="you@example.com"
         />
       </div>
@@ -90,7 +91,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-brown focus:border-transparent transition pr-12"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
             placeholder="••••••••"
           />
           <button
@@ -113,11 +114,11 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
         <label className="flex items-center">
           <input
             type="checkbox"
-            className="h-4 w-4 text-brand-brown border-gray-300 rounded focus:ring-brand-brown"
+            className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
           />
           <span className="ml-2 text-gray-600">Remember me</span>
         </label>
-        <a href="#" className="text-brand-brown hover:underline">
+        <a href="#" className="text-primary hover:underline">
           Forgot password?
         </a>
       </div>
@@ -126,7 +127,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-brown text-white py-3 px-4 rounded-lg font-semibold hover:bg-brand-brown/90 focus:outline-none focus:ring-2 focus:ring-brand-brown focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           <>

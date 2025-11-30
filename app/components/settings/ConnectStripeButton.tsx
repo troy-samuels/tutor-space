@@ -52,7 +52,7 @@ export default function ConnectStripeButton({
         disabled={loading}
         className={`px-4 py-2 rounded-lg font-medium transition-colors ${
           isPrimary
-            ? "bg-brand-brown text-white hover:bg-brand-brown/90 disabled:bg-brand-brown/60"
+            ? "bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/60"
             : "bg-gray-100 text-gray-900 hover:bg-gray-200 disabled:bg-gray-100"
         }`}
       >

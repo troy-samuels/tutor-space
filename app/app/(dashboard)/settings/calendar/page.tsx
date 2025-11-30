@@ -34,15 +34,16 @@ const ERROR_MAP: Record<string, string> = {
 export default async function CalendarSettingsPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const connections = await listCalendarConnections();
-  const connectedParam = Array.isArray(searchParams?.connected)
-    ? searchParams?.connected[0]
-    : searchParams?.connected;
-  const errorParam = Array.isArray(searchParams?.calendar_error)
-    ? searchParams?.calendar_error[0]
-    : searchParams?.calendar_error;
+  const params = await searchParams;
+  const connectedParam = Array.isArray(params?.connected)
+    ? params?.connected[0]
+    : params?.connected;
+  const errorParam = Array.isArray(params?.calendar_error)
+    ? params?.calendar_error[0]
+    : params?.calendar_error;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
@@ -91,15 +92,15 @@ export default async function CalendarSettingsPage({
           <h2 className="text-lg font-semibold text-foreground">How TutorLingua uses your calendar</h2>
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex items-start gap-3">
-              <CalendarCheck2 className="mt-0.5 h-5 w-5 text-brand-brown" />
+              <CalendarCheck2 className="mt-0.5 h-5 w-5 text-primary" />
               <span>Blocks out existing events immediately so parents can only book true availability.</span>
             </li>
             <li className="flex items-start gap-3">
-              <Zap className="mt-0.5 h-5 w-5 text-brand-brown" />
+              <Zap className="mt-0.5 h-5 w-5 text-primary" />
               <span>Pushes confirmed lessons—plus Zoom links—straight into your calendar with reminders.</span>
             </li>
             <li className="flex items-start gap-3">
-              <ShieldCheck className="mt-0.5 h-5 w-5 text-brand-brown" />
+              <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
               <span>OAuth keeps credentials secure. You can disconnect anytime from this settings page.</span>
             </li>
           </ul>

@@ -46,7 +46,19 @@ export async function PendingAccessRequestsWidget() {
     return null;
   }
 
-  const pendingRequests = (requests ?? []) as PendingRequest[];
+  const pendingRequests: PendingRequest[] = (requests ?? []).map((request) => {
+    const student = Array.isArray(request.students) ? request.students[0] : request.students;
+    return {
+      id: request.id,
+      requested_at: request.requested_at,
+      students: student
+        ? {
+            full_name: student.full_name ?? null,
+            email: student.email ?? null,
+          }
+        : null,
+    };
+  });
 
   return (
     <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">

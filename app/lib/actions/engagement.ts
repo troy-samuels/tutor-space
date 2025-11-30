@@ -68,8 +68,11 @@ export async function sendParentUpdateForBooking(form: z.infer<typeof parentUpda
     return { error: "Booking not found." };
   }
 
-  const recipient =
-    booking.students?.parent_email || booking.students?.email;
+  const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
+  const tutor = Array.isArray(booking.tutor) ? booking.tutor[0] : booking.tutor;
+  const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+
+  const recipient = student?.parent_email || student?.email;
 
   if (!recipient) {
     return { error: "Student record has no parent email." };
@@ -77,18 +80,19 @@ export async function sendParentUpdateForBooking(form: z.infer<typeof parentUpda
 
   await sendParentUpdateEmail({
     to: recipient,
-    parentName: booking.students?.parent_name ?? undefined,
-    studentName: booking.students?.full_name ?? "Your student",
-    tutorName: booking.tutor?.full_name ?? "Your tutor",
+    parentName: student?.parent_name ?? undefined,
+    studentName: student?.full_name ?? "Your student",
+    tutorName: tutor?.full_name ?? "Your tutor",
     lessonDate: new Date(booking.scheduled_at).toLocaleDateString(),
     timezone: booking.timezone ?? "UTC",
+    lessonName: service?.name,
     highlights: payload.data.highlights,
     nextFocus: payload.data.nextFocus,
     resources: payload.data.resources,
     bookingLink:
       payload.data.bookingLink ??
-      (booking.tutor?.username
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/book/${booking.tutor.username}`
+      (tutor?.username
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/book/${tutor.username}`
         : undefined),
   });
 
@@ -228,16 +232,20 @@ export async function sendDailyDigestEmailAction() {
     .order("scheduled_at", { ascending: true });
 
   const lessons =
-    upcoming?.map((booking) => ({
-      student: booking.students?.full_name ?? "Student",
-      service: booking.services?.name ?? "Lesson",
-      timeLabel: new Date(booking.scheduled_at).toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    })) ?? [];
+    upcoming?.map((booking) => {
+      const studentRecord = Array.isArray(booking.students) ? booking.students[0] : booking.students;
+      const serviceRecord = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+      return {
+        student: studentRecord?.full_name ?? "Student",
+        service: serviceRecord?.name ?? "Lesson",
+        timeLabel: new Date(booking.scheduled_at).toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      };
+    }) ?? [];
 
   const { data: invoices } = await supabase
     .from("invoices")

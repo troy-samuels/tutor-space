@@ -2,289 +2,344 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
-export type SessionPackage = {
+export type ActivePackage = {
   id: string;
-  template_id: string;
-  tutor_id: string;
-  student_id: string;
-  total_minutes: number;
+  name: string;
   remaining_minutes: number;
-  status: "active" | "paused" | "completed" | "refunded" | "expired";
   expires_at: string | null;
-  purchased_at: string;
-  template?: {
-    name: string;
-    description: string | null;
-  };
-};
-
-type PackageRow = {
-  id: string;
-  template_id: string;
-  tutor_id: string;
-  student_id: string;
+  purchase_id: string;
   total_minutes: number;
-  remaining_minutes: number;
-  status: SessionPackage["status"];
-  expires_at: string | null;
-  purchased_at: string;
-  session_package_templates: {
-    name: string;
-    description: string | null;
-  } | null;
+  redeemed_minutes: number;
 };
 
 /**
- * Get active packages for a student with a specific tutor
+ * Gets active session packages for a student with a specific tutor.
+ * Returns packages that have remaining minutes and haven't expired.
  */
 export async function getActivePackages(
   studentId: string,
   tutorId: string
-): Promise<SessionPackage[]> {
-  const adminClient = createServiceRoleClient();
+): Promise<ActivePackage[]> {
+  const supabase = createServiceRoleClient();
 
-  if (!adminClient) {
+  if (!supabase) {
+    console.error("[packages] Failed to create admin client");
     return [];
   }
 
-  const now = new Date().toISOString();
+  try {
+    // Get all purchases for this student from this tutor's packages
+    // Include redemptions in a single query to avoid N+1
+    const { data: purchases, error: purchaseError } = await supabase
+      .from("session_package_purchases")
+      .select(`
+        id,
+        remaining_minutes,
+        expires_at,
+        status,
+        package:session_package_templates (
+          id,
+          name,
+          total_minutes,
+          tutor_id
+        ),
+        redemptions:session_package_redemptions (
+          minutes_redeemed,
+          refunded_at
+        )
+      `)
+      .eq("student_id", studentId)
+      .eq("status", "active")
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
-  const { data, error } = await adminClient
-    .from("session_package_purchases")
-    .select(
-      `
-      id,
-      template_id,
-      tutor_id,
-      student_id,
-      total_minutes,
-      remaining_minutes,
-      status,
-      expires_at,
-      purchased_at,
-      session_package_templates (
-        name,
-        description
-      )
-    `
-    )
-    .eq("student_id", studentId)
-    .eq("tutor_id", tutorId)
-    .eq("status", "active")
-    .gt("remaining_minutes", 0)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .order("expires_at", { ascending: true, nullsFirst: false });
+    if (purchaseError) {
+      console.error("[packages] Error fetching purchases:", purchaseError);
+      return [];
+    }
 
-  if (error) {
-    console.error("Error fetching active packages:", error);
+    if (!purchases || purchases.length === 0) {
+      return [];
+    }
+
+    // Filter to only packages from this tutor and calculate redeemed minutes
+    const activePackages: ActivePackage[] = [];
+
+    for (const purchase of purchases) {
+      // Supabase returns joined data - handle both single object and array cases
+      const pkgData = purchase.package;
+      const pkg = Array.isArray(pkgData) ? pkgData[0] : pkgData as {
+        id: string;
+        name: string;
+        total_minutes: number;
+        tutor_id: string;
+      } | null;
+
+      if (!pkg || pkg.tutor_id !== tutorId) {
+        continue;
+      }
+
+      // Calculate redeemed minutes from embedded redemptions (excludes refunded)
+      const redemptionsData = purchase.redemptions as Array<{
+        minutes_redeemed: number | null;
+        refunded_at: string | null;
+      }> | null;
+
+      const redeemedMinutes = redemptionsData?.reduce(
+        (sum, r) => sum + (r.refunded_at === null ? (r.minutes_redeemed || 0) : 0),
+        0
+      ) || 0;
+
+      const remainingMinutes = pkg.total_minutes - redeemedMinutes;
+
+      if (remainingMinutes > 0) {
+        activePackages.push({
+          id: pkg.id,
+          name: pkg.name,
+          remaining_minutes: remainingMinutes,
+          expires_at: purchase.expires_at,
+          purchase_id: purchase.id,
+          total_minutes: pkg.total_minutes,
+          redeemed_minutes: redeemedMinutes,
+        });
+      }
+    }
+
+    return activePackages;
+  } catch (err) {
+    console.error("[packages] Unexpected error in getActivePackages:", err);
     return [];
   }
-
-  return (
-    data?.map((pkg) => {
-      const record = pkg as PackageRow;
-      return {
-        id: record.id,
-        template_id: record.template_id,
-        tutor_id: record.tutor_id,
-        student_id: record.student_id,
-        total_minutes: record.total_minutes,
-        remaining_minutes: record.remaining_minutes,
-        status: record.status,
-        expires_at: record.expires_at,
-        purchased_at: record.purchased_at,
-        template: record.session_package_templates || undefined,
-      };
-    }) || []
-  );
 }
 
 /**
- * Redeem minutes from a package for a booking
- * Returns success status and new remaining minutes
+ * Redeems package minutes for a booking.
+ * Creates a redemption record and validates sufficient minutes.
  */
-export async function redeemPackageMinutes(params: {
+export async function redeemPackageMinutes({
+  packageId,
+  bookingId,
+  minutesToRedeem,
+  tutorId,
+  studentId,
+  purchaseId,
+}: {
   packageId: string;
   bookingId: string;
   minutesToRedeem: number;
   tutorId: string;
-}): Promise<{ success: boolean; error?: string; remainingMinutes?: number }> {
-  const adminClient = createServiceRoleClient();
+  studentId?: string;
+  purchaseId?: string;
+}): Promise<{ success: boolean; error?: string; redemptionId?: string }> {
+  const supabase = createServiceRoleClient();
 
-  if (!adminClient) {
+  if (!supabase) {
     return { success: false, error: "Service unavailable" };
   }
 
-  try {
-    // 1. Get package and verify it has enough minutes
-    const { data: packageData, error: packageError } = await adminClient
-      .from("session_package_purchases")
-      .select("id, remaining_minutes, status, expires_at, tutor_id")
-      .eq("id", params.packageId)
-      .eq("tutor_id", params.tutorId)
-      .single();
+  if (minutesToRedeem <= 0) {
+    return { success: false, error: "Minutes to redeem must be positive" };
+  }
 
-    if (packageError || !packageData) {
-      return { success: false, error: "Package not found" };
+  try {
+    // If purchaseId not provided, find the best package purchase to use
+    let targetPurchaseId = purchaseId;
+
+    if (!targetPurchaseId && studentId) {
+      const activePackages = await getActivePackages(studentId, tutorId);
+      const suitablePackage = activePackages.find(
+        (p) => p.id === packageId && p.remaining_minutes >= minutesToRedeem
+      );
+
+      if (!suitablePackage) {
+        return {
+          success: false,
+          error: "No suitable package found with sufficient minutes",
+        };
+      }
+
+      targetPurchaseId = suitablePackage.purchase_id;
     }
 
-    if (packageData.status !== "active") {
+    if (!targetPurchaseId) {
+      return { success: false, error: "Package purchase not found" };
+    }
+
+    // Verify the purchase exists and has sufficient minutes
+    const { data: purchase, error: purchaseError } = await supabase
+      .from("session_package_purchases")
+      .select(`
+        id,
+        status,
+        expires_at,
+        package:session_package_templates (
+          id,
+          total_minutes,
+          tutor_id
+        )
+      `)
+      .eq("id", targetPurchaseId)
+      .single();
+
+    if (purchaseError || !purchase) {
+      return { success: false, error: "Package purchase not found" };
+    }
+
+    // Supabase returns joined data - handle both single object and array cases
+    const pkgData = purchase.package;
+    const pkg = Array.isArray(pkgData) ? pkgData[0] : pkgData as {
+      id: string;
+      total_minutes: number;
+      tutor_id: string;
+    } | null;
+
+    if (!pkg || pkg.tutor_id !== tutorId) {
+      return { success: false, error: "Package does not belong to this tutor" };
+    }
+
+    if (purchase.status !== "active") {
       return { success: false, error: "Package is not active" };
     }
 
-    if (packageData.expires_at) {
-      const expiryDate = new Date(packageData.expires_at);
-      if (expiryDate < new Date()) {
-        return { success: false, error: "Package has expired" };
-      }
+    if (purchase.expires_at && new Date(purchase.expires_at) < new Date()) {
+      return { success: false, error: "Package has expired" };
     }
 
-    if (packageData.remaining_minutes < params.minutesToRedeem) {
+    // Calculate current remaining minutes
+    const { data: existingRedemptions } = await supabase
+      .from("session_package_redemptions")
+      .select("minutes_redeemed")
+      .eq("purchase_id", targetPurchaseId)
+      .is("refunded_at", null);
+
+    const totalRedeemed = existingRedemptions?.reduce(
+      (sum, r) => sum + (r.minutes_redeemed || 0),
+      0
+    ) || 0;
+
+    const remainingMinutes = pkg.total_minutes - totalRedeemed;
+
+    if (remainingMinutes < minutesToRedeem) {
       return {
         success: false,
-        error: `Insufficient minutes. Package has ${packageData.remaining_minutes} minutes remaining.`,
+        error: `Insufficient minutes. Available: ${remainingMinutes}, Requested: ${minutesToRedeem}`,
       };
     }
 
-    // 2. Create redemption record
-    const { error: redemptionError } = await adminClient
+    // Check if this booking already has a redemption (prevent duplicates)
+    const { data: existingBookingRedemption } = await supabase
+      .from("session_package_redemptions")
+      .select("id")
+      .eq("booking_id", bookingId)
+      .is("refunded_at", null)
+      .single();
+
+    if (existingBookingRedemption) {
+      return {
+        success: false,
+        error: "This booking already has minutes redeemed",
+      };
+    }
+
+    // Create the redemption record
+    const { data: redemption, error: insertError } = await supabase
       .from("session_package_redemptions")
       .insert({
-        purchase_id: params.packageId,
-        booking_id: params.bookingId,
-        minutes_redeemed: params.minutesToRedeem,
-        source: "booking",
-        status: "applied",
-      });
+        purchase_id: targetPurchaseId,
+        booking_id: bookingId,
+        minutes_redeemed: minutesToRedeem,
+      })
+      .select("id")
+      .single();
 
-    if (redemptionError) {
-      console.error("Error creating redemption record:", redemptionError);
-      return { success: false, error: "Failed to create redemption record" };
+    if (insertError) {
+      console.error("[packages] Failed to create redemption:", insertError);
+      return { success: false, error: "Failed to redeem package minutes" };
     }
 
-    // 3. Deduct minutes from package
-    const newRemainingMinutes =
-      packageData.remaining_minutes - params.minutesToRedeem;
-
-    const { error: updateError } = await adminClient
+    // Update the purchase's remaining_minutes for quick lookups
+    await supabase
       .from("session_package_purchases")
       .update({
-        remaining_minutes: newRemainingMinutes,
-        status: newRemainingMinutes === 0 ? "completed" : "active",
+        remaining_minutes: remainingMinutes - minutesToRedeem,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", params.packageId)
-      .eq("tutor_id", params.tutorId);
+      .eq("id", targetPurchaseId);
 
-    if (updateError) {
-      console.error("Error updating package minutes:", updateError);
-      return { success: false, error: "Failed to update package" };
-    }
+    console.log(
+      `✅ Redeemed ${minutesToRedeem} minutes from purchase ${targetPurchaseId} for booking ${bookingId}`
+    );
 
-    return {
-      success: true,
-      remainingMinutes: newRemainingMinutes,
-    };
-  } catch (error) {
-    console.error("Error in redeemPackageMinutes:", error);
+    return { success: true, redemptionId: redemption.id };
+  } catch (err) {
+    console.error("[packages] Unexpected error in redeemPackageMinutes:", err);
     return { success: false, error: "An unexpected error occurred" };
   }
 }
 
 /**
- * Check if a student can use a package for a booking
- */
-export async function canUsePackage(
-  studentId: string,
-  tutorId: string,
-  durationMinutes: number
-): Promise<{ canUse: boolean; packageId?: string; packageName?: string }> {
-  const packages = await getActivePackages(studentId, tutorId);
-
-  // Find first package with enough minutes
-  const suitablePackage = packages.find(
-    (pkg) => pkg.remaining_minutes >= durationMinutes
-  );
-
-  if (suitablePackage) {
-    return {
-      canUse: true,
-      packageId: suitablePackage.id,
-      packageName: suitablePackage.template?.name || "Session Package",
-    };
-  }
-
-  return { canUse: false };
-}
-
-/**
- * Refund package minutes (e.g., when booking is cancelled)
+ * Refunds package minutes for a cancelled booking.
+ * Marks the redemption as refunded and restores minutes to the purchase.
  */
 export async function refundPackageMinutes(
   bookingId: string
-): Promise<{ success: boolean; error?: string }> {
-  const adminClient = createServiceRoleClient();
+): Promise<{ success: boolean; error?: string; refundedMinutes?: number }> {
+  const supabase = createServiceRoleClient();
 
-  if (!adminClient) {
+  if (!supabase) {
     return { success: false, error: "Service unavailable" };
   }
 
   try {
-    // 1. Find redemption record for this booking
-    const { data: redemption, error: redemptionError } = await adminClient
+    // Find the redemption for this booking
+    const { data: redemption, error: findError } = await supabase
       .from("session_package_redemptions")
-      .select("id, purchase_id, minutes_redeemed, status")
+      .select("id, purchase_id, minutes_redeemed")
       .eq("booking_id", bookingId)
-      .eq("status", "applied")
+      .is("refunded_at", null)
       .single();
 
-    if (redemptionError || !redemption) {
-      // No redemption found - booking wasn't paid with package
-      return { success: true };
+    if (findError || !redemption) {
+      // No redemption found - this booking wasn't paid with a package
+      // This is not an error, just nothing to refund
+      console.log(`[packages] No package redemption found for booking ${bookingId}`);
+      return { success: true, refundedMinutes: 0 };
     }
 
-    // 2. Get package
-    const { data: packageData, error: packageError } = await adminClient
+    // Mark the redemption as refunded
+    const { error: updateError } = await supabase
+      .from("session_package_redemptions")
+      .update({ refunded_at: new Date().toISOString() })
+      .eq("id", redemption.id);
+
+    if (updateError) {
+      console.error("[packages] Failed to mark redemption as refunded:", updateError);
+      return { success: false, error: "Failed to process refund" };
+    }
+
+    // Restore minutes to the purchase
+    const { data: purchase } = await supabase
       .from("session_package_purchases")
-      .select("id, remaining_minutes, status")
+      .select("remaining_minutes")
       .eq("id", redemption.purchase_id)
       .single();
 
-    if (packageError || !packageData) {
-      return { success: false, error: "Package not found" };
+    if (purchase) {
+      await supabase
+        .from("session_package_purchases")
+        .update({
+          remaining_minutes: (purchase.remaining_minutes || 0) + redemption.minutes_redeemed,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", redemption.purchase_id);
     }
 
-    // 3. Return minutes to package
-    const newRemainingMinutes =
-      packageData.remaining_minutes + redemption.minutes_redeemed;
+    console.log(
+      `✅ Refunded ${redemption.minutes_redeemed} minutes for booking ${bookingId}`
+    );
 
-    const { error: updateError } = await adminClient
-      .from("session_package_purchases")
-      .update({
-        remaining_minutes: newRemainingMinutes,
-        status: packageData.status === "completed" ? "active" : packageData.status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", redemption.purchase_id);
-
-    if (updateError) {
-      console.error("Error refunding minutes:", updateError);
-      return { success: false, error: "Failed to refund minutes" };
-    }
-
-    // 4. Mark redemption as refunded
-    const { error: refundError } = await adminClient
-      .from("session_package_redemptions")
-      .update({ status: "refunded" })
-      .eq("id", redemption.id);
-
-    if (refundError) {
-      console.error("Error marking redemption as refunded:", refundError);
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error in refundPackageMinutes:", error);
+    return { success: true, refundedMinutes: redemption.minutes_redeemed };
+  } catch (err) {
+    console.error("[packages] Unexpected error in refundPackageMinutes:", err);
     return { success: false, error: "An unexpected error occurred" };
   }
 }

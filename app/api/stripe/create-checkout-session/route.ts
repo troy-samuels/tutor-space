@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createCheckoutSession } from "@/lib/stripe";
+import { RateLimiters } from "@/lib/middleware/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    // SECURITY: Rate limit checkout session creation
+    const rateLimitResult = await RateLimiters.api(req);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        { status: 429 }
+      );
+    }
+
     const supabase = await createClient();
 
     // Check authentication

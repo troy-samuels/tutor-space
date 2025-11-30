@@ -112,10 +112,14 @@ export default function BookingInterface({
       <div className="grid md:grid-cols-3 gap-8">
         {/* Main Content - Slots */}
         <div className="md:col-span-2 space-y-6">
-          {/* Student Lesson History */}
-          {lessonHistory && (
-            <StudentLessonHistory data={lessonHistory} tutorName={tutor.fullName} />
-          )}
+        {/* Student Lesson History */}
+        {lessonHistory && (
+          <StudentLessonHistory
+            data={lessonHistory}
+            tutorName={tutor.fullName}
+            tutorTimezone={tutor.timezone}
+          />
+        )}
 
           {/* Service Selection */}
           {services.length > 1 && (

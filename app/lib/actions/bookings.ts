@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
@@ -11,6 +12,7 @@ import {
   sendTutorBookingNotificationEmail,
 } from "@/lib/emails/booking-emails";
 import { getActivePackages } from "@/lib/actions/packages";
+import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
 
 export type BookingRecord = {
   id: string;
@@ -25,14 +27,21 @@ export type BookingRecord = {
   payment_amount: number | null;
   currency: string | null;
   student_notes: string | null;
+  meeting_url?: string | null;
+  meeting_provider?: string | null;
   created_at: string;
   updated_at: string;
   students?: {
+    id?: string;
     full_name: string;
     email: string;
   } | null;
   services?: {
     name: string;
+  } | null;
+  tutor?: {
+    full_name: string;
+    email?: string | null;
   } | null;
 };
 
@@ -48,6 +57,22 @@ async function requireTutor() {
   }
 
   return { supabase, user };
+}
+
+async function ensureConversationThread(
+  adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  tutorId: string,
+  studentId: string
+) {
+  const { error } = await adminClient
+    .from("conversation_threads")
+    .insert({ tutor_id: tutorId, student_id: studentId })
+    .select("id")
+    .single();
+
+  if (error && error.code !== "23505") {
+    console.error("Failed to create conversation thread:", error);
+  }
 }
 
 export async function listBookings(): Promise<BookingRecord[]> {
@@ -117,8 +142,9 @@ export async function createBooking(input: CreateBookingInput) {
 }
 
 /**
- * Create a booking for public booking flow (no payment processing)
- * Students pay tutors directly via their preferred payment method
+ * Create a booking for public booking flow with optional Stripe Connect payment
+ * If tutor has Stripe Connect enabled, creates a checkout session
+ * Otherwise falls back to manual payment instructions
  * This is called from the public booking page (no auth required)
  */
 export async function createBookingAndCheckout(params: {
@@ -131,6 +157,7 @@ export async function createBookingAndCheckout(params: {
     fullName: string;
     email: string;
     phone: string | null;
+    timezone?: string;
     parentName: string | null;
     parentEmail: string | null;
     parentPhone: string | null;
@@ -139,12 +166,27 @@ export async function createBookingAndCheckout(params: {
   amount: number;
   currency: string;
   packageId?: string; // Optional: Use package instead of payment
-}) {
+}): Promise<
+  | { error: string }
+  | { success: true; bookingId: string; checkoutUrl?: string | null }
+> {
+  // Rate limit public booking requests to prevent abuse
+  const headersList = await headers();
+  const rateLimitResult = await ServerActionLimiters.booking(headersList);
+  if (!rateLimitResult.success) {
+    return { error: rateLimitResult.error || "Too many booking attempts. Please try again later." };
+  }
+
+  const supabase = await createClient();
   const adminClient = createServiceRoleClient();
 
   if (!adminClient) {
     return { error: "Service unavailable. Please try again later." };
   }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   try {
     const { data: serviceRecord } = await adminClient
@@ -233,29 +275,48 @@ export async function createBookingAndCheckout(params: {
 
     // 4. Create or find student record
     let studentId: string;
+    let studentProfileId: string | null = user?.id ?? null;
 
     // Check if student already exists by email
     const { data: existingStudent } = await adminClient
       .from("students")
-      .select("id")
+      .select("id, user_id, status")
       .eq("tutor_id", params.tutorId)
       .eq("email", params.student.email)
       .single();
 
+    // Enforce student status - only active/trial students can book
+    if (existingStudent) {
+      const blockedStatuses = ["paused", "alumni", "inactive", "suspended"];
+      if (blockedStatuses.includes(existingStudent.status)) {
+        return {
+          error: `Your account status is "${existingStudent.status}". Please contact your tutor to reactivate your account before booking.`,
+        };
+      }
+    }
+
     if (existingStudent) {
       studentId = existingStudent.id;
+      studentProfileId = existingStudent.user_id ?? studentProfileId;
 
       // Update student info
+      const updatePayload: Record<string, unknown> = {
+        full_name: params.student.fullName,
+        phone: params.student.phone,
+        timezone: params.student.timezone || "UTC",
+        parent_name: params.student.parentName,
+        parent_email: params.student.parentEmail,
+        parent_phone: params.student.parentPhone,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (!existingStudent.user_id && user?.id) {
+        updatePayload.user_id = user.id;
+      }
+
       await adminClient
         .from("students")
-        .update({
-          full_name: params.student.fullName,
-          phone: params.student.phone,
-          parent_name: params.student.parentName,
-          parent_email: params.student.parentEmail,
-          parent_phone: params.student.parentPhone,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", studentId)
         .eq("tutor_id", params.tutorId);
     } else {
@@ -264,15 +325,17 @@ export async function createBookingAndCheckout(params: {
         .from("students")
         .insert({
           tutor_id: params.tutorId,
+          user_id: user?.id ?? null,
           full_name: params.student.fullName,
           email: params.student.email,
           phone: params.student.phone,
+          timezone: params.student.timezone || "UTC",
           parent_name: params.student.parentName,
           parent_email: params.student.parentEmail,
           parent_phone: params.student.parentPhone,
           source: "booking_page",
         })
-        .select("id")
+        .select("id, user_id")
         .single();
 
       if (studentError || !newStudent) {
@@ -281,6 +344,52 @@ export async function createBookingAndCheckout(params: {
       }
 
       studentId = newStudent.id;
+      studentProfileId = newStudent.user_id ?? studentProfileId;
+    }
+
+    if (studentId) {
+      await ensureConversationThread(adminClient, params.tutorId, studentId);
+
+      // Sync access + connection for logged-in students so portal flows work
+      if (user?.id) {
+        // Ensure connection is approved
+        const { data: existingConnection } = await adminClient
+          .from("student_tutor_connections")
+          .select("id, status")
+          .eq("student_user_id", user.id)
+          .eq("tutor_id", params.tutorId)
+          .maybeSingle();
+
+        if (!existingConnection) {
+          await adminClient.from("student_tutor_connections").insert({
+            student_user_id: user.id,
+            tutor_id: params.tutorId,
+            status: "approved",
+            requested_at: new Date().toISOString(),
+            resolved_at: new Date().toISOString(),
+            initial_message: "Auto-approved from booking",
+          });
+        } else if (existingConnection.status !== "approved") {
+          await adminClient
+            .from("student_tutor_connections")
+            .update({
+              status: "approved",
+              resolved_at: new Date().toISOString(),
+            })
+            .eq("id", existingConnection.id);
+        }
+
+        // Ensure calendar access flag is aligned for legacy checks
+        await adminClient
+          .from("students")
+          .update({
+            calendar_access_status: "approved",
+            access_approved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", studentId)
+          .eq("tutor_id", params.tutorId);
+      }
     }
 
     // 5. Create booking record as pending (payment happens outside platform)
@@ -300,12 +409,52 @@ export async function createBookingAndCheckout(params: {
         currency: serviceCurrency,
         student_notes: params.notes,
       })
-      .select("id")
+      .select("id, created_at")
       .single();
 
     if (bookingError || !booking) {
       console.error("Failed to create booking:", bookingError);
       return { error: "Failed to create booking. Please try again." };
+    }
+
+    // 5.5. POST-INSERT CONFLICT CHECK: Prevent race conditions
+    // Check if another booking was created at the same time slot while we were processing
+    const bookingStartTime = new Date(params.scheduledAt);
+    const bookingEndTime = new Date(bookingStartTime.getTime() + serviceRecord.duration_minutes * 60 * 1000);
+
+    const { data: conflictingBookings } = await adminClient
+      .from("bookings")
+      .select("id, scheduled_at, duration_minutes, created_at")
+      .eq("tutor_id", params.tutorId)
+      .in("status", ["pending", "confirmed"])
+      .neq("id", booking.id) // Exclude our own booking
+      .lte("scheduled_at", bookingEndTime.toISOString())
+      .order("created_at", { ascending: true });
+
+    // Check for actual time overlap
+    const hasConflict = conflictingBookings?.some((existing) => {
+      const existingStart = new Date(existing.scheduled_at);
+      const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
+
+      // Overlap if: our start < their end AND our end > their start
+      const overlaps =
+        bookingStartTime < existingEnd && bookingEndTime > existingStart;
+
+      // Only conflict if the other booking was created before ours (first-come-first-serve)
+      return overlaps && new Date(existing.created_at) < new Date(booking.created_at);
+    });
+
+    if (hasConflict) {
+      // Another booking was created first - delete ours and return error
+      console.log(`[bookings] Race condition detected - deleting booking ${booking.id}`);
+      await adminClient
+        .from("bookings")
+        .delete()
+        .eq("id", booking.id)
+        .eq("tutor_id", params.tutorId);
+      return {
+        error: "This time slot was just booked by someone else. Please select a different time.",
+      };
     }
 
     // 5a. If package redemption requested, process it
@@ -332,11 +481,11 @@ export async function createBookingAndCheckout(params: {
       }
     }
 
-    // 6. Fetch tutor profile and service info for emails
+    // 6. Fetch tutor profile and service info for emails + Stripe Connect status
     const { data: tutorProfile } = await adminClient
       .from("profiles")
       .select(
-        "full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone, stripe_payment_link, custom_payment_url, video_provider, zoom_personal_link, google_meet_link, calendly_link, custom_video_url, custom_video_name"
+        "full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone, stripe_payment_link, custom_payment_url, video_provider, zoom_personal_link, google_meet_link, calendly_link, custom_video_url, custom_video_name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status"
       )
       .eq("id", params.tutorId)
       .single();
@@ -434,7 +583,96 @@ export async function createBookingAndCheckout(params: {
       });
     }
 
-    // Success - booking created, student will pay tutor directly
+    // 9. Check if tutor has Stripe Connect enabled and account is healthy
+    const stripeAccountReady =
+      tutorProfile?.stripe_charges_enabled === true &&
+      tutorProfile?.stripe_account_id &&
+      tutorProfile?.stripe_onboarding_status !== "restricted";
+
+    if (!params.packageId && stripeAccountReady) {
+      if (!studentProfileId) {
+        console.warn("Student is not authenticated; skipping Stripe checkout and falling back to manual payment.");
+      } else {
+        // Tutor has Stripe Connect - create checkout session
+        try {
+          // First, ensure student has a Stripe customer ID
+          const { data: studentProfile } = await adminClient
+            .from("profiles")
+            .select("stripe_customer_id, email, full_name")
+            .eq("id", studentProfileId)
+            .single();
+
+          let stripeCustomerId = studentProfile?.stripe_customer_id;
+          const studentEmail = studentProfile?.email || params.student.email;
+          const studentName = studentProfile?.full_name || params.student.fullName;
+          
+          if (!stripeCustomerId) {
+            // Create Stripe customer for the student
+            const { getOrCreateStripeCustomer } = await import("@/lib/stripe");
+            const customer = await getOrCreateStripeCustomer({
+              userId: studentProfileId,
+              email: studentEmail,
+              name: studentName,
+              metadata: {
+                tutorId: params.tutorId,
+                profileId: studentProfileId,
+                studentRecordId: studentId,
+              },
+            });
+            stripeCustomerId = customer.id;
+
+            // Save to database
+            await adminClient
+              .from("profiles")
+              .update({ stripe_customer_id: stripeCustomerId })
+              .eq("id", studentProfileId);
+          }
+
+          // Create checkout session with destination charges
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+          const stripeCurrency = serviceCurrency.toLowerCase();
+          const { createCheckoutSession } = await import("@/lib/stripe");
+          
+          const session = await createCheckoutSession({
+            customerId: stripeCustomerId,
+            priceAmount: normalizedPriceCents,
+            currency: stripeCurrency,
+            successUrl: `${baseUrl}/book/success?booking_id=${booking.id}&session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${baseUrl}/book/cancelled?booking_id=${booking.id}`,
+            metadata: {
+              bookingId: booking.id,
+              studentProfileId,
+              studentRecordId: studentId,
+              tutorId: params.tutorId,
+            },
+            lineItems: [
+              {
+                name: serviceName,
+                description: `${serviceRecord.duration_minutes} minute lesson with ${tutorProfile.full_name || "your tutor"}`,
+                amount: normalizedPriceCents,
+                quantity: 1,
+              },
+            ],
+            transferDestinationAccountId: tutorProfile.stripe_account_id,
+            // No platform fee for now as per user requirements
+            applicationFeeCents: undefined,
+          });
+
+          // Return checkout URL for redirect
+          return {
+            success: true,
+            bookingId: booking.id,
+            checkoutUrl: session.url,
+          };
+      }
+        catch (stripeError) {
+          console.error("Failed to create Stripe checkout:", stripeError);
+          // Fall back to manual payment instructions
+        }
+      }
+    }
+
+    // Success - booking created, student will pay tutor directly (manual payment)
     return {
       success: true,
       bookingId: booking.id,
@@ -492,7 +730,12 @@ export async function markBookingAsPaid(bookingId: string) {
     return { error: "You can only update your own bookings." };
   }
 
+  const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
+  const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+  const tutorProfile = Array.isArray(booking.tutor) ? booking.tutor[0] : booking.tutor;
+
   // Update booking status
+  // SECURITY: Include tutor_id check in UPDATE for defense-in-depth
   const { error: updateError } = await supabase
     .from("bookings")
     .update({
@@ -500,28 +743,29 @@ export async function markBookingAsPaid(bookingId: string) {
       payment_status: "paid",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", bookingId);
+    .eq("id", bookingId)
+    .eq("tutor_id", user.id);
 
   if (updateError) {
     console.error("Failed to update booking:", updateError);
     return { error: "Failed to mark booking as paid. Please try again." };
   }
 
-  const studentEmail = booking.students?.email;
+  const studentEmail = student?.email;
   const amountCents =
     booking.payment_amount ??
-    (booking.services?.price_amount ?? 0);
+    (service?.price_amount ?? 0);
   const currency =
     booking.currency ??
-    booking.services?.price_currency ??
+    service?.price_currency ??
     "USD";
 
   if (studentEmail && amountCents > 0) {
     await sendPaymentReceiptEmail({
-      studentName: booking.students?.full_name ?? "Student",
+      studentName: student?.full_name ?? "Student",
       studentEmail,
-      tutorName: booking.tutor?.full_name ?? "Your tutor",
-      serviceName: booking.services?.name ?? "Lesson",
+      tutorName: tutorProfile?.full_name ?? "Your tutor",
+      serviceName: service?.name ?? "Lesson",
       scheduledAt: booking.scheduled_at,
       timezone: booking.timezone ?? "UTC",
       amountCents,
@@ -535,14 +779,193 @@ export async function markBookingAsPaid(bookingId: string) {
 }
 
 /**
+ * Move a booking to a new time (tutor or student initiated)
+ * - Tutors can reschedule their own bookings
+ * - Students can reschedule their own bookings when linked to the booking record
+ */
+export async function rescheduleBooking(params: {
+  bookingId: string;
+  newStart: string;
+  durationMinutes?: number;
+  timezone?: string;
+}) {
+  const supabase = await createClient();
+  const adminClient = createServiceRoleClient();
+
+  if (!adminClient) {
+    return { error: "Service unavailable. Please try again." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You need to be signed in to update bookings." };
+  }
+
+  // Fetch booking with student + service context for authorization and defaults
+  const { data: booking, error: bookingError } = await adminClient
+    .from("bookings")
+    .select(`
+      id,
+      tutor_id,
+      student_id,
+      scheduled_at,
+      duration_minutes,
+      status,
+      timezone,
+      payment_status,
+      payment_amount,
+      currency,
+      meeting_url,
+      meeting_provider,
+      students (
+        id,
+        user_id,
+        full_name,
+        email
+      ),
+      services (
+        id,
+        name,
+        duration_minutes
+      )
+    `)
+    .eq("id", params.bookingId)
+    .single();
+
+  if (bookingError || !booking) {
+    return { error: "Booking not found." };
+  }
+  const bookingRecord: any = booking;
+
+  const studentUserId = Array.isArray(bookingRecord.students)
+    ? bookingRecord.students[0]?.user_id
+    : bookingRecord.students?.user_id;
+
+  const isTutor = booking.tutor_id === user.id;
+  const isStudent = studentUserId === user.id;
+
+  if (!isTutor && !isStudent) {
+    return { error: "You are not allowed to move this booking." };
+  }
+
+  const { data: tutorProfile } = await adminClient
+    .from("profiles")
+    .select("buffer_time_minutes, timezone")
+    .eq("id", booking.tutor_id)
+    .single();
+
+  const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
+  const tutorTimezone = tutorProfile?.timezone || booking.timezone || params.timezone || "UTC";
+
+  const { data: availability } = await adminClient
+    .from("availability")
+    .select("day_of_week, start_time, end_time, is_available")
+    .eq("tutor_id", booking.tutor_id)
+    .eq("is_available", true);
+
+  const { data: existingBookings } = await adminClient
+    .from("bookings")
+    .select("id, scheduled_at, duration_minutes, status")
+    .eq("tutor_id", booking.tutor_id)
+    .in("status", ["pending", "confirmed"])
+    .neq("id", params.bookingId)
+    .gte("scheduled_at", new Date().toISOString());
+
+  const durationMinutes =
+    params.durationMinutes ??
+    bookingRecord.duration_minutes ??
+    (Array.isArray(bookingRecord.services)
+      ? bookingRecord.services[0]?.duration_minutes
+      : bookingRecord.services?.duration_minutes) ??
+    60;
+
+  const validation = validateBooking({
+    scheduledAt: params.newStart,
+    durationMinutes,
+    availability: availability || [],
+    existingBookings: existingBookings || [],
+    bufferMinutes,
+  });
+
+  if (!validation.isValid) {
+    return { error: validation.errors.join(" ") };
+  }
+
+  const { data: updated, error: updateError } = await adminClient
+    .from("bookings")
+    .update({
+      scheduled_at: params.newStart,
+      duration_minutes: durationMinutes,
+      timezone: tutorTimezone,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.bookingId)
+    .select("*, students(full_name, email), services(name)")
+    .single<BookingRecord>();
+
+  if (updateError || !updated) {
+    console.error("Failed to reschedule booking:", updateError);
+    return { error: "Could not reschedule this booking. Please try again." };
+  }
+
+  return { success: true, booking: updated };
+}
+
+/**
  * Check if student has available packages for booking
  * Used by public booking page to show package redemption option
+ *
+ * SECURITY NOTE: This is called from public booking page.
+ * - If user is authenticated as a student, verify they own the email
+ * - If user is authenticated as a tutor, verify they own the tutorId
+ * - Unauthenticated users can check (for booking flow), but should be rate-limited
  */
 export async function checkStudentPackages(params: {
   studentEmail: string;
   tutorId: string;
   durationMinutes: number;
 }) {
+  const supabase = await createClient();
+
+  // SECURITY: If user is authenticated, verify authorization
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    // Get user's profile to check if they're a tutor
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    // If authenticated as a tutor, verify they own the tutorId
+    if (profile) {
+      if (profile.id !== params.tutorId) {
+        return {
+          error: "You can only check packages for your own students.",
+          packages: []
+        };
+      }
+    } else {
+      // If authenticated as a student, verify they own the email
+      const { data: studentProfile } = await supabase
+        .from("students")
+        .select("email, user_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (studentProfile && studentProfile.email.toLowerCase() !== params.studentEmail.toLowerCase()) {
+        return {
+          error: "You can only check your own packages.",
+          packages: []
+        };
+      }
+    }
+  }
+
   const adminClient = createServiceRoleClient();
 
   if (!adminClient) {
@@ -620,6 +1043,10 @@ export async function cancelBooking(bookingId: string) {
     return { error: "You can only cancel your own bookings." };
   }
 
+  const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
+  const tutorProfile = Array.isArray(booking.tutor) ? booking.tutor[0] : booking.tutor;
+  const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+
   if (booking.status === "cancelled") {
     return { error: "Booking is already cancelled." };
   }
@@ -647,13 +1074,13 @@ export async function cancelBooking(bookingId: string) {
     // Don't fail the cancellation if refund fails - just log it
   }
 
-  const studentEmail = booking.students?.email;
+  const studentEmail = student?.email;
   if (studentEmail) {
     await sendBookingCancelledEmail({
-      studentName: booking.students?.full_name ?? "Student",
+      studentName: student?.full_name ?? "Student",
       studentEmail,
-      tutorName: booking.tutor?.full_name ?? "Your tutor",
-      serviceName: booking.services?.name ?? "Lesson",
+      tutorName: tutorProfile?.full_name ?? "Your tutor",
+      serviceName: service?.name ?? "Lesson",
       scheduledAt: booking.scheduled_at,
       timezone: booking.timezone ?? "UTC",
     });

@@ -35,14 +35,14 @@ export function LinkPreview({ profile, links }: LinkPreviewProps) {
   }
 
   return (
-    <div className="rounded-4xl border border-brand-brown/20 bg-white/80 p-6 shadow-lg backdrop-blur">
-      <p className="text-xs font-semibold uppercase tracking-wide text-brand-brown/70">
+    <div className="rounded-4xl border border-border bg-white/80 p-6 shadow-lg backdrop-blur">
+      <p className="text-xs font-semibold uppercase tracking-wide text-primary/70">
         Public preview
       </p>
       <div className="mt-4 flex justify-center">
-        <div className="w-full max-w-[300px] rounded-[40px] border border-brand-brown/10 bg-brand-cream px-5 pb-8 pt-6 shadow-inner">
+        <div className="w-full max-w-[300px] rounded-[40px] border border-border/40 bg-muted px-5 pb-8 pt-6 shadow-inner">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="relative h-16 w-16 overflow-hidden rounded-full border border-brand-brown/30 bg-brand-brown/10">
+            <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border bg-primary/10">
               {profile.avatar_url ? (
                 <Image
                   src={profile.avatar_url}
@@ -52,7 +52,7 @@ export function LinkPreview({ profile, links }: LinkPreviewProps) {
                   className="object-cover"
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-brand-brown">
+                <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-primary">
                   {(profile.full_name ?? profile.username).slice(0, 1).toUpperCase()}
                 </span>
               )}
@@ -61,7 +61,7 @@ export function LinkPreview({ profile, links }: LinkPreviewProps) {
               <p className="text-sm font-semibold text-foreground">{profile.full_name}</p>
               <p className="text-xs text-muted-foreground">@{profile.username}</p>
             </div>
-            <div className="flex flex-wrap justify-center gap-2 text-xs text-brand-brown">
+            <div className="flex flex-wrap justify-center gap-2 text-xs text-primary">
               {profile.socials.instagram ? <SocialBadge icon={<Instagram className="h-3 w-3" />} label="Instagram" /> : null}
               {profile.socials.tiktok ? <SocialBadge icon={<Music4 className="h-3 w-3" />} label="TikTok" /> : null}
               {profile.socials.facebook ? <SocialBadge icon={<Facebook className="h-3 w-3" />} label="Facebook" /> : null}
@@ -71,7 +71,7 @@ export function LinkPreview({ profile, links }: LinkPreviewProps) {
 
           <ul className="mt-5 space-y-3">
             {visibleLinks.length === 0 ? (
-              <li className="rounded-2xl border border-dashed border-brand-brown/30 bg-brand-brown/5 px-4 py-3 text-xs text-brand-brown/80">
+              <li className="rounded-2xl border border-dashed border-border bg-muted/50 px-4 py-3 text-xs text-foreground">
                 Your published links will appear here. Add a link to see the preview update instantly.
               </li>
             ) : (
@@ -92,10 +92,10 @@ export function LinkPreview({ profile, links }: LinkPreviewProps) {
           </ul>
 
           <div className="mt-5 space-y-2 text-xs text-muted-foreground">
-            <p className="flex items-center justify-center gap-2 rounded-2xl border border-brand-brown/10 bg-white px-3 py-2 font-semibold text-brand-brown">
+            <p className="flex items-center justify-center gap-2 rounded-2xl border border-border/40 bg-white px-3 py-2 font-semibold text-foreground">
               <MessageCircle className="h-3.5 w-3.5" /> WhatsApp DM
             </p>
-            <p className="flex items-center justify-center gap-2 rounded-2xl border border-brand-brown/10 bg-white px-3 py-2 font-semibold text-brand-brown">
+            <p className="flex items-center justify-center gap-2 rounded-2xl border border-border/40 bg-white px-3 py-2 font-semibold text-foreground">
               <Mail className="h-3.5 w-3.5" /> Email hello@tutorlingua.co
             </p>
           </div>
@@ -111,7 +111,7 @@ export function LinkPreview({ profile, links }: LinkPreviewProps) {
 
 function SocialBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-brand-brown/10 px-3 py-1 text-[11px] font-semibold text-brand-brown">
+    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
       {icon}
       {label}
     </span>
@@ -121,12 +121,12 @@ function SocialBadge({ icon, label }: { icon: React.ReactNode; label: string }) 
 function buttonClass(style: string) {
   switch (style) {
     case "primary":
-      return "block rounded-full bg-brand-brown px-4 py-3 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90";
+      return "block rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90";
     case "secondary":
-      return "block rounded-full bg-brand-brown/10 px-4 py-3 text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/20";
+      return "block rounded-full bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/20";
     case "outline":
-      return "block rounded-full border border-brand-brown px-4 py-3 text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/10";
+      return "block rounded-full shadow-sm px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-primary/10";
     default:
-      return "block rounded-full bg-white px-4 py-3 text-sm font-semibold text-brand-brown shadow-sm transition hover:bg-brand-brown/10";
+      return "block rounded-full bg-white px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition hover:bg-primary/10";
   }
 }

@@ -28,6 +28,7 @@ type ParentUpdateParams = {
   tutorName: string;
   lessonDate: string;
   timezone: string;
+  lessonName?: string;
   highlights: string[];
   nextFocus?: string;
   resources?: Array<{ label: string; url: string }>;
@@ -83,7 +84,7 @@ export async function sendTestimonialRequestEmail(params: TestimonialRequestPara
     to: params.to,
     subject: `Mind sharing ${params.studentName}'s win?`,
     html: TestimonialRequestEmail({
-      parentName: params.parentName,
+      parentName: params.parentName ?? undefined,
       tutorName: params.tutorName,
       studentName: params.studentName,
       lessonHighlight: params.lessonHighlight,
@@ -91,7 +92,7 @@ export async function sendTestimonialRequestEmail(params: TestimonialRequestPara
       incentive: params.incentive,
     }),
     text: TestimonialRequestEmailText({
-      parentName: params.parentName,
+      parentName: params.parentName ?? undefined,
       tutorName: params.tutorName,
       studentName: params.studentName,
       lessonHighlight: params.lessonHighlight,

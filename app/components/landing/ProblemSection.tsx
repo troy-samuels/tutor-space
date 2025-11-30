@@ -14,10 +14,10 @@ type ProblemSectionProps = {
 export function ProblemSection({ problems }: ProblemSectionProps) {
 
   return (
-    <section className="bg-brand-cream py-20 sm:py-24">
+    <section className="bg-muted py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-brand-black sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {problems.headline}
           </h2>
         </div>
@@ -34,9 +34,9 @@ export function ProblemSection({ problems }: ProblemSectionProps) {
                 >
                   {/* Icon Container */}
                   <div className="mb-6 flex justify-center">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-brand-cream flex items-center justify-center transition-transform group-hover:scale-105">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-muted flex items-center justify-center transition-transform group-hover:scale-105">
                       <Icon
-                        className="text-brand-brown"
+                        className="text-primary"
                         size={40}
                         strokeWidth={2}
                         aria-hidden="true"
@@ -44,7 +44,7 @@ export function ProblemSection({ problems }: ProblemSectionProps) {
                     </div>
                   </div>
 
-                  <h3 className="text-xl font-semibold text-brand-black mb-3 text-center">
+                  <h3 className="text-xl font-semibold text-foreground mb-3 text-center">
                     {problem.title}
                   </h3>
                   <p className="text-gray-700 leading-relaxed text-center">

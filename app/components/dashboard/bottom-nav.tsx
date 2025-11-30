@@ -13,14 +13,17 @@ import {
   Settings,
   Sparkles,
   LayoutGrid,
-  MessageSquare
+  MessageSquare,
+  type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
 
+const AI_TOOLS_ENABLED = process.env.NEXT_PUBLIC_AI_TOOLS_ENABLED === "true";
+
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: BarChart3 },
-  { href: "/bookings", label: "Bookings", icon: CalendarDays },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/students", label: "Students", icon: Users },
   { href: "/services", label: "Services", icon: Briefcase },
 ];
@@ -28,10 +31,17 @@ const NAV_ITEMS = [
 const MORE_ITEMS = [
   { href: "/availability", label: "Availability", icon: Clock, description: "Set your teaching schedule" },
   { href: "/settings", label: "Settings", icon: Settings, description: "Profile & account settings" },
-  { href: "/ai", label: "AI Tools", icon: Sparkles, description: "Lesson planning & resources" },
+  AI_TOOLS_ENABLED
+    ? { href: "/ai", label: "AI Tools", icon: Sparkles, description: "Lesson planning & resources" }
+    : null,
   { href: "/analytics", label: "Analytics", icon: LayoutGrid, description: "View insights & reports" },
   { href: "/marketing", label: "Marketing", icon: MessageSquare, description: "Link-in-bio & promotion" },
-];
+].filter(Boolean) as Array<{
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  description: string;
+}>;
 
 export function DashboardBottomNav() {
   const pathname = usePathname();
@@ -43,7 +53,7 @@ export function DashboardBottomNav() {
   return (
     <nav
       aria-label="Dashboard quick navigation"
-      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-background/90 backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around bg-background/90 backdrop-blur lg:hidden shadow-sm"
     >
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
@@ -80,7 +90,7 @@ export function DashboardBottomNav() {
       <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen} side="bottom">
         <SheetOverlay onClick={() => setMoreMenuOpen(false)} />
         <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
-          <div className="mb-6 pb-4 border-b border-border">
+          <div className="mb-6 pb-4 shadow-sm">
             <h2 className="text-lg font-semibold">More Options</h2>
           </div>
           <div className="space-y-1">
@@ -95,13 +105,13 @@ export function DashboardBottomNav() {
                   className={cn(
                     "flex items-start gap-4 rounded-xl p-4 transition-colors",
                     isActive
-                      ? "bg-brand-brown/10 text-brand-brown"
+                      ? "bg-primary/10 text-primary"
                       : "hover:bg-muted"
                   )}
                 >
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-lg",
-                    isActive ? "bg-brand-brown/20" : "bg-muted"
+                    isActive ? "bg-primary/20" : "bg-muted"
                   )}>
                     <Icon className="h-5 w-5" />
                   </div>

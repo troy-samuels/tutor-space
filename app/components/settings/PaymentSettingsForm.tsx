@@ -11,6 +11,7 @@ interface PaymentSettingsFormProps {
     zelle_phone: string;
     stripe_payment_link: string;
     custom_payment_url: string;
+    booking_currency: string;
   };
 }
 
@@ -208,6 +209,36 @@ export default function PaymentSettingsForm({
             />
             <p className="text-xs text-gray-500 mt-1">
               Any other payment page URL (Square, PayPal, etc.)
+            </p>
+          </div>
+
+          {/* Booking Currency */}
+          <div>
+            <label
+              htmlFor="booking_currency"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Booking Currency
+            </label>
+            <select
+              id="booking_currency"
+              value={formData.booking_currency}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  booking_currency: e.target.value,
+                })
+              }
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
+            >
+              <option value="USD">USD — $ (United States)</option>
+              <option value="EUR">EUR — € (Eurozone)</option>
+              <option value="GBP">GBP — £ (United Kingdom)</option>
+              <option value="CAD">CAD — $ (Canada)</option>
+              <option value="AUD">AUD — $ (Australia)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              This currency will be shown on invoices and booking checkout flows.
             </p>
           </div>
         </div>

@@ -8,9 +8,10 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   links: Array<{ href: string; label: string }>;
+  brandHref?: string;
 }
 
-export function MobileMenu({ isOpen, onClose, links }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, links, brandHref = "/" }: MobileMenuProps) {
   // Prevent body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
@@ -41,7 +42,7 @@ export function MobileMenu({ isOpen, onClose, links }: MobileMenuProps) {
           <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
             <button
               type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-white text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-brown"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-white text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
               onClick={onClose}
             >
               <span className="sr-only">Close menu</span>
@@ -52,11 +53,7 @@ export function MobileMenu({ isOpen, onClose, links }: MobileMenuProps) {
           {/* Menu content */}
           <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-brand-white px-6 pb-4 shadow-xl">
             <div className="flex h-16 shrink-0 items-center">
-              <Link
-                href="/"
-                className="text-2xl font-bold text-brand-brown"
-                onClick={onClose}
-              >
+              <Link href={brandHref} className="text-2xl font-bold text-primary" onClick={onClose}>
                 TutorLingua
               </Link>
             </div>
@@ -68,7 +65,7 @@ export function MobileMenu({ isOpen, onClose, links }: MobileMenuProps) {
                     <Link
                       href={link.href}
                       onClick={onClose}
-                      className="group flex gap-x-3 rounded-md p-3 text-base font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-brand-brown transition-colors"
+                      className="group flex gap-x-3 rounded-md p-3 text-base font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
                     >
                       {link.label}
                     </Link>

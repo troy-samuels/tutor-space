@@ -53,7 +53,7 @@ export function EmailAutomationSettings({
             type="checkbox"
             name="auto_welcome_enabled"
             defaultChecked={autoWelcomeEnabled}
-            className="mt-1 h-4 w-4 rounded border-border accent-brand-brown"
+            className="mt-1 h-4 w-4 rounded border-border accent-primary"
           />
           <div>
             <p className="text-sm font-semibold text-foreground">Auto welcome new students</p>
@@ -69,7 +69,7 @@ export function EmailAutomationSettings({
               type="checkbox"
               name="auto_reengage_enabled"
               defaultChecked={autoReengageEnabled}
-              className="mt-1 h-4 w-4 rounded border-border accent-brand-brown"
+              className="mt-1 h-4 w-4 rounded border-border accent-primary"
             />
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
@@ -98,7 +98,7 @@ export function EmailAutomationSettings({
       <button
         type="submit"
         disabled={isPending}
-        className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-brand-brown px-6 text-sm font-semibold text-white shadow transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save automations"}
       </button>

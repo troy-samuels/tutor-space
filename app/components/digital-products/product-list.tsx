@@ -76,7 +76,7 @@ export function DigitalProductList({ products, profileUsername }: ProductListPro
                   </p>
                 ) : null}
                 {shareUrl ? (
-                  <p className="mt-2 text-xs text-brand-brown">
+                  <p className="mt-2 text-xs text-primary">
                     Share link: <span className="break-all">{shareUrl}</span>
                   </p>
                 ) : null}

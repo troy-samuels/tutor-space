@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import { Instagram, Mail, CalendarDays, CheckCircle2, Music4, Facebook, Twitter } from "lucide-react";
 import { generateCompleteProfileSchema } from "@/lib/utils/structured-data";
+import { StudentConnectButton } from "@/components/student-auth/StudentConnectButton";
 
 type ProfileRecord = {
   id: string;
@@ -29,20 +30,21 @@ type ProfileRecord = {
   total_lessons: number | null;
 };
 
-type ProfilePageParams = {
+type ProfilePageParams = Promise<{
   username: string;
-};
+}>;
 
 export async function generateMetadata({
   params,
 }: {
   params: ProfilePageParams;
 }): Promise<Metadata> {
+  const { username } = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, tagline, bio, avatar_url, username, languages_taught, average_rating, testimonial_count, total_students")
-    .eq("username", params.username.toLowerCase())
+    .eq("username", username.toLowerCase())
     .single();
 
   if (!profile) {
@@ -84,18 +86,18 @@ export async function generateMetadata({
       ...languages.map((lang: string) => `${lang} tutor`),
       ...languages.map((lang: string) => `learn ${lang}`),
       ...languages.map((lang: string) => `${lang} lessons`),
-      params.username,
+      username,
       "online language tutor",
       "private language lessons",
     ].filter(Boolean),
     alternates: {
-      canonical: `/profile/${profile.username ?? params.username}`,
+      canonical: `/profile/${profile.username ?? username}`,
     },
     openGraph: {
       title: `${profile.full_name || profile.username} - ${languagesList} Tutor`,
       description,
       type: "profile",
-      url: `https://tutorlingua.co/profile/${profile.username ?? params.username}`,
+      url: `https://tutorlingua.co/profile/${profile.username ?? username}`,
       images: profile.avatar_url ? [{ 
         url: profile.avatar_url,
         width: 400,
@@ -153,14 +155,19 @@ const SOCIAL_LINKS = [
 ] as const;
 
 export default async function PublicProfilePage({ params }: { params: ProfilePageParams }) {
+  const { username } = await params;
   const supabase = await createClient();
+
+  // Check if current user is a logged-in student
+  const { data: { user } } = await supabase.auth.getUser();
+  const isStudentLoggedIn = !!user && user.user_metadata?.role === "student";
 
   const { data: profile } = await supabase
     .from("profiles")
     .select(
       "id, full_name, username, tagline, bio, languages_taught, timezone, website_url, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email, created_at, average_rating, testimonial_count, total_students, total_lessons"
     )
-    .eq("username", params.username.toLowerCase())
+    .eq("username", username.toLowerCase())
     .single<ProfileRecord>();
 
   if (!profile) {
@@ -190,7 +197,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
   const structuredData = generateCompleteProfileSchema(
     {
       id: profile.id,
-      username: profile.username || params.username,
+      username: profile.username || username,
       full_name: profile.full_name || "",
       bio: profile.bio || "",
       tagline: profile.tagline || undefined,
@@ -236,7 +243,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-cream via-brand-cream/40 to-brand-white">
+    <div className="min-h-screen bg-gradient-to-b from-muted via-muted/40 to-white">
       {/* Structured Data for SEO & LLMs */}
       <script
         type="application/ld+json"
@@ -245,17 +252,17 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
         }}
       />
       
-      <header className="border-b border-brand-brown/20 bg-white/70 backdrop-blur">
+      <header className="border-b border-border bg-white/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-6 sm:px-6">
           <Link
             href="/"
-            className="text-sm font-semibold uppercase tracking-wide text-brand-brown hover:text-brand-brown/80"
+            className="text-sm font-semibold uppercase tracking-wide text-primary hover:text-primary/80"
           >
             TutorLingua
           </Link>
           <Link
             href="/signup"
-            className="rounded-full border border-brand-brown/40 px-4 py-2 text-xs font-semibold text-brand-brown transition hover:bg-brand-brown hover:text-brand-white"
+            className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-primary hover:text-primary-foreground"
           >
             Tutors: Claim your profile
           </Link>
@@ -263,9 +270,9 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-0">
-        <section className="rounded-4xl border border-brand-brown/20 bg-white/90 p-8 shadow-lg backdrop-blur">
+        <section className="rounded-4xl border border-border bg-white/90 p-8 shadow-lg backdrop-blur">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-brand-brown/20 bg-brand-cream">
+            <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-border bg-muted">
               {profile.avatar_url ? (
                 <Image
                   src={profile.avatar_url}
@@ -275,7 +282,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
                   className="object-cover"
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-brand-brown">
+                <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-primary">
                   {profile.full_name?.slice(0, 1) ?? profile.username?.slice(0, 1) ?? "T"}
                 </span>
               )}
@@ -286,21 +293,21 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
                   {profile.full_name ?? profile.username}
                 </h1>
                 {profile.tagline ? (
-                  <p className="mt-1 text-sm text-brand-brown/80">{profile.tagline}</p>
+                  <p className="mt-1 text-sm text-primary/80">{profile.tagline}</p>
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {languages.map((lang) => (
                   <span
                     key={lang}
-                    className="inline-flex items-center rounded-full bg-brand-brown/10 px-3 py-1 font-semibold text-brand-brown"
+                    className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary"
                   >
                     {lang}
                   </span>
                 ))}
                 {profile.timezone ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-brand-brown/20 px-3 py-1">
-                    <CalendarDays className="h-3.5 w-3.5 text-brand-brown" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1">
+                    <CalendarDays className="h-3.5 w-3.5 text-primary" />
                     {profile.timezone}
                   </span>
                 ) : null}
@@ -309,14 +316,23 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
             <div className="flex flex-col gap-3">
               <Link
                 href={`/book/${profile.username}`}
-                className="inline-flex items-center justify-center rounded-full bg-brand-brown px-6 py-2 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
               >
                 Book a lesson
               </Link>
+              <StudentConnectButton
+                tutor={{
+                  id: profile.id,
+                  username: profile.username || username,
+                  full_name: profile.full_name,
+                  avatar_url: profile.avatar_url,
+                }}
+                isLoggedIn={isStudentLoggedIn}
+              />
               {profile.website_url ? (
                 <Link
                   href={profile.website_url}
-                  className="inline-flex items-center justify-center rounded-full border border-brand-brown/30 px-6 py-2 text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/10"
+                  className="inline-flex items-center justify-center rounded-full border shadow-sm px-6 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -334,7 +350,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
                   href={social.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-brand-brown/30 px-4 py-2 text-xs font-semibold text-brand-brown transition hover:bg-brand-brown/10"
+                  className="inline-flex items-center gap-2 rounded-full border shadow-sm px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/10"
                 >
                   <social.Icon className="h-4 w-4" />
                   <span>{social.display}</span>
@@ -345,7 +361,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-          <article className="rounded-4xl border border-brand-brown/20 bg-white/90 p-8 text-sm leading-relaxed text-muted-foreground shadow-lg backdrop-blur">
+          <article className="rounded-4xl border border-border bg-white/90 p-8 text-sm leading-relaxed text-muted-foreground shadow-lg backdrop-blur">
             <h2 className="text-lg font-semibold text-foreground">About {profile.full_name ?? "this tutor"}</h2>
             {profile.bio ? (
               <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
@@ -359,26 +375,26 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
           </article>
 
           <aside className="space-y-6">
-            <div className="rounded-4xl border border-brand-brown/20 bg-white/90 p-6 shadow-lg backdrop-blur">
+            <div className="rounded-4xl border border-border bg-white/90 p-6 shadow-lg backdrop-blur">
               <h3 className="text-base font-semibold text-foreground">Why families choose this tutor</h3>
               <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
                 {credibilityPoints.map((point) => (
                   <li key={point} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-brand-brown" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
                     <span>{point}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="rounded-4xl border border-dashed border-brand-brown/30 bg-brand-brown/5 p-6 text-xs text-muted-foreground">
+            <div className="rounded-4xl border border-dashed shadow-sm bg-primary/5 p-6 text-xs text-muted-foreground">
               <p>
                 Profile last updated{" "}
                 {profile.created_at ? formatDate(profile.created_at) : "recently"}.
               </p>
               <p className="mt-2">
                 Want a profile like this?{" "}
-                <Link href="/signup" className="font-semibold text-brand-brown hover:underline">
+                <Link href="/signup" className="font-semibold text-primary hover:underline">
                   Join TutorLingua
                 </Link>{" "}
                 and publish your tutor brand in minutes.

@@ -9,7 +9,7 @@ type LinkAnalyticsProps = {
 export function LinkAnalytics({ series }: LinkAnalyticsProps) {
   if (series === undefined) {
     return (
-      <div className="rounded-3xl border border-dashed border-brand-brown/30 bg-brand-brown/5 px-5 py-4 text-xs text-muted-foreground">
+      <div className="rounded-3xl border border-dashed border-border bg-muted/50 px-5 py-4 text-xs text-muted-foreground">
         Create the <code>link_events</code> table from <strong>01-database-schema.md</strong> to unlock click analytics.
       </div>
     );
@@ -33,10 +33,10 @@ export function LinkAnalytics({ series }: LinkAnalyticsProps) {
   );
 
   return (
-    <div className="rounded-3xl border border-brand-brown/20 bg-white/90 p-5 shadow-sm backdrop-blur">
+    <div className="rounded-3xl border border-border bg-white/90 p-5 shadow-sm backdrop-blur">
       <header className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-brown/70">Last 7 days</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary/70">Last 7 days</p>
           <p className="text-2xl font-semibold text-foreground">{total}</p>
         </div>
         <span className="text-xs text-muted-foreground">Total clicks</span>
@@ -61,7 +61,7 @@ export function LinkAnalytics({ series }: LinkAnalyticsProps) {
                 cx={x}
                 cy={y}
                 r={4}
-                className="fill-brand-brown/80"
+                className="fill-primary/80"
               />
             );
           })}

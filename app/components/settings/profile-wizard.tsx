@@ -26,16 +26,18 @@ export function ProfileWizard({
 }) {
   return (
     <ProfileWizardProvider initialValues={initialValues} onComplete={onComplete}>
-      <WizardContent steps={steps} onComplete={onComplete} />
+      <WizardContent steps={steps} initialValues={initialValues} onComplete={onComplete} />
     </ProfileWizardProvider>
   );
 }
 
 function WizardContent({
   steps,
+  initialValues,
   onComplete,
 }: {
   steps: WizardStep[];
+  initialValues?: any;
   onComplete?: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -82,9 +84,9 @@ function WizardContent({
               {Math.round(progressPercentage)}% complete
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-brand-cream">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-brand-brown transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -101,10 +103,10 @@ function WizardContent({
                   disabled={index > currentStep}
                   className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition ${
                     index < currentStep
-                      ? "border-brand-brown bg-brand-brown text-brand-white"
+                      ? "shadow-sm bg-primary text-primary-foreground"
                       : index === currentStep
-                      ? "animate-pulse border-brand-brown bg-brand-brown text-brand-white shadow-lg"
-                      : "border-gray-300 bg-white text-gray-400"
+                      ? "animate-pulse shadow-sm bg-primary text-primary-foreground shadow-lg"
+                      : "border-gray-300 bg-white text-foreground"
                   } ${index <= currentStep ? "cursor-pointer hover:shadow-md" : "cursor-not-allowed"}`}
                   aria-label={`Step ${index + 1}: ${step.title}`}
                   aria-current={index === currentStep ? "step" : undefined}
@@ -118,7 +120,7 @@ function WizardContent({
                 <span
                   className={`hidden text-xs font-medium sm:block ${
                     index === currentStep
-                      ? "text-brand-brown"
+                      ? "text-foreground"
                       : index < currentStep
                       ? "text-foreground"
                       : "text-muted-foreground"
@@ -130,7 +132,7 @@ function WizardContent({
               {index < steps.length - 1 && (
                 <div
                   className={`mx-2 h-0.5 w-8 transition sm:w-16 ${
-                    index < currentStep ? "bg-brand-brown" : "bg-gray-300"
+                    index < currentStep ? "bg-primary" : "bg-gray-300"
                   }`}
                 />
               )}
@@ -140,7 +142,7 @@ function WizardContent({
       </div>
 
       {/* Step Content */}
-      <div className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
+      <div className="rounded-3xl border shadow-sm bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8">
         <StepComponent
           onNext={handleNext}
           onBack={handleBack}
@@ -154,7 +156,7 @@ function WizardContent({
           type="button"
           onClick={handleBack}
           disabled={currentStep === 0}
-          className="inline-flex h-11 items-center justify-center rounded-full border-2 border-brand-brown/30 bg-white px-6 text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center rounded-full border-2 shadow-sm/30 bg-white px-6 text-sm font-semibold text-foreground transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Back
         </button>

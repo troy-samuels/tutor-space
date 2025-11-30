@@ -30,8 +30,8 @@ export function LaunchKitSelector({ currentTopic }: LaunchKitSelectorProps) {
             onClick={() => handleSelect(topic.id)}
             className={`rounded-2xl border px-4 py-4 text-left transition ${
               isActive
-                ? "border-brand-brown bg-brand-brown/10 shadow-sm"
-                : "border-border bg-background hover:border-brand-brown/50"
+                ? "border-primary bg-primary/10 shadow-sm"
+                : "border-border bg-background hover:border-primary/50"
             }`}
             disabled={isPending}
           >
@@ -41,7 +41,7 @@ export function LaunchKitSelector({ currentTopic }: LaunchKitSelectorProps) {
                 <p className="text-xs font-medium text-muted-foreground">{topic.badge}</p>
               </div>
               {isActive ? (
-                <CheckCircle2 className="h-5 w-5 text-brand-brown" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
               ) : isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               ) : null}

@@ -337,7 +337,34 @@ async function processEmailCampaignQueue(adminClient: ReturnType<typeof createSe
     .order("created_at", { ascending: true })
     .limit(50);
 
-  const pending = (data ?? []) as CampaignRecipient[];
+  const pending: CampaignRecipient[] = (data ?? []).map((item) => {
+    const campaign = Array.isArray(item.email_campaigns) ? item.email_campaigns[0] : item.email_campaigns;
+    const student = Array.isArray(item.students) ? item.students[0] : item.students;
+    return {
+      id: item.id,
+      campaign_id: item.campaign_id,
+      student_email: item.student_email,
+      student_name: item.student_name,
+      personalization_subject: item.personalization_subject,
+      personalization_body: item.personalization_body,
+      email_campaigns: campaign
+        ? {
+            tutor_id: campaign.tutor_id,
+            kind: campaign.kind,
+            profiles: Array.isArray(campaign.profiles)
+              ? campaign.profiles[0]
+              : campaign.profiles ?? null,
+          }
+        : null,
+      students: student
+        ? {
+            id: student.id,
+            email_opt_out: student.email_opt_out,
+            email_unsubscribe_token: student.email_unsubscribe_token,
+          }
+        : null,
+    };
+  });
   if (pending.length === 0) {
     return { sent: 0, failed: 0 };
   }

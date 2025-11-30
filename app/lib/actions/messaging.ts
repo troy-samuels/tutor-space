@@ -40,6 +40,25 @@ export type MessagingActionState = {
   success?: string;
 };
 
+export async function getUnreadMessageCount(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return 0;
+  }
+
+  const { count } = await supabase
+    .from("conversation_threads")
+    .select("*", { count: "exact", head: true })
+    .eq("tutor_id", user.id)
+    .eq("unread_for_tutor", true);
+
+  return count ?? 0;
+}
+
 export async function sendThreadMessage(
   _prevState: MessagingActionState,
   formData: FormData
@@ -85,9 +104,11 @@ export async function sendThreadMessage(
 
   let senderRole: "tutor" | "student";
 
+  const student = Array.isArray(thread.students) ? thread.students[0] : thread.students;
+
   if (thread.tutor_id === user.id) {
     senderRole = "tutor";
-  } else if (thread.students?.user_id === user.id) {
+  } else if (student?.user_id === user.id) {
     senderRole = "student";
   } else {
     return { error: "You don’t have access to this conversation." };

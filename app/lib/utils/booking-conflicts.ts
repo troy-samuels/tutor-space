@@ -1,7 +1,11 @@
 import { parseISO, addMinutes, areIntervalsOverlapping } from "date-fns";
-import type { Database } from "@/lib/types/database.types";
 
-type Booking = Database["public"]["Tables"]["bookings"]["Row"];
+type Booking = {
+  id?: string;
+  scheduled_at?: string;
+  duration_minutes?: number;
+  status?: string;
+};
 
 export interface ConflictCheck {
   hasConflict: boolean;

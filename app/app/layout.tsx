@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope, Geist_Mono, Merriweather } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { defaultLocale, locales } from "@/lib/i18n/config";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const merriweather = Merriweather({
+  variable: "--font-merriweather",
+  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -107,11 +113,11 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${manrope.variable} ${geistMono.variable} ${merriweather.variable} antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>
-            <LocaleSwitcher />
+            <PageViewTracker />
             {children}
           </AuthProvider>
         </NextIntlClientProvider>

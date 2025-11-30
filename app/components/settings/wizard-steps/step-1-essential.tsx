@@ -192,7 +192,7 @@ export function Step1Essential({
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.full_name
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         />
         {errors.full_name && (
@@ -229,7 +229,7 @@ export function Step1Essential({
                   ? "border-red-300 focus:ring-red-500"
                   : usernameStatus === "available"
                   ? "border-green-300 focus:ring-green-500/20"
-                  : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+                  : "border-gray-300 focus:border-primary focus:ring-primary/20"
               }`}
             />
           </div>
@@ -269,7 +269,7 @@ export function Step1Essential({
                   key={suggestion}
                   type="button"
                   onClick={() => handleChange("username", suggestion)}
-                  className="rounded-full bg-white px-3 py-1 text-xs font-medium text-brand-brown transition hover:bg-brand-brown hover:text-white"
+                  className="rounded-full bg-white px-3 py-1 text-xs font-medium text-primary transition hover:bg-primary hover:text-primary-foreground"
                 >
                   {suggestion}
                 </button>
@@ -298,7 +298,7 @@ export function Step1Essential({
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.timezone
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         >
           <option value="">Select your timezone</option>
@@ -331,7 +331,7 @@ export function Step1Essential({
           className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
             errors.primary_language
               ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-brown focus:ring-brand-brown/20"
+              : "border-gray-300 focus:border-primary focus:ring-primary/20"
           }`}
         >
           <option value="">Select your primary language</option>
@@ -355,7 +355,7 @@ export function Step1Essential({
           type="button"
           onClick={handleSubmit}
           disabled={usernameStatus === "checking" || isSaving}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-brand-brown px-8 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {usernameStatus === "checking" ? (
             <>

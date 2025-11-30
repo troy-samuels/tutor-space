@@ -150,12 +150,6 @@ export async function sendBroadcastEmail(
     return { error: "No students match this audience yet." };
   }
 
-  if (recipients.length === 0) {
-    return {
-      error: "No students match this audience yet. Add students before sending a campaign.",
-    };
-  }
-
   const tutorName = tutorProfile?.full_name?.trim() || "your tutor";
   let scheduledFor = new Date().toISOString();
   if (parsed.data.send_option === "schedule") {

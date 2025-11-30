@@ -11,9 +11,10 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type Entitlements = {
-  plan: "professional" | "growth" | "studio";
+  plan: PlatformBillingPlan;
   growth: boolean;
   studio: boolean;
 };
@@ -65,8 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isMountedRef = useRef(true);
 
   const loadAuthState = useCallback(
-    async (attempt = 0) => {
-      if (isMountedRef.current) {
+    async (options: { attempt?: number; soft?: boolean } = {}) => {
+      const { attempt = 0, soft = false } = options;
+
+      // For background refreshes (soft=true), avoid flipping the UI into a loading state
+      if (isMountedRef.current && !soft) {
         setState((previous) =>
           previous.loading
             ? previous
@@ -82,7 +86,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.debug("[AuthProvider] Fetching auth state", { attempt });
         }
 
-        const response = await fetch("/api/auth/me", {
+        const resolvedEndpoint = (() => {
+          if (typeof window !== "undefined") {
+            const origin = window.location?.origin;
+            if (origin && origin.startsWith("http")) {
+              return `${origin}/api/auth/me`;
+            }
+          }
+          const fallback = process.env.NEXT_PUBLIC_APP_URL;
+          return fallback ? `${fallback.replace(/\/$/, "")}/api/auth/me` : "/api/auth/me";
+        })();
+
+        const response = await fetch(resolvedEndpoint, {
           credentials: "include",
           cache: "no-store",
           headers: {
@@ -100,8 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const user = (payload.user as User) ?? null;
         const profile = (payload.profile as Profile | null) ?? null;
-        const entitlements =
+        const entitlementsRaw =
           (payload.entitlements as Entitlements | undefined) ?? defaultEntitlements;
+        const resolvedPlan = (entitlementsRaw.plan as PlatformBillingPlan) ?? "professional";
+        const entitlements: Entitlements = {
+          plan: resolvedPlan,
+          growth: resolvedPlan === "growth" || resolvedPlan === "studio" || resolvedPlan === "founder_lifetime",
+          studio: resolvedPlan === "studio",
+        };
 
         if (!user && attempt < MAX_AUTH_RETRIES) {
           if (isDebug) {
@@ -111,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setTimeout(() => {
             if (isMountedRef.current) {
-              loadAuthState(attempt + 1);
+              loadAuthState({ attempt: attempt + 1, soft });
             }
           }, RETRY_DELAY_MS);
           return;
@@ -174,9 +195,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initialPathRef.current = pathname;
     if (isDebug) {
-      console.debug("[AuthProvider] Path change detected, refreshing auth", { pathname });
+      console.debug("[AuthProvider] Path change detected, refreshing auth (soft)", { pathname });
     }
-    loadAuthState();
+    loadAuthState({ soft: true });
   }, [pathname, loadAuthState]);
 
   useEffect(() => {

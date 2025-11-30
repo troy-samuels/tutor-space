@@ -108,15 +108,18 @@ export async function getStudentLessonHistory(
 
     // Transform bookings to flat structure
     const flatBookings: Booking[] = bookings.map((booking) => {
-      const record = booking as BookingRow;
+      const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+      const lessonNote = Array.isArray(booking.lesson_notes)
+        ? booking.lesson_notes[0]
+        : booking.lesson_notes?.[0];
       return {
-        id: record.id,
-        scheduled_at: record.scheduled_at,
-        duration_minutes: record.duration_minutes,
-        status: record.status,
-        meeting_url: record.meeting_url,
-        service_name: record.services?.name || "Lesson",
-        lesson_notes: record.lesson_notes?.[0]?.notes || null,
+        id: booking.id,
+        scheduled_at: booking.scheduled_at,
+        duration_minutes: booking.duration_minutes,
+        status: booking.status,
+        meeting_url: booking.meeting_url,
+        service_name: service?.name || "Lesson",
+        lesson_notes: lessonNote?.notes || null,
       };
     });
 

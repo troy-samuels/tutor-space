@@ -6,6 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { decrypt, encrypt } from "@/lib/utils/crypto";
 import { getProviderConfig, type CalendarProvider } from "@/lib/calendar/config";
 import type { TimeWindow } from "@/lib/utils/scheduling";
+import type { CalendarEvent } from "@/lib/types/calendar";
 
 type CalendarConnectionRecord = {
   id: string;
@@ -250,7 +251,10 @@ async function fetchGoogleBusyWindows(
       start: slot.start,
       end: slot.end,
     }))
-    .filter((slot): slot is TimeWindow => Boolean(slot.start && slot.end));
+    .filter(
+      (slot: { start?: string; end?: string }): slot is TimeWindow =>
+        Boolean(slot.start && slot.end)
+    );
 }
 
 async function fetchOutlookBusyWindows(
@@ -277,13 +281,13 @@ async function fetchOutlookBusyWindows(
   const events = Array.isArray(data?.value) ? data.value : [];
 
   return events
-    .filter((event) => !event?.isCancelled)
-    .map((event) => {
+    .filter((event: { isCancelled?: boolean }) => !event?.isCancelled)
+    .map((event: any) => {
       const startIso = graphDateTimeToIso(event?.start);
       const endIso = graphDateTimeToIso(event?.end);
       return startIso && endIso ? { start: startIso, end: endIso } : null;
     })
-    .filter((slot): slot is TimeWindow => Boolean(slot));
+    .filter((slot: TimeWindow | null): slot is TimeWindow => Boolean(slot));
 }
 
 function graphDateTimeToIso(value?: { dateTime?: string; timeZone?: string } | null): string | null {
@@ -298,4 +302,381 @@ function graphDateTimeToIso(value?: { dateTime?: string; timeZone?: string } | n
     const parsed = Date.parse(value.dateTime);
     return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
   }
+}
+
+// Calendar event creation params
+export type CreateCalendarEventParams = {
+  tutorId: string;
+  title: string;
+  start: string; // ISO datetime
+  end: string; // ISO datetime
+  description?: string;
+  studentEmail?: string;
+  timezone?: string; // IANA timezone (e.g., "America/New_York")
+};
+
+/**
+ * Create a calendar event on the tutor's connected calendar(s)
+ * Called after a booking is confirmed/paid to sync the event
+ */
+export async function createCalendarEventForBooking(
+  params: CreateCalendarEventParams
+): Promise<{ success: boolean; error?: string }> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    console.warn("[CalendarEvent] Service role client unavailable.");
+    return { success: false, error: "Service unavailable" };
+  }
+
+  const { data, error } = await adminClient
+    .from("calendar_connections")
+    .select(
+      "id, provider, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, sync_status"
+    )
+    .eq("tutor_id", params.tutorId);
+
+  if (error || !data || data.length === 0) {
+    console.log("[CalendarEvent] No calendar connections for tutor", params.tutorId);
+    return { success: true }; // Not an error - just no calendar connected
+  }
+
+  let created = false;
+  let lastError: string | undefined;
+
+  for (const record of data as CalendarConnectionRecord[]) {
+    if (record.sync_status && !SYNCABLE_STATUSES.has(record.sync_status)) {
+      continue;
+    }
+
+    const accessToken = await ensureFreshAccessToken(record, adminClient);
+    if (!accessToken) {
+      lastError = "Failed to get access token";
+      continue;
+    }
+
+    try {
+      if (record.provider === "google") {
+        await createGoogleCalendarEvent(accessToken, params);
+        created = true;
+        console.log(`✅ Created Google calendar event for tutor ${params.tutorId}`);
+      } else if (record.provider === "outlook") {
+        await createOutlookCalendarEvent(accessToken, params);
+        created = true;
+        console.log(`✅ Created Outlook calendar event for tutor ${params.tutorId}`);
+      }
+    } catch (err) {
+      console.error(`[CalendarEvent] Failed to create ${record.provider} event:`, err);
+      lastError = err instanceof Error ? err.message : "Failed to create event";
+
+      // Update connection status on error
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "error",
+          error_message: lastError,
+        })
+        .eq("id", record.id);
+    }
+  }
+
+  if (created) {
+    return { success: true };
+  }
+
+  return { success: false, error: lastError || "No calendar to create event in" };
+}
+
+async function createGoogleCalendarEvent(
+  accessToken: string,
+  params: CreateCalendarEventParams
+): Promise<void> {
+  // Use the provided timezone or default to UTC
+  const eventTimezone = params.timezone || "UTC";
+
+  const event = {
+    summary: params.title,
+    description: params.description || "Booked via TutorLingua",
+    start: {
+      dateTime: params.start,
+      timeZone: eventTimezone,
+    },
+    end: {
+      dateTime: params.end,
+      timeZone: eventTimezone,
+    },
+    attendees: params.studentEmail ? [{ email: params.studentEmail }] : undefined,
+    reminders: {
+      useDefault: true,
+    },
+  };
+
+  const response = await fetch(
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Google Calendar API error ${response.status}: ${errorText}`);
+  }
+}
+
+async function createOutlookCalendarEvent(
+  accessToken: string,
+  params: CreateCalendarEventParams
+): Promise<void> {
+  // Use the provided timezone or default to UTC
+  const eventTimezone = params.timezone || "UTC";
+
+  const event = {
+    subject: params.title,
+    body: {
+      contentType: "text",
+      content: params.description || "Booked via TutorLingua",
+    },
+    start: {
+      dateTime: params.start,
+      timeZone: eventTimezone,
+    },
+    end: {
+      dateTime: params.end,
+      timeZone: eventTimezone,
+    },
+    attendees: params.studentEmail
+      ? [
+          {
+            emailAddress: { address: params.studentEmail },
+            type: "required",
+          },
+        ]
+      : undefined,
+    isReminderOn: true,
+    reminderMinutesBeforeStart: 30,
+  };
+
+  const response = await fetch(
+    "https://graph.microsoft.com/v1.0/me/events",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Microsoft Graph API error ${response.status}: ${errorText}`);
+  }
+}
+
+// New function to get calendar events WITH details (title, source, etc.)
+export async function getCalendarEventsWithDetails({
+  tutorId,
+  start = new Date(),
+  days = 14,
+}: BusyWindowParams): Promise<CalendarEvent[]> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    console.warn("[CalendarEvents] Service role client unavailable.");
+    return [];
+  }
+
+  const windowStart = start;
+  const windowEnd = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+  const timeMin = windowStart.toISOString();
+  const timeMax = windowEnd.toISOString();
+
+  const { data, error } = await adminClient
+    .from("calendar_connections")
+    .select(
+      "id, provider, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, sync_status"
+    )
+    .eq("tutor_id", tutorId);
+
+  if (error) {
+    console.error("[CalendarEvents] Failed to load connections", error);
+    return [];
+  }
+
+  const events: CalendarEvent[] = [];
+
+  for (const record of (data ?? []) as CalendarConnectionRecord[]) {
+    if (record.sync_status && !SYNCABLE_STATUSES.has(record.sync_status)) {
+      continue;
+    }
+
+    const connectionEvents = await fetchEventsForConnection({
+      connection: record,
+      adminClient,
+      timeMin,
+      timeMax,
+    });
+
+    if (connectionEvents?.length) {
+      events.push(...connectionEvents);
+    }
+  }
+
+  return events.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+}
+
+async function fetchEventsForConnection({
+  connection,
+  adminClient,
+  timeMin,
+  timeMax,
+}: {
+  connection: CalendarConnectionRecord;
+  adminClient: SupabaseClient;
+  timeMin: string;
+  timeMax: string;
+}): Promise<CalendarEvent[] | null> {
+  const accessToken = await ensureFreshAccessToken(connection, adminClient);
+
+  if (!accessToken) {
+    return null;
+  }
+
+  try {
+    let events: CalendarEvent[] | null = null;
+
+    if (connection.provider === "google") {
+      events = await fetchGoogleEvents(accessToken, timeMin, timeMax);
+    } else if (connection.provider === "outlook") {
+      events = await fetchOutlookEvents(accessToken, timeMin, timeMax);
+    }
+
+    if (events?.length) {
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          last_synced_at: new Date().toISOString(),
+          sync_status: "healthy",
+          error_message: null,
+        })
+        .eq("id", connection.id);
+    }
+
+    return events;
+  } catch (error) {
+    console.error("[CalendarEvents] Failed to fetch events", error);
+    await adminClient
+      .from("calendar_connections")
+      .update({
+        sync_status: "error",
+        error_message: error instanceof Error ? error.message : "Unable to sync calendar.",
+      })
+      .eq("id", connection.id);
+    return null;
+  }
+}
+
+async function fetchGoogleEvents(
+  accessToken: string,
+  timeMin: string,
+  timeMax: string
+): Promise<CalendarEvent[]> {
+  const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+  url.searchParams.set("timeMin", timeMin);
+  url.searchParams.set("timeMax", timeMax);
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("orderBy", "startTime");
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google events failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const items = Array.isArray(data?.items) ? data.items : [];
+
+  return items
+    .filter((item: { status?: string }) => item.status !== "cancelled")
+    .map((item: {
+      id?: string;
+      summary?: string;
+      start?: { dateTime?: string; date?: string };
+      end?: { dateTime?: string; date?: string };
+    }) => {
+      const startIso = item.start?.dateTime || item.start?.date;
+      const endIso = item.end?.dateTime || item.end?.date;
+
+      if (!startIso || !endIso) return null;
+
+      return {
+        id: `google-${item.id}`,
+        title: item.summary || "Busy",
+        start: new Date(startIso).toISOString(),
+        end: new Date(endIso).toISOString(),
+        type: "google" as const,
+        source: "Google Calendar",
+        packageType: "external" as const,
+      };
+    })
+    .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
+}
+
+async function fetchOutlookEvents(
+  accessToken: string,
+  timeMin: string,
+  timeMax: string
+): Promise<CalendarEvent[]> {
+  const url = new URL("https://graph.microsoft.com/v1.0/me/calendarview");
+  url.searchParams.set("startDateTime", timeMin);
+  url.searchParams.set("endDateTime", timeMax);
+  url.searchParams.set("$select", "id,subject,start,end,isCancelled");
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Prefer: 'outlook.timezone="UTC"',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Microsoft calendarView failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const events = Array.isArray(data?.value) ? data.value : [];
+
+  return events
+    .filter((event: { isCancelled?: boolean }) => !event?.isCancelled)
+    .map((event: {
+      id?: string;
+      subject?: string;
+      start?: { dateTime?: string; timeZone?: string };
+      end?: { dateTime?: string; timeZone?: string };
+    }) => {
+      const startIso = graphDateTimeToIso(event?.start);
+      const endIso = graphDateTimeToIso(event?.end);
+
+      if (!startIso || !endIso) return null;
+
+      return {
+        id: `outlook-${event.id}`,
+        title: event.subject || "Busy",
+        start: startIso,
+        end: endIso,
+        type: "outlook" as const,
+        source: "Outlook Calendar",
+        packageType: "external" as const,
+      };
+    })
+    .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
 }

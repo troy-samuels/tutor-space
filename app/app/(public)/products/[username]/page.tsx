@@ -3,15 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { ProductPurchaseForm } from "@/components/digital-products/purchase-form";
 
 type PageProps = {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 };
 
 export default async function TutorProductsPage({ params }: PageProps) {
+  const resolvedParams = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, full_name, bio, username")
-    .eq("username", params.username)
+    .eq("username", resolvedParams.username)
     .single();
 
   if (!profile) {
@@ -42,7 +43,7 @@ export default async function TutorProductsPage({ params }: PageProps) {
             <div key={product.id} className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm">
               <p className="text-lg font-semibold text-foreground">{product.title}</p>
               <p className="text-sm text-muted-foreground">{product.description}</p>
-              <p className="mt-2 text-base font-semibold text-brand-brown">
+              <p className="mt-2 text-base font-semibold text-primary">
                 ${(product.price_cents / 100).toFixed(2)} {product.currency.toUpperCase()}
               </p>
               <div className="mt-4">

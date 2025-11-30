@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/middleware/rate-limit";
 
 type DigitalProductPurchase = {
   id: string;
@@ -15,9 +16,22 @@ type DigitalProductPurchase = {
 };
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  // Rate limit: 10 download attempts per token per 5 minutes
+  const rateLimitResult = await rateLimit(request, {
+    limit: 10,
+    window: 5 * 60 * 1000, // 5 minutes
+  });
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: "Too many download attempts. Please wait a few minutes and try again." },
+      { status: 429 }
+    );
+  }
+
   const { token } = await params;
   const adminClient = createServiceRoleClient();
 
@@ -63,10 +77,18 @@ export async function GET(
   }
 
   if (product.fulfillment_type === "link" && product.external_url) {
-    await adminClient
+    // Use atomic increment with optimistic locking to prevent race conditions
+    const { data: updated, error: updateError } = await adminClient
       .from("digital_product_purchases")
       .update({ download_count: purchase.download_count + 1 })
-      .eq("id", purchase.id);
+      .eq("id", purchase.id)
+      .eq("download_count", purchase.download_count) // Optimistic lock
+      .select("download_count")
+      .single();
+
+    if (updateError || !updated) {
+      return NextResponse.json({ error: "Download limit reached or concurrent access detected." }, { status: 403 });
+    }
 
     return NextResponse.redirect(product.external_url, { status: 302 });
   }
@@ -83,10 +105,18 @@ export async function GET(
     return NextResponse.json({ error: "Unable to generate download link." }, { status: 500 });
   }
 
-  await adminClient
+  // Use atomic increment with optimistic locking to prevent race conditions
+  const { data: updated, error: updateError } = await adminClient
     .from("digital_product_purchases")
     .update({ download_count: purchase.download_count + 1 })
-    .eq("id", purchase.id);
+    .eq("id", purchase.id)
+    .eq("download_count", purchase.download_count) // Optimistic lock
+    .select("download_count")
+    .single();
+
+  if (updateError || !updated) {
+    return NextResponse.json({ error: "Download limit reached or concurrent access detected." }, { status: 403 });
+  }
 
   return NextResponse.redirect(signedUrlData.signedUrl, { status: 302 });
 }

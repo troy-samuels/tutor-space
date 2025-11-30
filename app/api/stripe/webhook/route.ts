@@ -4,7 +4,10 @@ import { stripe } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import Stripe from "stripe";
 import { sendDigitalProductDeliveryEmail } from "@/lib/emails/digital-products";
-import { sendPaymentReceiptEmail } from "@/lib/emails/booking-emails";
+import { sendPaymentReceiptEmail, sendTutorBookingNotificationEmail, sendPaymentFailedEmail } from "@/lib/emails/booking-emails";
+import { mapPriceIdToPlan } from "@/lib/payments/subscriptions";
+import { getFounderPlanName } from "@/lib/pricing/founder";
+import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
 
 type ServiceRoleClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 
@@ -24,6 +27,7 @@ type BookingDetails = {
   } | null;
   tutor: {
     full_name: string | null;
+    email: string | null;
   } | null;
 };
 
@@ -101,6 +105,39 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // IDEMPOTENCY CHECK: Prevent duplicate event processing
+  // This is critical for preventing double charges, duplicate emails, etc.
+  const { data: existingEvent } = await supabase
+    .from("processed_stripe_events")
+    .select("event_id")
+    .eq("event_id", event.id)
+    .single();
+
+  if (existingEvent) {
+    console.log(`⚠️ Event ${event.id} already processed, skipping (idempotency)`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Mark event as being processed BEFORE handling to prevent race conditions
+  const { error: insertError } = await supabase
+    .from("processed_stripe_events")
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+      processed_at: new Date().toISOString(),
+      metadata: { livemode: event.livemode },
+    });
+
+  if (insertError) {
+    // If insert fails due to unique constraint, another worker got it first
+    if (insertError.code === "23505") {
+      console.log(`⚠️ Event ${event.id} being processed by another worker`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    console.error("Failed to mark event as processing:", insertError);
+    // Continue anyway - better to potentially double-process than to drop events
+  }
+
   // Handle different event types
   try {
     switch (event.type) {
@@ -125,13 +162,19 @@ export async function POST(req: NextRequest) {
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentSucceeded(invoice);
+        await handleInvoicePaymentSucceeded(invoice, supabase);
         break;
       }
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentFailed(invoice);
+        await handleInvoicePaymentFailed(invoice, supabase);
+        break;
+      }
+
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        await handleAccountUpdated(account, supabase);
         break;
       }
 
@@ -157,6 +200,82 @@ async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
   supabase: ServiceRoleClient
 ) {
+  // Founder lifetime purchase (one-time)
+  const isFounderLifetime = session.metadata?.plan === getFounderPlanName();
+  const profileIdFromMetadata = session.metadata?.userId;
+
+  if (isFounderLifetime && profileIdFromMetadata) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        plan: getFounderPlanName(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profileIdFromMetadata);
+
+    if (error) {
+      console.error("Failed to mark founder lifetime purchase:", error);
+      throw error;
+    }
+
+    console.log(`✅ Founder lifetime purchased for profile ${profileIdFromMetadata}`);
+    return;
+  }
+
+  // Handle lifetime purchase for users without an account yet
+  // Check customer_email from session or metadata
+  if (isFounderLifetime && !profileIdFromMetadata) {
+    const customerEmail = session.customer_email || session.metadata?.customer_email;
+
+    if (customerEmail) {
+      // First check if a profile with this email already exists
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", customerEmail.toLowerCase())
+        .single();
+
+      if (existingProfile) {
+        // Update existing profile
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            plan: getFounderPlanName(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingProfile.id);
+
+        if (error) {
+          console.error("Failed to update lifetime purchase for existing profile:", error);
+          throw error;
+        }
+        console.log(`✅ Founder lifetime purchased for existing profile ${existingProfile.id}`);
+      } else {
+        // Store the purchase for linking when user signs up
+        const { error } = await supabase
+          .from("lifetime_purchases")
+          .upsert({
+            email: customerEmail.toLowerCase(),
+            stripe_session_id: session.id,
+            stripe_customer_id: session.customer as string,
+            amount_paid: session.amount_total,
+            currency: session.currency,
+            purchased_at: new Date().toISOString(),
+            claimed: false,
+          }, {
+            onConflict: "email",
+          });
+
+        if (error) {
+          console.error("Failed to store lifetime purchase:", error);
+          // Don't throw - the payment succeeded, we just couldn't store it
+        }
+        console.log(`✅ Founder lifetime purchase stored for ${customerEmail}`);
+      }
+    }
+    return;
+  }
+
   const productPurchaseId = session.metadata?.digital_product_purchase_id;
   if (productPurchaseId) {
     await handleDigitalProductPurchase(session, supabase, productPurchaseId);
@@ -166,6 +285,34 @@ async function handleCheckoutSessionCompleted(
   const bookingId = session.metadata?.bookingId;
   if (!bookingId) {
     console.log("No bookingId in session metadata");
+    return;
+  }
+
+  // PAYMENT VERIFICATION: Verify payment actually succeeded before marking as paid
+  // This prevents marking bookings as paid when payment actually failed
+  if (session.payment_intent) {
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      session.payment_intent as string
+    );
+
+    if (paymentIntent.status !== "succeeded") {
+      console.error(
+        `⚠️ Payment intent ${paymentIntent.id} status is ${paymentIntent.status}, not succeeded. Skipping booking update.`
+      );
+      return;
+    }
+    console.log(`✅ Payment verified: ${paymentIntent.id} status = succeeded`);
+  }
+
+  // Check if booking is already confirmed (idempotency at booking level)
+  const { data: existingBooking } = await supabase
+    .from("bookings")
+    .select("status, payment_status")
+    .eq("id", bookingId)
+    .single();
+
+  if (existingBooking?.payment_status === "paid") {
+    console.log(`⚠️ Booking ${bookingId} already marked as paid, skipping update`);
     return;
   }
 
@@ -190,6 +337,58 @@ async function handleCheckoutSessionCompleted(
 
   console.log(`✅ Booking ${bookingId} marked as paid`);
 
+  // If this was a Connect payment, record it in the payments audit
+  if (session.payment_intent && session.metadata?.tutorId) {
+    // Get the payment intent to check for destination charges
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      session.payment_intent as string
+    );
+
+    const metadata = session.metadata as Record<string, string> | null;
+    const studentProfileId =
+      metadata?.studentProfileId ||
+      metadata?.studentId ||
+      null;
+
+    let auditStudentId: string | null = null;
+    if (studentProfileId) {
+      const { data: studentProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", studentProfileId)
+        .single();
+
+      if (studentProfile?.id) {
+        auditStudentId = studentProfile.id;
+      }
+    }
+
+    if (paymentIntent.transfer_data?.destination) {
+      const { error: auditError } = await supabase
+        .from("payments_audit")
+        .insert({
+          tutor_id: session.metadata.tutorId,
+          student_id: auditStudentId,
+          booking_id: bookingId,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || "usd",
+          application_fee_cents: paymentIntent.application_fee_amount || 0,
+          net_amount_cents: (session.amount_total || 0) - (paymentIntent.application_fee_amount || 0),
+          stripe_payment_intent_id: session.payment_intent as string,
+          stripe_charge_id: paymentIntent.latest_charge as string | null,
+          destination_account_id: paymentIntent.transfer_data.destination as string,
+          payment_type: "booking",
+          created_at: new Date().toISOString(),
+        });
+
+      if (auditError) {
+        console.error("Failed to create payment audit record:", auditError);
+      } else {
+        console.log(`✅ Payment audit recorded for booking ${bookingId}`);
+      }
+    }
+  }
+
   const { data: bookingDetails } = await supabase
     .from("bookings")
     .select(
@@ -209,7 +408,8 @@ async function handleCheckoutSessionCompleted(
           email
         ),
         tutor:profiles!bookings_tutor_id_fkey (
-          full_name
+          full_name,
+          email
         )
       `
     )
@@ -243,7 +443,64 @@ async function handleCheckoutSessionCompleted(
     });
   }
 
-  // TODO: Create calendar event if calendar is connected
+  // Send payment notification to tutor if it was a Connect payment
+  const tutorEmail = bookingDetails?.tutor?.email;
+  if (tutorEmail && amountCents > 0 && session.metadata?.tutorId) {
+    await sendPaymentReceiptEmail({
+      studentName: bookingDetails?.tutor?.full_name ?? "Tutor",
+      studentEmail: tutorEmail,
+      tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
+      serviceName: bookingDetails?.services?.name ?? "Lesson",
+      scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+      timezone: bookingDetails?.timezone ?? "UTC",
+      amountCents,
+      currency,
+      paymentMethod: "STRIPE",
+      notes: `Payment received from ${bookingDetails?.students?.full_name ?? "student"} via Stripe Connect. Funds will be available in your Stripe account according to your payout schedule.`,
+    });
+  }
+
+  // Notify tutor of successful payment
+  const tutorNotifyEmail = bookingDetails?.tutor?.email;
+  const tutorName = bookingDetails?.tutor?.full_name ?? "Tutor";
+  if (tutorNotifyEmail && amountCents > 0) {
+    await sendTutorBookingNotificationEmail({
+      tutorName,
+      tutorEmail: tutorNotifyEmail,
+      studentName: bookingDetails?.students?.full_name ?? "Student",
+      studentEmail: studentEmail ?? "",
+      serviceName: bookingDetails?.services?.name ?? "Lesson",
+      scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+      durationMinutes: 60,
+      timezone: bookingDetails?.timezone ?? "UTC",
+      amount: amountCents,
+      currency,
+      notes: undefined,
+      dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/bookings`,
+    });
+  }
+
+  // Create calendar event on tutor's connected calendar(s)
+  const tutorId = session.metadata?.tutorId;
+  if (tutorId && bookingDetails?.scheduled_at) {
+    // Calculate event end time using service duration or default to 60 minutes
+    const startDate = new Date(bookingDetails.scheduled_at);
+    const durationMinutes = 60; // Default, could be fetched from service if available
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+
+    createCalendarEventForBooking({
+      tutorId,
+      title: `${bookingDetails?.services?.name ?? "Lesson"} with ${bookingDetails?.students?.full_name ?? "Student"}`,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      description: `TutorLingua booking - ${bookingDetails?.services?.name ?? "Lesson"}\nStudent: ${bookingDetails?.students?.full_name ?? "Unknown"}\nBooking ID: ${bookingId}`,
+      studentEmail: bookingDetails?.students?.email ?? undefined,
+      timezone: bookingDetails?.timezone ?? "UTC",
+    }).catch((err) => {
+      // Don't fail the webhook if calendar creation fails
+      console.error("[Webhook] Failed to create calendar event:", err);
+    });
+  }
 }
 
 async function handleDigitalProductPurchase(
@@ -318,16 +575,8 @@ async function handleSubscriptionUpdate(
     return;
   }
 
-  // Determine plan from subscription
   const priceId = subscription.items.data[0]?.price.id;
-  let plan = "professional";
-
-  // Map price IDs to plans (you'll need to set these up in Stripe)
-  if (priceId === process.env.STRIPE_GROWTH_PRICE_ID) {
-    plan = "growth";
-  } else if (priceId === process.env.STRIPE_STUDIO_PRICE_ID) {
-    plan = "studio";
-  }
+  const plan = mapPriceIdToPlan(priceId);
 
   // Update or create subscription record
   const { error: upsertError } = await supabase
@@ -365,7 +614,7 @@ async function handleSubscriptionUpdate(
 
 /**
  * Handle subscription deletion
- * Downgrade user to free plan
+ * Keep plan at founder_lifetime (single tier) but mark subscription canceled
  */
 async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription,
@@ -398,10 +647,11 @@ async function handleSubscriptionDeleted(
     console.error("Failed to update subscription status:", updateSubError);
   }
 
-  // Downgrade to professional (free) plan
+  const fallbackPlan = "founder_lifetime";
+
   const { error: updateError } = await supabase
     .from("profiles")
-    .update({ plan: "professional" })
+    .update({ plan: fallbackPlan })
     .eq("id", profile.id);
 
   if (updateError) {
@@ -409,24 +659,254 @@ async function handleSubscriptionDeleted(
     throw updateError;
   }
 
-  console.log(`✅ Subscription canceled for profile ${profile.id}, downgraded to professional`);
+  console.log(`✅ Subscription canceled for profile ${profile.id}, plan set to ${fallbackPlan}`);
 }
 
 /**
  * Handle successful invoice payment
- * Record in invoices table if needed
+ * Update subscription status and extend access period
  */
-async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+async function handleInvoicePaymentSucceeded(
+  invoice: Stripe.Invoice,
+  supabase: ServiceRoleClient
+) {
   console.log(`Invoice ${invoice.id} payment succeeded`);
-  // TODO: Record in invoices table if tracking invoice history
+
+  // Get subscription ID from parent.subscription_details
+  const subscriptionDetails = invoice.parent?.subscription_details;
+  const subscriptionId = subscriptionDetails
+    ? (typeof subscriptionDetails.subscription === "string"
+        ? subscriptionDetails.subscription
+        : subscriptionDetails.subscription?.id)
+    : null;
+
+  // Only process subscription invoices
+  if (!subscriptionId) {
+    console.log(`Invoice ${invoice.id} is not a subscription invoice, skipping`);
+    return;
+  }
+
+  const customerId = invoice.customer as string;
+  if (!customerId) {
+    console.log("No customer ID in invoice, skipping");
+    return;
+  }
+
+  // Find profile by Stripe customer ID
+  const { data: profile, error: findError } = await supabase
+    .from("profiles")
+    .select("id, email, full_name")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (findError || !profile) {
+    console.error("Profile not found for customer:", customerId);
+    return;
+  }
+
+  // Update subscription status to active (in case it was past_due)
+  const { error: updateError } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "active",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscriptionId);
+
+  if (updateError) {
+    console.error("Failed to update subscription status:", updateError);
+  }
+
+  // Reset any failed payment counters if we have them
+  await supabase
+    .from("profiles")
+    .update({
+      payment_failed_count: 0,
+      last_payment_failure_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", profile.id);
+
+  console.log(`Invoice ${invoice.id} processed - subscription ${subscriptionId} renewed for profile ${profile.id}`);
 }
 
 /**
  * Handle failed invoice payment
- * Send notification to user
+ * Send notification to user and update subscription status
  */
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+async function handleInvoicePaymentFailed(
+  invoice: Stripe.Invoice,
+  supabase: ServiceRoleClient
+) {
   console.log(`Invoice ${invoice.id} payment failed`);
-  // TODO: Send email notification about failed payment
-  // TODO: Update subscription status if payment fails multiple times
+
+  // Get subscription ID from parent.subscription_details
+  const subscriptionDetails = invoice.parent?.subscription_details;
+  const subscriptionId = subscriptionDetails
+    ? (typeof subscriptionDetails.subscription === "string"
+        ? subscriptionDetails.subscription
+        : subscriptionDetails.subscription?.id)
+    : null;
+
+  // Only process subscription invoices
+  if (!subscriptionId) {
+    console.log(`Invoice ${invoice.id} is not a subscription invoice, skipping`);
+    return;
+  }
+
+  const customerId = invoice.customer as string;
+  if (!customerId) {
+    console.log("No customer ID in invoice, skipping");
+    return;
+  }
+
+  // Find profile by Stripe customer ID
+  const { data: profile, error: findError } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, payment_failed_count")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (findError || !profile) {
+    console.error("Profile not found for customer:", customerId);
+    return;
+  }
+
+  // Increment failed payment count
+  const failedCount = (profile.payment_failed_count || 0) + 1;
+
+  // Update profile with failure info
+  await supabase
+    .from("profiles")
+    .update({
+      payment_failed_count: failedCount,
+      last_payment_failure_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", profile.id);
+
+  // Update subscription status to past_due
+  const { error: updateError } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "past_due",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscriptionId);
+
+  if (updateError) {
+    console.error("Failed to update subscription status:", updateError);
+  }
+
+  // Format amount for display
+  let amountDue = "N/A";
+  if (invoice.amount_due && invoice.currency) {
+    try {
+      amountDue = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: invoice.currency,
+      }).format(invoice.amount_due / 100);
+    } catch {
+      amountDue = `${invoice.currency.toUpperCase()} ${(invoice.amount_due / 100).toFixed(2)}`;
+    }
+  }
+
+  // Get plan name from subscription
+  let planName = "Your subscription";
+  if (subscriptionId) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      const priceId = subscription.items.data[0]?.price.id;
+      if (priceId) {
+        planName = mapPriceIdToPlan(priceId);
+        // Capitalize first letter
+        planName = planName.charAt(0).toUpperCase() + planName.slice(1);
+      }
+    } catch (err) {
+      console.error("Failed to retrieve subscription for plan name:", err);
+    }
+  }
+
+  // Calculate next retry date (Stripe typically retries in 3-5 days)
+  const nextRetryDate = invoice.next_payment_attempt
+    ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })
+    : undefined;
+
+  // Send email notification about failed payment
+  if (profile.email) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co";
+    const updatePaymentUrl = `${baseUrl}/settings/billing`;
+
+    await sendPaymentFailedEmail({
+      userEmail: profile.email,
+      userName: profile.full_name || "there",
+      planName,
+      amountDue,
+      nextRetryDate,
+      updatePaymentUrl,
+    });
+
+    console.log(`Payment failed email sent to ${profile.email}`);
+  }
+
+  // If payment has failed multiple times, consider downgrading
+  if (failedCount >= 3) {
+    console.log(`Profile ${profile.id} has ${failedCount} failed payments - may need manual intervention`);
+    // Could implement automatic downgrade here if desired
+  }
+
+  console.log(`Invoice ${invoice.id} failure processed for profile ${profile.id} (failure count: ${failedCount})`);
+}
+
+/**
+ * Handle Stripe Connect account updates
+ * Update tutor's capability flags when their account status changes
+ */
+async function handleAccountUpdated(
+  account: Stripe.Account,
+  supabase: ServiceRoleClient
+) {
+  if (!account.id) {
+    console.error("No account ID in webhook payload");
+    return;
+  }
+
+  // Extract the status from the account
+  const chargesEnabled = account.charges_enabled ?? false;
+  const payoutsEnabled = account.payouts_enabled ?? false;
+  
+  // Determine onboarding status
+  let onboardingStatus: "pending" | "completed" | "restricted" = "pending";
+  if (chargesEnabled && payoutsEnabled) {
+    onboardingStatus = "completed";
+  } else if (account.requirements?.disabled_reason) {
+    onboardingStatus = "restricted";
+  }
+
+  // Update the profile with the latest Connect status
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      stripe_charges_enabled: chargesEnabled,
+      stripe_payouts_enabled: payoutsEnabled,
+      stripe_onboarding_status: onboardingStatus,
+      stripe_default_currency: account.default_currency || null,
+      stripe_country: account.country || null,
+      stripe_last_capability_check_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_account_id", account.id);
+
+  if (error) {
+    console.error("Failed to update Connect status:", error);
+    throw error;
+  }
+
+  console.log(
+    `✅ Updated Connect account ${account.id}: charges=${chargesEnabled}, payouts=${payoutsEnabled}, status=${onboardingStatus}`
+  );
 }

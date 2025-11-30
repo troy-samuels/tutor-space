@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { Upload, FileText, UserPlus, CheckCircle2, AlertTriangle, Link as LinkIcon } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Upload, Plus, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,510 +10,273 @@ import {
   type StudentImportPayload,
   type StudentImportResult,
 } from "@/lib/actions/students";
-import { useAuth } from "@/lib/hooks/useAuth";
 
-type ParsedStudent = StudentImportPayload;
-
-type ManualFormState = {
-  full_name: string;
-  email: string;
-  phone: string;
-  proficiency_level: string;
-  native_language: string;
-  learning_goals: string;
-  notes: string;
-  status: string;
-};
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "trial", label: "Trial" },
-  { value: "paused", label: "Paused" },
-  { value: "alumni", label: "Alumni" },
-];
+// Maximum CSV file size: 5MB
+const MAX_CSV_SIZE_BYTES = 5 * 1024 * 1024;
+// Maximum number of rows in a single import
+const MAX_IMPORT_ROWS = 1000;
 
 const CSV_TEMPLATE = `full_name,email,phone,proficiency_level,status,learning_goals,native_language,notes
 Jane Doe,jane@example.com,+12025550111,Intermediate,Active,"Exam prep","English","Prefers Monday sessions"
 Leo Kim,leo@example.com,,Beginner,Trial,"Travel readiness","Korean","Parent is main contact"
 `;
 
-export function AddStudentsPanel() {
-  const [mode, setMode] = useState<"csv" | "manual">("csv");
-  const [parsedStudents, setParsedStudents] = useState<ParsedStudent[]>([]);
-  const [csvParseErrors, setCsvParseErrors] = useState<string[]>([]);
-  const [importResult, setImportResult] = useState<StudentImportResult | null>(null);
-  const [manualForm, setManualForm] = useState<ManualFormState>({
-    full_name: "",
-    email: "",
-    phone: "",
-    proficiency_level: "",
-    native_language: "",
-    learning_goals: "",
-    notes: "",
-    status: "active",
-  });
-  const [manualFeedback, setManualFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+type Student = {
+  id: string;
+  fullName: string;
+  email: string;
+  status?: string;
+};
+
+type Props = {
+  students: Student[];
+  onStudentAdded?: () => void;
+};
+
+export function AddStudentsPanel({ students, onStudentAdded }: Props) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
+  const [csvResult, setCsvResult] = useState<StudentImportResult | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { profile } = useAuth();
-  const bookingLink = profile?.username ? `/book/${profile.username}` : null;
 
-  const templateHref = useMemo(() => {
-    return `data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`;
-  }, []);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
 
-  const handleModeChange = (nextMode: "csv" | "manual") => {
-    setMode(nextMode);
-    setImportResult(null);
-    setManualFeedback(null);
+    if (!name.trim() || !email.trim()) {
+      setFeedback({ type: "error", message: "Name and email are required." });
+      return;
+    }
+
+    const payload: StudentImportPayload = {
+      full_name: name.trim(),
+      email: email.trim(),
+      phone: undefined,
+      status: undefined,
+      proficiency_level: undefined,
+      learning_goals: undefined,
+      native_language: undefined,
+      notes: undefined,
+    };
+
+    startTransition(async () => {
+      const result = await importStudentsBatch([payload]);
+      if (result.success) {
+        setFeedback({ type: "success", message: "Student added" });
+        setName("");
+        setEmail("");
+        onStudentAdded?.();
+        // Clear success message after 3 seconds
+        setTimeout(() => setFeedback(null), 3000);
+      } else {
+        setFeedback({
+          type: "error",
+          message: result.errors[0]?.message ?? "Failed to add student.",
+        });
+      }
+    });
   };
 
-  const handleCsvFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setImportResult(null);
-    setCsvParseErrors([]);
+  const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setCsvErrors([]);
+    setCsvResult(null);
 
-    if (!file) {
-      setParsedStudents([]);
+    if (!file) return;
+
+    if (file.size > MAX_CSV_SIZE_BYTES) {
+      setCsvErrors(["File too large. Maximum size is 5MB."]);
       return;
     }
 
     try {
       const text = await file.text();
       const { rows, errors } = parseCsv(text);
-      setParsedStudents(rows);
-      setCsvParseErrors(errors);
-      if (errors.length === 0 && rows.length === 0) {
-        setCsvParseErrors(["No data rows found in this CSV."]);
+
+      if (errors.length > 0) {
+        setCsvErrors(errors);
+        return;
       }
-    } catch (error) {
-      setParsedStudents([]);
-      setCsvParseErrors(["We couldn't read that file. Please try again with a UTF-8 CSV."]);
-      console.error("[Students] Failed to read CSV", error);
-    }
-  };
 
-  const handleCsvImport = () => {
-    if (parsedStudents.length === 0) {
-      setCsvParseErrors(["Add at least one row before importing."]);
-      return;
-    }
-
-    setImportResult(null);
-    setCsvParseErrors([]);
-    startTransition(async () => {
-      const result = await importStudentsBatch(parsedStudents);
-      setImportResult(result);
-      if (result.success) {
-        setParsedStudents([]);
+      if (rows.length === 0) {
+        setCsvErrors(["No data rows found in this CSV."]);
+        return;
       }
-    });
-  };
 
-  const handleManualChange = (field: keyof ManualFormState, value: string) => {
-    setManualForm((prev) => ({ ...prev, [field]: value }));
-  };
+      if (rows.length > MAX_IMPORT_ROWS) {
+        setCsvErrors([`Too many rows. Maximum is ${MAX_IMPORT_ROWS} students per import.`]);
+        return;
+      }
 
-  const resetManualForm = () => {
-    setManualForm({
-      full_name: "",
-      email: "",
-      phone: "",
-      proficiency_level: "",
-      native_language: "",
-      learning_goals: "",
-      notes: "",
-      status: "active",
-    });
-  };
-
-  const handleManualSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setManualFeedback(null);
-
-    if (!manualForm.full_name.trim() || !manualForm.email.trim()) {
-      setManualFeedback({
-        type: "error",
-        message: "Full name and email are required.",
+      // Import the students
+      startTransition(async () => {
+        const result = await importStudentsBatch(rows);
+        setCsvResult(result);
+        if (result.success) {
+          onStudentAdded?.();
+        }
       });
-      return;
+    } catch {
+      setCsvErrors(["Couldn't read file. Please try a UTF-8 CSV."]);
     }
-
-    const payload: StudentImportPayload = {
-      full_name: manualForm.full_name.trim(),
-      email: manualForm.email.trim(),
-      phone: manualForm.phone.trim() || undefined,
-      proficiency_level: manualForm.proficiency_level.trim() || undefined,
-      native_language: manualForm.native_language.trim() || undefined,
-      learning_goals: manualForm.learning_goals.trim() || undefined,
-      notes: manualForm.notes.trim() || undefined,
-      status: manualForm.status,
-    };
-
-    startTransition(async () => {
-      const result = await importStudentsBatch([payload]);
-      if (result.success) {
-        setManualFeedback({
-          type: "success",
-          message: "Student added.",
-        });
-        resetManualForm();
-      } else {
-        setManualFeedback({
-          type: "error",
-          message:
-            result.errors[0]?.message ??
-            "We couldn’t add that student. Double-check email and try again.",
-        });
-      }
-    });
   };
 
-  const csvPreviewHeaders = ["Full name", "Email", "Phone", "Status", "Proficiency"];
-  const csvPreviewRows = parsedStudents.slice(0, 5);
+  const statusStyles: Record<string, string> = {
+    active: "bg-emerald-100 text-emerald-700",
+    trial: "bg-amber-100 text-amber-700",
+    paused: "bg-gray-100 text-gray-600",
+    alumni: "bg-sky-100 text-sky-700",
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => handleModeChange("csv")}
-          className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-            mode === "csv"
-              ? "border-primary bg-primary/10 text-primary"
-              : "border-border bg-background text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Upload className="h-4 w-4" />
-          Upload CSV
-        </button>
-        <button
-          type="button"
-          onClick={() => handleModeChange("manual")}
-          className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-            mode === "manual"
-              ? "border-primary bg-primary/10 text-primary"
-              : "border-border bg-background text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <UserPlus className="h-4 w-4" />
-          Manual entry
-        </button>
-      </div>
-
-      {mode === "csv" ? (
-        <section className="rounded-3xl border border-border bg-background/80 p-6 shadow-sm backdrop-blur">
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-foreground">Upload a CSV</h2>
-            <p className="text-sm text-muted-foreground">
-              Required columns: <strong>full_name</strong> and <strong>email</strong>. Optional
-              columns include phone, proficiency_level, status, native_language, learning_goals, and
-              notes.
-            </p>
+      {/* Inline Add Form */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <Input
+              type="text"
+              placeholder="Student name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isPending}
+              className="h-10"
+            />
           </div>
+          <div className="flex-1">
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isPending}
+              className="h-10"
+            />
+          </div>
+          <Button type="submit" disabled={isPending} className="h-10 px-6">
+            <Plus className="mr-1.5 h-4 w-4" />
+            {isPending ? "Adding..." : "Add"}
+          </Button>
+        </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-dashed border-primary/40 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10">
+        {/* Feedback */}
+        {feedback && (
+          <p
+            className={`text-sm ${
+              feedback.type === "success" ? "text-emerald-600" : "text-destructive"
+            }`}
+          >
+            {feedback.message}
+          </p>
+        )}
+
+        {/* CSV Import Link */}
+        <button
+          type="button"
+          onClick={() => setShowCsvImport(!showCsvImport)}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Upload className="h-3 w-3" />
+          Import from CSV
+          {showCsvImport ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </button>
+      </form>
+
+      {/* Collapsible CSV Import */}
+      {showCsvImport && (
+        <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors">
               <FileText className="h-4 w-4" />
-              <span>Select CSV</span>
+              Select CSV
               <Input
                 type="file"
                 accept=".csv,text/csv"
                 className="sr-only"
                 onChange={handleCsvFile}
+                disabled={isPending}
               />
             </label>
-            <Button variant="outline" size="sm" asChild>
-              <a href={templateHref} download="tutorlingua-students-template.csv">
-                Download template
-              </a>
-            </Button>
-          </div>
-
-          {csvParseErrors.length > 0 && (
-            <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-              <p className="font-semibold">We found {csvParseErrors.length} issue(s):</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
-                {csvParseErrors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {parsedStudents.length > 0 && (
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Ready to import <strong>{parsedStudents.length}</strong>{" "}
-                  {parsedStudents.length === 1 ? "student" : "students"}.
-                </p>
-                <Button onClick={handleCsvImport} disabled={isPending} className="min-w-[160px]">
-                  {isPending ? "Importing..." : "Import students"}
-                </Button>
-              </div>
-              <div className="overflow-x-auto rounded-2xl border border-border">
-                <table className="min-w-full divide-y divide-border text-sm">
-                  <thead className="bg-muted/40 text-muted-foreground">
-                    <tr>
-                      {csvPreviewHeaders.map((header) => (
-                        <th key={header} className="px-4 py-2 text-left font-semibold">
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {csvPreviewRows.map((row, index) => (
-                      <tr key={`${row.email}-${index}`}>
-                        <td className="px-4 py-2">{row.full_name}</td>
-                        <td className="px-4 py-2">{row.email}</td>
-                        <td className="px-4 py-2">{row.phone ?? "—"}</td>
-                        <td className="px-4 py-2 text-xs capitalize">
-                          {row.status ? row.status : "—"}
-                        </td>
-                        <td className="px-4 py-2">{row.proficiency_level ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {parsedStudents.length > csvPreviewRows.length && (
-                  <p className="px-4 py-3 text-xs text-muted-foreground">
-                    Showing first {csvPreviewRows.length} rows.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {importResult && (
-            <ImportResultNotice result={importResult} bookingLink={bookingLink} />
-          )}
-        </section>
-      ) : (
-        <section className="rounded-3xl border border-border bg-background/80 p-6 shadow-sm backdrop-blur">
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-foreground">Add an individual student</h2>
-            <p className="text-sm text-muted-foreground">
-              We’ll create the record immediately. Add as many students as you need—one per submit.
-            </p>
-          </div>
-
-          {manualFeedback && (
-            <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
-                manualFeedback.type === "success"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-destructive/30 bg-destructive/5 text-destructive"
-              }`}
+            <a
+              href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`}
+              download="students-template.csv"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              <p>{manualFeedback.message}</p>
-              {manualFeedback.type === "success" && bookingLink ? (
-                <ShareAvailabilityActions bookingLink={bookingLink} />
-              ) : null}
+              Download template
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Required columns: <strong>full_name</strong> and <strong>email</strong>
+          </p>
+
+          {csvErrors.length > 0 && (
+            <div className="text-sm text-destructive">
+              {csvErrors.map((err, i) => (
+                <p key={i}>{err}</p>
+              ))}
             </div>
           )}
 
-          <form className="mt-6 space-y-4" onSubmit={handleManualSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Full name*</label>
-                <Input
-                  value={manualForm.full_name}
-                  onChange={(event) => handleManualChange("full_name", event.target.value)}
-                  placeholder="Jane Doe"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Email*</label>
-                <Input
-                  type="email"
-                  value={manualForm.email}
-                  onChange={(event) => handleManualChange("email", event.target.value)}
-                  placeholder="jane@example.com"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Phone</label>
-                <Input
-                  value={manualForm.phone}
-                  onChange={(event) => handleManualChange("phone", event.target.value)}
-                  placeholder="+1 202 555 0111"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground">Status</label>
-                <select
-                  value={manualForm.status}
-                  onChange={(event) => handleManualChange("status", event.target.value)}
-                  className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-1">
-                <label className="text-xs font-semibold text-muted-foreground">Proficiency</label>
-                <Input
-                  value={manualForm.proficiency_level}
-                  onChange={(event) =>
-                    handleManualChange("proficiency_level", event.target.value)
-                  }
-                  placeholder="Intermediate"
-                />
-              </div>
-              <div className="sm:col-span-1">
-                <label className="text-xs font-semibold text-muted-foreground">Native language</label>
-                <Input
-                  value={manualForm.native_language}
-                  onChange={(event) =>
-                    handleManualChange("native_language", event.target.value)
-                  }
-                  placeholder="English"
-                />
-              </div>
-              <div className="sm:col-span-1">
-                <label className="text-xs font-semibold text-muted-foreground">Learning goals</label>
-                <Input
-                  value={manualForm.learning_goals}
-                  onChange={(event) =>
-                    handleManualChange("learning_goals", event.target.value)
-                  }
-                  placeholder="DELE B2 prep"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Notes</label>
-              <textarea
-                value={manualForm.notes}
-                onChange={(event) => handleManualChange("notes", event.target.value)}
-                rows={3}
-                className="mt-1 block w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Any extra context you want to remember."
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : "Add student"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={resetManualForm}
-                className="text-muted-foreground"
-              >
-                Clear form
-              </Button>
-            </div>
-          </form>
-        </section>
-      )}
-    </div>
-  );
-}
-
-function ImportResultNotice({ result, bookingLink }: { result: StudentImportResult; bookingLink?: string | null }) {
-  if (result.success) {
-    return (
-      <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4" />
-          {result.imported} {result.imported === 1 ? "student imported" : "students imported"}.
+          {csvResult && (
+            <p className={`text-sm ${csvResult.success ? "text-emerald-600" : "text-destructive"}`}>
+              {csvResult.success
+                ? `${csvResult.imported} student${csvResult.imported === 1 ? "" : "s"} imported`
+                : `Import failed: ${csvResult.errors[0]?.message}`}
+            </p>
+          )}
         </div>
-        {bookingLink ? <ShareAvailabilityActions bookingLink={bookingLink} /> : null}
-      </div>
-    );
-  }
-
-  if (result.errors.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-      <p className="flex items-center gap-2 font-semibold">
-        <AlertTriangle className="h-4 w-4" />
-        We couldn’t import every row.
-      </p>
-      {result.imported > 0 && (
-        <p className="mt-1 text-xs text-destructive/80">
-          Imported {result.imported} {result.imported === 1 ? "student" : "students"} before hitting
-          the following errors:
-        </p>
       )}
-      <ErrorList errors={result.errors} />
+
+      {/* Student List */}
+      <div className="space-y-2">
+        {students.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            No students yet. Add your first student above.
+          </p>
+        ) : (
+          students.map((student) => {
+            const initials = student.fullName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+
+            const status = student.status?.toLowerCase() ?? "active";
+            const statusClass = statusStyles[status] ?? statusStyles.active;
+
+            return (
+              <Link
+                key={student.id}
+                href={`/students/${student.id}`}
+                className="flex items-center gap-3 rounded-xl border border-border bg-white/90 px-4 py-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600">
+                  {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{student.fullName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{student.email}</p>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${statusClass}`}
+                >
+                  {status}
+                </span>
+              </Link>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
 
-function ErrorList({
-  errors,
-}: {
-  errors: StudentImportResult["errors"];
-}) {
-  return (
-    <ul className="mt-2 list-disc space-y-1 pl-5 text-destructive">
-      {errors.map((error, index) => (
-        <li key={`${error.row}-${index}`}>
-          Row {error.row}
-          {error.email ? ` (${error.email})` : ""}: {error.message}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ShareAvailabilityActions({ bookingLink }: { bookingLink: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      const absoluteUrl =
-        typeof window !== "undefined"
-          ? new URL(bookingLink, window.location.origin).toString()
-          : bookingLink;
-      await navigator.clipboard.writeText(absoluteUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error("[Students] Failed to copy availability link", error);
-    }
-  };
-
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-      <Button asChild size="sm">
-        <a href={bookingLink} target="_blank" rel="noopener noreferrer">
-          <LinkIcon className="mr-2 h-3.5 w-3.5" />
-          View availability page
-        </a>
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={handleCopy}
-        className="text-muted-foreground"
-      >
-        {copied ? "Link copied" : "Copy booking link"}
-      </Button>
-    </div>
-  );
-}
-
-function parseCsv(text: string): { rows: ParsedStudent[]; errors: string[] } {
-  const rows: ParsedStudent[] = [];
+function parseCsv(text: string): { rows: StudentImportPayload[]; errors: string[] } {
+  const rows: StudentImportPayload[] = [];
   const errors: string[] = [];
 
   const trimmed = text.trim();
@@ -525,21 +289,20 @@ function parseCsv(text: string): { rows: ParsedStudent[]; errors: string[] } {
     return { rows, errors: ["CSV file is empty."] };
   }
 
-  const headers = splitCsvLine(lines[0]).map((header) => header.trim().toLowerCase());
+  const headers = splitCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
   if (!headers.includes("full_name") || !headers.includes("email")) {
     errors.push("CSV must include 'full_name' and 'email' headers.");
     return { rows, errors };
   }
 
-  for (let i = 1; i < lines.length; i += 1) {
+  for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
-    if (!line.trim()) {
-      continue;
-    }
+    if (!line.trim()) continue;
+
     const values = splitCsvLine(line);
     const record: Record<string, string> = {};
-    headers.forEach((header, index) => {
-      record[header] = values[index]?.trim() ?? "";
+    headers.forEach((header, idx) => {
+      record[header] = values[idx]?.trim() ?? "";
     });
 
     if (!record.full_name || !record.email) {
@@ -568,12 +331,12 @@ function splitCsvLine(line: string): string[] {
   let current = "";
   let inQuotes = false;
 
-  for (let i = 0; i < line.length; i += 1) {
+  for (let i = 0; i < line.length; i++) {
     const char = line[i];
     if (char === '"') {
       if (inQuotes && line[i + 1] === '"') {
         current += '"';
-        i += 1;
+        i++;
       } else {
         inQuotes = !inQuotes;
       }

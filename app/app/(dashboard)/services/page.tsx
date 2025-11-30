@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { ServiceRecord } from "@/lib/actions/services";
-import type { SessionPackageRecord } from "@/lib/actions/session-packages";
+import type { ServiceRecord } from "@/lib/types/service";
+import type { SessionPackageRecord } from "@/lib/types/session-package";
 import { ServiceDashboard } from "@/components/services/service-dashboard";
 
 type ProfileDefaults = {
@@ -20,7 +20,7 @@ export default async function ServicesPage() {
   const servicesResponse = await supabase
     .from("services")
     .select(
-      "id, tutor_id, name, description, duration_minutes, price, currency, is_active, requires_approval, max_students_per_session, created_at, updated_at"
+      "id, tutor_id, name, description, duration_minutes, price, currency, price_amount, price_currency, is_active, requires_approval, max_students_per_session, offer_type, created_at, updated_at"
     )
     .eq("tutor_id", user.id)
     .order("created_at", { ascending: true });

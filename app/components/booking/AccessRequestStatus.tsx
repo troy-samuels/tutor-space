@@ -17,6 +17,7 @@ interface TutorInfo {
 interface AccessRequestStatusProps {
   tutor: TutorInfo;
   accessStatus: AccessStatus;
+  studentId?: string;
 }
 
 export function AccessRequestStatus({
@@ -57,12 +58,12 @@ export function AccessRequestStatus({
   const Icon = config.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-cream via-brand-cream/40 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-muted via-muted/40 to-white">
       <div className="max-w-2xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Back Link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-brand-brown mb-8 transition"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary mb-8 transition"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to home
@@ -131,7 +132,7 @@ export function AccessRequestStatus({
               </p>
               <a
                 href={`mailto:${tutor.email}`}
-                className="inline-flex items-center gap-2 text-brand-brown hover:underline font-semibold"
+                className="inline-flex items-center gap-2 text-primary hover:underline font-semibold"
               >
                 <Mail className="h-4 w-4" />
                 Contact {tutor.fullName}
@@ -142,12 +143,12 @@ export function AccessRequestStatus({
 
         {/* Additional Actions */}
         {accessStatus === "pending" && (
-          <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 text-center">
+          <div className="bg-white shadow-sm rounded-xl p-5 sm:p-6 text-center">
             <p className="text-sm text-gray-600 mb-4">
               Didn&apos;t receive a confirmation email? Check your spam folder or request a new one.
             </p>
             <button
-              className="text-sm font-semibold text-brand-brown hover:underline"
+              className="text-sm font-semibold text-primary hover:underline"
               onClick={() => {
                 // TODO: Implement resend email functionality
                 alert("Email resent! Please check your inbox.");
@@ -159,14 +160,14 @@ export function AccessRequestStatus({
         )}
 
         {accessStatus === "denied" && (
-          <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 text-center">
+          <div className="bg-white shadow-sm rounded-xl p-5 sm:p-6 text-center">
             <p className="text-sm text-gray-600 mb-4">
               If you believe this was a mistake, please reach out to {tutor.fullName} directly.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
                 href={`mailto:${tutor.email}`}
-                className="inline-flex items-center justify-center gap-2 bg-brand-brown text-white px-6 py-3 rounded-lg font-semibold hover:bg-brand-brown/90 transition"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition"
               >
                 <Mail className="h-4 w-4" />
                 Email Tutor
@@ -176,7 +177,7 @@ export function AccessRequestStatus({
                   href={`https://instagram.com/${tutor.instagramHandle.replace(/^@/, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-white text-brand-brown border-2 border-brand-brown px-6 py-3 rounded-lg font-semibold hover:bg-brand-brown/5 transition"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-primary shadow-md px-6 py-3 rounded-lg font-semibold hover:bg-primary/5 transition"
                 >
                   Contact on Instagram
                 </a>

@@ -23,12 +23,13 @@ type BioParams = {
   username: string;
 };
 
-export async function generateMetadata({ params }: { params: BioParams }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<BioParams> }): Promise<Metadata> {
+  const resolvedParams = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, tagline, username, avatar_url")
-    .eq("username", params.username.toLowerCase())
+    .eq("username", resolvedParams.username.toLowerCase())
     .single();
 
   if (!profile) {
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: { params: BioParams }): Promi
     };
   }
 
-  const name = profile.full_name ?? profile.username ?? params.username;
+  const name = profile.full_name ?? profile.username ?? resolvedParams.username;
   const description =
     profile.tagline ?? `${name} – featured resources and ways to book a lesson on TutorLingua.`;
 
@@ -45,19 +46,20 @@ export async function generateMetadata({ params }: { params: BioParams }): Promi
     title: `${name} | TutorLingua Link Hub`,
     description,
     alternates: {
-      canonical: `/bio/${profile.username ?? params.username}`,
+      canonical: `/bio/${profile.username ?? resolvedParams.username}`,
     },
     openGraph: {
       title: `${name} | TutorLingua Link Hub`,
       description,
       type: "website",
-      url: `https://tutorlingua.co/bio/${profile.username ?? params.username}`,
+      url: `https://tutorlingua.co/bio/${profile.username ?? resolvedParams.username}`,
       images: profile.avatar_url ? [{ url: profile.avatar_url }] : undefined,
     },
   };
 }
 
-export default async function BioPage({ params }: { params: BioParams }) {
+export default async function BioPage({ params }: { params: Promise<BioParams> }) {
+  const resolvedParams = await params;
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -65,7 +67,7 @@ export default async function BioPage({ params }: { params: BioParams }) {
     .select(
       "id, full_name, username, tagline, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email"
     )
-    .eq("username", params.username.toLowerCase())
+    .eq("username", resolvedParams.username.toLowerCase())
     .single<BioProfile>();
 
   if (!profile) {
@@ -82,18 +84,18 @@ export default async function BioPage({ params }: { params: BioParams }) {
   const tutorLinks = (links as LinkRecord[] | null) ?? [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-cream via-brand-cream/60 to-white">
-      <header className="border-b border-brand-brown/20 bg-white/70 backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-b from-muted via-muted/60 to-white">
+      <header className="border-b border-border bg-white/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-6 sm:px-6">
           <Link
             href="/"
-            className="text-sm font-semibold uppercase tracking-wide text-brand-brown hover:text-brand-brown/80"
+            className="text-sm font-semibold uppercase tracking-wide text-primary hover:text-primary/80"
           >
             TutorLingua
           </Link>
           <Link
             href="/signup"
-            className="rounded-full border border-brand-brown/40 px-4 py-2 text-xs font-semibold text-brand-brown transition hover:bg-brand-brown hover:text-brand-white"
+            className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-primary hover:text-primary-foreground"
           >
             Tutors: Build your link hub
           </Link>
@@ -102,11 +104,11 @@ export default async function BioPage({ params }: { params: BioParams }) {
 
       <main className="mx-auto flex w-full max-w-4xl flex-col items-center gap-8 px-4 py-12 sm:px-6">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="relative h-24 w-24 overflow-hidden rounded-full border border-brand-brown/30 bg-brand-brown/10">
+          <div className="relative h-24 w-24 overflow-hidden rounded-full border border-border bg-primary/10">
             {profile.avatar_url ? (
               <Image src={profile.avatar_url} alt={profile.full_name ?? "Tutor avatar"} fill sizes="96px" className="object-cover" />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-3xl font-semibold text-brand-brown">
+              <span className="flex h-full w-full items-center justify-center text-3xl font-semibold text-primary">
                 {(profile.full_name ?? profile.username ?? "T").slice(0, 1).toUpperCase()}
               </span>
             )}
@@ -118,7 +120,7 @@ export default async function BioPage({ params }: { params: BioParams }) {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2 text-xs text-brand-brown">
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-primary">
             {profile.instagram_handle ? (
               <SocialLink href={`https://instagram.com/${cleanHandle(profile.instagram_handle)}`}>
                 <Instagram className="h-4 w-4" /> Instagram
@@ -149,7 +151,7 @@ export default async function BioPage({ params }: { params: BioParams }) {
 
         <section className="w-full max-w-xl space-y-4">
           {tutorLinks.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-brand-brown/30 bg-brand-brown/5 px-5 py-6 text-center text-sm text-brand-brown">
+            <div className="rounded-3xl border border-dashed border-border bg-muted/50 px-5 py-6 text-center text-sm text-foreground">
               This tutor is still adding resources. Check back soon, or tap book a lesson to connect directly.
             </div>
           ) : (
@@ -175,7 +177,7 @@ export default async function BioPage({ params }: { params: BioParams }) {
           <div className="flex justify-center">
             <a
               href="https://instagram.com/tutorlingua.co"
-              className="inline-flex items-center gap-2 rounded-full border border-brand-brown/30 px-4 py-2 text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/10"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -205,7 +207,7 @@ function SocialLink({ href, children }: { href: string; children: React.ReactNod
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-1 rounded-full border border-brand-brown/30 px-3 py-1 font-semibold transition hover:bg-brand-brown/10"
+      className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 font-semibold transition hover:bg-primary/10"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -221,12 +223,12 @@ function cleanHandle(handle: string) {
 function buttonClass(style: string) {
   switch (style) {
     case "primary":
-      return "block rounded-full bg-brand-brown px-5 py-3 text-center text-sm font-semibold text-brand-white shadow-md transition hover:bg-brand-brown/90";
+      return "block rounded-full bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90";
     case "secondary":
-      return "block rounded-full bg-brand-brown/10 px-5 py-3 text-center text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/20";
+      return "block rounded-full bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/20";
     case "outline":
-      return "block rounded-full border border-brand-brown px-5 py-3 text-center text-sm font-semibold text-brand-brown transition hover:bg-brand-brown/10";
+      return "block rounded-full border shadow-sm px-5 py-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/10";
     default:
-      return "block rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-brand-brown shadow-md transition hover:bg-brand-brown/10";
+      return "block rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-primary shadow-md transition hover:bg-primary/10";
   }
 }

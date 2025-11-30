@@ -133,10 +133,13 @@ export async function createBookingCheckoutSession(params: {
 
   const amountCents = bookingRecord.payment_amount;
   const currency = (bookingRecord.currency || "USD").toLowerCase();
+  const serviceData = Array.isArray(bookingRecord.services)
+    ? bookingRecord.services[0]
+    : bookingRecord.services;
   const serviceName =
-    bookingRecord.services?.name || params.serviceName || "Booking Payment";
+    serviceData?.name || params.serviceName || "Booking Payment";
   const serviceDescription =
-    bookingRecord.services?.description || params.serviceDescription;
+    serviceData?.description || params.serviceDescription;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 

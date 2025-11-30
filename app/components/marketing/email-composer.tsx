@@ -46,7 +46,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
             Personalize with <code>{"{{student_name}}"}</code> and <code>{"{{tutor_name}}"}</code> tokens.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full border border-brand-brown/40 px-3 py-1 text-xs font-semibold text-brand-brown">
+        <span className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-semibold text-primary">
           <Sparkles className="h-4 w-4" />
           SMTP ready
         </span>
@@ -79,8 +79,8 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
                   onClick={() => applyTemplate(template.id)}
                   className={`rounded-2xl border px-4 py-3 text-left transition ${
                     isActive
-                      ? "border-brand-brown bg-brand-brown/10 text-brand-brown"
-                      : "border-border bg-muted/40 hover:border-brand-brown/40"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted/40 hover:border-border"
                   }`}
                   disabled={isPending}
                 >
@@ -90,7 +90,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
                       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{template.subject}</p>
                     </div>
                     {recommendedSet.has(template.id) ? (
-                      <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase text-brand-brown shadow">
+                      <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary shadow">
                         Recommended
                       </span>
                     ) : null}
@@ -144,7 +144,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
                 <label
                   key={optionId}
                   className={`flex cursor-pointer flex-col rounded-2xl border px-4 py-3 transition ${
-                    isSelected ? "border-brand-brown bg-brand-brown/10" : "border-border bg-muted/20 hover:border-brand-brown/40"
+                    isSelected ? "border-primary bg-primary/10" : "border-border bg-muted/20 hover:border-border"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -152,7 +152,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
                       <p className="text-sm font-semibold text-foreground">{option.label}</p>
                       <p className="text-xs text-muted-foreground">{option.helper}</p>
                     </div>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-brown shadow">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary shadow">
                       {count}
                     </span>
                   </div>
@@ -181,7 +181,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
                   value="now"
                   checked={sendOption === "now"}
                   onChange={() => setSendOption("now")}
-                  className="h-4 w-4 accent-brand-brown"
+                  className="h-4 w-4 accent-primary"
                 />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Send now</p>
@@ -197,7 +197,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
                   value="schedule"
                   checked={sendOption === "schedule"}
                   onChange={() => setSendOption("schedule")}
-                  className="h-4 w-4 accent-brand-brown"
+                  className="h-4 w-4 accent-primary"
                 />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Schedule</p>
@@ -219,7 +219,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
           </div>
         </section>
 
-        <div className="flex items-center justify-between rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between rounded-2xl border border-dashed border-border/70 bg-muted/30 px-4 py-3 text-xs text-foreground">
           <p>
             Need ideas? Templates above are editable. Tokens: <code>{"{{student_name}}"}</code>,{" "}
             <code>{"{{tutor_name}}"}</code>
@@ -229,7 +229,7 @@ export function EmailComposer({ counts, recommendedTemplates }: EmailComposerPro
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-brown px-6 text-sm font-semibold text-white shadow transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? (
             <>

@@ -84,7 +84,7 @@ export function Step3Preferences({
   return (
     <div className="space-y-6">
       {/* Booking Enabled */}
-      <div className="rounded-2xl border border-brand-brown/20 bg-brand-cream/30 p-5">
+      <div className="rounded-2xl border border-border bg-muted/30 p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-1">
             <h3 className="font-semibold text-foreground">
@@ -97,8 +97,8 @@ export function Step3Preferences({
           <button
             type="button"
             onClick={() => handleToggle("booking_enabled")}
-            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-brown focus:ring-offset-2 ${
-              formData.booking_enabled ? "bg-brand-brown" : "bg-gray-300"
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+              formData.booking_enabled ? "bg-primary" : "bg-gray-300"
             }`}
             role="switch"
             aria-checked={formData.booking_enabled}
@@ -114,14 +114,14 @@ export function Step3Preferences({
 
       {/* Auto Accept Bookings */}
       {formData.booking_enabled && (
-        <div className="rounded-2xl border border-brand-brown/20 bg-white p-5">
+        <div className="rounded-2xl border border-border bg-white p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground">
                   Auto-Accept Bookings
                 </h3>
-                <span className="rounded-full bg-brand-brown/10 px-2 py-0.5 text-xs font-medium text-brand-brown">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-foreground">
                   Recommended
                 </span>
               </div>
@@ -132,8 +132,8 @@ export function Step3Preferences({
             <button
               type="button"
               onClick={() => handleToggle("auto_accept_bookings")}
-              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-brown focus:ring-offset-2 ${
-                formData.auto_accept_bookings ? "bg-brand-brown" : "bg-gray-300"
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                formData.auto_accept_bookings ? "bg-primary" : "bg-gray-300"
               }`}
               role="switch"
               aria-checked={formData.auto_accept_bookings}
@@ -169,21 +169,21 @@ export function Step3Preferences({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-brand-brown/20 bg-white p-5">
+          <div className="rounded-2xl border border-border bg-white p-5">
             {/* Stepper Control */}
             <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
                 onClick={() => changeBuffer(-5)}
                 disabled={formData.buffer_time_minutes === 0}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-brown/30 bg-white text-brand-brown transition hover:bg-brand-brown/5 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-white text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Decrease buffer time"
               >
                 <Minus className="h-5 w-5" />
               </button>
 
               <div className="min-w-[140px] text-center">
-                <div className="text-3xl font-semibold text-brand-brown">
+                <div className="text-3xl font-semibold text-foreground">
                   {formatBufferTime(formData.buffer_time_minutes)}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -197,7 +197,7 @@ export function Step3Preferences({
                 type="button"
                 onClick={() => changeBuffer(5)}
                 disabled={formData.buffer_time_minutes === 480}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-brown/30 bg-white text-brand-brown transition hover:bg-brand-brown/5 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-white text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Increase buffer time"
               >
                 <Plus className="h-5 w-5" />
@@ -217,7 +217,7 @@ export function Step3Preferences({
                     onClick={() => setBufferPreset(minutes)}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       formData.buffer_time_minutes === minutes
-                        ? "bg-brand-brown text-brand-white shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -271,7 +271,7 @@ export function Step3Preferences({
           type="button"
           onClick={handleSubmit}
           disabled={isSaving}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-brand-brown px-8 text-sm font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? (
             <>

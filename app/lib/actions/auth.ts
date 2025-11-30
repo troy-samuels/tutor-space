@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
+import { getFounderOfferLimit, getFounderPlanName } from "@/lib/pricing/founder";
 
 const DASHBOARD_ROUTE = "/dashboard";
 
@@ -24,7 +25,9 @@ export async function signUp(
   const fullName = (formData.get("full_name") as string)?.trim();
   const username = (formData.get("username") as string)?.trim().toLowerCase();
   const role = (formData.get("role") as string) || "tutor";
-  const plan = (formData.get("plan") as string) || "professional";
+  const planFromForm = (formData.get("plan") as string) || "";
+  const founderPlan = getFounderPlanName();
+  const desiredPlan = role === "tutor" ? planFromForm || founderPlan : planFromForm || "professional";
 
   if (!email) {
     return { error: "Please enter an email address." };
@@ -48,6 +51,7 @@ export async function signUp(
   let existingUser: User | null = null;
 
   let usernameTaken = false;
+  let founderSlotsRemaining: number | null = null;
 
   if (adminClient) {
     try {
@@ -84,8 +88,35 @@ export async function signUp(
 
         usernameTaken = Boolean(usernameMatch);
       }
+
+      if (role === "tutor" && desiredPlan === founderPlan) {
+        const { count, error: founderCountError } = await adminClient
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("plan", founderPlan);
+
+        if (founderCountError && founderCountError.code !== "PGRST116") {
+          console.error("[Auth] Failed to count founder slots", founderCountError);
+        }
+
+        if (typeof count === "number") {
+          const limit = getFounderOfferLimit();
+          founderSlotsRemaining = Math.max(limit - count, 0);
+        }
+      }
     } catch (error) {
       console.error("[Auth] Unexpected error while checking existing user", error);
+    }
+  }
+
+  if (role === "tutor" && desiredPlan === founderPlan) {
+    const limit = getFounderOfferLimit();
+    const remaining = founderSlotsRemaining ?? limit;
+    if (remaining <= 0) {
+      return {
+        error:
+          "The 2-month free + lifetime founder offer has been fully claimed. Join the waitlist and we'll email you when new spots open.",
+      };
     }
   }
 
@@ -122,6 +153,22 @@ export async function signUp(
     };
   }
 
+  // Check for pending lifetime purchase before signup
+  let hasPendingLifetimePurchase = false;
+  if (adminClient) {
+    const { data: pendingPurchase } = await adminClient
+      .from("lifetime_purchases")
+      .select("id")
+      .eq("email", email)
+      .eq("claimed", false)
+      .maybeSingle();
+
+    hasPendingLifetimePurchase = Boolean(pendingPurchase);
+  }
+
+  // If user has a pending lifetime purchase, use founder_lifetime plan
+  const finalPlan = hasPendingLifetimePurchase ? founderPlan : (desiredPlan || "professional");
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -130,14 +177,14 @@ export async function signUp(
         full_name: fullName,
         username,
         role,
-        plan,
+        plan: finalPlan,
       },
       emailRedirectTo,
     },
   });
 
   if (error) {
-    const message = error.message ?? "We couldn’t create your account.";
+    const message = error.message ?? "We couldn't create your account.";
     const normalized = message.toLowerCase();
 
     if (normalized.includes("already registered")) {
@@ -164,6 +211,21 @@ export async function signUp(
     }
 
     return { error: message };
+  }
+
+  // Mark lifetime purchase as claimed if applicable
+  if (hasPendingLifetimePurchase && adminClient && data.user) {
+    await adminClient
+      .from("lifetime_purchases")
+      .update({
+        claimed: true,
+        claimed_by: data.user.id,
+        claimed_at: new Date().toISOString(),
+      })
+      .eq("email", email)
+      .eq("claimed", false);
+
+    console.log(`[Auth] Lifetime purchase claimed for ${email}`);
   }
 
   if (!data.session) {
@@ -268,18 +330,9 @@ export async function signIn(
     };
   }
 
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError || !sessionData.session) {
-    console.error("[Auth] Session validation failed after sign-in", {
-      sessionError,
-      hasSession: Boolean(sessionData?.session),
-    });
-    return {
-      error:
-        "We had trouble finalizing your login session. Please try again, and contact hello@tutorlingua.co if it keeps happening.",
-    };
-  }
+  // Note: We don't verify the session here because signInWithPassword() already
+  // handles session creation. Calling getSession() immediately after can fail
+  // due to a race condition where cookies haven't been flushed yet.
 
   revalidatePath("/", "layout");
   redirect(DASHBOARD_ROUTE);

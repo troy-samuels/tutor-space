@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { isReservedUsername } from "@/lib/constants/reserved-usernames";
+import { RateLimiters } from "@/lib/middleware/rate-limit";
 
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Rate limit username checks to prevent enumeration attacks
+  const rateLimitResult = await RateLimiters.api(request);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        available: false,
+        status: "rate_limited",
+        message: rateLimitResult.error,
+      },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const username = searchParams.get("username")?.trim().toLowerCase() ?? "";
 
@@ -24,6 +39,18 @@ export async function GET(request: NextRequest) {
         available: false,
         status: "invalid",
         message: "Usernames must be 3-32 characters using lowercase letters, numbers, or dashes.",
+      },
+      { status: 400 }
+    );
+  }
+
+  // Check if username is reserved
+  if (isReservedUsername(username)) {
+    return NextResponse.json(
+      {
+        available: false,
+        status: "reserved",
+        message: "This username is reserved and cannot be used.",
       },
       { status: 400 }
     );

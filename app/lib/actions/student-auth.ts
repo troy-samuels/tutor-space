@@ -63,10 +63,15 @@ export async function checkStudentAccess(
     return { status: "no_record" };
   }
 
-  const studentRecord = student as StudentAccessRecord;
+  const studentRecord: StudentAccessRecord = {
+    ...student,
+    profiles: Array.isArray(student.profiles)
+      ? student.profiles[0]
+      : student.profiles,
+  };
 
   // Check for active packages (auto-approve if found)
-  const { hasActivePackage } = await import("@/lib/actions/packages");
+  const { hasActivePackage } = await import("@/lib/actions/session-packages");
   const packages = await hasActivePackage(studentRecord.id, tutorId);
 
   if (packages && studentRecord.calendar_access_status !== "approved") {
@@ -311,5 +316,45 @@ export async function studentLogout() {
   }
 
   revalidatePath("/");
+  return { success: true };
+}
+
+/**
+ * Simple student signup (no tutor required)
+ * Student can later search and connect with tutors
+ */
+export async function studentSignup(params: {
+  email: string;
+  password: string;
+  fullName: string;
+}): Promise<{ success?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Validate inputs
+  if (!params.email || !params.password || !params.fullName) {
+    return { error: "All fields are required" };
+  }
+
+  if (params.password.length < 8) {
+    return { error: "Password must be at least 8 characters" };
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: params.email,
+    password: params.password,
+    options: {
+      data: {
+        role: "student",
+        full_name: params.fullName,
+      },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/student-auth/search`,
+    },
+  });
+
+  if (authError || !authData.user) {
+    console.error("Student signup error:", authError);
+    return { error: authError?.message || "Failed to create account" };
+  }
+
   return { success: true };
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { approveStudentAccess, denyStudentAccess } from "@/lib/actions/tutor-students";
+import { approveStudentAccess, denyStudentAccess } from "@/lib/actions/students";
 import { Mail, Phone, Calendar, Loader2, CheckCircle, XCircle, MessageSquare } from "lucide-react";
 
 interface Student {
@@ -115,14 +115,14 @@ export function AccessRequestCard({ request, onUpdate }: AccessRequestCardProps)
       <div className="space-y-2 mb-4">
         <div className="flex items-center text-xs sm:text-sm text-gray-600">
           <Mail className="h-4 w-4 mr-2 sm:mr-3 text-gray-400 flex-shrink-0" />
-          <a href={`mailto:${student.email}`} className="hover:text-brand-brown">
+          <a href={`mailto:${student.email}`} className="hover:text-primary">
             {student.email}
           </a>
         </div>
         {student.phone && (
           <div className="flex items-center text-xs sm:text-sm text-gray-600">
             <Phone className="h-4 w-4 mr-2 sm:mr-3 text-gray-400 flex-shrink-0" />
-            <a href={`tel:${student.phone}`} className="hover:text-brand-brown">
+            <a href={`tel:${student.phone}`} className="hover:text-primary">
               {student.phone}
             </a>
           </div>
@@ -174,7 +174,7 @@ export function AccessRequestCard({ request, onUpdate }: AccessRequestCardProps)
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-brown focus:border-transparent text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
                 placeholder="Add notes about this request, payment instructions, etc."
               />
             </div>

@@ -5,15 +5,24 @@ import {
   TrendingUp,
   Wallet,
   CalendarDays,
+  Clock,
+  Calendar,
+  MessageSquare,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   "users": Users,
   "trending-up": TrendingUp,
   "wallet": Wallet,
   "calendar-days": CalendarDays,
+  "clock": Clock,
+  "calendar": Calendar,
+  "message-square": MessageSquare,
+  "settings": Settings,
 };
 
 export type MetricCardConfig = {
@@ -21,6 +30,12 @@ export type MetricCardConfig = {
   value: string | number;
   helperText?: string;
   iconName?: keyof typeof ICON_MAP | string;
+  action?: {
+    href: string;
+    icon?: keyof typeof ICON_MAP | string;
+    tooltip?: string;
+    fullCard?: boolean;
+  };
 };
 
 type MetricCardsProps = {
@@ -37,11 +52,24 @@ export function MetricCards({ metrics }: MetricCardsProps) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => {
         const Icon = resolveIcon(metric.iconName);
-        return (
-          <Card key={metric.label}>
+        const ActionIcon = metric.action?.icon ? resolveIcon(metric.action.icon) : null;
+
+        const cardContent = (
+          <>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
               <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
-              {Icon ? <Icon className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
+              <div className="flex items-center gap-2">
+                {Icon ? <Icon className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
+                {metric.action && !metric.action.fullCard && ActionIcon && (
+                  <Link
+                    href={metric.action.href}
+                    title={metric.action.tooltip}
+                    className="rounded-md p-1 hover:bg-muted transition-colors"
+                  >
+                    <ActionIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="px-6 pb-6 pt-0">
               <div className="text-2xl font-semibold">
@@ -51,6 +79,22 @@ export function MetricCards({ metrics }: MetricCardsProps) {
                 <p className="mt-1 text-xs text-muted-foreground">{metric.helperText}</p>
               ) : null}
             </CardContent>
+          </>
+        );
+
+        if (metric.action?.fullCard) {
+          return (
+            <Link key={metric.label} href={metric.action.href} className="block">
+              <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
+                {cardContent}
+              </Card>
+            </Link>
+          );
+        }
+
+        return (
+          <Card key={metric.label}>
+            {cardContent}
           </Card>
         );
       })}

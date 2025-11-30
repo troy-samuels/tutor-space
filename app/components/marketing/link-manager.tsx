@@ -126,7 +126,7 @@ export function LinkManager({
               Curate your offers, testimonials, and lead magnets so social traffic converts into booked lessons.
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-brand-brown/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-brand-brown">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
             <span>Total clicks</span>
             <span className="text-base text-foreground">{totalClicks}</span>
           </div>
@@ -146,7 +146,7 @@ export function LinkManager({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="space-y-6">
-          <div className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+          <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
             <h2 className="text-base font-semibold text-foreground">Add a new spotlight</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Link to booking funnels, lead magnets, testimonials, or external content that reinforces your credibility.
@@ -159,8 +159,8 @@ export function LinkManager({
               />
 
               {profile.username ? (
-                <div className="mt-5 rounded-2xl border border-brand-brown/20 bg-brand-brown/5 px-4 py-4">
-                  <p className="text-xs font-semibold text-brand-brown">Quick actions</p>
+                <div className="mt-5 rounded-2xl border border-border bg-primary/5 px-4 py-4">
+                  <p className="text-xs font-semibold text-primary">Quick actions</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Drop in high-converting CTAs without typing everything from scratch.
                   </p>
@@ -181,7 +181,7 @@ export function LinkManager({
                           "Added 'Book a lesson' CTA to your bio."
                         )
                       }
-                      className="inline-flex items-center justify-center rounded-full bg-brand-brown px-4 py-2 text-xs font-semibold text-brand-white shadow-sm transition hover:bg-brand-brown/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       + Add “Book a lesson”
                     </button>
@@ -201,9 +201,9 @@ export function LinkManager({
                           "Added parent credibility link to your bio."
                         )
                       }
-                      className="inline-flex items-center justify-center rounded-full border border-brand-brown/30 bg-white px-4 py-2 text-xs font-semibold text-brand-brown transition hover:bg-brand-brown/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center justify-center rounded-full border border-border bg-white px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      + Add “Credibility page”
+                      + Add "Credibility page"
                     </button>
                   </div>
                 </div>
@@ -211,7 +211,7 @@ export function LinkManager({
             </div>
           </div>
 
-          <div className="rounded-3xl border border-brand-brown/20 bg-white/90 p-6 shadow-sm backdrop-blur">
+          <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground">Live links</h2>
               <span className="text-xs text-muted-foreground">{sortedLinks.length} items</span>
@@ -305,7 +305,7 @@ export function LinkManager({
             </DndContext>
 
             {sortedLinks.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-brand-brown/30 bg-brand-brown/5 px-4 py-6 text-center text-sm text-muted-foreground">
+              <div className="mt-4 rounded-2xl border border-dashed border-border bg-primary/5 px-4 py-6 text-center text-sm text-foreground">
                 Add your first link above to start sharing your TutorLingua bio.
               </div>
             ) : null}
@@ -315,8 +315,8 @@ export function LinkManager({
         <aside className="space-y-4">
           <LinkAnalytics series={analytics} />
           <LinkPreview profile={profile} links={sortedLinks} />
-          <div className="rounded-3xl border border-brand-brown/20 bg-brand-brown/5 px-5 py-4 text-xs text-muted-foreground">
-            <p className="font-semibold text-brand-brown">Growth Plan tip</p>
+          <div className="rounded-3xl border border-border bg-primary/5 px-5 py-4 text-xs text-foreground">
+            <p className="font-semibold text-primary">Growth Plan tip</p>
             <p className="mt-1">
               Embed your lead magnet PDF here and capture emails automatically. Upgrade to unlock the Lead Hub and
               bring DMs + form submissions into one inbox.

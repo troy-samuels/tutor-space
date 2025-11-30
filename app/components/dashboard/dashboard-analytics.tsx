@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { trackOnce } from "@/lib/analytics";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type DashboardAnalyticsProps = {
-  plan: "professional" | "growth" | "studio";
+  plan: PlatformBillingPlan;
   studentCount: number;
   upcomingSessions: number;
   revenueThisMonthCents: number;

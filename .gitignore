@@ -16,6 +16,9 @@ app/coverage/
 # OS files
 .DS_Store
 
+# Editor artifacts
+.cursor/
+
 # Supabase local config
 supabase/.branches
 supabase/.temp

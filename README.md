@@ -1,158 +1,129 @@
-# Language Tutor Platform - Build Guide
+# TutorLingua
 
-## Project Overview
+A comprehensive business management platform for independent language tutors. TutorLingua replaces 10+ scattered tools with one integrated solution for booking, payments, student management, and marketing.
 
-A comprehensive platform for independent language tutors that combines professional profile pages, booking/payments, student management, and AI-powered learning tools. This replaces 8-12 separate tools with one integrated solution.
+## Overview
 
-**Target Market**: Independent language tutors earning $500-5,000/month
-**Pricing**: $29-59/month subscription (0% commission on bookings)
-**Timeline**: 6-8 weeks for MVP with experienced developer using AI coding tools
-
-## Product Vision & Tiering
-
-**Vision**: Become the indispensable operating system for independent language tutors by unifying their administrative, marketing, and teaching workflows into one purpose-built platform.
-
-**Core Concept**: TutorLingua replaces the stitched-together stack of generic tools (Calendly, PayPal, Google Drive, Zoom) with a vertical SaaS that feels made-to-measure for language tutors. Business operations, student acquisition, and classroom experiences live inside a single, elegant ecosystem.
-
-### Target Audience
-- Solo or small-team language tutors who manage their own students
-- Teachers operating across multiple time zones and currencies
-- Tutors who want to professionalize their brand and scale beyond 1:1 hour trading
-- Social-first educators who need better lead capture and conversion tooling
-
-### Subscription Tiers
-- **Professional Plan (Core MVP)**  
-  Time zone–aware bookings with session packages, upfront Stripe payments in multiple currencies, automated invoicing/reminders, and a lightweight CRM with CEFR-aligned progress tracking. Includes marketing basics (link-in-bio landing page, review requests, lead magnet) plus the digital classroom foundation (resource library, lesson plan builder, integrated video/whiteboard, and interactive exercises such as sentence sorting or categorization bins).
-- **Growth Plan (Premium Upsell)**  
-  Adds the Growth & Ads Power-Up: a no-code Meta ads cockpit, Lead Hub inbox aggregating social leads, and an AI content/SEO planner. Extends the classroom with an AI Teaching Assistant Chrome extension (live transcription, error detection, content clipper) and deeper analytics (AI conversation partner, automated progress insights, immersive content generation).
-- **Studio Plan (Add-On Modules)**  
-  Designed for studios scaling beyond solo tutoring: group session/workshop tooling, a shared resource marketplace, and a CEO dashboard with churn forecasting and revenue intelligence.
+**TutorLingua** helps independent language tutors:
+- Get discovered on marketplaces (Preply, iTalki, Verbling)
+- Book students directly through branded channels
+- Keep 100% of direct booking revenue (0% platform fees)
+- Manage their entire business from one dashboard
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+ (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- **Payments**: Stripe (subscriptions + one-time payments)
-- **Video**: Zoom API (meeting link generation)
-- **Scheduling**: Cal.com integration or custom build
+- **Frontend**: Next.js 15.5, React 19, TypeScript, Tailwind CSS 4, shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, RLS)
+- **Payments**: Stripe + Stripe Connect (marketplace payouts)
 - **Email**: Resend (React email templates)
-- **AI**: OpenAI GPT-4, Azure AI Speech (Phase 2)
-- **Marketing & Ads**: Meta Ads API, Google Ads API connectors (Growth Plan)
-- **Browser Extensions**: Chrome Extension (Manifest V3) for AI Teaching Assistant
-- **Hosting**: Vercel (frontend), Supabase (backend)
+- **Calendar**: Google Calendar & Outlook OAuth integration
+- **Testing**: Playwright (E2E), Node test runner (unit)
 
-## Build Sequence
+## Features
 
-Each phase ladder aligns with the tiered product vision: Phase 1-3 deliver the Professional Plan MVP, Phase 4 unlocks Growth Plan capabilities, and Phase 5+ cover Studio-level add-ons and long-tail enhancements.
+### Core Platform
+- **Booking System** - Timezone-aware scheduling with conflict detection
+- **Stripe Connect** - Direct payouts to tutors, 0% platform commission
+- **Student CRM** - Manage students, notes, lesson history, access control
+- **Session Packages** - Pre-paid lesson bundles with redemption tracking
+- **Calendar Sync** - Two-way sync with Google Calendar & Outlook
+- **Messaging** - Direct tutor-student communication
 
-### Phase 1: Foundation (Week 1-2)
-1. **00-project-setup.md** - Initialize Next.js + Supabase project
-2. **01-database-schema.md** - Design multi-tenant database structure
-3. **02-authentication.md** - Email & OAuth authentication
-4. **03-basic-dashboard.md** - Main dashboard layout
+### Marketing Tools
+- **Tutor Sites** - Custom website builder with themes and layouts
+- **Link-in-Bio** - Customizable landing pages with click tracking
+- **Digital Products** - Sell downloadable resources (PDFs, ebooks)
+- **Email Campaigns** - Bulk email with unsubscribe management
 
-### Phase 2: Core Business Features (Week 3-4)
-5. **04-user-profiles.md** - Tutor profile pages with custom subdomains
-6. **05-link-in-bio.md** - Customizable link-in-bio functionality
-7. **06-service-listings.md** - Create/manage service offerings and sell session packages
-8. **07-stripe-integration.md** - Payment processing with upfront deposits, multi-currency support, and invoicing hooks
-9. **08-booking-system.md** - Time zone aware scheduling, buffer rules, and package redemption tracking
-10. **09-student-crm.md** - Student dashboard with CEFR tracking, notes, and automated reminder feeds
-
-### Phase 3: Essential Tools (Week 5-6)
-11. **10-zoom-integration.md** - Auto-generate meeting links and support embedded video/whiteboard experiences
-12. **11-email-system.md** - Transactional emails, payment receipts, automated reminders, and review requests
-13. **12-analytics-tracking.md** - Link clicks, conversion funnels, and lead magnet attribution
-14. **13-lesson-notes.md** - Session notes, resource library, lesson plan builder, and interactive classroom tools
-
-### Phase 4: AI Features (Week 6-7)
-15. **14-ai-conversation-partner.md** - GPT-4 text-based conversation and 24/7 practice partner
-16. **15-lesson-plan-generator.md** - AI-powered lesson planning and immersive content engine hooks
-17. **16-vocabulary-system.md** - Word tracking, quizzes, and AI-generated practice
-18. **17-progress-tracking.md** - AI weakness detector and longitudinal insights
-
-### Phase 5: Polish & Launch (Week 7-8)
-19. **18-landing-page.md** - Marketing site and signup flow
-20. **19-onboarding.md** - User onboarding experience
-21. **20-settings-billing.md** - Account settings and subscription management
-22. **21-testing-deployment.md** - Testing checklist and deployment
-
-### Phase 6: Growth & Studio Add-Ons (Optional / Premium)
-23. **22-growth-ad-center.md** - Meta ads cockpit, targeting presets, and campaign reporting
-24. **23-lead-hub.md** - Aggregated lead inbox from social forms and landing pages
-25. **24-ai-content-marketing.md** - AI content calendar, SEO topic generator, and social asset creation
-26. **25-ai-teaching-assistant.md** - Chrome extension for live transcription, error logging, and content clipping
-27. **26-group-sessions.md** - Group class functionality with tiered pricing
-28. **27-resource-marketplace.md** - Shared marketplace for lesson plans and curricula
-29. **28-ceo-dashboard.md** - Revenue forecasting, churn prediction, and premium analytics
-
-## Key Principles
-
-1. **Start Simple**: Build core value proposition first (profile + booking + payments)
-2. **Use AI Tools Effectively**: Leverage Cursor/Claude Code for boilerplate and standard patterns
-3. **Manual Review**: Always review security-critical code and business logic
-4. **Test as You Go**: Write tests for critical paths
-5. **Ship Fast**: Get to beta users ASAP for feedback
-
-## Development Best Practices
-
-- Use TypeScript for better AI suggestions
-- Implement Row Level Security (RLS) policies in Supabase for multi-tenancy
-- Follow Next.js App Router conventions
-- Use shadcn/ui components for consistent UI
-- Implement proper error handling and loading states
-- Add monitoring from day 1 (Sentry, PostHog)
-- Review the shared [SECURITY.md](SECURITY.md) playbook before building new integrations
-
-## File Structure
-
-Each .md file contains:
-- **Objective**: What we're building and why
-- **Requirements**: Dependencies and prerequisites
-- **Database Schema**: Tables and relationships needed
-- **Implementation Steps**: Detailed build instructions
-- **Testing Checklist**: How to verify it works
-- **AI Tool Prompts**: Example prompts for Cursor/Claude Code
-- **Common Gotchas**: Known issues and solutions
+### Public Pages
+- `/[username]` - Custom tutor website
+- `/bio/[username]` - Link-in-bio page
+- `/profile/[username]` - Public tutor profile
+- `/book/[username]` - Booking page
+- `/products/[username]` - Digital product catalog
 
 ## Getting Started
 
-1. Read through **00-project-setup.md** to initialize your project
-2. Follow files sequentially - each builds on the previous
-3. Use the AI tool prompts provided as starting points
-4. Adapt to your specific needs as you learn from users
-5. Don't try to build everything - focus on MVP first
+### Prerequisites
+- Node.js 18+
+- Supabase account
+- Stripe account
 
-## Success Metrics for MVP
+### Installation
 
-- [ ] 20+ beta tutors actively using the platform
-- [ ] Tutors can set up profile + services in <15 minutes
-- [ ] Students can book, redeem packages, and pay successfully in their currency
-- [ ] Automated reminders/reviews fire without manual intervention
-- [ ] Platform is stable enough for daily use
-- [ ] Ready to accept first paying customers
-- [ ] Resource library, lesson planner, and interactive exercises support live teaching
-- [ ] Basic AI features demonstrably save tutor time
+```bash
+# Clone the repository
+git clone https://github.com/your-org/language-tutor-platform.git
+cd language-tutor-platform/app
 
-## Need Help?
+# Install dependencies
+npm install
 
-- Each file includes troubleshooting sections
-- Check Supabase docs: https://supabase.com/docs
-- Next.js docs: https://nextjs.org/docs
-- Stripe docs: https://stripe.com/docs
-- OpenAI API docs: https://platform.openai.com/docs
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your credentials
 
-## Timeline Expectations
+# Run development server
+npm run dev
+```
 
-**Realistic for experienced developer with AI tools:**
-- Weeks 1-2: Foundation complete, can create accounts and profiles
-- Weeks 3-4: Core features done, basic booking/payment flow works
-- Weeks 5-6: AI features functional, all essential tools working
-- Weeks 7-8: Polished enough for beta users
+### Environment Variables
 
-**Red Flags:**
-- Spending >3 days on project setup → seek help
-- Not shipping testable features weekly → scope too large
-- Building features users haven't asked for → refocus on MVP
+See `app/claude.md` for complete environment variable documentation.
 
-Let's build! Start with **00-project-setup.md**.
+**Required:**
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+RESEND_API_KEY=
+NEXT_PUBLIC_APP_URL=
+```
+
+## Development
+
+```bash
+npm run dev          # Start dev server (Turbopack)
+npm run build        # Production build
+npm run lint         # ESLint
+npm test             # Unit tests
+npm run test:e2e     # Playwright E2E tests
+npm run type-check   # TypeScript check
+```
+
+## Project Structure
+
+```
+app/
+├── app/                    # Next.js App Router
+│   ├── (dashboard)/        # Protected tutor dashboard
+│   ├── (public)/           # Public-facing pages
+│   ├── api/                # API routes
+│   ├── book/               # Public booking flow
+│   └── student-auth/       # Student portal
+├── components/             # React components
+├── lib/
+│   ├── actions/            # Server actions
+│   ├── supabase/           # Database clients
+│   ├── validators/         # Zod schemas
+│   └── utils/              # Utilities
+└── supabase/migrations/    # Database migrations
+```
+
+## Documentation
+
+- **Platform Documentation**: See `app/claude.md` for comprehensive feature documentation
+- **Security Practices**: See `SECURITY.md` for security guidelines
+
+## Subscription Tiers
+
+- **Professional** (Free): 20 students, core booking & payments
+- **Growth** ($29/mo): Unlimited students, website builder, analytics, marketing tools
+- **Studio** (TBD): Group sessions, marketplace features
+
+## License
+
+Proprietary - All rights reserved

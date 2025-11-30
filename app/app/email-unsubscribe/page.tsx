@@ -2,13 +2,14 @@ import { Suspense } from "react";
 import { EmailUnsubscribeForm } from "@/components/email/unsubscribe-form";
 
 type PageProps = {
-  searchParams: {
+  searchParams: Promise<{
     token?: string;
-  };
+  }>;
 };
 
-export default function EmailUnsubscribePage({ searchParams }: PageProps) {
-  const token = searchParams?.token;
+export default async function EmailUnsubscribePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const token = params?.token;
 
   if (!token) {
     return (

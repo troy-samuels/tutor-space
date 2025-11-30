@@ -94,12 +94,13 @@ export async function unsubscribeStudentAction(
   if (studentError || !student) {
     return { error: "This unsubscribe link is no longer valid." };
   }
+  const tutorProfile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
 
   if (student.email_opt_out) {
     return {
       success: "You are already unsubscribed.",
       studentName: student.full_name ?? undefined,
-      tutorName: student.profiles?.full_name ?? undefined,
+      tutorName: tutorProfile?.full_name ?? undefined,
     };
   }
 
@@ -119,6 +120,6 @@ export async function unsubscribeStudentAction(
   return {
     success: "You have been unsubscribed.",
     studentName: student.full_name ?? undefined,
-    tutorName: student.profiles?.full_name ?? undefined,
+    tutorName: tutorProfile?.full_name ?? undefined,
   };
 }

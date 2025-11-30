@@ -45,12 +45,15 @@ export default function StudentInfoForm({
     studentName: "",
     studentEmail: "",
     studentPhone: "",
+    studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     isMinor: false,
     parentName: "",
     parentEmail: "",
     parentPhone: "",
     notes: "",
   });
+
+  const timezones = Intl.supportedValuesOf("timeZone");
 
   const zonedStart = toZonedTime(selectedSlot.start, tutor.timezone);
   const zonedEnd = toZonedTime(selectedSlot.end, tutor.timezone);
@@ -82,6 +85,7 @@ export default function StudentInfoForm({
             fullName: formData.studentName,
             email: formData.studentEmail,
             phone: formData.studentPhone || null,
+            timezone: formData.studentTimezone,
             parentName: formData.isMinor ? formData.parentName : null,
             parentEmail: formData.isMinor ? formData.parentEmail : null,
             parentPhone: formData.isMinor ? formData.parentPhone : null,
@@ -91,14 +95,21 @@ export default function StudentInfoForm({
           currency: service.price_currency,
         });
 
-        if (result.error) {
+        if ("error" in result) {
           setError(result.error);
           return;
         }
 
-        if (result.bookingId) {
-          // Redirect to success page with booking ID
-          router.push(`/book/success?booking_id=${result.bookingId}`);
+        if ("bookingId" in result) {
+          if (result.checkoutUrl) {
+            // Redirect to Stripe checkout
+            window.location.href = result.checkoutUrl;
+          } else {
+            // Redirect to success page for manual payment
+            router.push(`/book/success?booking_id=${result.bookingId}`);
+          }
+        } else {
+          setError("We could not create your booking. Please try again.");
         }
       } catch (err) {
         console.error("Booking error:", err);
@@ -195,6 +206,27 @@ export default function StudentInfoForm({
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                   placeholder="+1 234 567 8900"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="studentTimezone" className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Timezone
+                </label>
+                <select
+                  id="studentTimezone"
+                  value={formData.studentTimezone}
+                  onChange={(e) => setFormData({ ...formData, studentTimezone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                >
+                  {timezones.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto-detected from your browser. Change if needed.
+                </p>
               </div>
 
               <div className="flex items-center gap-2">

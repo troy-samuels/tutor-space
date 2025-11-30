@@ -35,7 +35,7 @@ export function PublicBookingLanding({
   isLoggedIn = false,
 }: PublicBookingLandingProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-cream via-brand-cream/40 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-muted via-muted/40 to-white">
       <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -62,7 +62,7 @@ export function PublicBookingLanding({
                 href={`https://instagram.com/${tutor.instagramHandle.replace(/^@/, "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-600 hover:text-brand-brown transition"
+                className="flex items-center gap-2 text-gray-600 hover:text-primary transition"
               >
                 <Instagram className="h-5 w-5" />
                 <span className="text-sm hidden sm:inline">{tutor.instagramHandle}</span>
@@ -74,7 +74,7 @@ export function PublicBookingLanding({
                 href={tutor.websiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-600 hover:text-brand-brown transition"
+                className="flex items-center gap-2 text-gray-600 hover:text-primary transition"
               >
                 <Globe className="h-5 w-5" />
                 <span className="text-sm">Website</span>
@@ -84,11 +84,11 @@ export function PublicBookingLanding({
         </div>
 
         {/* Access Gate Message */}
-        <div className="bg-white rounded-2xl border-2 border-brand-brown/20 shadow-lg p-8 mb-8">
+        <div className="bg-white rounded-2xl shadow-md shadow-lg p-8 mb-8">
           <div className="text-center max-w-2xl mx-auto">
-            <div className="w-16 h-16 bg-brand-brown/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
-                className="h-8 w-8 text-brand-brown"
+                className="h-8 w-8 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -118,14 +118,14 @@ export function PublicBookingLanding({
                 <>
                   <Link
                     href={`/student-auth/login?tutor=${tutor.username}&redirect=/book/${tutor.username}`}
-                    className="inline-flex items-center justify-center gap-2 bg-brand-brown text-white px-8 py-4 rounded-xl font-semibold hover:bg-brand-brown/90 transition shadow-md"
+                    className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:bg-primary/90 transition shadow-md"
                   >
                     <LogIn className="h-5 w-5" />
                     Log In
                   </Link>
                   <Link
                     href={`/student-auth/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
-                    className="inline-flex items-center justify-center gap-2 bg-white text-brand-brown border-2 border-brand-brown px-8 py-4 rounded-xl font-semibold hover:bg-brand-brown/5 transition"
+                    className="inline-flex items-center justify-center gap-2 bg-white text-primary shadow-md px-8 py-4 rounded-xl font-semibold hover:bg-primary/5 transition"
                   >
                     <UserPlus className="h-5 w-5" />
                     Request Access
@@ -134,7 +134,7 @@ export function PublicBookingLanding({
               ) : (
                 <Link
                   href={`/student-auth/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
-                  className="inline-flex items-center justify-center gap-2 bg-brand-brown text-white px-8 py-4 rounded-xl font-semibold hover:bg-brand-brown/90 transition shadow-md"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:bg-primary/90 transition shadow-md"
                 >
                   <UserPlus className="h-5 w-5" />
                   Request Access to Calendar
@@ -145,7 +145,7 @@ export function PublicBookingLanding({
         </div>
 
         {/* Services Preview */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="bg-white rounded-2xl shadow-sm shadow-sm p-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-6">
             Available Services
           </h3>
@@ -153,7 +153,7 @@ export function PublicBookingLanding({
             {services.map((service) => (
               <div
                 key={service.id}
-                className="border border-gray-200 rounded-xl p-4 sm:p-6 hover:border-brand-brown/30 transition"
+                className="shadow-sm rounded-xl p-4 sm:p-6 hover:shadow-lg transition"
               >
                 <h4 className="font-semibold text-gray-900 mb-2">{service.name}</h4>
                 {service.description && (
@@ -161,7 +161,7 @@ export function PublicBookingLanding({
                 )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">{service.duration_minutes} minutes</span>
-                  <span className="font-semibold text-brand-brown">
+                  <span className="font-semibold text-primary">
                     {formatCurrency(service.price_amount, service.price_currency)}
                   </span>
                 </div>
@@ -177,7 +177,7 @@ export function PublicBookingLanding({
           </p>
           <a
             href={`mailto:${tutor.email}`}
-            className="inline-flex items-center gap-2 text-brand-brown hover:underline font-medium"
+            className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
           >
             <Mail className="h-4 w-4" />
             {tutor.email}
