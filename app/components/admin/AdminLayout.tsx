@@ -16,6 +16,8 @@ import {
   UserCog,
   Mail,
   Download,
+  Settings,
+  Activity,
 } from "lucide-react";
 
 const mobileNavItems = [
@@ -26,6 +28,8 @@ const mobileNavItems = [
   { title: "Support", href: "/admin/impersonate", icon: UserCog },
   { title: "Email", href: "/admin/email", icon: Mail },
   { title: "Export", href: "/admin/export", icon: Download },
+  { title: "Health", href: "/admin/health", icon: Activity },
+  { title: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -227,6 +227,8 @@ export async function getStudentBookings(): Promise<{
     duration_minutes: number;
     status: string;
     notes: string | null;
+    meeting_url: string | null;
+    meeting_provider: string | null;
     tutor: {
       id: string;
       username: string;
@@ -276,6 +278,8 @@ export async function getStudentBookings(): Promise<{
       duration_minutes,
       status,
       notes,
+      meeting_url,
+      meeting_provider,
       tutor_id,
       service_id
     `)
@@ -313,6 +317,8 @@ export async function getStudentBookings(): Promise<{
     duration_minutes: booking.duration_minutes,
     status: booking.status,
     notes: booking.notes,
+    meeting_url: booking.meeting_url,
+    meeting_provider: booking.meeting_provider,
     tutor: tutorMap.get(booking.tutor_id) || {
       id: booking.tutor_id,
       username: "",

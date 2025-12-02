@@ -32,7 +32,11 @@ type StepData = {
   }>;
   // Step 5
   calendar_provider?: "google" | "outlook" | null;
-  // Step 6
+  // Step 6 - Video Conferencing
+  video_provider?: "zoom_personal" | "google_meet" | "custom" | "none";
+  video_url?: string;
+  custom_video_name?: string;
+  // Step 7 - Payments
   payment_method?: "stripe" | "custom";
   custom_payment_url?: string | null;
 };
@@ -185,9 +189,37 @@ export async function saveOnboardingStep(
       }
 
       case 6: {
+        // Video Conferencing
+        const videoUpdateData: Record<string, unknown> = {
+          onboarding_step: 6,
+          video_provider: data.video_provider || "none",
+        };
+
+        // Set the appropriate URL field based on provider
+        if (data.video_provider === "zoom_personal" && data.video_url) {
+          videoUpdateData.zoom_personal_link = data.video_url;
+        } else if (data.video_provider === "google_meet" && data.video_url) {
+          videoUpdateData.google_meet_link = data.video_url;
+        } else if (data.video_provider === "custom" && data.video_url) {
+          videoUpdateData.custom_video_url = data.video_url;
+          if (data.custom_video_name) {
+            videoUpdateData.custom_video_name = data.custom_video_name;
+          }
+        }
+
+        const { error: videoError } = await supabase
+          .from("profiles")
+          .update(videoUpdateData)
+          .eq("id", user.id);
+
+        if (videoError) throw videoError;
+        break;
+      }
+
+      case 7: {
         // Payments
         const updateData: Record<string, unknown> = {
-          onboarding_step: 6,
+          onboarding_step: 7,
         };
 
         if (data.payment_method === "custom" && data.custom_payment_url) {
@@ -237,7 +269,7 @@ export async function completeOnboarding(): Promise<{
       .from("profiles")
       .update({
         onboarding_completed: true,
-        onboarding_step: 6,
+        onboarding_step: 7,
       })
       .eq("id", user.id);
 

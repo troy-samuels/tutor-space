@@ -58,3 +58,21 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 Button.displayName = "Button";
+
+// Helper function to get button classes for non-button elements
+export function buttonVariants({
+  variant = "default",
+  size = "default",
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+} = {}): string {
+  return cn(
+    "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60",
+    variantClasses[variant],
+    sizeClasses[size],
+    className
+  );
+}

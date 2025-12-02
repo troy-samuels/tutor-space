@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, MessageSquare, User } from "lucide-react";
+import { LogOut, MessageSquare, User, Settings } from "lucide-react";
 import { StudentBottomNav } from "./StudentBottomNav";
 import { studentLogout } from "@/lib/actions/student-auth";
 import { useUnreadMessages } from "@/lib/hooks/useUnreadMessages";
@@ -61,6 +61,13 @@ export function StudentPortalLayout({
                   {unreadMessages > 9 ? "9+" : unreadMessages}
                 </span>
               )}
+            </Link>
+            <Link
+              href="/student-auth/settings"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
             </Link>
             <button
               onClick={handleLogout}

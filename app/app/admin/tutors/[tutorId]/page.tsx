@@ -34,7 +34,11 @@ import {
   CheckCircle,
   XCircle,
   UserCog,
+  ShieldAlert,
 } from "lucide-react";
+import { TutorActionButtons, AccountStatusBadge } from "@/components/admin/TutorActionButtons";
+
+type AccountStatus = "active" | "suspended" | "deactivated" | "pending_review";
 
 interface TutorDetail {
   tutor: {
@@ -51,6 +55,9 @@ interface TutorDetail {
     stripe_charges_enabled: boolean | null;
     stripe_onboarding_status: string | null;
     onboarding_completed: boolean | null;
+    account_status: AccountStatus | null;
+    suspended_at: string | null;
+    suspension_reason: string | null;
     created_at: string;
     updated_at: string;
   };
@@ -179,6 +186,7 @@ export default function TutorDetailPage() {
   const [data, setData] = useState<TutorDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accountStatus, setAccountStatus] = useState<AccountStatus>("active");
 
   useEffect(() => {
     async function fetchTutor() {
@@ -187,6 +195,7 @@ export default function TutorDetailPage() {
         if (!response.ok) throw new Error("Failed to fetch tutor");
         const result = await response.json();
         setData(result);
+        setAccountStatus(result.tutor.account_status || "active");
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -255,9 +264,12 @@ export default function TutorDetailPage() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold">
-              {tutor.full_name || "No name"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">
+                {tutor.full_name || "No name"}
+              </h1>
+              <AccountStatusBadge status={accountStatus} />
+            </div>
             <p className="text-muted-foreground">{tutor.email}</p>
             {tutor.username && (
               <p className="text-sm text-muted-foreground">@{tutor.username}</p>
@@ -284,23 +296,47 @@ export default function TutorDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          {tutor.username && (
-            <Link href={`/${tutor.username}`} target="_blank">
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex gap-2">
+            {tutor.username && (
+              <Link href={`/${tutor.username}`} target="_blank">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Public Page
+                </Button>
+              </Link>
+            )}
+            <Link href={`/admin/impersonate?tutorId=${tutor.id}`}>
               <Button variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Public Page
+                <UserCog className="h-4 w-4 mr-2" />
+                Impersonate
               </Button>
             </Link>
-          )}
-          <Link href={`/admin/impersonate?tutorId=${tutor.id}`}>
-            <Button variant="outline" size="sm">
-              <UserCog className="h-4 w-4 mr-2" />
-              Impersonate
-            </Button>
-          </Link>
+          </div>
+          <TutorActionButtons
+            tutorId={tutor.id}
+            currentStatus={accountStatus}
+            tutorName={tutor.full_name || tutor.email}
+            onStatusChange={setAccountStatus}
+          />
         </div>
       </div>
+
+      {/* Suspension Notice */}
+      {accountStatus === "suspended" && tutor.suspension_reason && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-yellow-600 mt-0.5" />
+          <div>
+            <p className="font-medium text-yellow-800">Account Suspended</p>
+            <p className="text-sm text-yellow-700">{tutor.suspension_reason}</p>
+            {tutor.suspended_at && (
+              <p className="text-xs text-yellow-600 mt-1">
+                Suspended on {formatDate(tutor.suspended_at)}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-4">

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarDays, Instagram, Mail, Link2, MessageCircle, Sparkles } from "lucide-react";
+import { CalendarDays, Instagram, Mail, Link2, MessageCircle, Sparkles, Facebook, Twitter, Youtube, Music2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -241,6 +241,10 @@ export function SitePreview({
       const l = label.toLowerCase();
       if (l.includes('mail') || l.includes('email')) return <Mail className="h-3.5 w-3.5" />;
       if (l.includes('instagram') || l.includes('insta')) return <Instagram className="h-3.5 w-3.5" />;
+      if (l.includes('facebook') || l.includes('fb')) return <Facebook className="h-3.5 w-3.5" />;
+      if (l.includes('twitter') || l.includes('x.com') || l === 'x') return <Twitter className="h-3.5 w-3.5" />;
+      if (l.includes('youtube') || l.includes('yt')) return <Youtube className="h-3.5 w-3.5" />;
+      if (l.includes('tiktok') || l.includes('tik')) return <Music2 className="h-3.5 w-3.5" />;
       if (l.includes('message') || l.includes('chat')) return <MessageCircle className="h-3.5 w-3.5" />;
       return <Link2 className="h-3.5 w-3.5" />;
     };
@@ -332,6 +336,10 @@ export function SitePreview({
         >
           <div className="flex flex-col items-center gap-3">
             {renderAvatar(96)}
+            {/* Social icons under avatar */}
+            {showSocialIconsHeader && socialLinks.length > 0 ? (
+              <div className="flex justify-center">{renderSocialIconChips()}</div>
+            ) : null}
             {mediaBlock}
           </div>
           <div className="space-y-2">
@@ -344,9 +352,6 @@ export function SitePreview({
             <h1 className="text-2xl font-bold" style={{ color: textPrimary }}>{heroTitle}</h1>
             {heroSubtitle ? (
               <p className="text-sm" style={{ color: textSecondary }}>{heroSubtitle}</p>
-            ) : null}
-            {showSocialIconsHeader && socialLinks.length > 0 ? (
-              <div className="flex justify-center">{renderSocialIconChips()}</div>
             ) : null}
           </div>
         </section>
@@ -417,6 +422,11 @@ export function SitePreview({
         >
           {renderAvatar(100)}
         </div>
+
+        {/* Social icons under avatar */}
+        {showSocialIconsHeader && socialLinks.length > 0 ? (
+          <div className="mt-4 flex justify-center">{renderSocialIconChips()}</div>
+        ) : null}
 
         {/* Name and tagline */}
         <h1

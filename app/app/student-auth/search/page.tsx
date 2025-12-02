@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { TutorSearch } from "@/components/student-auth/TutorSearch";
+import { UpcomingLessons } from "@/components/student-auth/UpcomingLessons";
 
 export const metadata: Metadata = {
   title: "Find Your Tutor | TutorLingua",
@@ -38,15 +39,21 @@ export default async function StudentSearchPage({ searchParams }: PageProps) {
 
   return (
     <StudentPortalLayout studentName={studentName}>
-      <div className="space-y-4 rounded-2xl border border-border bg-white p-6 shadow-sm">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-wide text-primary">Find your tutor</p>
-          <h1 className="text-2xl font-bold text-foreground">Search by name or username</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect with tutors and send an intro message to get approved for bookings.
-          </p>
+      <div className="space-y-6">
+        {/* Upcoming Lessons with Join Button */}
+        <UpcomingLessons />
+
+        {/* Tutor Search */}
+        <div className="space-y-4 rounded-2xl border border-border bg-white p-6 shadow-sm">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Find your tutor</p>
+            <h1 className="text-2xl font-bold text-foreground">Search by name or username</h1>
+            <p className="text-sm text-muted-foreground">
+              Connect with tutors and send an intro message to get approved for bookings.
+            </p>
+          </div>
+          <TutorSearch initialQuery={initialQuery} />
         </div>
-        <TutorSearch initialQuery={initialQuery} />
       </div>
     </StudentPortalLayout>
   );

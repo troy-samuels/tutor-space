@@ -236,14 +236,17 @@ export default function AdminStudentsPage() {
                   students.map((student) => (
                     <TableRow key={student.id}>
                       <TableCell>
-                        <div>
+                        <Link
+                          href={`/admin/students/${student.id}`}
+                          className="block hover:text-primary"
+                        >
                           <div className="font-medium">
                             {student.full_name || "No name"}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {student.email}
                           </div>
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         {student.profiles ? (

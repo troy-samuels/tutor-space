@@ -4,6 +4,14 @@ import { useState } from "react";
 import { SitePreview, type SitePageView } from "@/components/marketing/site-preview";
 import { usePageBuilderWizard } from "../wizard-context";
 
+// Placeholder social links shown as examples until tutor adds their handles
+const PLACEHOLDER_SOCIAL_LINKS = [
+  { id: "instagram", label: "Instagram", url: "#" },
+  { id: "facebook", label: "Facebook", url: "#" },
+  { id: "twitter", label: "X", url: "#" },
+  { id: "youtube", label: "YouTube", url: "#" },
+];
+
 type EditorProfile = {
   id: string;
   full_name: string;
@@ -118,7 +126,7 @@ export function SimplifiedPreview({
               heroImageUrl={content.heroImageUrl}
               galleryImages={content.galleryImages}
               contactCTA={null}
-              socialLinks={[]}
+              socialLinks={PLACEHOLDER_SOCIAL_LINKS}
               digitalResources={[]}
               additionalPages={{ faq: [], resources: [] }}
               booking={booking}

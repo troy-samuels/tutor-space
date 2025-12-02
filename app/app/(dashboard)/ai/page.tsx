@@ -1,57 +1,64 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { getConversations, getConversation } from "@/lib/actions/ai-assistant";
+import { AIChatInterface } from "@/components/ai/AIChatInterface";
 
-function resolveEntitlements() {
-  return { growth: true, studio: true };
-}
+export const metadata = {
+  title: "AI Assistant | TutorLingua",
+  description: "AI-powered assistant for lesson preparation, student feedback, and more",
+};
 
-export default async function AiToolsPage() {
-  const aiEnabled = process.env.NEXT_PUBLIC_AI_TOOLS_ENABLED === "true";
-  if (!aiEnabled) {
-    notFound();
+export default async function AIPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ conversation?: string }>;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  // Get user profile to determine role
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan")
-    .eq("id", user?.id ?? "")
+    .select("id, plan")
+    .eq("id", user.id)
     .single();
 
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("plan_name")
-    .eq("user_id", user?.id ?? "")
-    .order("created_at", { ascending: false })
-    .limit(1);
+  // Check if user has access (Growth plan or higher)
+  // For now, allow all users - can be gated by plan later
+  const userRole = profile ? "tutor" : "student";
 
-  const planName = subscriptions?.[0]?.plan_name ?? profile?.plan ?? "founder_lifetime";
-  const entitlements = resolveEntitlements();
+  // Fetch conversations
+  const conversations = await getConversations();
+
+  // Get current conversation if specified
+  const params = await searchParams;
+  const currentConversationId = params.conversation || null;
+  let messages: Awaited<ReturnType<typeof getConversation>>["messages"] = [];
+
+  if (currentConversationId) {
+    const conversationData = await getConversation(currentConversationId);
+    messages = conversationData.messages;
+  }
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">AI automation hub</h1>
-        <p className="text-sm text-muted-foreground">
-          Draft lesson plans, homework, and parent updates with TutorLingua&apos;s AI copilots.
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">AI Assistant</h1>
+        <p className="text-muted-foreground">
+          Get help with lesson preparation, student feedback, content creation, and more
         </p>
-      </header>
+      </div>
 
-      <section className="rounded-3xl border border-border bg-white/80 p-6 shadow-sm backdrop-blur">
-        <h2 className="text-base font-semibold text-foreground">Coming soon</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Campaign templates, voice practice partners, and SEO calendars will appear here as we finish
-          the Growth Plan milestones.
-        </p>
-        <p className="mt-4 rounded-2xl border border-dashed border-border bg-primary/5 px-4 py-3 text-xs text-muted-foreground">
-          TODO: wire up AI assistants backed by Supabase functions and OpenAI endpoints per 14-24 feature guides.
-        </p>
-      </section>
+      <AIChatInterface
+        initialConversations={conversations}
+        initialMessages={messages}
+        initialConversationId={currentConversationId}
+        userRole={userRole as "tutor" | "student"}
+      />
     </div>
   );
 }

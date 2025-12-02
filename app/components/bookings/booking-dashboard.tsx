@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarDays, Clock, Plus, Video } from "lucide-react";
+import { CalendarDays, Clock, Plus, Video, RefreshCw } from "lucide-react";
+import { RescheduleModal } from "@/components/booking/RescheduleModal";
 import type { BookingRecord } from "@/lib/actions/bookings";
 import { createBooking, markBookingAsPaid } from "@/lib/actions/bookings";
 import type { StudentRecord } from "@/lib/actions/students";
@@ -68,7 +70,13 @@ export function BookingDashboard({
   busyWindows,
   tutorId,
 }: BookingDashboardProps) {
+  const router = useRouter();
   const [bookingList, setBookingList] = useState<BookingRecord[]>(bookings);
+
+  const handleRescheduleSuccess = () => {
+    // Refresh the page to get updated booking data
+    router.refresh();
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formState, setFormState] = useState<BookingFormState>(() => ({
     serviceId: services[0]?.id ?? null,
@@ -383,6 +391,7 @@ export function BookingDashboard({
           onMarkAsPaid={handleMarkAsPaid}
           isPending={paymentPending}
           tutorId={tutorId}
+          onRescheduleSuccess={handleRescheduleSuccess}
         />
         <BookingList
           title="Past"
@@ -392,6 +401,7 @@ export function BookingDashboard({
           isPending={paymentPending}
           tutorId={tutorId}
           collapsed
+          onRescheduleSuccess={handleRescheduleSuccess}
         />
       </div>
 
@@ -624,6 +634,7 @@ function BookingList({
   isPending,
   collapsed,
   tutorId,
+  onRescheduleSuccess,
 }: {
   title: string;
   bookings: BookingRecord[];
@@ -632,6 +643,7 @@ function BookingList({
   isPending: boolean;
   collapsed?: boolean;
   tutorId: string;
+  onRescheduleSuccess?: () => void;
 }) {
   if (bookings.length === 0) {
     return (
@@ -663,6 +675,7 @@ function BookingList({
             onMarkAsPaid={onMarkAsPaid}
             isPending={isPending}
             tutorId={tutorId}
+            onRescheduleSuccess={onRescheduleSuccess}
           />
         ))}
       </ul>
@@ -676,6 +689,7 @@ type BookingListItemProps = {
   onMarkAsPaid: (bookingId: string) => void;
   isPending: boolean;
   tutorId: string;
+  onRescheduleSuccess?: () => void;
 };
 
 function BookingListItem({
@@ -684,6 +698,7 @@ function BookingListItem({
   onMarkAsPaid,
   isPending,
   tutorId,
+  onRescheduleSuccess,
 }: BookingListItemProps) {
   const isPaid = booking.payment_status === "paid";
   const isPendingPayment = booking.payment_status === "unpaid";
@@ -691,6 +706,11 @@ function BookingListItem({
   const [showRefund, setShowRefund] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundBusy, setRefundBusy] = useState(false);
+  const [showReschedule, setShowReschedule] = useState(false);
+
+  const canReschedule = booking.status !== "cancelled" &&
+    booking.status !== "completed" &&
+    new Date(booking.scheduled_at) > new Date();
 
   return (
     <li
@@ -758,6 +778,38 @@ function BookingListItem({
           </a>
         </div>
       )}
+
+      {/* Reschedule Button */}
+      {canReschedule && (
+        <div className="flex items-center gap-2 pt-2 border-t border-current/10">
+          <button
+            onClick={() => setShowReschedule(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reschedule
+          </button>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      <RescheduleModal
+        isOpen={showReschedule}
+        onClose={() => setShowReschedule(false)}
+        booking={{
+          id: booking.id,
+          scheduled_at: booking.scheduled_at,
+          duration_minutes: booking.duration_minutes,
+          timezone: booking.timezone,
+          students: booking.students,
+          services: booking.services,
+        }}
+        userRole="tutor"
+        onSuccess={() => {
+          setShowReschedule(false);
+          onRescheduleSuccess?.();
+        }}
+      />
 
       {isPendingPayment && (
         <div className="flex items-center gap-2 pt-2 border-t border-current/10">

@@ -16,6 +16,9 @@ import {
   Download,
   Eye,
   Shield,
+  Settings,
+  Activity,
+  Flag,
 } from "lucide-react";
 
 const navItems = [
@@ -33,6 +36,11 @@ const navItems = [
     title: "Students",
     href: "/admin/students",
     icon: GraduationCap,
+  },
+  {
+    title: "Moderation",
+    href: "/admin/moderation",
+    icon: Flag,
   },
   {
     title: "Analytics",
@@ -60,6 +68,16 @@ const navItems = [
     title: "Data Export",
     href: "/admin/export",
     icon: Download,
+  },
+  {
+    title: "System Health",
+    href: "/admin/health",
+    icon: Activity,
+  },
+  {
+    title: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
   },
 ];
 

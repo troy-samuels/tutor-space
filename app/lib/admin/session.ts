@@ -94,3 +94,15 @@ export async function clearAdminSessionCookie(): Promise<void> {
 }
 
 export { ADMIN_SESSION_COOKIE };
+
+// Helper function to verify admin session from token
+export async function verifyAdminSession(token: string | undefined): Promise<{ id: string; email: string; role: string } | null> {
+  if (!token) return null;
+  const session = await parseAdminSession(token);
+  if (!session) return null;
+  return {
+    id: session.adminId,
+    email: session.email,
+    role: session.role,
+  };
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Video, Check, ExternalLink, AlertCircle } from "lucide-react";
 import { updateVideoSettings } from "@/lib/actions/profile";
 
 interface VideoSettingsFormProps {
@@ -14,6 +15,38 @@ interface VideoSettingsFormProps {
   };
 }
 
+function getProviderDisplayName(provider: string, customName?: string): string {
+  switch (provider) {
+    case "zoom_personal":
+      return "Zoom Personal Room";
+    case "google_meet":
+      return "Google Meet";
+    case "calendly":
+      return "Calendly";
+    case "custom":
+      return customName || "Custom Platform";
+    case "none":
+      return "Manual (no automatic link)";
+    default:
+      return "Not configured";
+  }
+}
+
+function getCurrentUrl(data: VideoSettingsFormProps["initialData"]): string | null {
+  switch (data.video_provider) {
+    case "zoom_personal":
+      return data.zoom_personal_link || null;
+    case "google_meet":
+      return data.google_meet_link || null;
+    case "calendly":
+      return data.calendly_link || null;
+    case "custom":
+      return data.custom_video_url || null;
+    default:
+      return null;
+  }
+}
+
 export default function VideoSettingsForm({
   initialData,
 }: VideoSettingsFormProps) {
@@ -24,6 +57,10 @@ export default function VideoSettingsForm({
   } | null>(null);
 
   const [formData, setFormData] = useState(initialData);
+  const [savedData, setSavedData] = useState(initialData);
+
+  const currentUrl = getCurrentUrl(savedData);
+  const hasConfiguredVideo = savedData.video_provider && savedData.video_provider !== "none" && currentUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,255 +74,270 @@ export default function VideoSettingsForm({
       } else {
         setMessage({
           type: "success",
-          text: "Video settings updated successfully!",
+          text: "Video settings updated! Students will see this link in their booking confirmations.",
         });
+        setSavedData(formData);
       }
     });
   };
 
+  const providers = [
+    {
+      id: "zoom_personal",
+      name: "Zoom Personal Room",
+      description: "Use your permanent Zoom room. Works with free Zoom accounts.",
+      popular: true,
+      urlField: "zoom_personal_link" as const,
+      placeholder: "https://zoom.us/j/1234567890",
+      helpText: "Find this in your Zoom app under Meetings → Personal Room",
+    },
+    {
+      id: "google_meet",
+      name: "Google Meet",
+      description: "Use a reusable Google Meet link. 60-minute limit on free accounts.",
+      popular: false,
+      urlField: "google_meet_link" as const,
+      placeholder: "https://meet.google.com/xxx-yyyy-zzz",
+      helpText: "Create one at meet.google.com → New meeting → Create for later",
+    },
+    {
+      id: "calendly",
+      name: "Redirect to Calendly",
+      description: "Students will be sent to your Calendly page to book.",
+      popular: false,
+      urlField: "calendly_link" as const,
+      placeholder: "https://calendly.com/yourname",
+      helpText: "Your Calendly booking page URL",
+      warning: "Using Calendly bypasses our booking system. You'll manage bookings in Calendly instead.",
+    },
+    {
+      id: "custom",
+      name: "Custom Video Platform",
+      description: "Microsoft Teams, WhatsApp Video, or any other platform",
+      popular: false,
+      urlField: "custom_video_url" as const,
+      placeholder: "https://...",
+      helpText: "Enter your meeting room URL",
+      hasCustomName: true,
+    },
+    {
+      id: "none",
+      name: "I'll send links manually",
+      description: "You'll share meeting links with students yourself via email or messaging",
+      popular: false,
+      urlField: null,
+      placeholder: "",
+      helpText: "",
+    },
+  ];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Current Status Indicator */}
+      {hasConfiguredVideo && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                <Check className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">
+                  Currently using: {getProviderDisplayName(savedData.video_provider, savedData.custom_video_name)}
+                </p>
+                <p className="text-xs text-emerald-700 truncate max-w-[300px]">
+                  {currentUrl}
+                </p>
+              </div>
+            </div>
+            <a
+              href={currentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Test Link
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Not Configured Warning */}
+      {!hasConfiguredVideo && savedData.video_provider !== "none" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Video link not configured
+              </p>
+              <p className="text-xs text-amber-700">
+                Choose a platform and add your meeting link so students can join lessons
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Provider Selection */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Video className="h-5 w-5 text-primary" />
           Choose Your Video Platform
         </h2>
 
-        <div className="space-y-4">
-          {/* Zoom Personal Room */}
-          <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-            <input
-              type="radio"
-              name="video_provider"
-              value="zoom_personal"
-              checked={formData.video_provider === "zoom_personal"}
-              onChange={(e) =>
-                setFormData({ ...formData, video_provider: e.target.value })
+        <div className="space-y-3">
+          {providers.map((provider) => (
+            <div
+              key={provider.id}
+              onClick={() =>
+                setFormData({ ...formData, video_provider: provider.id })
               }
-              className="mt-1"
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-gray-900">
-                  Zoom Personal Meeting Room
-                </span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                  POPULAR
-                </span>
+              className={`relative rounded-xl border-2 p-4 cursor-pointer transition ${
+                formData.video_provider === provider.id
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`flex h-5 w-5 items-center justify-center rounded-full border-2 mt-0.5 ${
+                    formData.video_provider === provider.id
+                      ? "border-primary bg-primary"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {formData.video_provider === provider.id && (
+                    <Check className="h-3 w-3 text-white" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      {provider.name}
+                    </span>
+                    {provider.popular && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                        POPULAR
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-0.5">
+                    {provider.description}
+                  </p>
+
+                  {/* URL Input (conditional) */}
+                  {formData.video_provider === provider.id && provider.urlField && (
+                    <div className="mt-4 space-y-3">
+                      {provider.hasCustomName && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Platform Name
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.custom_video_name}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                custom_video_name: e.target.value,
+                              })
+                            }
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="e.g., Microsoft Teams, WhatsApp Video"
+                            required={formData.video_provider === "custom"}
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Meeting Link
+                        </label>
+                        <input
+                          type="url"
+                          value={formData[provider.urlField]}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              [provider.urlField]: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                          placeholder={provider.placeholder}
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1.5">
+                          {provider.helpText}
+                        </p>
+                        {provider.warning && (
+                          <p className="text-xs text-amber-600 mt-2 flex items-start gap-1">
+                            <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                            {provider.warning}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                Use your permanent Zoom room. Works with free Zoom accounts.
-              </p>
-              {formData.video_provider === "zoom_personal" && (
-                <div className="mt-3">
-                  <input
-                    type="url"
-                    value={formData.zoom_personal_link}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        zoom_personal_link: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                    placeholder="https://zoom.us/j/1234567890"
-                    required={formData.video_provider === "zoom_personal"}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Find this in your Zoom app under Meetings → Personal Room
-                  </p>
-                </div>
-              )}
             </div>
-          </label>
-
-          {/* Google Meet */}
-          <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-            <input
-              type="radio"
-              name="video_provider"
-              value="google_meet"
-              checked={formData.video_provider === "google_meet"}
-              onChange={(e) =>
-                setFormData({ ...formData, video_provider: e.target.value })
-              }
-              className="mt-1"
-            />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Google Meet</span>
-              <p className="text-sm text-gray-600 mt-1">
-                Use a reusable Google Meet link. 60-minute limit on free accounts.
-              </p>
-              {formData.video_provider === "google_meet" && (
-                <div className="mt-3">
-                  <input
-                    type="url"
-                    value={formData.google_meet_link}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        google_meet_link: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                    placeholder="https://meet.google.com/xxx-yyyy-zzz"
-                    required={formData.video_provider === "google_meet"}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Create one at meet.google.com → New meeting → Create for later
-                  </p>
-                </div>
-              )}
-            </div>
-          </label>
-
-          {/* Calendly */}
-          <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-            <input
-              type="radio"
-              name="video_provider"
-              value="calendly"
-              checked={formData.video_provider === "calendly"}
-              onChange={(e) =>
-                setFormData({ ...formData, video_provider: e.target.value })
-              }
-              className="mt-1"
-            />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">
-                Redirect to Calendly
-              </span>
-              <p className="text-sm text-gray-600 mt-1">
-                Students will be sent to your Calendly page to book.
-              </p>
-              {formData.video_provider === "calendly" && (
-                <div className="mt-3">
-                  <input
-                    type="url"
-                    value={formData.calendly_link}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        calendly_link: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                    placeholder="https://calendly.com/yourname"
-                    required={formData.video_provider === "calendly"}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your Calendly booking page URL
-                  </p>
-                  <p className="text-xs text-amber-600 mt-2">
-                    ⚠️ Note: Using Calendly bypasses our booking system. You&apos;ll
-                    manage bookings in Calendly instead.
-                  </p>
-                </div>
-              )}
-            </div>
-          </label>
-
-          {/* Custom Platform */}
-          <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-            <input
-              type="radio"
-              name="video_provider"
-              value="custom"
-              checked={formData.video_provider === "custom"}
-              onChange={(e) =>
-                setFormData({ ...formData, video_provider: e.target.value })
-              }
-              className="mt-1"
-            />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">
-                Custom Video Platform
-              </span>
-              <p className="text-sm text-gray-600 mt-1">
-                Microsoft Teams, WhatsApp Video, or any other platform
-              </p>
-              {formData.video_provider === "custom" && (
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Platform Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.custom_video_name}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          custom_video_name: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                      placeholder="e.g., Microsoft Teams, WhatsApp Video"
-                      required={formData.video_provider === "custom"}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Meeting URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.custom_video_url}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          custom_video_url: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                      placeholder="https://..."
-                      required={formData.video_provider === "custom"}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </label>
-
-          {/* None / Manual */}
-          <label className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-            <input
-              type="radio"
-              name="video_provider"
-              value="none"
-              checked={formData.video_provider === "none"}
-              onChange={(e) =>
-                setFormData({ ...formData, video_provider: e.target.value })
-              }
-              className="mt-1"
-            />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">
-                I&apos;ll send links manually
-              </span>
-              <p className="text-sm text-gray-600 mt-1">
-                You&apos;ll share meeting links with students yourself via email or messaging
-              </p>
-            </div>
-          </label>
+          ))}
         </div>
       </div>
 
       {/* Success/Error Message */}
       {message && (
         <div
-          className={`rounded-lg p-4 ${
+          className={`rounded-xl p-4 ${
             message.type === "success"
-              ? "bg-green-50 border border-green-200"
+              ? "bg-emerald-50 border border-emerald-200"
               : "bg-red-50 border border-red-200"
           }`}
         >
-          <p
-            className={`text-sm ${
-              message.type === "success" ? "text-green-800" : "text-red-800"
-            }`}
-          >
-            {message.text}
-          </p>
+          <div className="flex items-center gap-2">
+            {message.type === "success" ? (
+              <Check className="h-5 w-5 text-emerald-600" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            )}
+            <p
+              className={`text-sm font-medium ${
+                message.type === "success" ? "text-emerald-800" : "text-red-800"
+              }`}
+            >
+              {message.text}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Student Preview */}
+      {formData.video_provider && formData.video_provider !== "none" && getCurrentUrl(formData) && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            How students will see it in booking confirmations:
+          </h3>
+          <div className="bg-white border border-gray-200 rounded-lg p-3 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Video className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900">
+                Join on {getProviderDisplayName(formData.video_provider, formData.custom_video_name)}
+              </p>
+              <p className="text-xs text-gray-500 truncate">
+                {getCurrentUrl(formData)}
+              </p>
+            </div>
+            <div className="text-xs text-primary font-medium">
+              Click to join →
+            </div>
+          </div>
         </div>
       )}
 
@@ -294,7 +346,7 @@ export default function VideoSettingsForm({
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed transition-colors"
         >
           {isPending ? "Saving..." : "Save Video Settings"}
         </button>

@@ -20,6 +20,7 @@ type ReminderLessonRecord = {
   students: {
     full_name: string | null;
     email: string | null;
+    user_id: string | null;
   } | null;
   services: {
     name: string | null;
@@ -112,7 +113,8 @@ export async function GET(request: Request) {
         reminder_24h_sent,
         students (
           full_name,
-          email
+          email,
+          user_id
         ),
         services (
           name
@@ -140,7 +142,8 @@ export async function GET(request: Request) {
         reminder_1h_sent,
         students (
           full_name,
-          email
+          email,
+          user_id
         ),
         services (
           name
@@ -158,6 +161,8 @@ export async function GET(request: Request) {
     const results = {
       reminders24h: 0,
       reminders1h: 0,
+      notifications24h: 0,
+      notifications1h: 0,
       campaignSent: 0,
       campaignFailed: 0,
       automationsQueued: 0,
@@ -199,6 +204,31 @@ export async function GET(request: Request) {
             .eq("id", lesson.id);
 
           results.reminders24h++;
+
+          // Create in-app notification if student has an account
+          if (student.user_id) {
+            try {
+              await adminClient.from("notifications").insert({
+                user_id: student.user_id,
+                user_role: "student",
+                type: "booking_reminder",
+                title: "Lesson tomorrow",
+                body: `${service?.name || "Lesson"} with ${tutor?.full_name || "your tutor"}`,
+                link: lesson.meeting_url || "/student-auth/search",
+                icon: "bell",
+                metadata: {
+                  booking_id: lesson.id,
+                  meeting_url: lesson.meeting_url,
+                  meeting_provider: lesson.meeting_provider,
+                  scheduled_at: lesson.scheduled_at,
+                  hours_until: 24,
+                },
+              });
+              results.notifications24h++;
+            } catch (notifError) {
+              console.warn(`Failed to create 24h notification for lesson ${lesson.id}:`, notifError);
+            }
+          }
         } catch (error) {
           console.error(`Error sending 24h reminder for lesson ${lesson.id}:`, error);
           results.errors.push(`24h reminder failed for lesson ${lesson.id}`);
@@ -241,6 +271,31 @@ export async function GET(request: Request) {
             .eq("id", lesson.id);
 
           results.reminders1h++;
+
+          // Create in-app notification if student has an account
+          if (student.user_id) {
+            try {
+              await adminClient.from("notifications").insert({
+                user_id: student.user_id,
+                user_role: "student",
+                type: "booking_reminder",
+                title: "Lesson starting soon",
+                body: `${service?.name || "Lesson"} with ${tutor?.full_name || "your tutor"} in 1 hour`,
+                link: lesson.meeting_url || "/student-auth/search",
+                icon: "bell",
+                metadata: {
+                  booking_id: lesson.id,
+                  meeting_url: lesson.meeting_url,
+                  meeting_provider: lesson.meeting_provider,
+                  scheduled_at: lesson.scheduled_at,
+                  hours_until: 1,
+                },
+              });
+              results.notifications1h++;
+            } catch (notifError) {
+              console.warn(`Failed to create 1h notification for lesson ${lesson.id}:`, notifError);
+            }
+          }
         } catch (error) {
           console.error(`Error sending 1h reminder for lesson ${lesson.id}:`, error);
           results.errors.push(`1h reminder failed for lesson ${lesson.id}`);

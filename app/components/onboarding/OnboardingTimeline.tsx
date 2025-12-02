@@ -8,6 +8,7 @@ import { StepProfessionalInfo } from "./steps/StepProfessionalInfo";
 import { StepLanguagesServices } from "./steps/StepLanguagesServices";
 import { StepAvailability } from "./steps/StepAvailability";
 import { StepCalendarSync } from "./steps/StepCalendarSync";
+import { StepVideo } from "./steps/StepVideo";
 import { StepPayments } from "./steps/StepPayments";
 import { completeOnboarding } from "@/lib/actions/onboarding";
 
@@ -50,6 +51,11 @@ const STEPS = [
   },
   {
     id: 6,
+    title: "Video Conferencing",
+    description: "Add your meeting link so students can easily join lessons",
+  },
+  {
+    id: 7,
     title: "Payments",
     description: "Connect Stripe or add a payment link to start accepting payments",
   },
@@ -81,7 +87,7 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
   }, []);
 
   const handleStepComplete = async (stepNumber: number) => {
-    if (stepNumber === 6) {
+    if (stepNumber === 7) {
       // Final step - complete onboarding and redirect
       setIsCompleting(true);
       try {
@@ -163,9 +169,16 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
         );
       case 6:
         return (
-          <StepPayments
+          <StepVideo
             profileId={profile.id}
             onComplete={() => handleStepComplete(6)}
+          />
+        );
+      case 7:
+        return (
+          <StepPayments
+            profileId={profile.id}
+            onComplete={() => handleStepComplete(7)}
             isCompleting={isCompleting}
           />
         );
@@ -181,7 +194,7 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
           Welcome to TutorLingua!
         </h1>
         <p className="mt-2 text-xs sm:text-sm text-muted-foreground px-4 sm:px-0">
-          Complete these 5 steps to get your tutor site ready for bookings
+          Complete these steps to get your tutor site ready for bookings
         </p>
       </header>
 
@@ -193,7 +206,7 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
               title={step.title}
               description={step.description}
               status={getStepStatus(step.id)}
-              isLastStep={step.id === 6}
+              isLastStep={step.id === 7}
             >
               {renderStepContent(step.id)}
             </TimelineStep>
