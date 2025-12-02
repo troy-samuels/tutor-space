@@ -183,8 +183,8 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
     .limit(10);
 
   // TODO: Fetch approved testimonials when testimonials table is created
-  // For now, using empty array until testimonials feature is implemented
-  const testimonials: any[] = [];
+  // For now, using an empty array until testimonials feature is implemented
+  const testimonials: never[] = [];
 
   // Generate comprehensive structured data
   const structuredData = generateCompleteProfileSchema(

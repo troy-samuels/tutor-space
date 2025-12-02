@@ -7,9 +7,6 @@ import {
   Clock,
   Video,
   CalendarDays,
-  Instagram,
-  Globe,
-  Share2,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, addMonths, subMonths } from "date-fns";
 import { getDailyLessons, getMonthlyBookingCounts, type DailyLesson } from "@/lib/actions/calendar-sidebar";

@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Image, { type ImageProps } from "next/image";
+
 import { cn } from "@/lib/utils";
 
 export type AvatarProps = React.HTMLAttributes<HTMLDivElement>;
@@ -19,13 +21,15 @@ export function Avatar({ className, children, ...props }: AvatarProps) {
   );
 }
 
-export type AvatarImageProps = React.ImgHTMLAttributes<HTMLImageElement>;
+export type AvatarImageProps = Omit<ImageProps, "fill">;
 
 export function AvatarImage({ className, alt, ...props }: AvatarImageProps) {
   return (
-    <img
+    <Image
       alt={alt}
-      className={cn("h-full w-full object-cover", className)}
+      className={cn("object-cover", className)}
+      fill
+      sizes="40px"
       {...props}
     />
   );

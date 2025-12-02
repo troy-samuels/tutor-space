@@ -142,7 +142,7 @@ export function DashboardHeader({ mobileNavTrigger, onOpenMobileNav }: Dashboard
             {searchTerm.trim() ? (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Searching for "{searchTerm}"...
+                  Searching for &ldquo;{searchTerm}&rdquo;...
                 </p>
                 {/* Placeholder for search results */}
                 <div className="rounded-lg border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">

@@ -3,7 +3,6 @@
 import { Rocket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface CountdownBannerProps {
   daysRemaining: number;
