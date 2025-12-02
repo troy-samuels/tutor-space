@@ -33,8 +33,8 @@ import {
   type AIMessage,
   createConversation,
   deleteConversation,
-  CONTEXT_TYPES,
 } from "@/lib/actions/ai-assistant";
+import { CONTEXT_TYPES } from "@/lib/constants/ai-context-types";
 
 interface AIChatInterfaceProps {
   initialConversations: AIConversation[];

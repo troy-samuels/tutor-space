@@ -8,7 +8,6 @@ import { DashboardBookingCalendar } from "./dashboard-booking-calendar";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarDayView } from "./calendar-day-view";
 import { CalendarDayPanel } from "./calendar-day-panel";
-import { PackageColorLegend } from "./package-color-legend";
 import { QuickBlockDialog } from "./quick-block-dialog";
 import { Button } from "@/components/ui/button";
 import type { CalendarEvent, CalendarViewType } from "@/lib/types/calendar";
@@ -276,12 +275,6 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
           </div>
         </div>
 
-        {/* Package Color Legend - show on month view */}
-        {view === "month" && (
-          <div className="mt-4">
-            <PackageColorLegend showExternal={true} />
-          </div>
-        )}
       </div>
 
       {/* Main Content Area - Calendar + Sidebar */}

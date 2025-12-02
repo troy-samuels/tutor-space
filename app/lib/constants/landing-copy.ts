@@ -46,6 +46,24 @@ type FAQItem = {
   answer: string;
 };
 
+type ValueStackItem = {
+  icon: string;
+  feature: string;
+  replaces: string[];
+  competitorPrice: number;
+};
+
+type ValueStackSection = {
+  headline: string;
+  items: ValueStackItem[];
+  totalLabel: string;
+  platformLabel: string;
+  platformPrice: string;
+  platformPeriod: string;
+  cta: string;
+  ctaHref: string;
+};
+
 type FooterSection = {
   title: string;
   links: ReusableLink[];
@@ -111,6 +129,7 @@ export type LandingCopy = {
     headline: string;
     items: FAQItem[];
   };
+  valueStack: ValueStackSection;
   finalCTA: {
     headline: string;
     subheadline: string;
@@ -141,7 +160,7 @@ const landingCopyEn: LandingCopy = {
   hero: {
     headline: "Built for tutors.",
     subheadline:
-      "$29 or £19 a month. All tools. No add-on fees.",
+      "$29 a month. All tools. No add-on fees.",
     primaryCTA: "Start now",
     secondaryCTA: "See how it works",
     variants: {
@@ -296,13 +315,13 @@ const landingCopyEn: LandingCopy = {
   },
 
   pricing: {
-    headline: "$29 or £19 a month",
+    headline: "$29 a month",
     subheadline: "One flat price for every tutor.",
     comparisonNote: "All features included. No add-on fees. Cancel anytime.",
     tiers: [
       {
         name: "Full access",
-        price: "$29 or £19",
+        price: "$29",
         period: "per month",
         badge: "All features",
         description: "One plan. Full platform.",
@@ -399,6 +418,60 @@ const landingCopyEn: LandingCopy = {
     ],
   },
 
+  valueStack: {
+    headline: "What you'd pay elsewhere",
+    items: [
+      {
+        icon: "Globe",
+        feature: "Professional Website & Link-in-Bio",
+        replaces: ["Squarespace", "Linktree"],
+        competitorPrice: 16,
+      },
+      {
+        icon: "Calendar",
+        feature: "Calendar Invites & Bookings",
+        replaces: ["Calendly", "Acuity Scheduling"],
+        competitorPrice: 12,
+      },
+      {
+        icon: "GraduationCap",
+        feature: "Lesson Packages & Course Builder",
+        replaces: ["Kajabi", "Teachable"],
+        competitorPrice: 59,
+      },
+      {
+        icon: "Users",
+        feature: "Student CRM & Notes",
+        replaces: ["HubSpot", "Notion"],
+        competitorPrice: 20,
+      },
+      {
+        icon: "Mail",
+        feature: "Email List & Sequences",
+        replaces: ["ConvertKit", "Mailchimp"],
+        competitorPrice: 15,
+      },
+      {
+        icon: "CreditCard",
+        feature: "Payment Processing",
+        replaces: ["Stripe setup", "PayPal Business"],
+        competitorPrice: 0,
+      },
+      {
+        icon: "BarChart3",
+        feature: "Analytics Dashboard",
+        replaces: ["Google Analytics"],
+        competitorPrice: 0,
+      },
+    ],
+    totalLabel: "What you'd spend otherwise",
+    platformLabel: "Join TutorLingua",
+    platformPrice: "$29",
+    platformPeriod: "/mo",
+    cta: "Start now",
+    ctaHref: "/signup",
+  },
+
   finalCTA: {
     headline: "Ready to own your business?",
     subheadline:
@@ -408,10 +481,10 @@ const landingCopyEn: LandingCopy = {
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Marketplace fees (25%):",
-    platformCostLabel: "TutorLingua ($29 / £19):",
+    platformCostLabel: "TutorLingua ($29):",
     monthlySavingsLabel: "Monthly savings:",
     annualSavingsLabel: "Annual savings",
-    button: "Start free",
+    button: "Start now",
     finePrint: "Free forever. Upgrade anytime.",
     trustBadges: ["Stripe Verified", "GDPR Compliant", "SOC 2 Ready"],
   },
@@ -466,7 +539,7 @@ const landingCopyEs: LandingCopy = {
   hero: {
     headline: "Creado para tutores.",
     subheadline:
-      "$29 o £19 al mes. Todas las funciones. Sin extras.",
+      "$29 al mes. Todas las funciones. Sin extras.",
     primaryCTA: "Empieza ahora",
     secondaryCTA: "Ver cómo funciona",
     variants: {
@@ -621,13 +694,13 @@ const landingCopyEs: LandingCopy = {
   },
 
   pricing: {
-    headline: "$29 o £19 al mes",
+    headline: "$29 al mes",
     subheadline: "Un solo precio para tutores.",
     comparisonNote: "Acceso completo. Sin extras. Cancela cuando quieras.",
     tiers: [
       {
         name: "Acceso total",
-        price: "$29 o £19",
+        price: "$29",
         period: "al mes",
         badge: "Todo incluido",
         description: "Un plan. Toda la plataforma.",
@@ -724,6 +797,60 @@ const landingCopyEs: LandingCopy = {
     ],
   },
 
+  valueStack: {
+    headline: "Lo que pagarías en otros lados",
+    items: [
+      {
+        icon: "Globe",
+        feature: "Sitio Web Profesional y Link-in-Bio",
+        replaces: ["Squarespace", "Linktree"],
+        competitorPrice: 16,
+      },
+      {
+        icon: "Calendar",
+        feature: "Calendario y Reservas",
+        replaces: ["Calendly", "Acuity Scheduling"],
+        competitorPrice: 12,
+      },
+      {
+        icon: "GraduationCap",
+        feature: "Paquetes de Clases y Cursos",
+        replaces: ["Kajabi", "Teachable"],
+        competitorPrice: 59,
+      },
+      {
+        icon: "Users",
+        feature: "CRM de Estudiantes y Notas",
+        replaces: ["HubSpot", "Notion"],
+        competitorPrice: 20,
+      },
+      {
+        icon: "Mail",
+        feature: "Lista de Email y Secuencias",
+        replaces: ["ConvertKit", "Mailchimp"],
+        competitorPrice: 15,
+      },
+      {
+        icon: "CreditCard",
+        feature: "Procesamiento de Pagos",
+        replaces: ["Stripe setup", "PayPal Business"],
+        competitorPrice: 0,
+      },
+      {
+        icon: "BarChart3",
+        feature: "Panel de Analíticas",
+        replaces: ["Google Analytics"],
+        competitorPrice: 0,
+      },
+    ],
+    totalLabel: "Lo que gastarías normalmente",
+    platformLabel: "Únete a TutorLingua",
+    platformPrice: "$29",
+    platformPeriod: "/mes",
+    cta: "Empieza ahora",
+    ctaHref: "/signup",
+  },
+
   finalCTA: {
     headline: "¿Listo para ser dueño de tu negocio?",
     subheadline:
@@ -733,7 +860,7 @@ const landingCopyEs: LandingCopy = {
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Comisiones marketplace (25%):",
-    platformCostLabel: "TutorLingua ($29 / £19):",
+    platformCostLabel: "TutorLingua ($29):",
     monthlySavingsLabel: "Ahorro mensual:",
     annualSavingsLabel: "Ahorro anual",
     button: "Empieza gratis",
@@ -803,3 +930,4 @@ export type HeroVariant = keyof LandingCopy["hero"]["variants"];
 export type LandingPricingTier = LandingCopy["pricing"]["tiers"][number];
 export type Testimonial = LandingCopy["testimonials"]["list"][number];
 export type LandingFAQItem = LandingCopy["faq"]["items"][number];
+export type LandingValueStack = LandingCopy["valueStack"];

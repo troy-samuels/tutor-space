@@ -25,10 +25,12 @@ import {
   type LearningGoal,
   type ProficiencyAssessment,
   type LessonNote,
+} from "@/lib/actions/progress";
+import {
   LEVEL_LABELS,
   SKILL_LABELS,
   LEVEL_SCORES,
-} from "@/lib/actions/progress";
+} from "@/lib/constants/progress-labels";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface StudentProgressClientProps {

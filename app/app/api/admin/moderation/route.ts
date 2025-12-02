@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  let updateData: Record<string, unknown> = {};
+  const updateData: Record<string, unknown> = {};
   let previousValue: string | null = null;
 
   switch (action) {

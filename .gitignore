@@ -22,3 +22,6 @@ app/coverage/
 # Supabase local config
 supabase/.branches
 supabase/.temp
+
+# MCP config (contains access tokens)
+.mcp.json

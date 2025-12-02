@@ -33,8 +33,8 @@ import {
   type PaymentRecord,
   type PackagePurchaseRecord,
   type BillingSummary,
-  formatCurrency,
 } from "@/lib/actions/student-billing";
+import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 
 interface StudentBillingClientProps {

@@ -1027,7 +1027,7 @@ export function SitePreview({
           <button
             type="button"
             onClick={() => onNavigate?.("contact")}
-            className="w-full rounded-full py-3 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full rounded-lg py-3 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               backgroundColor: theme.primary
             }}

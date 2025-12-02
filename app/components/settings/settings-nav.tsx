@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTransition } from "react";
+import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/lib/actions/auth";
 
 const LINKS = [
   { href: "/settings/profile", label: "Profile" },
@@ -14,9 +17,16 @@ const LINKS = [
 
 export function SettingsNav() {
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      await signOut();
+    });
+  };
 
   return (
-    <nav className="flex flex-wrap gap-2 text-sm">
+    <nav className="flex flex-wrap items-center gap-2 text-sm">
       {LINKS.map((link) => {
         const isActive = pathname === link.href;
 
@@ -35,6 +45,15 @@ export function SettingsNav() {
           </Link>
         );
       })}
+      <div className="mx-2 h-6 w-px bg-border" />
+      <button
+        onClick={handleLogout}
+        disabled={isPending}
+        className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-medium text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+      >
+        <LogOut className="h-4 w-4" />
+        {isPending ? "Signing out..." : "Log out"}
+      </button>
     </nav>
   );
 }

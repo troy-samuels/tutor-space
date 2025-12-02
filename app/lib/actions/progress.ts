@@ -143,7 +143,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
   return {
     stats: statsResult.data as LearningStats | null,
     goals: (goalsResult.data || []) as LearningGoal[],
-    assessments: latestAssessments,
+    assessments: latestAssessments as ProficiencyAssessment[],
     recentNotes: (notesResult.data || []) as LessonNote[],
   };
 }
@@ -221,32 +221,4 @@ export async function getTutorStudentProgress(studentId: string): Promise<{
   };
 }
 
-// Skill level to numeric score
-export const LEVEL_SCORES: Record<string, number> = {
-  beginner: 1,
-  elementary: 2,
-  intermediate: 3,
-  upper_intermediate: 4,
-  advanced: 5,
-  proficient: 6,
-};
-
-export const LEVEL_LABELS: Record<string, string> = {
-  beginner: "Beginner (A1)",
-  elementary: "Elementary (A2)",
-  intermediate: "Intermediate (B1)",
-  upper_intermediate: "Upper Intermediate (B2)",
-  advanced: "Advanced (C1)",
-  proficient: "Proficient (C2)",
-};
-
-export const SKILL_LABELS: Record<string, string> = {
-  speaking: "Speaking",
-  listening: "Listening",
-  reading: "Reading",
-  writing: "Writing",
-  vocabulary: "Vocabulary",
-  grammar: "Grammar",
-  pronunciation: "Pronunciation",
-  overall: "Overall",
-};
+// Constants moved to @/lib/constants/progress-labels.ts

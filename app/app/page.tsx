@@ -11,6 +11,7 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FAQSection } from "@/components/landing/FAQSection";
+import { ValueStackSection } from "@/components/landing/ValueStackSection";
 import { FinalCTASection } from "@/components/landing/FinalCTASection";
 import { Footer } from "@/components/landing/Footer";
 import { StructuredData } from "@/components/landing/StructuredData";
@@ -39,6 +40,7 @@ export default async function LandingPage() {
       <PricingSection pricing={copy.pricing} />
       <ComparisonSection comparison={copy.comparison} />
       <TestimonialsSection testimonials={copy.testimonials} />
+      <ValueStackSection valueStack={copy.valueStack} />
       <FAQSection faq={copy.faq} />
       <FinalCTASection finalCTA={copy.finalCTA} />
       <Footer footer={copy.footer} />

@@ -276,45 +276,4 @@ export async function getStudentAccountInfo(): Promise<{
   };
 }
 
-// Common timezones for the dropdown
-export const COMMON_TIMEZONES = [
-  { value: "America/New_York", label: "Eastern Time (US & Canada)" },
-  { value: "America/Chicago", label: "Central Time (US & Canada)" },
-  { value: "America/Denver", label: "Mountain Time (US & Canada)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
-  { value: "America/Toronto", label: "Eastern Time (Canada)" },
-  { value: "America/Vancouver", label: "Pacific Time (Canada)" },
-  { value: "America/Mexico_City", label: "Mexico City" },
-  { value: "America/Sao_Paulo", label: "São Paulo" },
-  { value: "America/Buenos_Aires", label: "Buenos Aires" },
-  { value: "Europe/London", label: "London" },
-  { value: "Europe/Paris", label: "Paris" },
-  { value: "Europe/Berlin", label: "Berlin" },
-  { value: "Europe/Madrid", label: "Madrid" },
-  { value: "Europe/Rome", label: "Rome" },
-  { value: "Europe/Amsterdam", label: "Amsterdam" },
-  { value: "Europe/Moscow", label: "Moscow" },
-  { value: "Asia/Dubai", label: "Dubai" },
-  { value: "Asia/Kolkata", label: "India Standard Time" },
-  { value: "Asia/Singapore", label: "Singapore" },
-  { value: "Asia/Hong_Kong", label: "Hong Kong" },
-  { value: "Asia/Tokyo", label: "Tokyo" },
-  { value: "Asia/Seoul", label: "Seoul" },
-  { value: "Asia/Shanghai", label: "Shanghai" },
-  { value: "Australia/Sydney", label: "Sydney" },
-  { value: "Australia/Melbourne", label: "Melbourne" },
-  { value: "Pacific/Auckland", label: "Auckland" },
-  { value: "UTC", label: "UTC" },
-];
-
-export const SUPPORTED_LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "es", label: "Español" },
-  { value: "fr", label: "Français" },
-  { value: "de", label: "Deutsch" },
-  { value: "pt", label: "Português" },
-  { value: "it", label: "Italiano" },
-  { value: "zh", label: "中文" },
-  { value: "ja", label: "日本語" },
-  { value: "ko", label: "한국어" },
-];
+// Constants moved to @/lib/constants/student-settings.ts

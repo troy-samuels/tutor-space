@@ -87,7 +87,7 @@ export default async function BillingPage() {
 
         <SubscriptionCard
           plan="growth"
-          price="$29 or £19/mo"
+          price="$29/mo"
           features={[
             "Everything in Professional",
             "Unlimited students & services",

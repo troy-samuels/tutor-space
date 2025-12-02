@@ -38,9 +38,11 @@ import {
   updateStudentPreferences,
   updateStudentEmailPreferences,
   changeStudentPassword,
+} from "@/lib/actions/student-settings";
+import {
   COMMON_TIMEZONES,
   SUPPORTED_LANGUAGES,
-} from "@/lib/actions/student-settings";
+} from "@/lib/constants/student-settings";
 import { StudentAvatarUpload } from "@/components/student-auth/StudentAvatarUpload";
 
 interface StudentSettingsClientProps {
@@ -287,8 +289,8 @@ export function StudentSettingsClient({
                 <Label htmlFor="theme">Theme</Label>
                 <Select
                   value={prefsData.theme}
-                  onValueChange={(value: "light" | "dark" | "system") =>
-                    setPrefsData((prev) => ({ ...prev, theme: value }))
+                  onValueChange={(value) =>
+                    setPrefsData((prev) => ({ ...prev, theme: value as "light" | "dark" | "system" }))
                   }
                 >
                   <SelectTrigger id="theme">

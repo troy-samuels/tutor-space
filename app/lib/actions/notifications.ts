@@ -257,22 +257,4 @@ export async function createNotification({
   return { success: true, notificationId: data?.id };
 }
 
-// Notification type to icon mapping
-export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
-  booking_new: "calendar-plus",
-  booking_confirmed: "calendar-check",
-  booking_cancelled: "calendar-x",
-  booking_reminder: "bell",
-  payment_received: "dollar-sign",
-  payment_failed: "alert-circle",
-  message_new: "message-square",
-  message_reply: "reply",
-  student_new: "user-plus",
-  student_access_request: "user-check",
-  package_purchased: "package",
-  package_expiring: "clock",
-  review_received: "star",
-  review_approved: "check-circle",
-  system_announcement: "megaphone",
-  account_update: "user-cog",
-};
+// Notification type to icon mapping - moved to @/lib/constants/notification-icons.ts if needed

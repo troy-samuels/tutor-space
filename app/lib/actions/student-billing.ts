@@ -167,30 +167,34 @@ export async function getStudentBillingHistory(): Promise<{
       id: b.id,
       scheduled_at: b.scheduled_at,
       duration_minutes: b.duration_minutes,
-      services: b.services,
+      services: Array.isArray(b.services) ? b.services[0] || null : b.services,
     },
     digital_product: null,
-    tutor: b.profiles,
+    tutor: Array.isArray(b.profiles) ? b.profiles[0] || null : b.profiles,
   }));
 
   // Transform product payments
-  const productPayments: PaymentRecord[] = (productPurchases || []).map((p) => ({
-    id: p.id,
-    booking_id: null,
-    digital_product_purchase_id: p.id,
-    amount_cents: p.price_cents,
-    currency: p.currency || "USD",
-    payment_status: p.status,
-    payment_method: null,
-    stripe_payment_intent_id: null,
-    created_at: p.created_at,
-    booking: null,
-    digital_product: p.digital_products ? {
-      id: p.digital_products.id,
-      title: p.digital_products.title,
-    } : null,
-    tutor: p.digital_products?.profiles || null,
-  }));
+  const productPayments: PaymentRecord[] = (productPurchases || []).map((p) => {
+    const product = Array.isArray(p.digital_products) ? p.digital_products[0] : p.digital_products;
+    const tutorProfile = product?.profiles;
+    return {
+      id: p.id,
+      booking_id: null,
+      digital_product_purchase_id: p.id,
+      amount_cents: p.price_cents,
+      currency: p.currency || "USD",
+      payment_status: p.status,
+      payment_method: null,
+      stripe_payment_intent_id: null,
+      created_at: p.created_at,
+      booking: null,
+      digital_product: product ? {
+        id: product.id,
+        title: product.title,
+      } : null,
+      tutor: Array.isArray(tutorProfile) ? tutorProfile[0] || null : tutorProfile || null,
+    };
+  });
 
   // Combine and sort all payments
   const allPayments = [...bookingPayments, ...productPayments].sort(
@@ -198,17 +202,22 @@ export async function getStudentBillingHistory(): Promise<{
   );
 
   // Transform packages
-  const packages: PackagePurchaseRecord[] = (packagePurchases || []).map((p) => ({
-    id: p.id,
-    total_price_cents: p.total_price_cents,
-    currency: p.currency || "USD",
-    remaining_minutes: p.remaining_minutes,
-    status: p.status,
-    expires_at: p.expires_at,
-    created_at: p.created_at,
-    session_package_templates: p.session_package_templates,
-    tutor: p.profiles,
-  }));
+  const packages: PackagePurchaseRecord[] = (packagePurchases || []).map((p) => {
+    const template = Array.isArray(p.session_package_templates)
+      ? p.session_package_templates[0]
+      : p.session_package_templates;
+    return {
+      id: p.id,
+      total_price_cents: p.total_price_cents,
+      currency: p.currency || "USD",
+      remaining_minutes: p.remaining_minutes,
+      status: p.status,
+      expires_at: p.expires_at,
+      created_at: p.created_at,
+      session_package_templates: template || null,
+      tutor: Array.isArray(p.profiles) ? p.profiles[0] || null : p.profiles,
+    };
+  });
 
   // Calculate summary
   const lessonTotal = bookingPayments.reduce((sum, p) => sum + p.amount_cents, 0);
@@ -226,12 +235,3 @@ export async function getStudentBillingHistory(): Promise<{
   return { payments: allPayments, packages, summary };
 }
 
-/**
- * Format currency for display
- */
-export function formatCurrency(cents: number, currency: string = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(cents / 100);
-}
