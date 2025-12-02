@@ -26,6 +26,7 @@ export default async function StudentProgressPage() {
         goals={progressData.goals}
         assessments={progressData.assessments}
         recentNotes={progressData.recentNotes}
+        homework={progressData.homework}
       />
     </StudentPortalLayout>
   );

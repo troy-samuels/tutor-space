@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getTutorStudentProgress } from "@/lib/actions/progress";
+import { StudentProgressPanel } from "@/components/students/StudentProgressPanel";
+import { HomeworkPlanner } from "@/components/students/HomeworkPlanner";
 
 type StudentDetailPageProps = {
   params: Promise<{
@@ -77,6 +80,8 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     .eq("student_id", student.id)
     .order("created_at", { ascending: false })
     .limit(10);
+
+  const progress = await getTutorStudentProgress(student.id);
 
   const bookingRecords: StudentBookingRecord[] = (bookings as StudentBookingRecord[] | null) ?? [];
   const lessonNoteRecords: StudentLessonNoteRecord[] =
@@ -313,6 +318,21 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <StudentProgressPanel
+          studentId={student.id}
+          studentName={student.full_name ?? "Student"}
+          stats={progress.stats}
+          goals={progress.goals}
+          assessments={progress.assessments}
+        />
+        <HomeworkPlanner
+          studentId={student.id}
+          studentName={student.full_name ?? "Student"}
+          assignments={progress.homework}
+        />
       </div>
 
       <Card className="border border-border bg-background/80 shadow-sm backdrop-blur">
