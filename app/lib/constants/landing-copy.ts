@@ -379,7 +379,7 @@ const landingCopyEn = {
     ],
     copyright: `© ${new Date().getFullYear()} TutorLingua. All rights reserved.`,
   },
-} as const;
+};
 
 export type LandingCopy = typeof landingCopyEn;
 

@@ -19,11 +19,11 @@ export const sessionPackageFormSchema = z.object({
     .union([z.number().int().min(1, "Session count must be a positive number"), z.null()])
     .transform((value) => (value === null ? null : value)),
   total_minutes: z
-    .coerce.number({ invalid_type_error: "Enter total minutes" })
+    .coerce.number({ message: "Enter total minutes" })
     .int()
     .min(30, "Include at least 30 minutes"),
   price: z
-    .coerce.number({ invalid_type_error: "Enter a price" })
+    .coerce.number({ message: "Enter a price" })
     .min(0, "Price cannot be negative"),
   currency: z
     .string()

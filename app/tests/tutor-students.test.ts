@@ -117,19 +117,23 @@ const studentId = "student-456";
 const requestId = "request-789";
 
 test("approveStudentAccessWithClients rejects unauthorized student", async () => {
-  const supabase = createSupabaseClient(tutorId);
+  const supabase = createSupabaseClient(tutorId) as unknown as Parameters<
+    typeof approveStudentAccessWithClients
+  >[0];
   const studentSelect = createSelectChain(null);
-  const adminClient = buildAdminClient({ studentSelect });
+  const adminClient = buildAdminClient({ studentSelect }) as unknown as Parameters<
+    typeof approveStudentAccessWithClients
+  >[1];
 
   const result = await approveStudentAccessWithClients(
-    supabase as Parameters<typeof approveStudentAccessWithClients>[0],
-    adminClient as Parameters<typeof approveStudentAccessWithClients>[1],
+    supabase,
+    adminClient,
     {
       requestId,
       studentId,
     },
     {
-      sendApprovedEmail: async () => {},
+      sendApprovedEmail: async () => ({ success: true, data: null }),
     }
   );
 
@@ -141,7 +145,9 @@ test("approveStudentAccessWithClients rejects unauthorized student", async () =>
 });
 
 test("approveStudentAccessWithClients scopes updates by tutor", async () => {
-  const supabase = createSupabaseClient(tutorId);
+  const supabase = createSupabaseClient(tutorId) as unknown as Parameters<
+    typeof approveStudentAccessWithClients
+  >[0];
 
   const studentSelect = createSelectChain({
     id: studentId,
@@ -175,16 +181,17 @@ test("approveStudentAccessWithClients scopes updates by tutor", async () => {
     studentSelect,
     requestSelect,
     profileSelect,
-  });
+  }) as unknown as Parameters<typeof approveStudentAccessWithClients>[1];
 
   let emailCalled = false;
   const sendApprovedEmail = async () => {
     emailCalled = true;
+    return { success: true, data: null };
   };
 
   const result = await approveStudentAccessWithClients(
-    supabase as Parameters<typeof approveStudentAccessWithClients>[0],
-    adminClient as Parameters<typeof approveStudentAccessWithClients>[1],
+    supabase,
+    adminClient,
     {
       requestId,
       studentId,
