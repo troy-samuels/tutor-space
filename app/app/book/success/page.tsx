@@ -35,8 +35,8 @@ type BookingSuccessRecord = {
   currency: string | null;
   tutor_id: string;
   student_id: string | null;
-  meeting_url: string | null;
   meeting_provider: string | null;
+  meeting_url: string | null;
   students: {
     full_name: string | null;
     email: string | null;
@@ -92,6 +92,8 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
       currency,
       tutor_id,
       student_id,
+      meeting_provider,
+      meeting_url,
       students (
         full_name,
         email
@@ -242,8 +244,9 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
                 Your lesson will take place on {
                   meetingProvider === "zoom_personal" ? "Zoom" :
                   meetingProvider === "google_meet" ? "Google Meet" :
+                  meetingProvider === "calendly" ? "Calendly" :
                   meetingProvider === "custom" ? (tutorProfile?.custom_video_name || "Video Platform") :
-                  "Video Call"
+                  "Video call"
                 }
               </p>
               <a
