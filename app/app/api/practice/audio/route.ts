@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     const audioFile = formData.get("audio") as File | null;
     const sessionId = formData.get("sessionId") as string | null;
     const language = formData.get("language") as string || "en-US";
+    const mimeType = formData.get("mimeType") as string || audioFile?.type || "audio/webm";
 
     if (!audioFile) {
       return NextResponse.json(
@@ -177,7 +178,8 @@ export async function POST(request: Request) {
       audioData,
       language,
       azureSpeechKey,
-      azureSpeechRegion
+      azureSpeechRegion,
+      mimeType
     );
 
     const costCents = Math.ceil(audioDuration * AZURE_COST_PER_SECOND * 100);
@@ -313,7 +315,8 @@ async function assessPronunciation(
   audioData: Uint8Array,
   language: string,
   apiKey: string,
-  region: string
+  region: string,
+  mimeType: string
 ): Promise<{
   transcript: string;
   accuracy: number;
@@ -337,6 +340,16 @@ async function assessPronunciation(
   };
   const azureLang = langMap[language.substring(0, 2)] || language;
 
+  // Map browser mimeType to Azure-compatible content type
+  // Azure Speech supports: audio/wav, audio/ogg, audio/webm, audio/mp4
+  const contentTypeMap: Record<string, string> = {
+    "audio/webm": "audio/webm",
+    "audio/mp4": "audio/mp4",
+    "audio/ogg": "audio/ogg",
+    "audio/wav": "audio/wav",
+  };
+  const contentType = contentTypeMap[mimeType] || "audio/webm";
+
   // Pronunciation Assessment configuration
   const pronunciationConfig = {
     referenceText: "", // Empty for free-form assessment
@@ -357,7 +370,7 @@ async function assessPronunciation(
         method: "POST",
         headers: {
           "Ocp-Apim-Subscription-Key": apiKey,
-          "Content-Type": "audio/wav",
+          "Content-Type": contentType,
           "Pronunciation-Assessment": pronunciationConfigBase64,
         },
         body: Buffer.from(audioData),

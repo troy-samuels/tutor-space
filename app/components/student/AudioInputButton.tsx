@@ -54,6 +54,7 @@ export function AudioInputButton({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [budget, setBudget] = useState<AudioBudget | null>(null);
+  const [budgetLoading, setBudgetLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
 
@@ -61,6 +62,7 @@ export function AudioInputButton({
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const mimeTypeRef = useRef<string>("audio/webm");
 
   // Fetch audio budget on mount
   useEffect(() => {
@@ -68,6 +70,7 @@ export function AudioInputButton({
   }, []);
 
   const fetchBudget = async () => {
+    setBudgetLoading(true);
     try {
       const response = await fetch("/api/practice/audio");
       if (response.ok) {
@@ -76,6 +79,8 @@ export function AudioInputButton({
       }
     } catch (err) {
       console.error("Failed to fetch audio budget:", err);
+    } finally {
+      setBudgetLoading(false);
     }
   };
 
@@ -93,12 +98,13 @@ export function AudioInputButton({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "audio/mp4",
-      });
+      // Determine supported mimeType and store it
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+      mimeTypeRef.current = mimeType;
 
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -163,13 +169,15 @@ export function AudioInputButton({
     setError(null);
 
     try {
-      // Convert to WAV for Azure Speech (better compatibility)
-      const wavBlob = await convertToWav(audioBlob);
+      // Determine file extension from actual mimeType
+      const ext = mimeTypeRef.current === "audio/webm" ? "webm" : "mp4";
+      const filename = `recording.${ext}`;
 
       const formData = new FormData();
-      formData.append("audio", wavBlob, "recording.wav");
+      formData.append("audio", audioBlob, filename);
       formData.append("sessionId", sessionId);
       formData.append("language", language);
+      formData.append("mimeType", mimeTypeRef.current);
 
       const response = await fetch("/api/practice/audio", {
         method: "POST",
@@ -224,14 +232,6 @@ export function AudioInputButton({
     }
   };
 
-  // Simple WAV conversion (browser-compatible)
-  const convertToWav = async (blob: Blob): Promise<Blob> => {
-    // For simplicity, we'll send the original format
-    // Azure can handle webm/mp4. In production, consider using
-    // a proper audio conversion library for better compatibility.
-    return new Blob([blob], { type: "audio/wav" });
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -242,8 +242,13 @@ export function AudioInputButton({
     ? (budget.remaining_seconds / budget.limit_seconds) * 100
     : 0;
 
-  const isDisabled =
-    disabled || isProcessing || !budget?.enabled || budget?.remaining_seconds <= 0;
+  // Budget exhausted only if we've loaded budget AND it shows zero remaining
+  const budgetExhausted = !budgetLoading && budget !== null &&
+    (!budget.enabled || budget.remaining_seconds <= 0);
+
+  // Disable only for processing, external disabled prop, or confirmed exhausted budget
+  // Allow clicks while budget is loading (will check again in startRecording)
+  const isDisabled = disabled || isProcessing || budgetExhausted;
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -261,7 +266,7 @@ export function AudioInputButton({
         title={
           isRecording
             ? `Recording... ${formatTime(recordingTime)} (click to stop)`
-            : budget?.remaining_seconds === 0
+            : budgetExhausted
             ? "Audio limit reached"
             : "Record pronunciation"
         }
@@ -270,7 +275,7 @@ export function AudioInputButton({
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : isRecording ? (
           <Square className="h-4 w-4" />
-        ) : budget?.remaining_seconds === 0 ? (
+        ) : budgetExhausted ? (
           <MicOff className="h-4 w-4" />
         ) : (
           <Mic className="h-4 w-4" />

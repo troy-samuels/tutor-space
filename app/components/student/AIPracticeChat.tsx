@@ -84,6 +84,7 @@ export function AIPracticeChat({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const shouldEndSessionRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -166,10 +167,20 @@ export function AIPracticeChat({
         created_at: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Update messages and check limit using the updated count
+      shouldEndSessionRef.current = false;
+      setMessages((prev) => {
+        const updated = [...prev, assistantMessage];
+        // Count non-system messages in the updated list
+        const messageCount = updated.filter((m) => m.role !== "system").length;
+        if (messageCount >= maxMessages) {
+          shouldEndSessionRef.current = true;
+        }
+        return updated;
+      });
 
-      // Check if we've hit max messages
-      if (messages.length + 2 >= maxMessages) {
+      // End session if limit reached (checked after state update via ref)
+      if (shouldEndSessionRef.current) {
         handleEndSession();
       }
     } catch (err) {
