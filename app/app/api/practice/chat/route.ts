@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
@@ -57,8 +58,10 @@ const MAX_INPUT_MESSAGES = 10; // last 10 messages for context
 const MAX_USER_MESSAGE_CHARS = 800; // clip very long user inputs
 const MAX_OUTPUT_TOKENS_PER_CALL = 200;
 
+type ServiceRoleClient = SupabaseClient;
+
 export async function POST(request: Request) {
-  let adminClient: ReturnType<typeof createServiceRoleClient> | null = null;
+  let adminClient: ServiceRoleClient | null = null;
   let reservedMessageCount: number | null = null;
   let initialMessageCount = 0;
   let sessionIdForCleanup: string | null = null;
@@ -399,7 +402,7 @@ export async function POST(request: Request) {
 }
 
 async function getOrCreateUsagePeriod(
-  adminClient: ReturnType<typeof createServiceRoleClient>,
+  adminClient: ServiceRoleClient,
   studentId: string,
   tutorId: string,
   subscriptionId: string | null
@@ -409,7 +412,7 @@ async function getOrCreateUsagePeriod(
   text_turns_used: number;
   blocks_consumed: number;
 } | null> {
-  if (!adminClient || !subscriptionId) return null;
+  if (!subscriptionId) return null;
 
   try {
     // Get subscription period from Stripe
@@ -612,7 +615,7 @@ function parseVocabulary(content: string, focusWords: string[]): string[] {
 }
 
 async function incrementTextTurnWithBilling(params: {
-  adminClient: ReturnType<typeof createServiceRoleClient>;
+  adminClient: ServiceRoleClient;
   usagePeriodId: string;
   blockSubscriptionItemId: string | null;
 }): Promise<{

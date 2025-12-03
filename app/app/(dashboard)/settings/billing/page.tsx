@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import BillingPortalButton from "@/components/settings/BillingPortalButton";
+import ConnectStripeButton from "@/components/settings/ConnectStripeButton";
 import SubscriptionCard from "@/components/settings/SubscriptionCard";
 
 export default async function BillingPage() {

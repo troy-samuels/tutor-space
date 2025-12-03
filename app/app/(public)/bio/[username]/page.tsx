@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<BioParams> 
   const resolvedParams = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("full_name, tagline, username, avatar_url")
     .eq("username", resolvedParams.username.toLowerCase())
     .single();
@@ -63,7 +63,7 @@ export default async function BioPage({ params }: { params: Promise<BioParams> }
   const supabase = await createClient();
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select(
       "id, full_name, username, tagline, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email"
     )

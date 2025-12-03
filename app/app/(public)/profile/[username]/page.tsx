@@ -42,7 +42,7 @@ export async function generateMetadata({
   const { username } = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("full_name, tagline, bio, avatar_url, username, languages_taught, average_rating, testimonial_count, total_students")
     .eq("username", username.toLowerCase())
     .single();
@@ -163,7 +163,7 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
   const isStudentLoggedIn = !!user && user.user_metadata?.role === "student";
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select(
       "id, full_name, username, tagline, bio, languages_taught, timezone, website_url, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email, created_at, average_rating, testimonial_count, total_students, total_lessons"
     )

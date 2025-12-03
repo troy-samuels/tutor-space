@@ -119,6 +119,47 @@ export async function createBooking(input: CreateBookingInput) {
     return { error: "You need to be signed in to create bookings." };
   }
 
+  // CONFLICT VALIDATION: Check for overlapping bookings before insert
+  // This prevents double-booking the same timeslot
+  const { data: existingBookings } = await supabase
+    .from("bookings")
+    .select("id, scheduled_at, duration_minutes")
+    .eq("tutor_id", user.id)
+    .in("status", ["pending", "confirmed"])
+    .gte(
+      "scheduled_at",
+      new Date(
+        new Date(input.scheduled_at).getTime() - 24 * 60 * 60 * 1000
+      ).toISOString()
+    )
+    .lte(
+      "scheduled_at",
+      new Date(
+        new Date(input.scheduled_at).getTime() + 24 * 60 * 60 * 1000
+      ).toISOString()
+    );
+
+  const bookingStart = new Date(input.scheduled_at);
+  const bookingEnd = new Date(
+    bookingStart.getTime() + input.duration_minutes * 60 * 1000
+  );
+
+  const hasConflict = existingBookings?.some((existing) => {
+    const existingStart = new Date(existing.scheduled_at);
+    const existingEnd = new Date(
+      existingStart.getTime() + existing.duration_minutes * 60 * 1000
+    );
+    // Check if time ranges overlap
+    return bookingStart < existingEnd && bookingEnd > existingStart;
+  });
+
+  if (hasConflict) {
+    return {
+      error:
+        "This time slot conflicts with an existing booking. Please select a different time.",
+    };
+  }
+
   const { data, error } = await supabase
     .from("bookings")
     .insert({
@@ -136,7 +177,14 @@ export async function createBooking(input: CreateBookingInput) {
     .single<BookingRecord>();
 
   if (error) {
-    return { error: "We couldn’t save that booking. Please try again." };
+    // Check if error is due to the exclusion constraint (conflict at DB level)
+    if (error.code === "23P01") {
+      return {
+        error:
+          "This time slot was just booked. Please refresh and select a different time.",
+      };
+    }
+    return { error: "We couldn't save that booking. Please try again." };
   }
 
   return { data };

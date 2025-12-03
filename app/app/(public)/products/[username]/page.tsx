@@ -10,7 +10,7 @@ export default async function TutorProductsPage({ params }: PageProps) {
   const resolvedParams = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, full_name, bio, username")
     .eq("username", resolvedParams.username)
     .single();

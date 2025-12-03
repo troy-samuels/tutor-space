@@ -20,7 +20,7 @@ export async function loadPublicSite(
   } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, full_name, username, tagline, bio, avatar_url, email, stripe_payment_link")
     .eq("username", params.username.toLowerCase())
     .single();

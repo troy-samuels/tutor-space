@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
@@ -13,6 +14,8 @@ import {
 
 // Azure Speech Services pricing: ~$0.022/minute = ~$0.000367/second
 const AZURE_COST_PER_SECOND = 0.000367;
+
+type ServiceRoleClient = SupabaseClient;
 
 export async function POST(request: Request) {
   try {
@@ -322,7 +325,7 @@ export async function GET(request: Request) {
 }
 
 async function incrementAudioWithBilling(params: {
-  adminClient: ReturnType<typeof createServiceRoleClient>;
+  adminClient: ServiceRoleClient;
   usagePeriodId: string;
   seconds: number;
   blockSubscriptionItemId: string | null;
@@ -441,7 +444,7 @@ async function incrementAudioWithBilling(params: {
 }
 
 async function getOrCreateUsagePeriod(
-  adminClient: ReturnType<typeof createServiceRoleClient>,
+  adminClient: ServiceRoleClient,
   studentId: string,
   tutorId: string,
   subscriptionId: string
@@ -451,7 +454,7 @@ async function getOrCreateUsagePeriod(
   text_turns_used: number;
   blocks_consumed: number;
   period_end: string;
-}> {
+} | null> {
   try {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
     const periodStart = new Date(subscription.current_period_start * 1000);

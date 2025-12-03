@@ -16,7 +16,7 @@ export async function generateMetadata({
   const supabase = await createClient();
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, full_name, tagline, bio, avatar_url, username")
     .eq("username", resolvedParams.username.toLowerCase())
     .single();

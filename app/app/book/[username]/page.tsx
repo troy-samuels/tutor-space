@@ -20,10 +20,9 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
   const supabase = await createClient();
   
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("full_name, username, bio, tagline, avatar_url, languages_taught")
     .eq("username", username)
-    .eq("role", "tutor")
     .single();
 
   if (!profile) {
@@ -93,12 +92,11 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Get tutor profile by username
+  // Get tutor profile by username (from public_profiles view which only returns tutors)
   const { data: profile, error: profileError } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, full_name, username, email, timezone, bio, tagline, avatar_url, instagram_handle, website_url, languages_taught, average_rating, testimonial_count")
     .eq("username", username)
-    .eq("role", "tutor")
     .single();
 
   if (profileError || !profile) {

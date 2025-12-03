@@ -11,12 +11,12 @@ type Transaction = {
   commission_rate: number;
   status: string;
   created_at: string;
-  products: {
+  products?: {
     id: string;
     title: string;
     slug: string;
     category: string;
-  } | null;
+  }[];
 };
 
 type Summary = {
@@ -191,42 +191,46 @@ export function MarketplaceDashboard({ transactions, summary, commissionTier }: 
                   <th className="px-5 py-3">Date</th>
                   <th className="px-5 py-3 text-right">Gross</th>
                   <th className="px-5 py-3 text-right">Fee</th>
-                  <th className="px-5 py-3 text-right">Your Earnings</th>
+              <th className="px-5 py-3 text-right">Your Earnings</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/30">
+            {transactions.map((tx) => {
+              const primaryProduct = tx.products?.[0];
+
+              return (
+                <tr key={tx.id} className="text-sm">
+                  <td className="px-5 py-3">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {primaryProduct?.title || "Unknown Product"}
+                      </p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {primaryProduct?.category || "product"}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground">
+                    {formatDate(tx.created_at)}
+                  </td>
+                  <td className="px-5 py-3 text-right font-medium text-foreground">
+                    {formatCurrency(tx.gross_amount_cents)}
+                  </td>
+                  <td className="px-5 py-3 text-right text-muted-foreground">
+                    {formatCurrency(tx.platform_commission_cents)}
+                    <span className="ml-1 text-xs">
+                      ({(tx.commission_rate * 100).toFixed(0)}%)
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right font-medium text-emerald-600">
+                    {formatCurrency(tx.net_amount_cents)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="text-sm">
-                    <td className="px-5 py-3">
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {tx.products?.title || "Unknown Product"}
-                        </p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {tx.products?.category || "product"}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-muted-foreground">
-                      {formatDate(tx.created_at)}
-                    </td>
-                    <td className="px-5 py-3 text-right font-medium text-foreground">
-                      {formatCurrency(tx.gross_amount_cents)}
-                    </td>
-                    <td className="px-5 py-3 text-right text-muted-foreground">
-                      {formatCurrency(tx.platform_commission_cents)}
-                      <span className="ml-1 text-xs">
-                        ({(tx.commission_rate * 100).toFixed(0)}%)
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right font-medium text-emerald-600">
-                      {formatCurrency(tx.net_amount_cents)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
         )}
       </div>
     </div>

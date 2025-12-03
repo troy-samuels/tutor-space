@@ -72,8 +72,8 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Count grammar issues from AI feedback
     const grammarIssues = completedSessions.reduce((sum, s) => {
-      const feedback = s.ai_feedback as { grammar_issues?: unknown[] } | null;
-      return sum + (feedback?.grammar_issues?.length || 0);
+      const issues = (s.grammar_issues as unknown[] | null) || [];
+      return sum + issues.length;
     }, 0);
 
     // Get last session time
