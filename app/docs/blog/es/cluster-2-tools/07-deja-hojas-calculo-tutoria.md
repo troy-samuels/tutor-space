@@ -233,7 +233,7 @@ Tu hoja de cálculo contiene:
 - Asignación de recursos
 
 **Comparación de costos:**
-- TutorLingua Professional: $49/mes
+- TutorLingua (plan completo): $29/mes o $199/año
 - Tu tiempo ahorrado: 10-12 horas mensuales
 - Si tu tarifa es $40/hora: **$480 en tiempo liberado vs. $49 costo**
 

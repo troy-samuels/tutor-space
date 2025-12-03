@@ -205,7 +205,7 @@ Platforms like [TutorLingua](/signup) combine payment processing with booking, s
 - **Total cost: $876 + 60 hours of your time**
 
 **Integrated Platform Approach (TutorLingua):**
-- TutorLingua Professional: $588/year
+- TutorLingua (all-access): $29/month or $199/year
 - Stripe fees (same): $696/year
 - Your admin time: 1 hour monthly = 12 hours annually
 - **Total cost: $1,284 + 12 hours of your time**

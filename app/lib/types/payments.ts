@@ -15,6 +15,12 @@ export interface TutorStripeStatus {
 	readonly defaultCurrency: string | null;
 	readonly country: string | null;
 	readonly lastCapabilityCheckAt: string | null; // ISO timestamp
+	readonly disabledReason: string | null; // e.g., "requirements.past_due", "rejected.fraud"
+	readonly currentlyDue: string[] | null; // Requirements currently due
+	readonly eventuallyDue: string[] | null; // Requirements eventually due
+	readonly pastDue: string[] | null; // Past due requirements (blocking)
+	readonly pendingVerification: string[] | null; // Requirements pending verification
+	readonly detailsSubmitted: boolean; // Whether account details have been submitted
 }
 
 export interface RouteStudentPaymentInput {

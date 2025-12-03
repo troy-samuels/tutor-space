@@ -233,7 +233,7 @@ Stored in a Google Sheet shared broadly or on an unlocked laptop? That's a data 
 - Resource assignment
 
 **Cost comparison:**
-- TutorLingua Professional: $49/month
+- TutorLingua (all-access): $29/month or $199/year
 - Your time saved: 10-12 hours monthly
 - If your rate is $40/hour: **$480 in freed time vs. $49 cost**
 

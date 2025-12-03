@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const plan = searchParams.get("plan") || "";
     const stripeStatus = searchParams.get("stripeStatus") || "";
+    const activity = searchParams.get("activity") || "";
     const sortBy = searchParams.get("sortBy") || "created_at";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
@@ -43,7 +44,8 @@ export async function GET(request: NextRequest) {
         onboarding_completed,
         timezone,
         created_at,
-        updated_at
+        updated_at,
+        last_login_at
       `,
         { count: "exact" }
       )
@@ -72,6 +74,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Apply activity filter
+    if (activity) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 14); // 14 days threshold
+
+      if (activity === "inactive") {
+        // Tutors who haven't logged in for 14+ days OR never logged in
+        query = query.or(
+          `last_login_at.lt.${cutoffDate.toISOString()},last_login_at.is.null`
+        );
+      } else if (activity === "active") {
+        // Tutors who logged in within the last 14 days
+        query = query.gte("last_login_at", cutoffDate.toISOString());
+      } else if (activity === "never") {
+        // Tutors who have never logged in
+        query = query.is("last_login_at", null);
+      }
+    }
+
     // Apply sorting
     const validSortColumns = [
       "created_at",
@@ -79,6 +100,7 @@ export async function GET(request: NextRequest) {
       "email",
       "plan",
       "updated_at",
+      "last_login_at",
     ];
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : "created_at";
     query = query.order(sortColumn, {

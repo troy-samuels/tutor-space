@@ -178,6 +178,15 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case "account.application.deauthorized": {
+        // This event contains an Application object with the account ID
+        const application = event.data.object as { account?: string };
+        if (application.account) {
+          await handleAccountDeauthorized(application.account, supabase);
+        }
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -503,6 +512,14 @@ async function handleCheckoutSessionCompleted(
   }
 }
 
+type DigitalProductPurchaseWithProduct = DigitalProductPurchaseDetails & {
+  products: {
+    id: string;
+    title: string | null;
+    tutor_id: string;
+  } | null;
+};
+
 async function handleDigitalProductPurchase(
   session: Stripe.Checkout.Session,
   supabase: ServiceRoleClient,
@@ -517,6 +534,7 @@ async function handleDigitalProductPurchase(
       buyer_name,
       download_token,
       products:digital_products (
+        id,
         title,
         tutor_id
       ),
@@ -526,7 +544,7 @@ async function handleDigitalProductPurchase(
     `
     )
     .eq("id", purchaseId)
-    .single<DigitalProductPurchaseDetails>();
+    .single<DigitalProductPurchaseWithProduct>();
 
   if (error || !purchase) {
     console.error("Digital product purchase not found", error);
@@ -541,6 +559,69 @@ async function handleDigitalProductPurchase(
       stripe_session_id: session.id,
     })
     .eq("id", purchase.id);
+
+  // ============================================
+  // MARKETPLACE COMMISSION CAPTURE
+  // Tiered: 15% until $500 lifetime sales, then 10%
+  // ============================================
+  if (purchase.products?.tutor_id && session.amount_total) {
+    const tutorId = purchase.products.tutor_id;
+    const grossAmount = session.amount_total;
+
+    // Get tutor's lifetime sales to determine commission tier
+    const { data: salesData } = await supabase
+      .from("marketplace_transactions")
+      .select("gross_amount_cents")
+      .eq("tutor_id", tutorId)
+      .eq("status", "completed");
+
+    const lifetimeSales = salesData?.reduce(
+      (sum, t) => sum + (t.gross_amount_cents || 0),
+      0
+    ) || 0;
+
+    // Tiered commission: 15% until $500 (50000 cents), then 10%
+    const commissionRate = lifetimeSales >= 50000 ? 0.10 : 0.15;
+    const platformCommission = Math.round(grossAmount * commissionRate);
+    const netAmount = grossAmount - platformCommission;
+
+    // Record the marketplace transaction
+    const { error: transactionError } = await supabase
+      .from("marketplace_transactions")
+      .insert({
+        purchase_id: purchase.id,
+        product_id: purchase.products.id,
+        tutor_id: tutorId,
+        gross_amount_cents: grossAmount,
+        platform_commission_cents: platformCommission,
+        net_amount_cents: netAmount,
+        commission_rate: commissionRate,
+        stripe_payment_intent_id: session.payment_intent as string,
+        status: "completed",
+      });
+
+    if (transactionError) {
+      console.error("Failed to record marketplace transaction:", transactionError);
+      // Don't throw - the payment succeeded, we just couldn't track commission
+    } else {
+      console.log(
+        `✅ Marketplace commission recorded: $${(grossAmount / 100).toFixed(2)} gross, ` +
+        `${(commissionRate * 100).toFixed(0)}% rate ($${(platformCommission / 100).toFixed(2)}), ` +
+        `$${(netAmount / 100).toFixed(2)} net to tutor`
+      );
+    }
+
+    // Update product sales stats
+    const { error: statsError } = await supabase.rpc("increment_product_sales", {
+      p_product_id: purchase.products.id,
+      p_amount: grossAmount,
+    });
+
+    if (statsError) {
+      console.error("Failed to update product sales stats:", statsError);
+    }
+  }
+  // ============================================
 
   const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/api/digital-products/download/${purchase.download_token}`;
 
@@ -562,6 +643,12 @@ async function handleSubscriptionUpdate(
   supabase: ServiceRoleClient
 ) {
   const customerId = subscription.customer as string;
+
+  // Check if this is an AI Practice subscription (student subscription)
+  if (subscription.metadata?.type === "ai_practice") {
+    await handleAIPracticeSubscriptionUpdate(subscription, supabase);
+    return;
+  }
 
   // Find profile by Stripe customer ID
   const { data: profile, error: findError } = await supabase
@@ -620,6 +707,12 @@ async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription,
   supabase: ServiceRoleClient
 ) {
+  // Check if this is an AI Practice subscription
+  if (subscription.metadata?.type === "ai_practice") {
+    await handleAIPracticeSubscriptionDeleted(subscription, supabase);
+    return;
+  }
+
   const customerId = subscription.customer as string;
 
   // Find profile by Stripe customer ID
@@ -878,12 +971,13 @@ async function handleAccountUpdated(
   // Extract the status from the account
   const chargesEnabled = account.charges_enabled ?? false;
   const payoutsEnabled = account.payouts_enabled ?? false;
-  
+  const requirements = account.requirements;
+
   // Determine onboarding status
   let onboardingStatus: "pending" | "completed" | "restricted" = "pending";
   if (chargesEnabled && payoutsEnabled) {
     onboardingStatus = "completed";
-  } else if (account.requirements?.disabled_reason) {
+  } else if (requirements?.disabled_reason) {
     onboardingStatus = "restricted";
   }
 
@@ -897,6 +991,12 @@ async function handleAccountUpdated(
       stripe_default_currency: account.default_currency || null,
       stripe_country: account.country || null,
       stripe_last_capability_check_at: new Date().toISOString(),
+      stripe_disabled_reason: requirements?.disabled_reason || null,
+      stripe_currently_due: requirements?.currently_due || null,
+      stripe_eventually_due: requirements?.eventually_due || null,
+      stripe_past_due: requirements?.past_due || null,
+      stripe_pending_verification: requirements?.pending_verification || null,
+      stripe_details_submitted: account.details_submitted ?? false,
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_account_id", account.id);
@@ -909,4 +1009,103 @@ async function handleAccountUpdated(
   console.log(
     `✅ Updated Connect account ${account.id}: charges=${chargesEnabled}, payouts=${payoutsEnabled}, status=${onboardingStatus}`
   );
+}
+
+/**
+ * Handle Stripe Connect account deauthorization
+ * Mark the tutor's account as restricted when they disconnect from the platform
+ */
+async function handleAccountDeauthorized(
+  accountId: string,
+  supabase: ServiceRoleClient
+) {
+  console.log(`Stripe Connect account ${accountId} deauthorized`);
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      stripe_charges_enabled: false,
+      stripe_payouts_enabled: false,
+      stripe_onboarding_status: "restricted",
+      stripe_disabled_reason: "account_deauthorized",
+      stripe_last_capability_check_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_account_id", accountId);
+
+  if (error) {
+    console.error("Failed to update deauthorized account:", error);
+    throw error;
+  }
+
+  console.log(`✅ Account ${accountId} marked as deauthorized`);
+}
+
+/**
+ * Handle AI Practice subscription updates (student subscriptions)
+ * Updates the student's ai_practice_enabled status
+ */
+async function handleAIPracticeSubscriptionUpdate(
+  subscription: StripeSubscriptionPayload,
+  supabase: ServiceRoleClient
+) {
+  const studentId = subscription.metadata?.studentId;
+  const tutorId = subscription.metadata?.tutorId;
+
+  if (!studentId) {
+    console.error("No studentId in AI Practice subscription metadata");
+    return;
+  }
+
+  const isActive = subscription.status === "active" || subscription.status === "trialing";
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      ai_practice_enabled: isActive,
+      ai_practice_subscription_id: subscription.id,
+      ai_practice_current_period_end: new Date(
+        subscription.current_period_end * 1000
+      ).toISOString(),
+    })
+    .eq("id", studentId);
+
+  if (error) {
+    console.error("Failed to update AI Practice subscription:", error);
+    throw error;
+  }
+
+  console.log(
+    `✅ AI Practice subscription ${isActive ? "activated" : "updated"} for student ${studentId}`
+  );
+}
+
+/**
+ * Handle AI Practice subscription cancellation
+ * Disables AI practice for the student
+ */
+async function handleAIPracticeSubscriptionDeleted(
+  subscription: Stripe.Subscription,
+  supabase: ServiceRoleClient
+) {
+  const studentId = subscription.metadata?.studentId;
+
+  if (!studentId) {
+    console.error("No studentId in AI Practice subscription metadata");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      ai_practice_enabled: false,
+    })
+    .eq("id", studentId);
+
+  if (error) {
+    console.error("Failed to disable AI Practice subscription:", error);
+    throw error;
+  }
+
+  console.log(`✅ AI Practice subscription canceled for student ${studentId}`);
 }

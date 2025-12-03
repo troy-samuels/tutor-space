@@ -127,14 +127,14 @@ function SubscriptionChart({
           <PieChart className="h-5 w-5" />
           Subscription Distribution
         </CardTitle>
-        <CardDescription>Current tutor subscription tiers</CardDescription>
+        <CardDescription>Legacy vs all-access plans (historical tiers supported for now)</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Professional */}
+          {/* Legacy Free */}
           <div>
             <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">Professional (Free)</span>
+              <span className="text-sm font-medium">Legacy Free</span>
               <span className="text-sm text-muted-foreground">
                 {data.professional} tutors ({percentages.professional}%)
               </span>
@@ -147,10 +147,10 @@ function SubscriptionChart({
             </div>
           </div>
 
-          {/* Growth */}
+          {/* All-access (paid) */}
           <div>
             <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">Growth ($29/mo)</span>
+              <span className="text-sm font-medium">All-access (paid)</span>
               <span className="text-sm text-muted-foreground">
                 {data.growth} tutors ({percentages.growth}%)
               </span>
@@ -163,10 +163,10 @@ function SubscriptionChart({
             </div>
           </div>
 
-          {/* Studio */}
+          {/* Custom/Legacy */}
           <div>
             <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">Studio</span>
+              <span className="text-sm font-medium">Custom/Legacy</span>
               <span className="text-sm text-muted-foreground">
                 {data.studio} tutors ({percentages.studio}%)
               </span>

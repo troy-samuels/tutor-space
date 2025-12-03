@@ -11,11 +11,13 @@ import { useUnreadMessages } from "@/lib/hooks/useUnreadMessages";
 interface StudentPortalLayoutProps {
   children: React.ReactNode;
   studentName?: string | null;
+  hideNav?: boolean;
 }
 
 export function StudentPortalLayout({
   children,
   studentName,
+  hideNav = false,
 }: StudentPortalLayoutProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -85,10 +87,10 @@ export function StudentPortalLayout({
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-4xl px-4 pb-20 pt-6">{children}</main>
+      <main className={hideNav ? "" : "mx-auto max-w-4xl px-4 pb-20 pt-6"}>{children}</main>
 
       {/* Bottom navigation */}
-      <StudentBottomNav unreadCount={unreadMessages} />
+      {!hideNav && <StudentBottomNav unreadCount={unreadMessages} />}
     </div>
   );
 }

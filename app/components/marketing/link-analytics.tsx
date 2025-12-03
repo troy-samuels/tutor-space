@@ -74,7 +74,7 @@ export function LinkAnalytics({ series }: LinkAnalyticsProps) {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        Monitor which CTAs resonate. Upgrade to Growth later to unlock UTM tracking and lead attribution.
+        Monitor which CTAs resonate. UTM tracking and lead attribution are included in the single all-access plan.
       </p>
     </div>
   );

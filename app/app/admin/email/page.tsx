@@ -220,7 +220,7 @@ export default function AdminEmailPage() {
                 <SelectContent>
                   <SelectItem value="all">All Tutors</SelectItem>
                   <SelectItem value="free">Free Tier Only</SelectItem>
-                  <SelectItem value="professional">Professional Tier</SelectItem>
+                  <SelectItem value="professional">Legacy Free</SelectItem>
                   <SelectItem value="business">Business Tier</SelectItem>
                   <SelectItem value="specific">Specific Tutors...</SelectItem>
                 </SelectContent>

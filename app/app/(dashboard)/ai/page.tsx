@@ -27,8 +27,7 @@ export default async function AIPage({
     .eq("id", user.id)
     .single();
 
-  // Check if user has access (Growth plan or higher)
-  // For now, allow all users - can be gated by plan later
+  // AI is included in the single all-access plan (no gating)
   const userRole = profile ? "tutor" : "student";
 
   // Fetch conversations

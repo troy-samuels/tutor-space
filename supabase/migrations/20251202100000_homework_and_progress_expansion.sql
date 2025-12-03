@@ -57,12 +57,29 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD.status = 'completed' THEN
+      UPDATE learning_stats
+      SET homework_completed = GREATEST(COALESCE(homework_completed, 0) - 1, 0),
+          updated_at = NOW()
+      WHERE student_id = OLD.student_id
+        AND tutor_id = OLD.tutor_id;
+    END IF;
+    RETURN OLD;
+  END IF;
+
   IF NEW.status = 'completed' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed') THEN
     INSERT INTO learning_stats (student_id, tutor_id, homework_completed, updated_at)
     VALUES (NEW.student_id, NEW.tutor_id, 1, NOW())
     ON CONFLICT (student_id, tutor_id) DO UPDATE SET
       homework_completed = COALESCE(learning_stats.homework_completed, 0) + 1,
       updated_at = NOW();
+  ELSIF TG_OP = 'UPDATE' AND OLD.status = 'completed' AND NEW.status IS DISTINCT FROM 'completed' THEN
+    UPDATE learning_stats
+    SET homework_completed = GREATEST(COALESCE(homework_completed, 0) - 1, 0),
+        updated_at = NOW()
+    WHERE student_id = OLD.student_id
+      AND tutor_id = OLD.tutor_id;
   END IF;
   RETURN NEW;
 END;
@@ -70,7 +87,7 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_update_learning_stats_homework ON homework_assignments;
 CREATE TRIGGER trg_update_learning_stats_homework
-  AFTER INSERT OR UPDATE ON homework_assignments
+  AFTER INSERT OR UPDATE OR DELETE ON homework_assignments
   FOR EACH ROW
   EXECUTE FUNCTION update_learning_stats_on_homework();
 

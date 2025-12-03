@@ -137,21 +137,24 @@ export async function getStudentProgress(tutorId?: string): Promise<{
     return { stats: null, goals: [], assessments: [], recentNotes: [], homework: [] };
   }
 
-  // Get student ID for this user
+  const emptyResponse = { stats: null, goals: [], assessments: [], recentNotes: [], homework: [] };
+
+  // Get student (and owning tutor) for this user
   let studentQuery = serviceClient
     .from("students")
-    .select("id")
+    .select("id, tutor_id")
     .eq("user_id", user.id);
 
   if (tutorId) {
     studentQuery = studentQuery.eq("tutor_id", tutorId);
   }
 
-  const { data: students } = await studentQuery.limit(1);
-  const studentId = students?.[0]?.id;
+  const { data: student } = await studentQuery.limit(1).maybeSingle();
+  const studentId = student?.id;
+  const scopedTutorId = student?.tutor_id;
 
-  if (!studentId) {
-    return { stats: null, goals: [], assessments: [], recentNotes: [], homework: [] };
+  if (!studentId || !scopedTutorId) {
+    return emptyResponse;
   }
 
   // Fetch all data in parallel
@@ -161,6 +164,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       .from("learning_stats")
       .select("*")
       .eq("student_id", studentId)
+      .eq("tutor_id", scopedTutorId)
       .limit(1)
       .maybeSingle(),
 
@@ -169,6 +173,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       .from("learning_goals")
       .select("*")
       .eq("student_id", studentId)
+      .eq("tutor_id", scopedTutorId)
       .order("created_at", { ascending: false }),
 
     // Latest assessments (most recent per skill)
@@ -176,6 +181,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       .from("proficiency_assessments")
       .select("*")
       .eq("student_id", studentId)
+      .eq("tutor_id", scopedTutorId)
       .order("assessed_at", { ascending: false })
       .limit(20),
 
@@ -184,6 +190,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       .from("lesson_notes")
       .select("id, booking_id, student_id, tutor_id, topics_covered, vocabulary_introduced, grammar_points, homework, strengths, areas_to_improve, student_visible_notes, created_at")
       .eq("student_id", studentId)
+      .eq("tutor_id", scopedTutorId)
       .order("created_at", { ascending: false })
       .limit(10),
 
@@ -192,6 +199,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       .from("homework_assignments")
       .select("*")
       .eq("student_id", studentId)
+      .eq("tutor_id", scopedTutorId)
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(25),
@@ -576,4 +584,386 @@ export async function markHomeworkCompleted(assignmentId: string, studentNotes?:
   }
 
   return { data: { ...(data as HomeworkAssignment), attachments: normalizeAttachments((data as any).attachments) } };
+}
+
+// ============================================
+// AI Practice Companion Types & Functions
+// ============================================
+
+export interface PracticeAssignment {
+  id: string;
+  title: string;
+  instructions: string | null;
+  status: "assigned" | "in_progress" | "completed";
+  due_date: string | null;
+  sessions_completed: number;
+  scenario?: {
+    id: string;
+    title: string;
+    language: string;
+    level: string | null;
+    topic: string | null;
+  } | null;
+  created_at: string;
+}
+
+export interface PracticeStats {
+  sessions_completed: number;
+  practice_minutes: number;
+  messages_sent: number;
+}
+
+export interface StudentPracticeData {
+  isSubscribed: boolean;
+  assignments: PracticeAssignment[];
+  stats: PracticeStats | null;
+  studentId: string | null;
+}
+
+/**
+ * Get AI Practice data for tutor's student (tutor CRM view)
+ */
+export async function getTutorStudentPracticeData(studentId: string): Promise<{
+  isSubscribed: boolean;
+  assignments: PracticeAssignment[];
+  scenarios: Array<{
+    id: string;
+    title: string;
+    language: string;
+    level: string | null;
+    topic: string | null;
+  }>;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const emptyResponse = {
+    isSubscribed: false,
+    assignments: [],
+    scenarios: [],
+  };
+
+  if (!user) {
+    return emptyResponse;
+  }
+
+  // Verify tutor owns this student
+  const { data: student } = await supabase
+    .from("students")
+    .select("id, ai_practice_enabled, ai_practice_current_period_end")
+    .eq("id", studentId)
+    .eq("tutor_id", user.id)
+    .single();
+
+  if (!student) {
+    return emptyResponse;
+  }
+
+  // Check subscription status
+  const isSubscribed = student.ai_practice_enabled === true &&
+    (!student.ai_practice_current_period_end ||
+      new Date(student.ai_practice_current_period_end) > new Date());
+
+  // Fetch assignments
+  const { data: assignments } = await supabase
+    .from("practice_assignments")
+    .select(`
+      id,
+      title,
+      instructions,
+      status,
+      due_date,
+      sessions_completed,
+      created_at,
+      scenario:practice_scenarios (
+        id,
+        title,
+        language,
+        level,
+        topic
+      )
+    `)
+    .eq("student_id", studentId)
+    .eq("tutor_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Fetch tutor's scenarios for the dropdown
+  const { data: scenarios } = await supabase
+    .from("practice_scenarios")
+    .select("id, title, language, level, topic")
+    .eq("tutor_id", user.id)
+    .eq("is_active", true)
+    .order("title", { ascending: true });
+
+  return {
+    isSubscribed,
+    assignments: (assignments || []).map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      instructions: a.instructions,
+      status: a.status,
+      due_date: a.due_date,
+      sessions_completed: a.sessions_completed || 0,
+      scenario: a.scenario ? {
+        id: a.scenario.id,
+        title: a.scenario.title,
+        language: a.scenario.language,
+        level: a.scenario.level,
+        topic: a.scenario.topic,
+      } : null,
+      created_at: a.created_at,
+    })),
+    scenarios: (scenarios || []).map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      language: s.language,
+      level: s.level,
+      topic: s.topic,
+    })),
+  };
+}
+
+/**
+ * Get AI Practice data for student portal
+ */
+export async function getStudentPracticeData(tutorId?: string): Promise<StudentPracticeData> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const emptyResponse: StudentPracticeData = {
+    isSubscribed: false,
+    assignments: [],
+    stats: null,
+    studentId: null,
+  };
+
+  if (!user) {
+    return emptyResponse;
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return emptyResponse;
+  }
+
+  // Get student record for this user
+  let studentQuery = serviceClient
+    .from("students")
+    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end")
+    .eq("user_id", user.id);
+
+  if (tutorId) {
+    studentQuery = studentQuery.eq("tutor_id", tutorId);
+  }
+
+  const { data: student } = await studentQuery.limit(1).maybeSingle();
+
+  if (!student) {
+    return emptyResponse;
+  }
+
+  // Check if subscription is active
+  const isSubscribed = student.ai_practice_enabled === true &&
+    (!student.ai_practice_current_period_end ||
+      new Date(student.ai_practice_current_period_end) > new Date());
+
+  // Fetch assignments with scenarios
+  const { data: assignments } = await serviceClient
+    .from("practice_assignments")
+    .select(`
+      id,
+      title,
+      instructions,
+      status,
+      due_date,
+      sessions_completed,
+      created_at,
+      scenario:practice_scenarios (
+        id,
+        title,
+        language,
+        level,
+        topic
+      )
+    `)
+    .eq("student_id", student.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Get practice stats from learning_stats
+  const { data: learningStats } = await serviceClient
+    .from("learning_stats")
+    .select("practice_sessions_completed, practice_minutes, practice_messages_sent")
+    .eq("student_id", student.id)
+    .eq("tutor_id", student.tutor_id)
+    .maybeSingle();
+
+  const stats: PracticeStats | null = learningStats ? {
+    sessions_completed: learningStats.practice_sessions_completed || 0,
+    practice_minutes: learningStats.practice_minutes || 0,
+    messages_sent: learningStats.practice_messages_sent || 0,
+  } : null;
+
+  return {
+    isSubscribed,
+    assignments: (assignments || []).map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      instructions: a.instructions,
+      status: a.status,
+      due_date: a.due_date,
+      sessions_completed: a.sessions_completed || 0,
+      scenario: a.scenario ? {
+        id: a.scenario.id,
+        title: a.scenario.title,
+        language: a.scenario.language,
+        level: a.scenario.level,
+        topic: a.scenario.topic,
+      } : null,
+      created_at: a.created_at,
+    })),
+    stats,
+    studentId: student.id,
+  };
+}
+
+// Types for practice analytics
+export interface GrammarIssue {
+  category_slug: string;
+  label: string;
+  count: number;
+  trend: "improving" | "stable" | "declining" | null;
+}
+
+export interface WeeklyActivity {
+  week: string;
+  sessions: number;
+  minutes: number;
+  errors: number;
+}
+
+export interface PracticeSummary {
+  total_sessions: number;
+  completed_sessions: number;
+  total_messages_sent: number;
+  total_practice_minutes: number;
+  total_grammar_errors: number;
+  total_phonetic_errors: number;
+  top_grammar_issues: GrammarIssue[];
+  avg_session_rating: number | null;
+  last_practice_at: string | null;
+  weekly_activity: WeeklyActivity[];
+}
+
+/**
+ * Get practice analytics summary for a student (tutor-facing)
+ */
+export async function getStudentPracticeAnalytics(
+  studentId: string
+): Promise<{ isSubscribed: boolean; summary: PracticeSummary | null }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { isSubscribed: false, summary: null };
+  }
+
+  const serviceClient = createServiceRoleClient();
+  if (!serviceClient) {
+    return { isSubscribed: false, summary: null };
+  }
+
+  // Verify tutor owns this student
+  const { data: student } = await serviceClient
+    .from("students")
+    .select("id, ai_practice_enabled, tutor_id")
+    .eq("id", studentId)
+    .eq("tutor_id", user.id)
+    .single();
+
+  if (!student) {
+    return { isSubscribed: false, summary: null };
+  }
+
+  // Fetch cached summary if available
+  const { data: summary } = await serviceClient
+    .from("student_practice_summaries")
+    .select("*")
+    .eq("student_id", studentId)
+    .eq("tutor_id", user.id)
+    .single();
+
+  if (summary) {
+    return {
+      isSubscribed: student.ai_practice_enabled || false,
+      summary: {
+        total_sessions: summary.total_sessions || 0,
+        completed_sessions: summary.completed_sessions || 0,
+        total_messages_sent: summary.total_messages_sent || 0,
+        total_practice_minutes: summary.total_practice_minutes || 0,
+        total_grammar_errors: summary.total_grammar_errors || 0,
+        total_phonetic_errors: summary.total_phonetic_errors || 0,
+        top_grammar_issues: summary.top_grammar_issues || [],
+        avg_session_rating: summary.avg_session_rating,
+        last_practice_at: summary.last_practice_at,
+        weekly_activity: summary.weekly_activity || [],
+      },
+    };
+  }
+
+  // If no cached summary, compute basic stats
+  const { data: sessions } = await serviceClient
+    .from("student_practice_sessions")
+    .select("id, ended_at, duration_seconds, message_count, ai_feedback, grammar_errors_count, started_at")
+    .eq("student_id", studentId)
+    .eq("tutor_id", user.id);
+
+  if (!sessions || sessions.length === 0) {
+    return { isSubscribed: student.ai_practice_enabled || false, summary: null };
+  }
+
+  const totalSessions = sessions.length;
+  const completedSessions = sessions.filter((s) => s.ended_at).length;
+  const totalMinutes = sessions.reduce(
+    (sum, s) => sum + (s.duration_seconds || 0) / 60,
+    0
+  );
+  const totalMessages = sessions.reduce(
+    (sum, s) => sum + (s.message_count || 0),
+    0
+  );
+  const totalErrors = sessions.reduce(
+    (sum, s) => sum + (s.grammar_errors_count || 0),
+    0
+  );
+
+  // Calculate average rating
+  const ratings = sessions
+    .filter((s) => s.ai_feedback && typeof s.ai_feedback === "object" && "overall_rating" in (s.ai_feedback as object))
+    .map((s) => (s.ai_feedback as { overall_rating: number }).overall_rating);
+  const avgRating =
+    ratings.length > 0
+      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+      : null;
+
+  const lastSession = sessions.sort(
+    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+  )[0];
+
+  return {
+    isSubscribed: student.ai_practice_enabled || false,
+    summary: {
+      total_sessions: totalSessions,
+      completed_sessions: completedSessions,
+      total_messages_sent: totalMessages,
+      total_practice_minutes: Math.round(totalMinutes),
+      total_grammar_errors: totalErrors,
+      total_phonetic_errors: 0,
+      top_grammar_issues: [],
+      avg_session_rating: avgRating,
+      last_practice_at: lastSession?.started_at || null,
+      weekly_activity: [],
+    },
+  };
 }

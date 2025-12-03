@@ -1,4 +1,4 @@
-import { CalendarDays, Users, Lightbulb, MessageCircle, Bot, LucideIcon } from "lucide-react";
+import { CalendarDays, Users, Lightbulb, MessageCircle, Bot, Store, LucideIcon } from "lucide-react";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export type PlanName = PlatformBillingPlan;
@@ -27,7 +27,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/students", label: "Students", icon: Users, description: "Open your CRM to review notes and progress." },
       { href: "/messages", label: "Messages", icon: MessageCircle, description: "Respond to student requests and lead inquiries." },
       { href: "/availability", label: "Availability", icon: Lightbulb, description: "Update your booking windows and time buffers." },
-      { href: "/ai", label: "AI Assistant", icon: Bot, description: "AI-powered help with lesson prep, feedback, and content creation.", plan: "growth" },
+      { href: "/ai", label: "AI Assistant", icon: Bot, description: "AI-powered help with lesson prep, feedback, and content creation." },
+      { href: "/marketplace", label: "Sales", icon: Store, description: "Track digital product sales and commission earnings." },
     ],
   },
 ];

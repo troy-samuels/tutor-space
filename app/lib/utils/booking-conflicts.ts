@@ -191,6 +191,48 @@ export function checkBufferTime(
   return { hasBufferConflict: false };
 }
 
+type BusyWindow = { start: string; end: string };
+
+/**
+ * Check conflicts against external calendar busy windows
+ */
+export function checkExternalBusy(
+  scheduledAt: string,
+  durationMinutes: number,
+  busyWindows: BusyWindow[]
+): { hasConflict: boolean; message?: string } {
+  if (!busyWindows.length) {
+    return { hasConflict: false };
+  }
+
+  const proposedStart = parseISO(scheduledAt);
+  const proposedEnd = addMinutes(proposedStart, durationMinutes);
+
+  for (const window of busyWindows) {
+    const windowStart = parseISO(window.start);
+    const windowEnd = parseISO(window.end);
+
+    if (Number.isNaN(windowStart.getTime()) || Number.isNaN(windowEnd.getTime())) {
+      continue;
+    }
+
+    const overlaps = areIntervalsOverlapping(
+      { start: proposedStart, end: proposedEnd },
+      { start: windowStart, end: windowEnd },
+      { inclusive: false }
+    );
+
+    if (overlaps) {
+      return {
+        hasConflict: true,
+        message: "This time conflicts with an external calendar event.",
+      };
+    }
+  }
+
+  return { hasConflict: false };
+}
+
 /**
  * Comprehensive booking validation
  *
@@ -208,6 +250,7 @@ export function validateBooking(params: {
   }>;
   existingBookings: Partial<Booking>[];
   bufferMinutes?: number;
+  busyWindows?: BusyWindow[];
 }): {
   isValid: boolean;
   errors: string[];
@@ -218,6 +261,7 @@ export function validateBooking(params: {
     availability,
     existingBookings,
     bufferMinutes = 0,
+    busyWindows = [],
   } = params;
 
   const errors: string[] = [];
@@ -257,6 +301,11 @@ export function validateBooking(params: {
   );
   if (bufferCheck.hasBufferConflict && bufferCheck.message) {
     errors.push(bufferCheck.message);
+  }
+
+  const externalConflict = checkExternalBusy(scheduledAt, durationMinutes, busyWindows);
+  if (externalConflict.hasConflict && externalConflict.message) {
+    errors.push(externalConflict.message);
   }
 
   return {

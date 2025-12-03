@@ -157,7 +157,7 @@ export async function createCheckoutSession(params: {
 }
 
 /**
- * Create a subscription for Growth/Studio plans
+ * Create a subscription for the all-access plan
  */
 export async function createSubscription(params: {
   customerId: string;

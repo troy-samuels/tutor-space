@@ -32,8 +32,10 @@ import {
   type LessonNote,
   type HomeworkAssignment,
   type HomeworkStatus,
+  type StudentPracticeData,
   markHomeworkCompleted,
 } from "@/lib/actions/progress";
+import { AIPracticeCard } from "@/components/student/AIPracticeCard";
 import {
   LEVEL_LABELS,
   SKILL_LABELS,
@@ -47,6 +49,7 @@ interface StudentProgressClientProps {
   assessments: ProficiencyAssessment[];
   recentNotes: LessonNote[];
   homework: HomeworkAssignment[];
+  practiceData?: StudentPracticeData;
 }
 
 export function StudentProgressClient({
@@ -55,6 +58,7 @@ export function StudentProgressClient({
   assessments,
   recentNotes,
   homework,
+  practiceData,
 }: StudentProgressClientProps) {
   const [homeworkItems, setHomeworkItems] = useState(homework);
   const [isUpdating, startTransition] = useTransition();
@@ -343,6 +347,16 @@ export function StudentProgressClient({
           ) : null}
         </CardContent>
       </Card>
+
+      {/* AI Practice Companion */}
+      {practiceData && practiceData.studentId && (
+        <AIPracticeCard
+          isSubscribed={practiceData.isSubscribed}
+          assignments={practiceData.assignments}
+          stats={practiceData.stats}
+          studentId={practiceData.studentId}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Proficiency Levels */}

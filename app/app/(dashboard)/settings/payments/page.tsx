@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { Sparkles, Check } from "lucide-react";
 import PaymentSettingsForm from "@/components/settings/PaymentSettingsForm";
 import StripeConnectPanel from "@/components/settings/StripeConnectPanel";
@@ -26,7 +25,7 @@ export default async function PaymentSettingsPage() {
     .single();
 
   const currentPlan = profile?.plan || "professional";
-  const isGrowthPlan = currentPlan === "growth" || currentPlan === "studio";
+  const displayPlan = currentPlan === "founder_lifetime" ? "Founder lifetime" : "All-access";
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -45,50 +44,35 @@ export default async function PaymentSettingsPage() {
               Current Plan
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isGrowthPlan ? "Growth" : "Professional"} plan
+              {displayPlan} — all features included
             </p>
           </div>
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-              isGrowthPlan
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-muted text-muted-foreground"
+              "bg-emerald-100 text-emerald-700"
             }`}
           >
-            {isGrowthPlan ? (
-              <>
-                <Check className="h-3.5 w-3.5" />
-                Active
-              </>
-            ) : (
-              "Free"
-            )}
+            <Check className="h-3.5 w-3.5" />
+            Active
           </span>
         </div>
 
-        {!isGrowthPlan && (
-          <div className="mt-4 rounded-xl bg-gradient-to-r from-primary/10 to-emerald-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  Upgrade to Growth
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Unlock unlimited students, professional website, analytics, and priority support for $29/month.
-                </p>
-                <Link
-                  href="/upgrade?plan=growth"
-                  className="mt-3 inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-                >
-                  Upgrade now
-                </Link>
-              </div>
+        <div className="mt-4 rounded-xl bg-gradient-to-r from-primary/10 to-emerald-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                Included: $29/mo or $199/yr all-access
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                TutorLingua complements marketplaces like Preply with calendar sync and direct booking tools so you keep
+                control of your student base.
+              </p>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

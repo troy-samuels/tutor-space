@@ -13,8 +13,8 @@ export default async function UpgradeSuccessPage({ searchParams }: { searchParam
     redirect("/login");
   }
 
-  const params = await searchParams;
-  const plan = params.plan === "studio" ? "Studio" : "Growth";
+  await searchParams;
+  const plan = "All-access";
 
   return (
     <div className="px-4 py-12 sm:px-6 lg:px-8">

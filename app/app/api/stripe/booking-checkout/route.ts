@@ -121,6 +121,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tutor cannot accept Stripe payments" }, { status: 400 });
     }
 
+    // Check for restricted accounts (e.g., past due requirements, fraud flags)
+    const { data: tutorStatus } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_onboarding_status")
+      .eq("id", booking.tutor_id)
+      .single();
+
+    if (tutorStatus?.stripe_onboarding_status === "restricted") {
+      return NextResponse.json(
+        { error: "Tutor's payment account is currently restricted. Please contact the tutor or support." },
+        { status: 400 }
+      );
+    }
+
     // Get student's Stripe customer ID via their auth user profile
     const studentUserId = studentRecord?.user_id;
     const { data: studentProfile, error: studentError } = studentUserId

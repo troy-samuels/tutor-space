@@ -316,10 +316,10 @@ export function LinkManager({
           <LinkAnalytics series={analytics} />
           <LinkPreview profile={profile} links={sortedLinks} />
           <div className="rounded-3xl border border-border bg-primary/5 px-5 py-4 text-xs text-foreground">
-            <p className="font-semibold text-primary">Growth Plan tip</p>
+            <p className="font-semibold text-primary">All-access tip</p>
             <p className="mt-1">
-              Embed your lead magnet PDF here and capture emails automatically. Upgrade to unlock the Lead Hub and
-              bring DMs + form submissions into one inbox.
+              Embed your lead magnet PDF here and capture emails automatically. Use the Lead Hub to bring DMs and form
+              submissions into one inbox (included in the single plan).
             </p>
           </div>
         </aside>

@@ -7,8 +7,26 @@ import {
   type ProductFormState,
 } from "@/lib/actions/digital-products";
 import { FlowProgress } from "@/components/flows/FlowProgress";
+import { SUPPORTED_LANGUAGES } from "@/lib/constants/student-settings";
 
 const initialState: ProductFormState = {};
+
+const PRODUCT_CATEGORIES = [
+  { value: "worksheet", label: "Worksheet" },
+  { value: "course", label: "Course / Lesson Pack" },
+  { value: "template", label: "Template" },
+  { value: "ebook", label: "eBook / Guide" },
+  { value: "audio", label: "Audio / Podcast" },
+  { value: "video", label: "Video" },
+  { value: "other", label: "Other" },
+] as const;
+
+const PROFICIENCY_LEVELS = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+  { value: "all", label: "All Levels" },
+] as const;
 
 export function DigitalProductForm() {
   const [state, formAction, isPending] = useActionState(createDigitalProduct, initialState);
@@ -105,22 +123,66 @@ export function DigitalProductForm() {
         </div>
       ) : null}
 
-      <div className={stepIndex === 0 ? "space-y-2" : "hidden"}>
-        <label className="text-sm font-semibold text-foreground">Title</label>
-        <input
-          name="title"
-          required
-          className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          placeholder="IELTS Writing Task 2 Toolkit"
-        />
+      <div className={stepIndex === 0 ? "space-y-3" : "hidden"}>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-foreground">Title</label>
+          <input
+            name="title"
+            required
+            className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="IELTS Writing Task 2 Toolkit"
+          />
+        </div>
         <div className="space-y-2">
           <label className="text-sm font-semibold text-foreground">Description</label>
           <textarea
             name="description"
             rows={3}
             className="w-full rounded-2xl border border-border bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="What’s included, who it’s for, and how to use it."
+            placeholder="What's included, who it's for, and how to use it."
           />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-foreground">Category</label>
+            <select
+              name="category"
+              className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {PRODUCT_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-foreground">Language</label>
+            <select
+              name="language"
+              className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Any language</option>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-foreground">Level</label>
+            <select
+              name="level"
+              className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {PROFICIENCY_LEVELS.map((level) => (
+                <option key={level.value} value={level.value}>
+                  {level.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

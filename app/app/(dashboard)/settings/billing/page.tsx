@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import BillingPortalButton from "@/components/settings/BillingPortalButton";
 import SubscriptionCard from "@/components/settings/SubscriptionCard";
-import ConnectStripeButton from "@/components/settings/ConnectStripeButton";
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -31,6 +30,8 @@ export default async function BillingPage() {
     .single();
 
   const currentPlan = profile?.plan || "professional";
+  const displayPlan =
+    currentPlan === "founder_lifetime" ? "Founder lifetime" : "All-access";
   const hasStripeCustomer = !!profile?.stripe_customer_id;
 
   return (
@@ -49,7 +50,7 @@ export default async function BillingPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold capitalize">{currentPlan}</span>
+              <span className="text-2xl font-bold capitalize">{displayPlan}</span>
               {subscription && (
                 <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
                   Active
@@ -70,46 +71,20 @@ export default async function BillingPage() {
       </div>
 
       {/* Plan Features */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-1 lg:grid-cols-1 gap-6">
         <SubscriptionCard
-          plan="professional"
-          price="Free"
+          title="All-access"
+          price="$29/mo or $199/yr"
+          subtitle="Full platform access. No tiers."
           features={[
-            "Up to 20 students",
-            "1 active service",
-            "Basic bookings",
-            "Payment collection",
-            "Video meeting links",
-            "Email reminders",
+            "All current features included",
+            "Calendar sync keeps you aligned with Preply/iTalki bookings",
+            "Direct booking tools so you own your student base",
+            "0% platform commission on direct payments",
+            "Site builder, CRM, messaging, automation, AI",
+            "Priority support for tutors",
           ]}
-          currentPlan={currentPlan}
-        />
-
-        <SubscriptionCard
-          plan="growth"
-          price="$29/mo"
-          features={[
-            "Everything in Professional",
-            "Unlimited students & services",
-            "Session packages",
-            "Link-in-bio with analytics",
-            "Advanced scheduling",
-            "Priority support",
-          ]}
-          currentPlan={currentPlan}
-        />
-
-        <SubscriptionCard
-          plan="studio"
-          price="$99/mo"
-          features={[
-            "Everything in Growth",
-            "Group sessions (coming Q2 2025)",
-            "Team accounts (coming Q2 2025)",
-            "Marketplace access (Q3 2025)",
-            "Advanced AI tools (Q3 2025)",
-          ]}
-          currentPlan={currentPlan}
+          isCurrent
         />
       </div>
 

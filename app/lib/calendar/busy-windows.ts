@@ -12,10 +12,14 @@ type CalendarConnectionRecord = {
   id: string;
   tutor_id: string;
   provider: CalendarProvider;
+  provider_account_id?: string | null;
   access_token_encrypted: string;
   refresh_token_encrypted: string | null;
   access_token_expires_at: string | null;
+  // Legacy fallback during migration
+  token_expires_at?: string | null;
   sync_status: string | null;
+  sync_enabled?: boolean | null;
 };
 
 type BusyWindowParams = {
@@ -25,6 +29,18 @@ type BusyWindowParams = {
 };
 
 const SYNCABLE_STATUSES = new Set(["idle", "healthy", "syncing"]);
+
+type ProviderEventResult = {
+  providerEventId: string;
+  calendarId?: string | null;
+  start: string;
+  end: string;
+  summary?: string | null;
+  status?: string | null;
+  recurrenceMasterId?: string | null;
+  recurrenceInstanceStart?: string | null;
+  isAllDay?: boolean;
+};
 
 export async function getCalendarBusyWindows({
   tutorId,
@@ -45,7 +61,7 @@ export async function getCalendarBusyWindows({
   const { data, error } = await adminClient
     .from("calendar_connections")
     .select(
-      "id, provider, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, sync_status"
+      "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
     )
     .eq("tutor_id", tutorId);
 
@@ -57,6 +73,10 @@ export async function getCalendarBusyWindows({
   const windows: TimeWindow[] = [];
 
   for (const record of (data ?? []) as CalendarConnectionRecord[]) {
+    if (record.sync_enabled === false) {
+      continue;
+    }
+
     if (record.sync_status && !SYNCABLE_STATUSES.has(record.sync_status)) {
       continue;
     }
@@ -132,7 +152,9 @@ async function ensureFreshAccessToken(
   adminClient: SupabaseClient
 ): Promise<string | null> {
   try {
-    if (!needsRefresh(connection.access_token_expires_at)) {
+    const expiresAt = connection.access_token_expires_at ?? connection.token_expires_at ?? null;
+
+    if (!needsRefresh(expiresAt)) {
       return decrypt(connection.access_token_encrypted);
     }
   } catch (error) {
@@ -331,7 +353,7 @@ export async function createCalendarEventForBooking(
   const { data, error } = await adminClient
     .from("calendar_connections")
     .select(
-      "id, provider, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, sync_status"
+      "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
     )
     .eq("tutor_id", params.tutorId);
 
@@ -342,8 +364,25 @@ export async function createCalendarEventForBooking(
 
   let created = false;
   let lastError: string | undefined;
+  const eventsToPersist: Array<{
+    provider: CalendarProvider;
+    providerAccountId: string | null;
+    providerEventId: string;
+    calendarId: string | null;
+    start: string;
+    end: string;
+    summary: string | null;
+    status: string | null;
+    recurrenceMasterId: string | null;
+    recurrenceInstanceStart: string | null;
+    isAllDay: boolean;
+  }> = [];
 
   for (const record of data as CalendarConnectionRecord[]) {
+    if (record.sync_enabled === false) {
+      continue;
+    }
+
     if (record.sync_status && !SYNCABLE_STATUSES.has(record.sync_status)) {
       continue;
     }
@@ -355,14 +394,41 @@ export async function createCalendarEventForBooking(
     }
 
     try {
+      let createdEvent: ProviderEventResult | null = null;
+
       if (record.provider === "google") {
-        await createGoogleCalendarEvent(accessToken, params);
-        created = true;
+        createdEvent = await createGoogleCalendarEvent(accessToken, params);
         console.log(`✅ Created Google calendar event for tutor ${params.tutorId}`);
       } else if (record.provider === "outlook") {
-        await createOutlookCalendarEvent(accessToken, params);
-        created = true;
+        createdEvent = await createOutlookCalendarEvent(accessToken, params);
         console.log(`✅ Created Outlook calendar event for tutor ${params.tutorId}`);
+      }
+
+      if (createdEvent) {
+        created = true;
+        eventsToPersist.push({
+          provider: record.provider,
+          providerAccountId: record.provider_account_id ?? null,
+          providerEventId: createdEvent.providerEventId,
+          calendarId: createdEvent.calendarId ?? "primary",
+          start: createdEvent.start,
+          end: createdEvent.end,
+          summary: createdEvent.summary ?? params.title ?? null,
+          status: createdEvent.status ?? "confirmed",
+          recurrenceMasterId: createdEvent.recurrenceMasterId ?? null,
+          recurrenceInstanceStart:
+            createdEvent.recurrenceInstanceStart ?? createdEvent.start ?? null,
+          isAllDay: createdEvent.isAllDay ?? false,
+        });
+
+        await adminClient
+          .from("calendar_connections")
+          .update({
+            sync_status: "healthy",
+            last_synced_at: new Date().toISOString(),
+            error_message: null,
+          })
+          .eq("id", record.id);
       }
     } catch (err) {
       console.error(`[CalendarEvent] Failed to create ${record.provider} event:`, err);
@@ -379,6 +445,32 @@ export async function createCalendarEventForBooking(
     }
   }
 
+  if (eventsToPersist.length > 0) {
+    const nowIso = new Date().toISOString();
+    const upsertPayload = eventsToPersist.map((evt) => ({
+      tutor_id: params.tutorId,
+      provider: evt.provider,
+      provider_account_id: evt.providerAccountId,
+      provider_event_id: evt.providerEventId,
+      calendar_id: evt.calendarId,
+      recurrence_master_id: evt.recurrenceMasterId,
+      recurrence_instance_start: evt.recurrenceInstanceStart,
+      start_at: evt.start,
+      end_at: evt.end,
+      summary: evt.summary,
+      status: evt.status ?? "confirmed",
+      is_all_day: evt.isAllDay,
+      deleted_at: null,
+      last_seen_at: nowIso,
+      updated_at: nowIso,
+    }));
+
+    const { error: persistError } = await adminClient.from("calendar_events").upsert(upsertPayload);
+    if (persistError) {
+      console.error("[CalendarEvent] Failed to persist created events", persistError);
+    }
+  }
+
   if (created) {
     return { success: true };
   }
@@ -389,7 +481,7 @@ export async function createCalendarEventForBooking(
 async function createGoogleCalendarEvent(
   accessToken: string,
   params: CreateCalendarEventParams
-): Promise<void> {
+): Promise<ProviderEventResult> {
   // Use the provided timezone or default to UTC
   const eventTimezone = params.timezone || "UTC";
 
@@ -426,12 +518,35 @@ async function createGoogleCalendarEvent(
     const errorText = await response.text();
     throw new Error(`Google Calendar API error ${response.status}: ${errorText}`);
   }
+
+  const eventData = await response.json();
+  const startIso = eventData?.start?.dateTime || eventData?.start?.date;
+  const endIso = eventData?.end?.dateTime || eventData?.end?.date;
+
+  if (!eventData?.id || !startIso || !endIso) {
+    throw new Error("Google Calendar API response missing event data");
+  }
+
+  return {
+    providerEventId: eventData.id as string,
+    calendarId: eventData?.organizer?.email ?? "primary",
+    start: new Date(startIso).toISOString(),
+    end: new Date(endIso).toISOString(),
+    summary: eventData?.summary ?? params.title ?? null,
+    status: eventData?.status ?? "confirmed",
+    recurrenceMasterId: eventData?.recurringEventId ?? null,
+    recurrenceInstanceStart:
+      eventData?.originalStartTime?.dateTime ||
+      eventData?.originalStartTime?.date ||
+      startIso,
+    isAllDay: Boolean(eventData?.start?.date && !eventData?.start?.dateTime),
+  };
 }
 
 async function createOutlookCalendarEvent(
   accessToken: string,
   params: CreateCalendarEventParams
-): Promise<void> {
+): Promise<ProviderEventResult> {
   // Use the provided timezone or default to UTC
   const eventTimezone = params.timezone || "UTC";
 
@@ -477,6 +592,26 @@ async function createOutlookCalendarEvent(
     const errorText = await response.text();
     throw new Error(`Microsoft Graph API error ${response.status}: ${errorText}`);
   }
+
+  const eventData = await response.json();
+  const startIso = graphDateTimeToIso(eventData?.start);
+  const endIso = graphDateTimeToIso(eventData?.end);
+
+  if (!eventData?.id || !startIso || !endIso) {
+    throw new Error("Microsoft Graph API response missing event data");
+  }
+
+  return {
+    providerEventId: eventData.id as string,
+    calendarId: eventData?.calendarId ?? null,
+    start: startIso,
+    end: endIso,
+    summary: eventData?.subject ?? params.title ?? null,
+    status: eventData?.status ?? "confirmed",
+    recurrenceMasterId: eventData?.seriesMasterId ?? null,
+    recurrenceInstanceStart: startIso,
+    isAllDay: eventData?.isAllDay === true,
+  };
 }
 
 // New function to get calendar events WITH details (title, source, etc.)
@@ -499,7 +634,7 @@ export async function getCalendarEventsWithDetails({
   const { data, error } = await adminClient
     .from("calendar_connections")
     .select(
-      "id, provider, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, sync_status"
+      "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
     )
     .eq("tutor_id", tutorId);
 
@@ -511,6 +646,10 @@ export async function getCalendarEventsWithDetails({
   const events: CalendarEvent[] = [];
 
   for (const record of (data ?? []) as CalendarConnectionRecord[]) {
+    if (record.sync_enabled === false) {
+      continue;
+    }
+
     if (record.sync_status && !SYNCABLE_STATUSES.has(record.sync_status)) {
       continue;
     }
@@ -565,6 +704,14 @@ async function fetchEventsForConnection({
           error_message: null,
         })
         .eq("id", connection.id);
+
+      await persistFetchedEvents({
+        adminClient,
+        tutorId: connection.tutor_id,
+        provider: connection.provider,
+        providerAccountId: connection.provider_account_id ?? null,
+        events,
+      });
     }
 
     return events;
@@ -679,4 +826,49 @@ async function fetchOutlookEvents(
       };
     })
     .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
+}
+
+function toProviderEventId(eventId: string, provider: CalendarProvider) {
+  const prefix = `${provider}-`;
+  return eventId?.startsWith(prefix) ? eventId.slice(prefix.length) : eventId;
+}
+
+async function persistFetchedEvents({
+  adminClient,
+  tutorId,
+  provider,
+  providerAccountId,
+  events,
+}: {
+  adminClient: SupabaseClient;
+  tutorId: string;
+  provider: CalendarProvider;
+  providerAccountId: string | null;
+  events: CalendarEvent[];
+}) {
+  if (!events.length) return;
+
+  const nowIso = new Date().toISOString();
+  const payload = events.map((event) => ({
+    tutor_id: tutorId,
+    provider,
+    provider_account_id: providerAccountId,
+    provider_event_id: toProviderEventId(event.id, provider),
+    calendar_id: null,
+    recurrence_master_id: null,
+    recurrence_instance_start: event.start,
+    start_at: event.start,
+    end_at: event.end,
+    summary: event.title,
+    status: "confirmed",
+    is_all_day: false,
+    deleted_at: null,
+    last_seen_at: nowIso,
+    updated_at: nowIso,
+  }));
+
+  const { error } = await adminClient.from("calendar_events").upsert(payload);
+  if (error) {
+    console.error("[CalendarEvents] Failed to persist fetched events", error);
+  }
 }

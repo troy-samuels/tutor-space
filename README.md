@@ -5,9 +5,10 @@ A comprehensive business management platform for independent language tutors. Tu
 ## Overview
 
 **TutorLingua** helps independent language tutors:
-- Get discovered on marketplaces (Preply, iTalki, Verbling)
-- Book students directly through branded channels
+- Stay visible on marketplaces (Preply, iTalki, Verbling) while bringing students into your own system
+- Book students directly through branded channels you control
 - Keep 100% of direct booking revenue (0% platform fees)
+- Sync calendars (Google/Outlook) to avoid conflicts across platforms
 - Manage their entire business from one dashboard
 
 ## Tech Stack
@@ -118,11 +119,10 @@ app/
 - **Platform Documentation**: See `app/claude.md` for comprehensive feature documentation
 - **Security Practices**: See `SECURITY.md` for security guidelines
 
-## Subscription Tiers
+## Pricing & Positioning
 
-- **Professional** (Free): 20 students, core booking & payments
-- **Growth** ($29/mo): Unlimited students, website builder, analytics, marketing tools
-- **Studio** (TBD): Group sessions, marketplace features
+- Complement to marketplaces: calendar sync and direct booking tools to keep student relationships while still using Preply/iTalki/Verbling for discovery
+- Single all-access plan: **$29/month** or **$199/year** for everything that exists today (no tiers)
 
 ## License
 

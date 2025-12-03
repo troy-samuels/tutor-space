@@ -294,7 +294,7 @@ export async function signIn(
     };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -333,6 +333,18 @@ export async function signIn(
   // Note: We don't verify the session here because signInWithPassword() already
   // handles session creation. Calling getSession() immediately after can fail
   // due to a race condition where cookies haven't been flushed yet.
+
+  // Update last_login_at for tutors (for churn tracking)
+  if (signInData?.user?.id) {
+    const serviceClient = createServiceRoleClient();
+    if (serviceClient) {
+      await serviceClient
+        .from("profiles")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", signInData.user.id)
+        .eq("role", "tutor");
+    }
+  }
 
   revalidatePath("/", "layout");
   redirect(DASHBOARD_ROUTE);

@@ -202,7 +202,7 @@ Seguridad, optimización de velocidad, hosting, respaldos todo manejado automát
 Menos flexibilidad de diseño que Wix/Squarespace, pero todo funciona junto nativamente. No estás tratando de hacer que un constructor general de sitios web se comporte como una plataforma de tutoría.
 
 **Comparación de costos:**
-- TutorLingua Professional: $49/mes (sitio web + reservas + pago + CRM + analíticas)
+- TutorLingua (plan completo): $29/mes o $199/año (sitio web + reservas + pago + CRM + analíticas)
 
 vs.
 

@@ -507,7 +507,6 @@ const landingCopyEn: LandingCopy = {
         links: [
           { label: "Features", href: "#features" },
           { label: "Pricing", href: "#pricing" },
-          { label: "Roadmap", href: "/roadmap" },
           { label: "Security", href: "/security" },
         ],
       },
@@ -516,7 +515,6 @@ const landingCopyEn: LandingCopy = {
         links: [
           { label: "Blog", href: "/blog" },
           { label: "Help Center", href: "/help" },
-          { label: "Templates", href: "/templates" },
           { label: "Community", href: "/community" },
         ],
       },
@@ -886,7 +884,6 @@ const landingCopyEs: LandingCopy = {
         links: [
           { label: "Características", href: "#features" },
           { label: "Precios", href: "#pricing" },
-          { label: "Hoja de ruta", href: "/roadmap" },
           { label: "Seguridad", href: "/security" },
         ],
       },
@@ -895,7 +892,6 @@ const landingCopyEs: LandingCopy = {
         links: [
           { label: "Blog", href: "/blog" },
           { label: "Centro de ayuda", href: "/help" },
-          { label: "Plantillas", href: "/templates" },
           { label: "Comunidad", href: "/community" },
         ],
       },

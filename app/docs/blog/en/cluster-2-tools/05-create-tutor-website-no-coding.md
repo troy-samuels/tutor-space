@@ -202,7 +202,7 @@ Security, speed optimization, hosting, backups all handled automatically.
 Less design flexibility than Wix/Squarespace, but everything works together natively. You're not trying to make a general website builder behave like a tutoring platform.
 
 **Cost comparison:**
-- TutorLingua Professional: $49/month (website + booking + payment + CRM + analytics)
+- TutorLingua (all-access): $29/month or $199/year (website + booking + payment + CRM + analytics)
 
 vs.
 

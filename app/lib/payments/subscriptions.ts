@@ -1,7 +1,7 @@
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 /**
- * Single-tier mapping: every subscription resolves to the lifetime plan.
+ * Single-plan mapping: Stripe prices map to the all-access or founder lifetime plans.
  */
 export function mapPriceIdToPlan(priceId?: string | null): PlatformBillingPlan {
 	const lifetimePriceId = process.env.STRIPE_LIFETIME_PRICE_ID;

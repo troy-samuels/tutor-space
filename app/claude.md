@@ -8,7 +8,8 @@ TutorLingua is a comprehensive business management platform built specifically f
 
 ### Core Value Proposition
 
-- **Own Your Repeat Business**: Get discovered on marketplaces (Preply, iTalki), book students directly through your own branded channels, and keep 100% of direct booking revenue
+- **Complementary to Marketplaces**: Use Preply, iTalki, and Verbling for student discovery; use TutorLingua for direct bookings from repeat students and social followers
+- **Own Your Repeat Business**: Keep 100% of revenue from direct bookings (vs. 15-33% commission on marketplaces)
 - **All-in-One Platform**: Replace 10+ scattered tools (Calendly, Beacons, spreadsheets, payment processors) with one integrated system
 - **Zero Platform Fees**: 0% commission on direct bookings through TutorLingua
 - **Quick Setup**: Most tutors are ready in 10 minutes
@@ -16,8 +17,8 @@ TutorLingua is a comprehensive business management platform built specifically f
 ### Target Users
 
 **Primary Users (Tutors)**:
-- Independent language tutors seeking to build their own business
-- Tutors currently using marketplaces who want to reduce commission costs
+- Language tutors on Preply, iTalki, or Verbling who want to capture repeat business directly
+- Independent tutors seeking to reduce commission costs (save $3,000-$8,000/year)
 - Teachers who want professional online presence and booking automation
 
 **Secondary Users (Students)**:
@@ -746,10 +747,10 @@ PROTECTED_ROUTES = [
 - Incomplete onboarding → redirect to `/onboarding`
 - Checks `profiles.onboarding_completed` field
 
-**Plan Tier Gates**:
-- Growth routes: `/ai`, `/analytics`, `/marketing`
-- Studio routes: `/group-sessions`, `/marketplace`, `/ceo`
-- Redirects to `/upgrade?plan={required_plan}`
+**Plan Access**:
+- Single all-access plan today; no feature gates in middleware
+- Calendar sync + direct booking position TutorLingua as complementary to marketplaces
+- Redirects to `/upgrade` only when billing flow is explicitly invoked
 
 ### RLS Policies
 
@@ -1028,6 +1029,10 @@ RESEND_API_KEY=re_...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Stripe Subscription (All-Access Plan)
+STRIPE_ALL_ACCESS_PRICE_ID=price_...
+STRIPE_LIFETIME_PRICE_ID=price_...
 ```
 
 ### Optional (Extended Features)
@@ -1051,7 +1056,7 @@ MICROSOFT_OAUTH_REDIRECT_URL=...
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 
-# AI Features (Growth Plan)
+# AI Features (Included Plan)
 OPENAI_API_KEY=sk-...
 ```
 
@@ -1106,12 +1111,56 @@ Located in `/docs/blog/`:
 - Blog utilities in `/lib/blog.ts`
 - Public routes: `/blog/[slug]`, `/es/blog/[slug]`
 
-### Feature Flags & Plans
+### Pricing Model
 
-**Plans**:
-- **Professional** (free): 20 students, core features
-- **Growth** ($29/mo): Unlimited students, website, analytics, marketing tools
-- **Studio** (TBD): Group sessions, marketplace, advanced features
+**Single All-Access Plan**:
+- **Price**: $29/month or $199/year (~$16.58/month)
+- **Features**: All platform features included, no tiers
+- **Positioning**: "One flat price. Full platform access. No add-on fees."
+
+**Founder Lifetime Offer** (limited time):
+- **Price**: $49 one-time (vs. $29/month recurring)
+- **Deadline**: December 3, 2025
+- **Features**: Lifetime access to all current and future features
+
+**Value Proposition vs. Marketplaces**:
+
+| Platform    | Commission | Tutor Keeps on $50/hr |
+|-------------|------------|----------------------|
+| Preply      | 18-33%     | $33.50-$41.00        |
+| iTalki      | 15%        | $42.50               |
+| Verbling    | ~15%       | $42.50               |
+| TutorLingua | 0%         | $50.00               |
+
+For a tutor earning $2,000/month on Preply (33% commission):
+- Commission cost: $660/month ($7,920/year)
+- TutorLingua cost: $29/month ($348/year)
+- **Annual savings: $7,572**
+
+### Marketplace Positioning Strategy
+
+TutorLingua is positioned as **complementary to marketplaces**, not competitive:
+
+**Discovery vs. Retention Model**:
+- **Marketplaces (Preply, iTalki, Verbling)**: Use for student discovery and first-time bookings
+- **TutorLingua**: Use for direct bookings from repeat students and social followers
+
+**Key Messaging**:
+- "Use marketplaces to get discovered. Use TutorLingua for direct bookings."
+- "Stay on Preply for new students. But repeat lessons go through TutorLingua."
+- "Not a replacement, an addition."
+
+**Tutor Workflow**:
+1. Get discovered on marketplace (Preply, iTalki, etc.)
+2. Complete first lesson(s) through marketplace
+3. Share TutorLingua booking link with repeat students
+4. Keep 100% of direct booking revenue
+
+**Why This Works**:
+- Tutors don't want to leave marketplaces entirely (discovery value)
+- But commissions on repeat students feel unfair (15-33% for students they already found)
+- TutorLingua captures the "repeat student" segment only
+- Complementary positioning = easier adoption (no "all-or-nothing" decision)
 
 ### Testing
 
@@ -1123,4 +1172,4 @@ Located in `/docs/blog/`:
 
 This documentation covers all **working, functional features** in the TutorLingua platform as of the current codebase state.
 
-*Last updated: November 2024*
+*Last updated: 3 December 2025*

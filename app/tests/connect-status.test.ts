@@ -10,9 +10,16 @@ test("extractTutorStripeStatus maps Stripe account to internal status", () => {
     id: "acct_abc",
     charges_enabled: true,
     payouts_enabled: true,
-    business_profile: { default_currency: "usd" },
+    default_currency: "usd",
     country: "US",
-    requirements: { disabled_reason: null },
+    details_submitted: true,
+    requirements: {
+      disabled_reason: null,
+      currently_due: [],
+      eventually_due: [],
+      past_due: [],
+      pending_verification: [],
+    },
   } as unknown as Record<string, unknown>;
 
   const status: TutorStripeStatus = extractTutorStripeStatus(stripeAccount);
@@ -22,4 +29,10 @@ test("extractTutorStripeStatus maps Stripe account to internal status", () => {
   assert.equal(status.onboardingStatus, "completed");
   assert.equal(status.defaultCurrency, "usd");
   assert.equal(status.country, "US");
+  assert.equal(status.disabledReason, null);
+  assert.deepEqual(status.currentlyDue, []);
+  assert.deepEqual(status.eventuallyDue, []);
+  assert.deepEqual(status.pastDue, []);
+  assert.deepEqual(status.pendingVerification, []);
+  assert.equal(status.detailsSubmitted, true);
 });

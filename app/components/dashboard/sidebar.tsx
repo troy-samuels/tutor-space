@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { ChevronDown, Lock } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   NAV_SECTIONS,
   type NavSection,
@@ -19,7 +18,6 @@ type SidebarProps = {
 
 export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname();
-  const { entitlements } = useAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const navItemMap = useMemo(() => {
@@ -38,14 +36,6 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
     return entries;
   }, []);
 
-  const canAccessSection = (requiredPlan?: string) => {
-    if (!requiredPlan) return true;
-    const currentPlan = entitlements?.plan || "professional";
-    if (currentPlan === "founder_lifetime") return true;
-    if (requiredPlan === "professional") return true;
-    return currentPlan === requiredPlan;
-  };
-
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) => ({
       ...prev,
@@ -56,9 +46,6 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
   const renderNavLink = (item: NavItem, section: NavSection) => {
     const isActive = pathname === item.href;
     const disabled = !!item.disabled;
-    const requiredPlan = item.plan ?? section.plan;
-    const lockedByPlan = !canAccessSection(requiredPlan);
-    const locked = lockedByPlan || disabled;
     const href = disabled ? "#" : item.href;
 
     return (
@@ -76,21 +63,15 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
         tabIndex={disabled ? -1 : 0}
         className={cn(
           "flex items-center gap-3 rounded-md px-4 py-2 text-sm transition-colors",
-          locked
+          disabled
             ? "border border-dashed border-border/60 text-muted-foreground/70"
             : isActive
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
-        <item.icon className={cn("h-4 w-4", locked ? "text-muted-foreground/70" : undefined)} />
+        <item.icon className={cn("h-4 w-4", disabled ? "text-muted-foreground/70" : undefined)} />
         <span className="flex-1 truncate">{item.label}</span>
-        {locked ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
-            <Lock className="h-3 w-3" />
-            {lockedByPlan ? (requiredPlan === "growth" ? "Growth" : "Studio") : "Soon"}
-          </span>
-        ) : null}
       </Link>
     );
   };

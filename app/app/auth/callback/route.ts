@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -16,6 +17,19 @@ export async function GET(request: Request) {
   if (error) {
     console.error("[Supabase] OAuth exchange failed:", error);
     return NextResponse.redirect(`${origin}/auth/error`);
+  }
+
+  // Update last_login_at for tutors (for churn tracking)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.id) {
+    const serviceClient = createServiceRoleClient();
+    if (serviceClient) {
+      await serviceClient
+        .from("profiles")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", user.id)
+        .eq("role", "tutor");
+    }
   }
 
   const forwardedHost = request.headers.get("x-forwarded-host");

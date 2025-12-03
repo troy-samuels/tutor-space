@@ -258,7 +258,7 @@ Answer these questions to narrow your choice:
 **Question 1: How many active students do you have?**
 - 0-3 students: Calendly Free
 - 4-8 students: Calendly Paid or TutorLingua Starter
-- 9-15 students: Acuity or TutorLingua Professional
+- 9-15 students: Acuity or TutorLingua (all-access)
 - 16+ students: TutorLingua Expert or Acuity Powerhouse
 
 **Question 2: Do you need payment processing now?**
@@ -273,7 +273,7 @@ Answer these questions to narrow your choice:
 **Question 4: What's your monthly revenue from tutoring?**
 - Under $500/month: Start with free tools
 - $500-2,000/month: Invest in Calendly Paid or TutorLingua
-- $2,000-5,000/month: Acuity or TutorLingua Professional
+- $2,000-5,000/month: Acuity or TutorLingua (all-access)
 - $5,000+/month: TutorLingua Expert or custom solution
 
 **Question 5: Do you track student progress and relationships?**

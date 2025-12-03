@@ -18,6 +18,10 @@ const productSchema = z.object({
   currency: z.string().min(3).default("usd"),
   fulfillment_type: z.enum(["file", "link"]).default("file"),
   external_url: z.string().url().optional(),
+  // Marketplace enhancement fields
+  category: z.string().default("worksheet"),
+  language: z.string().optional(),
+  level: z.enum(["beginner", "intermediate", "advanced", "all"]).optional(),
 });
 
 export type ProductFormState = {
@@ -62,6 +66,10 @@ export async function createDigitalProduct(
     currency: formData.get("currency"),
     fulfillment_type: formData.get("fulfillment_type") ?? "file",
     external_url: formData.get("external_url"),
+    // Marketplace enhancement fields
+    category: formData.get("category") || "worksheet",
+    language: formData.get("language") || undefined,
+    level: formData.get("level") || undefined,
   });
 
   if (!parsed.success) {
@@ -148,6 +156,10 @@ export async function createDigitalProduct(
     external_url: parsed.data.external_url ?? null,
     stripe_product_id: stripeProduct.id,
     stripe_price_id: stripePrice.id,
+    // Marketplace enhancement fields
+    category: parsed.data.category,
+    language: parsed.data.language ?? null,
+    level: parsed.data.level ?? null,
   });
 
   if (insertError) {

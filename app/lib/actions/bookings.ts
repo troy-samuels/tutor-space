@@ -13,6 +13,7 @@ import {
 } from "@/lib/emails/booking-emails";
 import { getActivePackages } from "@/lib/actions/packages";
 import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
+import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
 
 export type BookingRecord = {
   id: string;
@@ -260,6 +261,12 @@ export async function createBookingAndCheckout(params: {
       .in("status", ["pending", "confirmed"])
       .gte("scheduled_at", new Date().toISOString());
 
+    const busyWindows = await getCalendarBusyWindows({
+      tutorId: params.tutorId,
+      start: new Date(params.scheduledAt),
+      days: 60,
+    });
+
     // 3. Validate the booking
     const validation = validateBooking({
       scheduledAt: params.scheduledAt,
@@ -267,6 +274,7 @@ export async function createBookingAndCheckout(params: {
       availability: availability || [],
       existingBookings: existingBookings || [],
       bufferMinutes,
+      busyWindows,
     });
 
     if (!validation.isValid) {
@@ -874,6 +882,12 @@ export async function rescheduleBooking(params: {
     .neq("id", params.bookingId)
     .gte("scheduled_at", new Date().toISOString());
 
+  const busyWindows = await getCalendarBusyWindows({
+    tutorId: booking.tutor_id,
+    start: new Date(params.newStart),
+    days: 60,
+  });
+
   const durationMinutes =
     params.durationMinutes ??
     bookingRecord.duration_minutes ??
@@ -888,6 +902,7 @@ export async function rescheduleBooking(params: {
     availability: availability || [],
     existingBookings: existingBookings || [],
     bufferMinutes,
+    busyWindows,
   });
 
   if (!validation.isValid) {

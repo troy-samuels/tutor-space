@@ -5,9 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getTutorStudentProgress } from "@/lib/actions/progress";
+import { getTutorStudentProgress, getTutorStudentPracticeData, getStudentPracticeAnalytics } from "@/lib/actions/progress";
 import { StudentProgressPanel } from "@/components/students/StudentProgressPanel";
 import { HomeworkPlanner } from "@/components/students/HomeworkPlanner";
+import { PracticeAssignmentPanel } from "@/components/students/PracticeAssignmentPanel";
+import { AIPracticeAnalytics } from "@/components/students/AIPracticeAnalytics";
 
 type StudentDetailPageProps = {
   params: Promise<{
@@ -81,7 +83,11 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     .order("created_at", { ascending: false })
     .limit(10);
 
-  const progress = await getTutorStudentProgress(student.id);
+  const [progress, practiceData, practiceAnalytics] = await Promise.all([
+    getTutorStudentProgress(student.id),
+    getTutorStudentPracticeData(student.id),
+    getStudentPracticeAnalytics(student.id),
+  ]);
 
   const bookingRecords: StudentBookingRecord[] = (bookings as StudentBookingRecord[] | null) ?? [];
   const lessonNoteRecords: StudentLessonNoteRecord[] =
@@ -332,6 +338,22 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
           studentId={student.id}
           studentName={student.full_name ?? "Student"}
           assignments={progress.homework}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <PracticeAssignmentPanel
+          studentId={student.id}
+          studentName={student.full_name ?? "Student"}
+          assignments={practiceData.assignments}
+          scenarios={practiceData.scenarios}
+          studentHasSubscription={practiceData.isSubscribed}
+        />
+        <AIPracticeAnalytics
+          studentId={student.id}
+          studentName={student.full_name ?? "Student"}
+          isSubscribed={practiceAnalytics.isSubscribed}
+          summary={practiceAnalytics.summary}
         />
       </div>
 

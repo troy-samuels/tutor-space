@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,11 @@ import {
   CreditCard,
   AlertCircle,
   Users,
+  Mail,
+  Clock,
 } from "lucide-react";
+import { InactiveTutorAlert } from "@/components/admin/InactiveTutorAlert";
+import { ReengagementEmailDialog } from "@/components/admin/ReengagementEmailDialog";
 
 interface Tutor {
   id: string;
@@ -48,6 +52,7 @@ interface Tutor {
   timezone: string | null;
   created_at: string;
   updated_at: string;
+  last_login_at: string | null;
   studentCount: number;
   revenue30d: number;
 }
@@ -76,6 +81,31 @@ function formatDate(dateString: string): string {
   });
 }
 
+function formatRelativeTime(dateString: string | null): string {
+  if (!dateString) return "Never";
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+  return `${Math.floor(diffDays / 365)}y ago`;
+}
+
+function isInactive(lastLoginAt: string | null): boolean {
+  if (!lastLoginAt) return true;
+  const date = new Date(lastLoginAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  return diffDays >= 14;
+}
+
 function getInitials(name: string | null): string {
   if (!name) return "??";
   return name
@@ -89,9 +119,9 @@ function getInitials(name: string | null): string {
 function PlanBadge({ plan }: { plan: string | null }) {
   const planName = plan || "professional";
   const variants: Record<string, { className: string; label: string }> = {
-    professional: { className: "bg-gray-100 text-gray-700", label: "Free" },
-    growth: { className: "bg-blue-100 text-blue-700", label: "Growth" },
-    studio: { className: "bg-purple-100 text-purple-700", label: "Studio" },
+    professional: { className: "bg-gray-100 text-gray-700", label: "Legacy Free" },
+    growth: { className: "bg-blue-100 text-blue-700", label: "All-access" },
+    studio: { className: "bg-purple-100 text-purple-700", label: "Custom" },
   };
   const { className, label } = variants[planName] || variants.professional;
   return <Badge className={className}>{label}</Badge>;
@@ -124,6 +154,23 @@ function StripeStatusBadge({
       <AlertCircle className="h-3 w-3 mr-1" />
       Pending
     </Badge>
+  );
+}
+
+function LastLoginCell({ lastLoginAt }: { lastLoginAt: string | null }) {
+  const inactive = isInactive(lastLoginAt);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={inactive ? "text-amber-600 font-medium" : "text-muted-foreground"}>
+        {formatRelativeTime(lastLoginAt)}
+      </span>
+      {inactive && (
+        <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs px-1.5 py-0">
+          Inactive
+        </Badge>
+      )}
+    </div>
   );
 }
 
@@ -160,7 +207,10 @@ function TutorTableSkeleton() {
             <Skeleton className="h-4 w-20" />
           </TableCell>
           <TableCell>
-            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-4 w-16" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-8 w-20" />
           </TableCell>
         </TableRow>
       ))}
@@ -169,7 +219,6 @@ function TutorTableSkeleton() {
 }
 
 export default function AdminTutorsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -181,6 +230,7 @@ export default function AdminTutorsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inactiveCount, setInactiveCount] = useState(0);
 
   // Filter states
   const [search, setSearch] = useState(searchParams.get("search") || "");
@@ -188,6 +238,25 @@ export default function AdminTutorsPage() {
   const [stripeStatus, setStripeStatus] = useState(
     searchParams.get("stripeStatus") || "all"
   );
+  const [activity, setActivity] = useState(
+    searchParams.get("activity") || "all"
+  );
+
+  // Re-engagement email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
+
+  const fetchInactiveCount = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/tutors/inactive");
+      if (response.ok) {
+        const data = await response.json();
+        setInactiveCount(data.inactiveCount || 0);
+      }
+    } catch {
+      // Silently fail - alert is not critical
+    }
+  }, []);
 
   const fetchTutors = useCallback(async (page: number = 1) => {
     setLoading(true);
@@ -200,6 +269,7 @@ export default function AdminTutorsPage() {
     if (plan && plan !== "all") params.set("plan", plan);
     if (stripeStatus && stripeStatus !== "all")
       params.set("stripeStatus", stripeStatus);
+    if (activity && activity !== "all") params.set("activity", activity);
 
     try {
       const response = await fetch(`/api/admin/tutors?${params.toString()}`);
@@ -213,11 +283,12 @@ export default function AdminTutorsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, plan, stripeStatus]);
+  }, [search, plan, stripeStatus, activity]);
 
   useEffect(() => {
     fetchTutors(1);
-  }, [fetchTutors]);
+    fetchInactiveCount();
+  }, [fetchTutors, fetchInactiveCount]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -226,6 +297,21 @@ export default function AdminTutorsPage() {
 
   function handlePageChange(newPage: number) {
     fetchTutors(newPage);
+  }
+
+  function handleViewInactive() {
+    setActivity("inactive");
+  }
+
+  function handleOpenEmailDialog(tutor: Tutor) {
+    setSelectedTutor(tutor);
+    setEmailDialogOpen(true);
+  }
+
+  function handleEmailSuccess() {
+    // Refresh the tutor list after successful email send
+    fetchTutors(pagination.page);
+    fetchInactiveCount();
   }
 
   if (error) {
@@ -251,6 +337,14 @@ export default function AdminTutorsPage() {
         </p>
       </div>
 
+      {/* Inactive Tutor Alert */}
+      {activity !== "inactive" && inactiveCount > 0 && (
+        <InactiveTutorAlert
+          count={inactiveCount}
+          onViewClick={handleViewInactive}
+        />
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <form onSubmit={handleSearch} className="flex-1">
@@ -271,9 +365,9 @@ export default function AdminTutorsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Plans</SelectItem>
-            <SelectItem value="professional">Professional</SelectItem>
-            <SelectItem value="growth">Growth</SelectItem>
-            <SelectItem value="studio">Studio</SelectItem>
+            <SelectItem value="professional">Legacy Free</SelectItem>
+            <SelectItem value="growth">All-access</SelectItem>
+            <SelectItem value="studio">Custom</SelectItem>
           </SelectContent>
         </Select>
 
@@ -286,6 +380,18 @@ export default function AdminTutorsPage() {
             <SelectItem value="connected">Connected</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="none">Not Connected</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={activity} onValueChange={(v) => setActivity(v)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Activity" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Activity</SelectItem>
+            <SelectItem value="active">Active (14d)</SelectItem>
+            <SelectItem value="inactive">Inactive (14d+)</SelectItem>
+            <SelectItem value="never">Never logged in</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -313,6 +419,10 @@ export default function AdminTutorsPage() {
               </TableHead>
               <TableHead>Revenue (30d)</TableHead>
               <TableHead>Stripe</TableHead>
+              <TableHead>
+                <Clock className="h-4 w-4 inline mr-1" />
+                Last Login
+              </TableHead>
               <TableHead>Joined</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -322,7 +432,7 @@ export default function AdminTutorsPage() {
               <TutorTableSkeleton />
             ) : tutors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <p className="text-muted-foreground">No tutors found</p>
                 </TableCell>
               </TableRow>
@@ -370,16 +480,31 @@ export default function AdminTutorsPage() {
                       chargesEnabled={tutor.stripe_charges_enabled}
                     />
                   </TableCell>
+                  <TableCell>
+                    <LastLoginCell lastLoginAt={tutor.last_login_at} />
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDate(tutor.created_at)}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/admin/tutors/${tutor.id}`}>
-                      <Button variant="ghost" size="sm">
-                        View
-                        <ExternalLink className="ml-1 h-3 w-3" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link href={`/admin/tutors/${tutor.id}`}>
+                        <Button variant="ghost" size="sm">
+                          View
+                          <ExternalLink className="ml-1 h-3 w-3" />
+                        </Button>
+                      </Link>
+                      {isInactive(tutor.last_login_at) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEmailDialog(tutor)}
+                          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -416,6 +541,14 @@ export default function AdminTutorsPage() {
           </div>
         </div>
       )}
+
+      {/* Re-engagement Email Dialog */}
+      <ReengagementEmailDialog
+        tutor={selectedTutor}
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        onSuccess={handleEmailSuccess}
+      />
     </div>
   );
 }

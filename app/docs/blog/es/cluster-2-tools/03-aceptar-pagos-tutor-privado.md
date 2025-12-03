@@ -205,7 +205,7 @@ Plataformas como [TutorLingua](/es/signup) combinan procesamiento de pagos con r
 - **Costo total: $876 + 60 horas de tu tiempo**
 
 **Enfoque Plataforma Integrada (TutorLingua):**
-- TutorLingua Professional: $588/año
+- TutorLingua (plan completo): $29/mes o $199/año
 - Comisiones Stripe (igual): $696/año
 - Tu tiempo administrativo: 1 hora mensual = 12 horas anuales
 - **Costo total: $1,284 + 12 horas de tu tiempo**

@@ -258,7 +258,7 @@ Responde estas preguntas para reducir tu elección:
 **Pregunta 1: ¿Cuántos estudiantes activos tienes?**
 - 0-3 estudiantes: Calendly Gratis
 - 4-8 estudiantes: Calendly Pago o TutorLingua Starter
-- 9-15 estudiantes: Acuity o TutorLingua Professional
+- 9-15 estudiantes: Acuity o TutorLingua (plan completo)
 - 16+ estudiantes: TutorLingua Expert o Acuity Powerhouse
 
 **Pregunta 2: ¿Necesitas procesamiento de pagos ahora?**
@@ -273,7 +273,7 @@ Responde estas preguntas para reducir tu elección:
 **Pregunta 4: ¿Cuáles son tus ingresos mensuales de tutoría?**
 - Menos de $500/mes: Comienza con herramientas gratuitas
 - $500-2,000/mes: Invierte en Calendly Pago o TutorLingua
-- $2,000-5,000/mes: Acuity o TutorLingua Professional
+- $2,000-5,000/mes: Acuity o TutorLingua (plan completo)
 - $5,000+/mes: TutorLingua Expert o solución personalizada
 
 **Pregunta 5: ¿Rastrear progreso y relaciones de estudiantes?**

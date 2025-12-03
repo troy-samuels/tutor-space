@@ -30,6 +30,12 @@ export async function updateStripeStatus(
 			stripe_default_currency: status.defaultCurrency,
 			stripe_country: status.country,
 			stripe_last_capability_check_at: status.lastCapabilityCheckAt,
+			stripe_disabled_reason: status.disabledReason,
+			stripe_currently_due: status.currentlyDue,
+			stripe_eventually_due: status.eventuallyDue,
+			stripe_past_due: status.pastDue,
+			stripe_pending_verification: status.pendingVerification,
+			stripe_details_submitted: status.detailsSubmitted,
 		})
 		.eq("id", tutorId);
 	if (error) {
@@ -44,7 +50,7 @@ export async function getTutorStripeStatus(
 	const { data, error } = await client
 		.from("profiles")
 		.select(
-			"stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status, stripe_default_currency, stripe_country, stripe_last_capability_check_at"
+			"stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status, stripe_default_currency, stripe_country, stripe_last_capability_check_at, stripe_disabled_reason, stripe_currently_due, stripe_eventually_due, stripe_past_due, stripe_pending_verification, stripe_details_submitted"
 		)
 		.eq("id", tutorId)
 		.single();
@@ -59,6 +65,12 @@ export async function getTutorStripeStatus(
 		defaultCurrency: (data?.stripe_default_currency as string | null) ?? null,
 		country: (data?.stripe_country as string | null) ?? null,
 		lastCapabilityCheckAt: (data?.stripe_last_capability_check_at as string | null) ?? null,
+		disabledReason: (data?.stripe_disabled_reason as string | null) ?? null,
+		currentlyDue: (data?.stripe_currently_due as string[] | null) ?? null,
+		eventuallyDue: (data?.stripe_eventually_due as string[] | null) ?? null,
+		pastDue: (data?.stripe_past_due as string[] | null) ?? null,
+		pendingVerification: (data?.stripe_pending_verification as string[] | null) ?? null,
+		detailsSubmitted: Boolean(data?.stripe_details_submitted),
 	};
 }
 

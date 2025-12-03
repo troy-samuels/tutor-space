@@ -284,7 +284,7 @@ export default function TutorDetailPage() {
                       : "bg-gray-100 text-gray-700"
                 }
               >
-                {tutor.plan === "founder_lifetime" ? "Founder lifetime" : tutor.plan || "Professional"}
+                {tutor.plan === "founder_lifetime" ? "Founder lifetime" : tutor.plan || "Legacy Free"}
               </Badge>
               {tutor.stripe_charges_enabled && (
                 <Badge className="bg-green-100 text-green-700">

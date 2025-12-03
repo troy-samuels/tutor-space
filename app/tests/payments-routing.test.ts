@@ -19,6 +19,12 @@ test("routeStudentPayment chooses connect_destination when charges enabled", () 
     defaultCurrency: "usd",
     country: "US",
     lastCapabilityCheckAt: new Date().toISOString(),
+    disabledReason: null,
+    currentlyDue: null,
+    eventuallyDue: null,
+    pastDue: null,
+    pendingVerification: null,
+    detailsSubmitted: true,
   };
   const input: RouteStudentPaymentInput = {
     tutorStripe,
@@ -39,6 +45,12 @@ test("routeStudentPayment chooses payment_link when connect not ready but link p
     defaultCurrency: null,
     country: null,
     lastCapabilityCheckAt: null,
+    disabledReason: null,
+    currentlyDue: null,
+    eventuallyDue: null,
+    pastDue: null,
+    pendingVerification: null,
+    detailsSubmitted: false,
   };
   const input: RouteStudentPaymentInput = {
     tutorStripe,
@@ -59,6 +71,12 @@ test("routeStudentPayment reports no method when connect not ready and no link",
     defaultCurrency: null,
     country: null,
     lastCapabilityCheckAt: null,
+    disabledReason: null,
+    currentlyDue: null,
+    eventuallyDue: null,
+    pastDue: null,
+    pendingVerification: null,
+    detailsSubmitted: false,
   };
   const input: RouteStudentPaymentInput = {
     tutorStripe,
