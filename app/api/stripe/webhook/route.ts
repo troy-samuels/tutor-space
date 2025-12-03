@@ -8,6 +8,7 @@ import { sendPaymentReceiptEmail, sendTutorBookingNotificationEmail, sendPayment
 import { mapPriceIdToPlan } from "@/lib/payments/subscriptions";
 import { getFounderPlanName } from "@/lib/pricing/founder";
 import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
+import { AI_PRACTICE_BASE_PRICE_CENTS } from "@/lib/practice/constants";
 
 type ServiceRoleClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 
@@ -1043,7 +1044,7 @@ async function handleAccountDeauthorized(
 
 /**
  * Handle AI Practice subscription updates (student subscriptions)
- * Updates the student's ai_practice_enabled status
+ * Updates the student's ai_practice_enabled status and creates new usage period if needed
  */
 async function handleAIPracticeSubscriptionUpdate(
   subscription: StripeSubscriptionPayload,
@@ -1059,6 +1060,11 @@ async function handleAIPracticeSubscriptionUpdate(
 
   const isActive = subscription.status === "active" || subscription.status === "trialing";
 
+  // Find the metered subscription item (block price)
+  const meteredItem = subscription.items.data.find(
+    (item) => item.price.recurring?.usage_type === "metered"
+  );
+
   const { error } = await supabase
     .from("students")
     .update({
@@ -1067,12 +1073,52 @@ async function handleAIPracticeSubscriptionUpdate(
       ai_practice_current_period_end: new Date(
         subscription.current_period_end * 1000
       ).toISOString(),
+      ai_practice_block_subscription_item_id: meteredItem?.id || null,
     })
     .eq("id", studentId);
 
   if (error) {
     console.error("Failed to update AI Practice subscription:", error);
     throw error;
+  }
+
+  // Create or update usage period for the new billing cycle
+  if (isActive && tutorId) {
+    const periodStart = new Date(subscription.current_period_start * 1000);
+    const periodEnd = new Date(subscription.current_period_end * 1000);
+
+    // Check if period already exists
+    const { data: existingPeriod } = await supabase
+      .from("practice_usage_periods")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("subscription_id", subscription.id)
+      .eq("period_start", periodStart.toISOString())
+      .maybeSingle();
+
+    if (!existingPeriod) {
+      // Create new usage period with reset usage
+      const { error: periodError } = await supabase
+        .from("practice_usage_periods")
+        .insert({
+          student_id: studentId,
+          tutor_id: tutorId,
+          subscription_id: subscription.id,
+          period_start: periodStart.toISOString(),
+          period_end: periodEnd.toISOString(),
+          audio_seconds_used: 0,
+          text_turns_used: 0,
+          blocks_consumed: 0,
+          current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS,
+        });
+
+      if (periodError) {
+        console.error("Failed to create usage period:", periodError);
+        // Don't throw - subscription update succeeded
+      } else {
+        console.log(`✅ Created new usage period for student ${studentId}`);
+      }
+    }
   }
 
   console.log(

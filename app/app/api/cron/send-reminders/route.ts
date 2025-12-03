@@ -7,6 +7,10 @@ import {
   BroadcastCampaignEmail,
   BroadcastCampaignEmailText,
 } from "@/emails/broadcast-campaign";
+import {
+  PracticeReminderEmail,
+  PracticeReminderEmailText,
+} from "@/emails/practice-reminder";
 
 type ReminderLessonRecord = {
   id: string;
@@ -163,6 +167,7 @@ export async function GET(request: Request) {
       reminders1h: 0,
       notifications24h: 0,
       notifications1h: 0,
+      practiceReminders: 0,
       campaignSent: 0,
       campaignFailed: 0,
       automationsQueued: 0,
@@ -302,6 +307,9 @@ export async function GET(request: Request) {
         }
       }
     }
+
+    // Send practice reminders for homework due in 24 hours
+    results.practiceReminders += await sendPracticeReminders(adminClient, now);
 
     results.automationsQueued += await enqueueReengagementAutomations(adminClient);
     const campaignResult = await processEmailCampaignQueue(adminClient);
@@ -593,4 +601,148 @@ async function enqueueReengagementAutomations(
   }
 
   return queued;
+}
+
+/**
+ * Send practice reminders for homework with linked practice that's due in 24 hours
+ * Only sends if student hasn't completed any practice sessions
+ */
+async function sendPracticeReminders(
+  adminClient: ReturnType<typeof createServiceRoleClient>,
+  now: Date
+) {
+  if (!adminClient) return 0;
+
+  // Find homework due in 24-25 hours with linked practice and reminder not yet sent
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const dayAfter = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+
+  // Query homework assignments that:
+  // - Are due in 24-25 hours
+  // - Have a linked practice assignment
+  // - Haven't had the practice reminder sent yet
+  // - Are still in assigned or in_progress status
+  const { data: homeworkNeedingPractice, error } = await adminClient
+    .from("homework_assignments")
+    .select(`
+      id, title, due_date,
+      practice_assignment_id,
+      student:students!inner(id, user_id, email, full_name, timezone),
+      tutor:profiles!homework_assignments_tutor_id_fkey(id, full_name)
+    `)
+    .gte("due_date", tomorrow.toISOString())
+    .lt("due_date", dayAfter.toISOString())
+    .not("practice_assignment_id", "is", null)
+    .eq("practice_reminder_sent", false)
+    .in("status", ["assigned", "in_progress"]);
+
+  if (error) {
+    console.error("[Cron] Failed to query practice reminders:", error);
+    return 0;
+  }
+
+  if (!homeworkNeedingPractice || homeworkNeedingPractice.length === 0) {
+    return 0;
+  }
+
+  let sent = 0;
+
+  for (const hw of homeworkNeedingPractice) {
+    try {
+      // Normalize Supabase's join result (could be array or object)
+      const student = Array.isArray(hw.student) ? hw.student[0] : hw.student;
+      const tutor = Array.isArray(hw.tutor) ? hw.tutor[0] : hw.tutor;
+
+      if (!student?.email || !student?.full_name) {
+        console.warn(`[Cron] Skipping practice reminder for hw ${hw.id}: missing student info`);
+        continue;
+      }
+
+      // Check if student has completed any practice sessions for this assignment
+      const { count: sessionCount } = await adminClient
+        .from("student_practice_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("assignment_id", hw.practice_assignment_id)
+        .not("ended_at", "is", null);
+
+      if ((sessionCount ?? 0) > 0) {
+        // Student already practiced, mark as sent but don't email
+        await adminClient
+          .from("homework_assignments")
+          .update({
+            practice_reminder_sent: true,
+            practice_reminder_sent_at: now.toISOString(),
+          })
+          .eq("id", hw.id);
+        continue;
+      }
+
+      // Student hasn't practiced, send the reminder
+      const practiceUrl = `${PUBLIC_APP_URL}/student-auth/practice/${hw.practice_assignment_id}`;
+      const timezone = student.timezone || "UTC";
+
+      const html = PracticeReminderEmail({
+        studentName: student.full_name,
+        tutorName: tutor?.full_name || "Your tutor",
+        homeworkTitle: hw.title,
+        dueDate: hw.due_date!,
+        timezone,
+        practiceUrl,
+      });
+
+      const text = PracticeReminderEmailText({
+        studentName: student.full_name,
+        tutorName: tutor?.full_name || "Your tutor",
+        homeworkTitle: hw.title,
+        dueDate: hw.due_date!,
+        timezone,
+        practiceUrl,
+      });
+
+      await resend.emails.send({
+        from: EMAIL_CONFIG.from,
+        to: student.email,
+        subject: `Extra practice available for "${hw.title}"`,
+        html,
+        text,
+      });
+
+      // Mark as sent
+      await adminClient
+        .from("homework_assignments")
+        .update({
+          practice_reminder_sent: true,
+          practice_reminder_sent_at: now.toISOString(),
+        })
+        .eq("id", hw.id);
+
+      // Create in-app notification if student has an account
+      if (student.user_id) {
+        try {
+          await adminClient.from("notifications").insert({
+            user_id: student.user_id,
+            user_role: "student",
+            type: "practice_reminder",
+            title: "Extra practice available",
+            body: `Practice available for "${hw.title}" before it's due`,
+            link: `/student-auth/practice/${hw.practice_assignment_id}`,
+            icon: "bot",
+            metadata: {
+              homework_id: hw.id,
+              practice_assignment_id: hw.practice_assignment_id,
+              due_date: hw.due_date,
+            },
+          });
+        } catch (notifError) {
+          console.warn(`[Cron] Failed to create practice notification:`, notifError);
+        }
+      }
+
+      sent++;
+    } catch (error) {
+      console.error(`[Cron] Failed to send practice reminder for hw ${hw.id}:`, error);
+    }
+  }
+
+  return sent;
 }

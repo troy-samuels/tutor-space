@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { AIPracticeChat, type ChatMessage } from "@/components/student/AIPracticeChat";
+import type { PracticeUsage } from "@/lib/actions/progress";
 
 interface PracticeSessionClientProps {
   sessionId: string;
@@ -12,6 +13,7 @@ interface PracticeSessionClientProps {
   topic?: string | null;
   systemPrompt?: string;
   maxMessages: number;
+  initialUsage?: PracticeUsage | null;
   initialMessages: ChatMessage[];
 }
 
@@ -24,6 +26,7 @@ export function PracticeSessionClient({
   topic,
   systemPrompt,
   maxMessages,
+  initialUsage,
   initialMessages,
 }: PracticeSessionClientProps) {
   const router = useRouter();
@@ -47,6 +50,7 @@ export function PracticeSessionClient({
       systemPrompt={systemPrompt}
       initialMessages={initialMessages}
       maxMessages={maxMessages}
+      initialUsage={initialUsage}
       onBack={handleBack}
       onSessionEnd={handleSessionEnd}
     />

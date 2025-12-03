@@ -13,10 +13,16 @@ import {
   CheckCircle,
   XCircle,
   Mic,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AudioInputButton, type PronunciationAssessment } from "./AudioInputButton";
 import { PronunciationFeedback } from "./PronunciationFeedback";
+import type { PracticeUsage } from "@/lib/actions/progress";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  AI_PRACTICE_BLOCK_PRICE_CENTS,
+} from "@/lib/practice/constants";
 
 export interface ChatMessage {
   id: string;
@@ -51,6 +57,7 @@ interface AIPracticeChatProps {
   systemPrompt?: string;
   initialMessages?: ChatMessage[];
   maxMessages?: number;
+  initialUsage?: PracticeUsage | null;
   onBack?: () => void;
   onSessionEnd?: (feedback: any) => void;
 }
@@ -62,6 +69,20 @@ const levelLabels: Record<string, string> = {
   all: "All levels",
 };
 
+function formatSeconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remainingMins = mins % 60;
+  return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+}
+
+function getUsageColor(percent: number): string {
+  if (percent < 70) return "text-emerald-600";
+  if (percent < 90) return "text-amber-600";
+  return "text-red-600";
+}
+
 export function AIPracticeChat({
   sessionId,
   assignmentTitle,
@@ -71,6 +92,7 @@ export function AIPracticeChat({
   systemPrompt,
   initialMessages = [],
   maxMessages = 20,
+  initialUsage,
   onBack,
   onSessionEnd,
 }: AIPracticeChatProps) {
@@ -81,6 +103,7 @@ export function AIPracticeChat({
   const [isEnded, setIsEnded] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
   const [latestPronunciation, setLatestPronunciation] = useState<PronunciationAssessment | null>(null);
+  const [usage, setUsage] = useState<PracticeUsage | null>(initialUsage || null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -157,6 +180,22 @@ export function AIPracticeChat({
       }
 
       const data = await response.json();
+
+      // Update usage stats if returned from API
+      if (data.usage) {
+        setUsage((prev) => ({
+          ...prev,
+          textTurnsUsed: data.usage.text_turns_used,
+          textTurnsAllowance: data.usage.text_turns_allowance,
+          audioSecondsUsed: data.usage.audio_seconds_used,
+          audioSecondsAllowance: data.usage.audio_seconds_allowance,
+          blocksConsumed: data.usage.blocks_consumed,
+          percentTextUsed: Math.round((data.usage.text_turns_used / data.usage.text_turns_allowance) * 100),
+          percentAudioUsed: Math.round((data.usage.audio_seconds_used / data.usage.audio_seconds_allowance) * 100),
+          currentTierPriceCents: AI_PRACTICE_BASE_PRICE_CENTS + (data.usage.blocks_consumed * AI_PRACTICE_BLOCK_PRICE_CENTS),
+          periodEnd: prev?.periodEnd || null,
+        }));
+      }
 
       const assistantMessage: ChatMessage = {
         id: data.messageId || `assistant-${Date.now()}`,
@@ -248,9 +287,26 @@ export function AIPracticeChat({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            {remainingMessages} messages left
-          </Badge>
+          {usage ? (
+            <div className="flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className={getUsageColor(usage.percentTextUsed)}>
+                  {usage.textTurnsUsed}/{usage.textTurnsAllowance}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Mic className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className={getUsageColor(usage.percentAudioUsed)}>
+                  {formatSeconds(usage.audioSecondsUsed)}/{formatSeconds(usage.audioSecondsAllowance)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <Badge variant="outline" className="text-xs">
+              {remainingMessages} messages left
+            </Badge>
+          )}
           {!isEnded && messageCount >= 2 && (
             <Button
               variant="outline"

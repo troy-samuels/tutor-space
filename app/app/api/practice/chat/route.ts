@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { stripe } from "@/lib/stripe";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  AI_PRACTICE_BLOCK_PRICE_CENTS,
+  BASE_TEXT_TURNS,
+  BLOCK_TEXT_TURNS,
+  BASE_AUDIO_SECONDS,
+  BLOCK_AUDIO_SECONDS,
+} from "@/lib/practice/constants";
 
 // Dynamic import for OpenAI to avoid build errors if not installed
 const getOpenAI = async () => {
@@ -10,9 +19,8 @@ const getOpenAI = async () => {
   });
 };
 
-// Cost tracking (approximations for GPT-4o-mini)
-const INPUT_TOKEN_COST = 0.00015 / 1000; // $0.15 per 1M tokens
-const OUTPUT_TOKEN_COST = 0.0006 / 1000; // $0.60 per 1M tokens
+// Usage allowance constants (in seconds for audio)
+const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 
 // Valid grammar error categories (must match database)
 const GRAMMAR_CATEGORIES = [
@@ -44,22 +52,17 @@ interface PhoneticError {
   pattern?: string;
 }
 
-// Budgeting: preserve 75% profitability on the $6/mo price
-const AI_PRACTICE_PRICE_CENTS = 600;
-const MIN_PROFIT_MARGIN = 0.75;
-const MAX_PERIOD_SPEND_CENTS = Math.floor(
-  AI_PRACTICE_PRICE_CENTS * (1 - MIN_PROFIT_MARGIN)
-);
-// Rough worst-case per-request spend guard (input + completion tokens)
-const MAX_INPUT_TOKENS_PER_CALL = 4000;
-const MAX_OUTPUT_TOKENS_PER_CALL = 600;
-const MAX_REQUEST_COST_CENTS = Math.ceil(
-  (MAX_INPUT_TOKENS_PER_CALL * INPUT_TOKEN_COST +
-    MAX_OUTPUT_TOKENS_PER_CALL * OUTPUT_TOKEN_COST) *
-  100
-);
+// Hard per-request guardrails
+const MAX_INPUT_MESSAGES = 10; // last 10 messages for context
+const MAX_USER_MESSAGE_CHARS = 800; // clip very long user inputs
+const MAX_OUTPUT_TOKENS_PER_CALL = 200;
 
 export async function POST(request: Request) {
+  let adminClient: ReturnType<typeof createServiceRoleClient> | null = null;
+  let reservedMessageCount: number | null = null;
+  let initialMessageCount = 0;
+  let sessionIdForCleanup: string | null = null;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -77,7 +80,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const adminClient = createServiceRoleClient();
+    adminClient = createServiceRoleClient();
     if (!adminClient) {
       return NextResponse.json(
         { error: "Service unavailable" },
@@ -97,6 +100,7 @@ export async function POST(request: Request) {
         topic,
         message_count,
         ended_at,
+        scenario_id,
         scenario:practice_scenarios (
           system_prompt,
           vocabulary_focus,
@@ -121,10 +125,13 @@ export async function POST(request: Request) {
       );
     }
 
+    sessionIdForCleanup = sessionId;
+    initialMessageCount = session.message_count || 0;
+
     // Verify user owns this session via student record
     const { data: student } = await adminClient
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_current_period_end")
+      .select("id, ai_practice_enabled, ai_practice_subscription_id, ai_practice_block_subscription_item_id, tutor_id")
       .eq("id", session.student_id)
       .eq("user_id", user.id)
       .single();
@@ -143,7 +150,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Guard: stay within message and spend limits
+    // Guard: stay within message limits per session
     const scenario = Array.isArray(session.scenario) ? session.scenario[0] : session.scenario;
     const maxMessages = scenario?.max_messages || 20;
     if ((session.message_count || 0) + 2 > maxMessages) {
@@ -153,39 +160,50 @@ export async function POST(request: Request) {
       );
     }
 
-    const now = new Date();
-    const periodEnd = student.ai_practice_current_period_end
-      ? new Date(student.ai_practice_current_period_end)
-      : now;
-    const periodStart = new Date(periodEnd);
-    periodStart.setDate(periodStart.getDate() - 30);
-
-    const { data: spendAgg } = await adminClient
+    // Atomically reserve two message slots to prevent concurrent overruns
+    const { data: reservedSession, error: reserveError } = await adminClient
       .from("student_practice_sessions")
-      .select("total:sum(estimated_cost_cents)")
-      .eq("student_id", student.id)
-      .gte("started_at", periodStart.toISOString())
-      .lte("started_at", periodEnd.toISOString())
+      .update({ message_count: (session.message_count || 0) + 2 })
+      .eq("id", sessionId)
+      .eq("message_count", session.message_count || 0)
+      .select("message_count")
       .maybeSingle();
 
-    const costSoFar = spendAgg?.total || 0;
-    const remainingBudgetCents = MAX_PERIOD_SPEND_CENTS - costSoFar;
-
-    // If we don't have enough room even for a worst-case request, block the call
-    if (remainingBudgetCents <= 0 || remainingBudgetCents < MAX_REQUEST_COST_CENTS) {
+    if (reserveError || !reservedSession) {
       return NextResponse.json(
-        { error: "AI practice budget reached for this billing period" },
-        { status: 402 }
+        { error: "Message limit reached or session is busy, please retry" },
+        { status: 409 }
       );
     }
+
+    reservedMessageCount = reservedSession.message_count;
+
+    // Get or create usage period for this billing cycle
+    const usagePeriod = await getOrCreateUsagePeriod(
+      adminClient,
+      student.id,
+      student.tutor_id,
+      student.ai_practice_subscription_id
+    );
+
+    if (!usagePeriod) {
+      return NextResponse.json(
+        { error: "Unable to track usage. Please contact support." },
+        { status: 500 }
+      );
+    }
+
+    // Check text turns allowance and auto-purchase block if needed (atomic via RPC)
+    let updatedUsage = usagePeriod;
+    let blockPurchased = false;
 
     // Get previous messages for context
     const { data: previousMessages } = await adminClient
       .from("student_practice_messages")
-      .select("role, content")
+      .select("role, content, created_at")
       .eq("session_id", sessionId)
-      .order("created_at", { ascending: true })
-      .limit(20);
+      .order("created_at", { ascending: false })
+      .limit(MAX_INPUT_MESSAGES);
 
     // Build messages array for OpenAI
     const systemPrompt = scenario?.system_prompt || buildDefaultSystemPrompt(
@@ -201,16 +219,19 @@ export async function POST(request: Request) {
     ];
 
     // Add previous messages
-    if (previousMessages) {
-      for (const msg of previousMessages) {
-        if (msg.role === "user" || msg.role === "assistant") {
-          openAIMessages.push({ role: msg.role, content: msg.content });
-        }
+    const history = (previousMessages || []).slice().reverse();
+    for (const msg of history) {
+      if (msg.role === "user" || msg.role === "assistant") {
+        openAIMessages.push({ role: msg.role, content: msg.content });
       }
     }
 
-    // Add current user message
-    openAIMessages.push({ role: "user", content: message });
+    // Add current user message (clipped to reduce prompt cost)
+    const clippedMessage = message.length > MAX_USER_MESSAGE_CHARS
+      ? message.slice(0, MAX_USER_MESSAGE_CHARS)
+      : message;
+
+    openAIMessages.push({ role: "user", content: clippedMessage });
 
     // Save user message first
     const { data: userMsg } = await adminClient
@@ -229,18 +250,11 @@ export async function POST(request: Request) {
       model: "gpt-4o-mini",
       messages: openAIMessages,
       temperature: 0.8,
-      max_tokens: 500,
+      max_tokens: MAX_OUTPUT_TOKENS_PER_CALL,
     });
 
     const rawContent = completion.choices[0]?.message?.content || "";
     const tokensUsed = completion.usage?.total_tokens || 0;
-    const inputTokens = completion.usage?.prompt_tokens || 0;
-    const outputTokens = completion.usage?.completion_tokens || 0;
-
-    // Calculate cost in cents
-    const costCents = Math.ceil(
-      (inputTokens * INPUT_TOKEN_COST + outputTokens * OUTPUT_TOKEN_COST) * 100
-    );
 
     // Parse structured corrections and phonetic errors from the response
     const { cleanContent, corrections, phoneticErrors } = parseStructuredResponse(rawContent);
@@ -296,16 +310,32 @@ export async function POST(request: Request) {
     }
 
     // Update session stats including error counts
+    const currentTokens = (session as any).tokens_used || 0;
+    const currentGrammar = (session as any).grammar_errors_count || 0;
+    const currentPhonetic = (session as any).phonetic_errors_count || 0;
+
     await adminClient
       .from("student_practice_sessions")
       .update({
-        message_count: (session.message_count || 0) + 2,
-        tokens_used: (session as any).tokens_used + tokensUsed || tokensUsed,
-        estimated_cost_cents: (session as any).estimated_cost_cents + costCents || costCents,
-        grammar_errors_count: (session as any).grammar_errors_count + corrections.length || corrections.length,
-        phonetic_errors_count: (session as any).phonetic_errors_count + phoneticErrors.length || phoneticErrors.length,
+        message_count: reservedSession.message_count,
+        tokens_used: currentTokens + tokensUsed,
+        grammar_errors_count: currentGrammar + corrections.length,
+        phonetic_errors_count: currentPhonetic + phoneticErrors.length,
       })
       .eq("id", sessionId);
+
+    const incrementResult = await incrementTextTurnWithBilling({
+      adminClient,
+      usagePeriodId: usagePeriod.id,
+      blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+    });
+
+    updatedUsage = incrementResult.updatedUsage;
+    blockPurchased = incrementResult.blockPurchased;
+
+    // Calculate remaining allowance for response
+    const updatedTextAllowance = BASE_TEXT_TURNS + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
+    const updatedAudioAllowance = BASE_AUDIO_SECONDS + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
 
     return NextResponse.json({
       messageId: assistantMsg?.id,
@@ -314,13 +344,114 @@ export async function POST(request: Request) {
       phonetic_errors: phoneticErrors,
       vocabulary_used: vocabularyUsed,
       tokens_used: tokensUsed,
+      usage: {
+        text_turns_used: updatedUsage.text_turns_used,
+        text_turns_allowance: updatedTextAllowance,
+        audio_seconds_used: updatedUsage.audio_seconds_used,
+        audio_seconds_allowance: updatedAudioAllowance,
+        blocks_consumed: updatedUsage.blocks_consumed,
+        block_purchased: blockPurchased,
+      },
     });
   } catch (error) {
     console.error("[Practice Chat] Error:", error);
+
+    // Best-effort rollback of reserved message slots on failure
+    if (adminClient && sessionIdForCleanup && reservedMessageCount !== null) {
+      try {
+        await adminClient
+          .from("student_practice_sessions")
+          .update({ message_count: initialMessageCount })
+          .eq("id", sessionIdForCleanup)
+          .eq("message_count", reservedMessageCount);
+      } catch (rollbackError) {
+        console.error("[Practice Chat] Failed to rollback message_count:", rollbackError);
+      }
+    }
+
+    const errorCode = (error as any)?.code;
+    if (errorCode === "BLOCK_SUBSCRIPTION_ITEM_MISSING") {
+      return NextResponse.json(
+        { error: "Subscription is missing a metered block item. Please re-subscribe to continue." },
+        { status: 400 }
+      );
+    }
+
+    if (errorCode === "STRIPE_USAGE_FAILED") {
+      return NextResponse.json(
+        { error: "Unable to bill the add-on block right now. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    if (errorCode === "TEXT_INCREMENT_FAILED") {
+      return NextResponse.json(
+        { error: "Unable to track usage at the moment. Please retry." },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to process message" },
       { status: 500 }
     );
+  }
+}
+
+async function getOrCreateUsagePeriod(
+  adminClient: ReturnType<typeof createServiceRoleClient>,
+  studentId: string,
+  tutorId: string,
+  subscriptionId: string | null
+): Promise<{
+  id: string;
+  audio_seconds_used: number;
+  text_turns_used: number;
+  blocks_consumed: number;
+} | null> {
+  if (!adminClient || !subscriptionId) return null;
+
+  try {
+    // Get subscription period from Stripe
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
+    const periodStart = new Date(subscription.current_period_start * 1000);
+    const periodEnd = new Date(subscription.current_period_end * 1000);
+
+    // Try to find existing period
+    const { data: existingPeriod } = await adminClient
+      .from("practice_usage_periods")
+      .select("id, audio_seconds_used, text_turns_used, blocks_consumed")
+      .eq("student_id", studentId)
+      .eq("subscription_id", subscriptionId)
+      .gte("period_end", new Date().toISOString())
+      .lte("period_start", new Date().toISOString())
+      .maybeSingle();
+
+    if (existingPeriod) {
+      return existingPeriod;
+    }
+
+    // Create new period
+    const { data: newPeriod } = await adminClient
+      .from("practice_usage_periods")
+      .insert({
+        student_id: studentId,
+        tutor_id: tutorId,
+        subscription_id: subscriptionId,
+        period_start: periodStart.toISOString(),
+        period_end: periodEnd.toISOString(),
+        audio_seconds_used: 0,
+        text_turns_used: 0,
+        blocks_consumed: 0,
+        current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS,
+      })
+      .select("id, audio_seconds_used, text_turns_used, blocks_consumed")
+      .single();
+
+    return newPeriod;
+  } catch (error) {
+    console.error("[Practice Chat] Error getting usage period:", error);
+    return null;
   }
 }
 
@@ -478,4 +609,130 @@ function parseVocabulary(content: string, focusWords: string[]): string[] {
 
   const contentLower = content.toLowerCase();
   return focusWords.filter((word) => contentLower.includes(word.toLowerCase()));
+}
+
+async function incrementTextTurnWithBilling(params: {
+  adminClient: ReturnType<typeof createServiceRoleClient>;
+  usagePeriodId: string;
+  blockSubscriptionItemId: string | null;
+}): Promise<{
+  updatedUsage: {
+    id: string;
+    audio_seconds_used: number;
+    text_turns_used: number;
+    blocks_consumed: number;
+    current_tier_price_cents: number;
+  };
+  blockPurchased: boolean;
+}> {
+  const { adminClient, usagePeriodId, blockSubscriptionItemId } = params;
+
+  const { data: currentUsage, error: currentUsageError } = await adminClient
+    .from("practice_usage_periods")
+    .select("audio_seconds_used, text_turns_used, blocks_consumed")
+    .eq("id", usagePeriodId)
+    .single();
+
+  if (currentUsageError || !currentUsage) {
+    const err = new Error("Unable to load current usage");
+    (err as any).code = "TEXT_INCREMENT_FAILED";
+    throw err;
+  }
+
+  const textAllowance = BASE_TEXT_TURNS + (currentUsage.blocks_consumed * BLOCK_TEXT_TURNS);
+  const needsBlock = currentUsage.text_turns_used >= textAllowance;
+
+  if (needsBlock && !blockSubscriptionItemId) {
+    const err = new Error("Missing Stripe metered item for AI Practice blocks");
+    (err as any).code = "BLOCK_SUBSCRIPTION_ITEM_MISSING";
+    throw err;
+  }
+
+  const usageAtTrigger = {
+    audio_seconds: currentUsage.audio_seconds_used,
+    text_turns: currentUsage.text_turns_used,
+  };
+
+  const { data: incrementResult, error: incrementError } = await adminClient.rpc("increment_text_turn", {
+    p_usage_period_id: usagePeriodId,
+    p_base_text_turns: BASE_TEXT_TURNS,
+    p_block_text_turns: BLOCK_TEXT_TURNS,
+  });
+
+  if (incrementError || !incrementResult?.success) {
+    const err = new Error("Failed to increment text turn");
+    (err as any).code = "TEXT_INCREMENT_FAILED";
+    throw err;
+  }
+
+  const blockPurchased = !!incrementResult.block_purchased;
+
+  if (blockPurchased && !blockSubscriptionItemId) {
+    await adminClient
+      .from("practice_usage_periods")
+      .update({
+        text_turns_used: incrementResult.new_text_turns - 1,
+        blocks_consumed: Math.max(0, incrementResult.new_blocks - 1),
+        current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS +
+          (Math.max(0, incrementResult.new_blocks - 1) * BLOCK_PRICE_CENTS),
+      })
+      .eq("id", usagePeriodId)
+      .eq("text_turns_used", incrementResult.new_text_turns);
+
+    const err = new Error("Missing Stripe metered item for AI Practice blocks");
+    (err as any).code = "BLOCK_SUBSCRIPTION_ITEM_MISSING";
+    throw err;
+  }
+
+  // If a block was auto-purchased, record metered usage and ledger entry
+  if (blockPurchased && blockSubscriptionItemId) {
+    try {
+      const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
+        blockSubscriptionItemId,
+        {
+          quantity: 1,
+          timestamp: Math.floor(Date.now() / 1000),
+          action: "increment",
+        }
+      );
+
+      await adminClient.from("practice_block_ledger").insert({
+        usage_period_id: usagePeriodId,
+        blocks_consumed: 1,
+        trigger_type: "text_overflow",
+        usage_at_trigger: usageAtTrigger,
+        stripe_usage_record_id: usageRecord.id,
+      });
+    } catch (stripeError) {
+      // Roll back the block + text increment so billing stays aligned
+      await adminClient
+        .from("practice_usage_periods")
+        .update({
+          text_turns_used: incrementResult.new_text_turns - 1,
+          blocks_consumed: Math.max(0, incrementResult.new_blocks - 1),
+          current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS +
+            (Math.max(0, incrementResult.new_blocks - 1) * BLOCK_PRICE_CENTS),
+        })
+        .eq("id", usagePeriodId)
+        .eq("text_turns_used", incrementResult.new_text_turns);
+
+      const err = new Error("Stripe usage record failed");
+      (err as any).code = "STRIPE_USAGE_FAILED";
+      throw err;
+    }
+  }
+
+  const { data: updatedUsage, error: fetchError } = await adminClient
+    .from("practice_usage_periods")
+    .select("id, audio_seconds_used, text_turns_used, blocks_consumed, current_tier_price_cents")
+    .eq("id", usagePeriodId)
+    .single();
+
+  if (fetchError || !updatedUsage) {
+    const err = new Error("Failed to fetch updated usage");
+    (err as any).code = "TEXT_INCREMENT_FAILED";
+    throw err;
+  }
+
+  return { updatedUsage, blockPurchased };
 }

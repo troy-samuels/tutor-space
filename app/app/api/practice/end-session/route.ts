@@ -92,7 +92,8 @@ export async function POST(request: Request) {
       .from("student_practice_messages")
       .select("role, content, vocabulary_used")
       .eq("session_id", sessionId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(30); // bound transcript size to control AI cost
 
     // Calculate duration
     const startedAt = new Date(session.started_at);

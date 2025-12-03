@@ -2,6 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  BASE_AUDIO_SECONDS,
+  BASE_TEXT_TURNS,
+  BLOCK_AUDIO_SECONDS,
+  BLOCK_TEXT_TURNS,
+} from "@/lib/practice/constants";
 
 export interface LearningGoal {
   id: string;
@@ -66,6 +73,12 @@ export interface HomeworkAttachment {
   type?: "pdf" | "image" | "link" | "video" | "file";
 }
 
+export interface PracticeAssignmentRef {
+  id: string;
+  status: "assigned" | "in_progress" | "completed";
+  sessions_completed: number;
+}
+
 export interface HomeworkAssignment {
   id: string;
   tutor_id: string;
@@ -82,6 +95,11 @@ export interface HomeworkAssignment {
   submitted_at: string | null;
   created_at: string;
   updated_at: string;
+  // Homework-practice integration fields
+  topic: string | null;
+  practice_assignment_id: string | null;
+  // Joined practice assignment data (if linked)
+  practice_assignment?: PracticeAssignmentRef | null;
 }
 
 export const HOMEWORK_STATUSES: HomeworkStatus[] = [
@@ -195,9 +213,17 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       .limit(10),
 
     // Homework assignments (ordered by due date first, then newest)
+    // Join with practice_assignments to get practice status
     serviceClient
       .from("homework_assignments")
-      .select("*")
+      .select(`
+        *,
+        practice_assignment:practice_assignments!homework_assignments_practice_assignment_id_fkey (
+          id,
+          status,
+          sessions_completed
+        )
+      `)
       .eq("student_id", studentId)
       .eq("tutor_id", scopedTutorId)
       .order("due_date", { ascending: true, nullsFirst: false })
@@ -215,10 +241,17 @@ export async function getStudentProgress(tutorId?: string): Promise<{
     }, {} as Record<string, ProficiencyAssessment>)
   );
 
-  const homeworkAssignments = ((homeworkResult.data || []) as any[]).map((assignment) => ({
-    ...(assignment as HomeworkAssignment),
-    attachments: normalizeAttachments((assignment as any).attachments),
-  })) as HomeworkAssignment[];
+  const homeworkAssignments = ((homeworkResult.data || []) as any[]).map((assignment) => {
+    // Normalize the joined practice_assignment (could be array or object depending on Supabase)
+    const practiceRaw = assignment.practice_assignment;
+    const practiceAssignment = Array.isArray(practiceRaw) ? practiceRaw[0] || null : practiceRaw || null;
+
+    return {
+      ...(assignment as HomeworkAssignment),
+      attachments: normalizeAttachments((assignment as any).attachments),
+      practice_assignment: practiceAssignment,
+    };
+  }) as HomeworkAssignment[];
 
   return {
     stats: statsResult.data as LearningStats | null,
@@ -296,7 +329,14 @@ export async function getTutorStudentProgress(studentId: string): Promise<{
 
     serviceClient
       .from("homework_assignments")
-      .select("*")
+      .select(`
+        *,
+        practice_assignment:practice_assignments!homework_assignments_practice_assignment_id_fkey (
+          id,
+          status,
+          sessions_completed
+        )
+      `)
       .eq("student_id", studentId)
       .eq("tutor_id", user.id)
       .order("due_date", { ascending: true, nullsFirst: false })
@@ -304,10 +344,17 @@ export async function getTutorStudentProgress(studentId: string): Promise<{
       .limit(25),
   ]);
 
-  const homeworkAssignments = ((homeworkResult.data || []) as any[]).map((assignment) => ({
-    ...(assignment as HomeworkAssignment),
-    attachments: normalizeAttachments((assignment as any).attachments),
-  })) as HomeworkAssignment[];
+  const homeworkAssignments = ((homeworkResult.data || []) as any[]).map((assignment) => {
+    // Normalize the joined practice_assignment (could be array or object depending on Supabase)
+    const practiceRaw = assignment.practice_assignment;
+    const practiceAssignment = Array.isArray(practiceRaw) ? practiceRaw[0] || null : practiceRaw || null;
+
+    return {
+      ...(assignment as HomeworkAssignment),
+      attachments: normalizeAttachments((assignment as any).attachments),
+      practice_assignment: practiceAssignment,
+    };
+  }) as HomeworkAssignment[];
 
   return {
     stats: statsResult.data as LearningStats | null,
@@ -613,11 +660,24 @@ export interface PracticeStats {
   messages_sent: number;
 }
 
+export interface PracticeUsage {
+  audioSecondsUsed: number;
+  audioSecondsAllowance: number;
+  textTurnsUsed: number;
+  textTurnsAllowance: number;
+  blocksConsumed: number;
+  currentTierPriceCents: number;
+  periodEnd: string | null;
+  percentAudioUsed: number;
+  percentTextUsed: number;
+}
+
 export interface StudentPracticeData {
   isSubscribed: boolean;
   assignments: PracticeAssignment[];
   stats: PracticeStats | null;
   studentId: string | null;
+  usage: PracticeUsage | null;
 }
 
 /**
@@ -633,6 +693,7 @@ export async function getTutorStudentPracticeData(studentId: string): Promise<{
     level: string | null;
     topic: string | null;
   }>;
+  pendingHomework: PendingHomeworkForPractice[];
 }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -641,6 +702,7 @@ export async function getTutorStudentPracticeData(studentId: string): Promise<{
     isSubscribed: false,
     assignments: [],
     scenarios: [],
+    pendingHomework: [],
   };
 
   if (!user) {
@@ -696,6 +758,18 @@ export async function getTutorStudentPracticeData(studentId: string): Promise<{
     .eq("is_active", true)
     .order("title", { ascending: true });
 
+  // Fetch pending homework that can be linked to practice
+  const { data: pendingHomework } = await supabase
+    .from("homework_assignments")
+    .select("id, title, topic, due_date, status, practice_assignment_id")
+    .eq("student_id", studentId)
+    .eq("tutor_id", user.id)
+    .in("status", ["assigned", "in_progress"])
+    .is("practice_assignment_id", null)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   return {
     isSubscribed,
     assignments: (assignments || []).map((a: any) => ({
@@ -721,6 +795,14 @@ export async function getTutorStudentPracticeData(studentId: string): Promise<{
       level: s.level,
       topic: s.topic,
     })),
+    pendingHomework: (pendingHomework || []).map((hw: any) => ({
+      id: hw.id,
+      title: hw.title,
+      topic: hw.topic,
+      due_date: hw.due_date,
+      status: hw.status,
+      practice_assignment_id: hw.practice_assignment_id,
+    })),
   };
 }
 
@@ -736,6 +818,7 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
     assignments: [],
     stats: null,
     studentId: null,
+    usage: null,
   };
 
   if (!user) {
@@ -750,7 +833,7 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
   // Get student record for this user
   let studentQuery = serviceClient
     .from("students")
-    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end")
+    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end, ai_practice_subscription_id")
     .eq("user_id", user.id);
 
   if (tutorId) {
@@ -805,6 +888,50 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
     messages_sent: learningStats.practice_messages_sent || 0,
   } : null;
 
+  // Get current usage period for billing
+  let usage: PracticeUsage | null = null;
+
+  if (isSubscribed && student.ai_practice_subscription_id) {
+    const { data: usagePeriod } = await serviceClient
+      .from("practice_usage_periods")
+      .select("*")
+      .eq("student_id", student.id)
+      .eq("subscription_id", student.ai_practice_subscription_id)
+      .gte("period_end", new Date().toISOString())
+      .lte("period_start", new Date().toISOString())
+      .maybeSingle();
+
+    if (usagePeriod) {
+      const audioAllowance = BASE_AUDIO_SECONDS + (usagePeriod.blocks_consumed * BLOCK_AUDIO_SECONDS);
+      const textAllowance = BASE_TEXT_TURNS + (usagePeriod.blocks_consumed * BLOCK_TEXT_TURNS);
+
+      usage = {
+        audioSecondsUsed: usagePeriod.audio_seconds_used,
+        audioSecondsAllowance: audioAllowance,
+        textTurnsUsed: usagePeriod.text_turns_used,
+        textTurnsAllowance: textAllowance,
+        blocksConsumed: usagePeriod.blocks_consumed,
+        currentTierPriceCents: usagePeriod.current_tier_price_cents,
+        periodEnd: usagePeriod.period_end,
+        percentAudioUsed: Math.round((usagePeriod.audio_seconds_used / audioAllowance) * 100),
+        percentTextUsed: Math.round((usagePeriod.text_turns_used / textAllowance) * 100),
+      };
+    } else {
+      // Default usage (new subscriber with no usage yet)
+      usage = {
+        audioSecondsUsed: 0,
+        audioSecondsAllowance: BASE_AUDIO_SECONDS,
+        textTurnsUsed: 0,
+        textTurnsAllowance: BASE_TEXT_TURNS,
+        blocksConsumed: 0,
+        currentTierPriceCents: AI_PRACTICE_BASE_PRICE_CENTS,
+        periodEnd: student.ai_practice_current_period_end,
+        percentAudioUsed: 0,
+        percentTextUsed: 0,
+      };
+    }
+  }
+
   return {
     isSubscribed,
     assignments: (assignments || []).map((a: any) => ({
@@ -825,6 +952,7 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
     })),
     stats,
     studentId: student.id,
+    usage,
   };
 }
 
@@ -966,4 +1094,58 @@ export async function getStudentPracticeAnalytics(
       weekly_activity: [],
     },
   };
+}
+
+// ============================================
+// Homework-Practice Integration
+// ============================================
+
+export interface PendingHomeworkForPractice {
+  id: string;
+  title: string;
+  topic: string | null;
+  due_date: string | null;
+  status: HomeworkStatus;
+  practice_assignment_id: string | null;
+}
+
+/**
+ * Get pending homework for a student that can be linked to practice
+ * Only returns homework that doesn't already have a practice assignment linked
+ */
+export async function getPendingHomeworkForPractice(
+  studentId: string
+): Promise<PendingHomeworkForPractice[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  // Fetch homework that is pending or in progress and not yet linked to practice
+  const { data: homework, error } = await supabase
+    .from("homework_assignments")
+    .select("id, title, topic, due_date, status, practice_assignment_id")
+    .eq("student_id", studentId)
+    .eq("tutor_id", user.id)
+    .in("status", ["assigned", "in_progress"])
+    .is("practice_assignment_id", null)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("[getPendingHomeworkForPractice] error", error);
+    return [];
+  }
+
+  return (homework || []).map((hw: any) => ({
+    id: hw.id,
+    title: hw.title,
+    topic: hw.topic,
+    due_date: hw.due_date,
+    status: hw.status,
+    practice_assignment_id: hw.practice_assignment_id,
+  }));
 }

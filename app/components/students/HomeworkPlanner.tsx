@@ -21,6 +21,7 @@ import {
   Plus,
   Send,
   CheckCircle,
+  Bot,
 } from "lucide-react";
 import {
   type HomeworkAssignment,
@@ -31,6 +32,7 @@ import {
   updateHomeworkStatus,
 } from "@/lib/actions/progress";
 import { formatDistanceToNow } from "date-fns";
+import { PracticeStatusIcon, type PracticeStats } from "./PracticeStatusIcon";
 
 type HomeworkPlannerProps = {
   studentId: string;
@@ -38,7 +40,7 @@ type HomeworkPlannerProps = {
   assignments: HomeworkAssignment[];
 };
 
-const ATTACHMENT_TYPES: HomeworkAttachment["type"][] = ["link", "pdf", "image", "video", "file"];
+const ATTACHMENT_TYPES = ["link", "pdf", "image", "video", "file"] as const;
 
 export function HomeworkPlanner({ studentId, studentName, assignments }: HomeworkPlannerProps) {
   const [items, setItems] = useState<HomeworkAssignment[]>(assignments);
@@ -119,6 +121,23 @@ export function HomeworkPlanner({ studentId, studentName, assignments }: Homewor
         setItems((prev) => prev.map((item) => (item.id === assignmentId ? updated : item)));
       }
     });
+  };
+
+  const handlePracticeStatsUpdate = (assignmentId: string, stats: PracticeStats) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.practice_assignment?.id === assignmentId
+          ? {
+              ...item,
+              practice_assignment: {
+                ...(item.practice_assignment as any),
+                status: stats.status,
+                sessions_completed: stats.sessionsCompleted,
+              },
+            }
+          : item
+      )
+    );
   };
 
   return (
@@ -242,6 +261,17 @@ export function HomeworkPlanner({ studentId, studentName, assignments }: Homewor
                           <Clock className="h-3.5 w-3.5" />
                           {item.status}
                         </div>
+                        {item.practice_assignment && (
+                          <div className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5">
+                            <PracticeStatusIcon
+                              practiceAssignmentId={item.practice_assignment.id}
+                              status={item.practice_assignment.status}
+                              sessionsCompleted={item.practice_assignment.sessions_completed}
+                              onStatsUpdate={(stats) => handlePracticeStatsUpdate(item.practice_assignment!.id, stats)}
+                            />
+                            <span className="text-primary/80">AI Practice</span>
+                          </div>
+                        )}
                       </div>
                       {item.attachments.length > 0 ? (
                         <div className="flex flex-wrap gap-2">

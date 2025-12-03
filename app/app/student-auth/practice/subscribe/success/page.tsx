@@ -6,6 +6,13 @@ import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayo
 import { stripe } from "@/lib/stripe";
 import { Bot, CheckCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  BASE_AUDIO_MINUTES,
+  BASE_TEXT_TURNS,
+  BLOCK_AUDIO_MINUTES,
+  BLOCK_TEXT_TURNS,
+} from "@/lib/practice/constants";
 
 export const metadata = {
   title: "Welcome to AI Practice | TutorLingua",
@@ -49,12 +56,22 @@ export default async function SubscribeSuccessPage({ searchParams }: PageProps) 
         session.status === "complete"
       ) {
         const subscriptionId = session.subscription as string;
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+          expand: ["items.data"],
+        }) as any;
 
         const adminClient = createServiceRoleClient();
         if (adminClient) {
-          // Get current_period_end from the subscription object
-          const periodEnd = (subscription as { current_period_end?: number }).current_period_end;
+          // Get current_period_start and current_period_end from the subscription object
+          const periodStart = subscription.current_period_start;
+          const periodEnd = subscription.current_period_end;
+
+          // Find the metered subscription item (block price)
+          const meteredItem = subscription.items.data.find(
+            (item: any) => item.price.recurring?.usage_type === "metered"
+          );
+
+          // Update student record with subscription info
           await adminClient
             .from("students")
             .update({
@@ -63,8 +80,32 @@ export default async function SubscribeSuccessPage({ searchParams }: PageProps) 
               ai_practice_current_period_end: periodEnd
                 ? new Date(periodEnd * 1000).toISOString()
                 : null,
+              ai_practice_block_subscription_item_id: meteredItem?.id || null,
             })
             .eq("id", student.id);
+
+          // Create initial usage period
+          if (periodStart && periodEnd) {
+            await adminClient
+              .from("practice_usage_periods")
+              .upsert(
+                {
+                  student_id: student.id,
+                  tutor_id: student.tutor_id,
+                  subscription_id: subscription.id,
+                  period_start: new Date(periodStart * 1000).toISOString(),
+                  period_end: new Date(periodEnd * 1000).toISOString(),
+                  audio_seconds_used: 0,
+                  text_turns_used: 0,
+                  blocks_consumed: 0,
+                  current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS,
+                },
+                {
+                  onConflict: "student_id,subscription_id,period_start",
+                  ignoreDuplicates: true,
+                }
+              );
+          }
         }
       }
     } catch (error) {
@@ -93,13 +134,21 @@ export default async function SubscribeSuccessPage({ searchParams }: PageProps) 
           <div className="flex items-center justify-center gap-3">
             <Bot className="h-8 w-8 text-primary" />
             <div className="text-left">
-              <p className="font-semibold text-foreground">What&apos;s next?</p>
+              <p className="font-semibold text-foreground">Your Monthly Allowance</p>
               <p className="text-sm text-muted-foreground">
-                Your tutor will assign practice scenarios for you to complete
-                between lessons.
+                {BASE_AUDIO_MINUTES} audio minutes + {BASE_TEXT_TURNS} text turns included.
+                Need more? Blocks auto-add at $5 each (+{BLOCK_AUDIO_MINUTES} min, +{BLOCK_TEXT_TURNS} turns).
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-muted/20 p-4 text-left">
+          <p className="text-sm font-medium text-foreground">What&apos;s next?</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your tutor will assign practice scenarios for you to complete
+            between lessons. You can track your usage in the progress dashboard.
+          </p>
         </div>
 
         <Button asChild size="lg" className="w-full">

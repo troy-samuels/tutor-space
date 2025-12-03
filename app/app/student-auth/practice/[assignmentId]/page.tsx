@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { PracticeSessionClient } from "./PracticeSessionClient";
+import type { PracticeUsage } from "@/lib/actions/progress";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  BASE_AUDIO_SECONDS,
+  BASE_TEXT_TURNS,
+  BLOCK_AUDIO_SECONDS,
+  BLOCK_TEXT_TURNS,
+} from "@/lib/practice/constants";
 
 export const metadata = {
   title: "AI Practice | TutorLingua",
@@ -31,7 +39,7 @@ export default async function PracticeSessionPage({ params }: PageProps) {
   // Get student record
   const { data: student } = await adminClient
     .from("students")
-    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end")
+    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end, ai_practice_subscription_id")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -125,6 +133,49 @@ export default async function PracticeSessionPage({ params }: PageProps) {
     .eq("session_id", session.id)
     .order("created_at", { ascending: true });
 
+  // Get current usage period
+  let initialUsage: PracticeUsage | null = null;
+  if (student.ai_practice_subscription_id) {
+    const { data: usagePeriod } = await adminClient
+      .from("practice_usage_periods")
+      .select("*")
+      .eq("student_id", student.id)
+      .eq("subscription_id", student.ai_practice_subscription_id)
+      .gte("period_end", new Date().toISOString())
+      .lte("period_start", new Date().toISOString())
+      .maybeSingle();
+
+    if (usagePeriod) {
+      const audioAllowance = BASE_AUDIO_SECONDS + (usagePeriod.blocks_consumed * BLOCK_AUDIO_SECONDS);
+      const textAllowance = BASE_TEXT_TURNS + (usagePeriod.blocks_consumed * BLOCK_TEXT_TURNS);
+
+      initialUsage = {
+        audioSecondsUsed: usagePeriod.audio_seconds_used,
+        audioSecondsAllowance: audioAllowance,
+        textTurnsUsed: usagePeriod.text_turns_used,
+        textTurnsAllowance: textAllowance,
+        blocksConsumed: usagePeriod.blocks_consumed,
+        currentTierPriceCents: usagePeriod.current_tier_price_cents,
+        periodEnd: usagePeriod.period_end,
+        percentAudioUsed: Math.round((usagePeriod.audio_seconds_used / audioAllowance) * 100),
+        percentTextUsed: Math.round((usagePeriod.text_turns_used / textAllowance) * 100),
+      };
+    } else {
+      // Fresh usage period (default)
+      initialUsage = {
+        audioSecondsUsed: 0,
+        audioSecondsAllowance: BASE_AUDIO_SECONDS,
+        textTurnsUsed: 0,
+        textTurnsAllowance: BASE_TEXT_TURNS,
+        blocksConsumed: 0,
+        currentTierPriceCents: AI_PRACTICE_BASE_PRICE_CENTS,
+        periodEnd: student.ai_practice_current_period_end,
+        percentAudioUsed: 0,
+        percentTextUsed: 0,
+      };
+    }
+  }
+
   const scenario = assignment.scenario as any;
 
   return (
@@ -139,6 +190,7 @@ export default async function PracticeSessionPage({ params }: PageProps) {
           topic={scenario?.topic}
           systemPrompt={scenario?.system_prompt}
           maxMessages={scenario?.max_messages || 20}
+          initialUsage={initialUsage}
           initialMessages={(messages || []).map((m: any) => ({
             id: m.id,
             role: m.role,

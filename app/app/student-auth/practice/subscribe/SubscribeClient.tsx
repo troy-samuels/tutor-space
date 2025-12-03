@@ -10,7 +10,17 @@ import {
   CheckCircle,
   ArrowLeft,
   Loader2,
+  Mic,
+  Zap,
 } from "lucide-react";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  AI_PRACTICE_BLOCK_PRICE_CENTS,
+  BASE_AUDIO_MINUTES,
+  BASE_TEXT_TURNS,
+  BLOCK_AUDIO_MINUTES,
+  BLOCK_TEXT_TURNS,
+} from "@/lib/practice/constants";
 
 interface SubscribeClientProps {
   studentId: string;
@@ -53,12 +63,14 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
   };
 
   const features = [
-    "Unlimited AI conversation practice",
     "Real-time grammar corrections",
     "Vocabulary tracking & feedback",
     "Practice scenarios from your tutor",
     "Session summaries with tips",
   ];
+
+  const basePriceDollars = (AI_PRACTICE_BASE_PRICE_CENTS / 100).toFixed(0);
+  const blockPriceDollars = (AI_PRACTICE_BLOCK_PRICE_CENTS / 100).toFixed(0);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-8">
@@ -82,16 +94,49 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
         </p>
       </div>
 
-      <div className="rounded-xl border border-border/50 bg-background p-5">
-        <div className="flex items-baseline justify-between">
-          <div>
-            <span className="text-3xl font-bold text-foreground">$6</span>
-            <span className="text-muted-foreground">/month</span>
+      <div className="rounded-xl border border-border/50 bg-background p-5 space-y-5">
+        {/* Base tier */}
+        <div>
+          <div className="flex items-baseline justify-between">
+            <div>
+              <span className="text-3xl font-bold text-foreground">
+                ${basePriceDollars}
+              </span>
+              <span className="text-muted-foreground">/month</span>
+            </div>
+            <Sparkles className="h-5 w-5 text-primary" />
           </div>
-          <Sparkles className="h-5 w-5 text-primary" />
+          <p className="mt-1 text-sm text-muted-foreground">Base tier includes:</p>
         </div>
 
-        <ul className="mt-4 space-y-2.5">
+        {/* Included allowances */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
+            <Mic className="h-5 w-5 mx-auto text-primary" />
+            <p className="mt-1.5 text-lg font-bold text-foreground">{BASE_AUDIO_MINUTES}</p>
+            <p className="text-xs text-muted-foreground">audio minutes</p>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
+            <MessageSquare className="h-5 w-5 mx-auto text-primary" />
+            <p className="mt-1.5 text-lg font-bold text-foreground">{BASE_TEXT_TURNS}</p>
+            <p className="text-xs text-muted-foreground">text turns</p>
+          </div>
+        </div>
+
+        {/* Add-on blocks */}
+        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">Need more?</span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Extra blocks auto-add at ${blockPriceDollars} each: +{BLOCK_AUDIO_MINUTES} audio min + {BLOCK_TEXT_TURNS} text turns.
+            Only charged when you exceed your allowance.
+          </p>
+        </div>
+
+        {/* Features */}
+        <ul className="space-y-2.5 pt-2 border-t border-border/50">
           {features.map((feature, i) => (
             <li key={i} className="flex items-start gap-2 text-sm">
               <CheckCircle className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
@@ -121,13 +166,13 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
         ) : (
           <>
             <MessageSquare className="h-5 w-5 mr-2" />
-            Subscribe for $6/month
+            Subscribe for ${basePriceDollars}/month
           </>
         )}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Cancel anytime. Your tutor receives 75% of your subscription.
+        Cancel anytime. Base price is ${basePriceDollars}/mo. Add-on blocks billed at period end.
       </p>
     </div>
   );

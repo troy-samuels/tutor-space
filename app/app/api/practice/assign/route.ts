@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { studentId, title, instructions, scenarioId, dueDate } = await request.json();
+    const { studentId, title, instructions, scenarioId, dueDate, homeworkAssignmentId } = await request.json();
 
     if (!studentId || !title) {
       return NextResponse.json(
@@ -51,6 +51,32 @@ export async function POST(request: Request) {
       }
     }
 
+    // If homeworkAssignmentId provided, verify it belongs to this tutor and student
+    if (homeworkAssignmentId) {
+      const { data: homework, error: homeworkError } = await supabase
+        .from("homework_assignments")
+        .select("id, practice_assignment_id")
+        .eq("id", homeworkAssignmentId)
+        .eq("tutor_id", user.id)
+        .eq("student_id", studentId)
+        .single();
+
+      if (homeworkError || !homework) {
+        return NextResponse.json(
+          { error: "Homework assignment not found" },
+          { status: 404 }
+        );
+      }
+
+      // Check if homework already has a practice assignment linked
+      if (homework.practice_assignment_id) {
+        return NextResponse.json(
+          { error: "This homework already has a practice assignment linked" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the assignment
     const { data: assignment, error: assignError } = await supabase
       .from("practice_assignments")
@@ -58,6 +84,7 @@ export async function POST(request: Request) {
         tutor_id: user.id,
         student_id: studentId,
         scenario_id: scenarioId || null,
+        homework_assignment_id: homeworkAssignmentId || null,
         title: title.trim(),
         instructions: instructions || null,
         due_date: dueDate || null,
@@ -87,6 +114,19 @@ export async function POST(request: Request) {
         { error: "Failed to create assignment" },
         { status: 500 }
       );
+    }
+
+    // If homework was linked, update the homework assignment with the practice link
+    if (homeworkAssignmentId && assignment) {
+      const { error: updateError } = await supabase
+        .from("homework_assignments")
+        .update({ practice_assignment_id: assignment.id })
+        .eq("id", homeworkAssignmentId);
+
+      if (updateError) {
+        console.error("[Assign Practice] Failed to link homework:", updateError);
+        // Don't fail the request, the assignment was still created
+      }
     }
 
     return NextResponse.json({ assignment });

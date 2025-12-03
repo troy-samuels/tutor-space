@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -19,8 +18,18 @@ import {
   Sparkles,
   ArrowRight,
   Lock,
+  Mic,
+  Zap,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import {
+  AI_PRACTICE_BLOCK_PRICE_CENTS,
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  BASE_AUDIO_MINUTES,
+  BASE_TEXT_TURNS,
+  BLOCK_AUDIO_MINUTES,
+  BLOCK_TEXT_TURNS,
+} from "@/lib/practice/constants";
 
 export interface PracticeAssignment {
   id: string;
@@ -45,12 +54,25 @@ export interface PracticeStats {
   messages_sent: number;
 }
 
+export interface PracticeUsage {
+  audioSecondsUsed: number;
+  audioSecondsAllowance: number;
+  textTurnsUsed: number;
+  textTurnsAllowance: number;
+  blocksConsumed: number;
+  currentTierPriceCents: number;
+  periodEnd: string | null;
+  percentAudioUsed: number;
+  percentTextUsed: number;
+}
+
 interface AIPracticeCardProps {
   isSubscribed: boolean;
   assignments: PracticeAssignment[];
   stats: PracticeStats | null;
   tutorName?: string;
   studentId: string;
+  usage?: PracticeUsage | null;
 }
 
 const statusStyles: Record<string, { label: string; className: string }> = {
@@ -66,13 +88,31 @@ const levelLabels: Record<string, string> = {
   all: "All levels",
 };
 
+function formatSeconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remainingMins = mins % 60;
+  return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+}
+
+function getProgressColor(percent: number): string {
+  if (percent < 70) return "bg-emerald-500";
+  if (percent < 90) return "bg-amber-500";
+  return "bg-red-500";
+}
+
 export function AIPracticeCard({
   isSubscribed,
   assignments,
   stats,
   tutorName,
   studentId,
+  usage,
 }: AIPracticeCardProps) {
+  const basePriceDollars = (AI_PRACTICE_BASE_PRICE_CENTS / 100).toFixed(0);
+  const blockPriceDollars = (AI_PRACTICE_BLOCK_PRICE_CENTS / 100).toFixed(0);
+
   const openAssignments = assignments
     .filter((a) => a.status !== "completed")
     .sort((a, b) => {
@@ -93,7 +133,7 @@ export function AIPracticeCard({
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
-  // Not subscribed - show upgrade CTA
+  // Not subscribed - show upgrade CTA with tiered pricing
   if (!isSubscribed) {
     return (
       <Card className="border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
@@ -132,15 +172,21 @@ export function AIPracticeCard({
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
               <MessageSquare className="h-5 w-5 mx-auto text-muted-foreground" />
-              <p className="text-xs text-muted-foreground mt-1">Real-time chat</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {BASE_TEXT_TURNS} text turns
+              </p>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-              <Bot className="h-5 w-5 mx-auto text-muted-foreground" />
-              <p className="text-xs text-muted-foreground mt-1">AI corrections</p>
+              <Mic className="h-5 w-5 mx-auto text-muted-foreground" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {BASE_AUDIO_MINUTES} audio min
+              </p>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
-              <CheckCircle className="h-5 w-5 mx-auto text-muted-foreground" />
-              <p className="text-xs text-muted-foreground mt-1">Track progress</p>
+              <Zap className="h-5 w-5 mx-auto text-muted-foreground" />
+              <p className="text-xs text-muted-foreground mt-1">
+                +${blockPriceDollars} blocks
+              </p>
             </div>
           </div>
 
@@ -148,7 +194,7 @@ export function AIPracticeCard({
             href={`/student-auth/practice/subscribe?student=${studentId}`}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
-            Subscribe for $6/month
+            Subscribe for ${basePriceDollars}/month
             <ArrowRight className="h-4 w-4" />
           </Link>
         </CardContent>
@@ -156,7 +202,7 @@ export function AIPracticeCard({
     );
   }
 
-  // Subscribed - show practice dashboard
+  // Subscribed - show practice dashboard with usage meters
   return (
     <Card>
       <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -174,6 +220,67 @@ export function AIPracticeCard({
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Usage meters */}
+        {usage && (
+          <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-foreground">Monthly Usage</span>
+              {usage.blocksConsumed > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{usage.blocksConsumed} block{usage.blocksConsumed > 1 ? "s" : ""}
+                </Badge>
+              )}
+            </div>
+
+            {/* Text turns meter */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Text turns
+                </span>
+                <span className="text-muted-foreground">
+                  {usage.textTurnsUsed} / {usage.textTurnsAllowance}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${getProgressColor(usage.percentTextUsed)}`}
+                  style={{ width: `${Math.min(usage.percentTextUsed, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Audio minutes meter */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Mic className="h-3.5 w-3.5" />
+                  Audio time
+                </span>
+                <span className="text-muted-foreground">
+                  {formatSeconds(usage.audioSecondsUsed)} / {formatSeconds(usage.audioSecondsAllowance)}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${getProgressColor(usage.percentAudioUsed)}`}
+                  style={{ width: `${Math.min(usage.percentAudioUsed, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {usage.blocksConsumed > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                Current tier: ${(usage.currentTierPriceCents / 100).toFixed(0)}/mo
+                {usage.periodEnd && (
+                  <> · Resets {formatDistanceToNow(new Date(usage.periodEnd), { addSuffix: true })}</>
+                )}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Mini stats row */}
         {stats && (stats.sessions_completed > 0 || stats.practice_minutes > 0) && (
           <div className="grid grid-cols-3 gap-3">

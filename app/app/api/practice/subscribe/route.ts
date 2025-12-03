@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import {
+  AI_PRACTICE_BASE_PRICE_CENTS,
+  AI_PRACTICE_BLOCK_PRICE_CENTS,
+  BASE_AUDIO_MINUTES,
+  BASE_TEXT_TURNS,
+  BLOCK_AUDIO_MINUTES,
+  BLOCK_TEXT_TURNS,
+} from "@/lib/practice/constants";
 
-// AI Practice subscription pricing
-const AI_PRACTICE_PRICE_CENTS = 600; // $6/month
-const PLATFORM_SHARE_PERCENT = 25; // Platform keeps 25% ($1.50)
+// Platform fees
+const PLATFORM_FIXED_FEE_CENTS = 300; // Target ~$3 platform fee
+const PLATFORM_VARIABLE_FEE_PERCENT = 1; // Extra 1% platform fee
+
+// Effective application fee percent to cover fixed + variable
+const APPLICATION_FEE_PERCENT = (PLATFORM_FIXED_FEE_CENTS / AI_PRACTICE_BASE_PRICE_CENTS) * 100 + PLATFORM_VARIABLE_FEE_PERCENT; // 38.5%
 
 export async function POST(request: Request) {
   try {
@@ -91,25 +102,30 @@ export async function POST(request: Request) {
         .eq("id", studentId);
     }
 
-    // Create or get AI Practice product
-    let product = await getOrCreateProduct();
-    let price = await getOrCreatePrice(product.id);
+    // Get or create AI Practice products and prices
+    const baseProduct = await getOrCreateBaseProduct();
+    const basePrice = await getOrCreateBasePrice(baseProduct.id);
+    const blockProduct = await getOrCreateBlockProduct();
+    const blockPrice = await getOrCreateBlockPrice(blockProduct.id);
 
-    // Calculate platform fee (25%)
-    const platformFee = Math.round(AI_PRACTICE_PRICE_CENTS * (PLATFORM_SHARE_PERCENT / 100));
-
-    // Create checkout session with destination charge
+    // Create checkout session with both base subscription and metered block pricing
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [
         {
-          price: price.id,
+          price: basePrice.id,
           quantity: 1,
+        },
+        {
+          price: blockPrice.id,
+          // Metered prices don't need quantity - usage is reported separately
         },
       ],
       subscription_data: {
-        application_fee_percent: PLATFORM_SHARE_PERCENT,
+        // Charge on behalf of the tutor so Stripe fees are taken from the tutor payout
+        on_behalf_of: tutor.stripe_account_id,
+        application_fee_percent: APPLICATION_FEE_PERCENT,
         transfer_data: {
           destination: tutor.stripe_account_id,
         },
@@ -117,6 +133,12 @@ export async function POST(request: Request) {
           studentId,
           tutorId: assignedTutorId,
           type: "ai_practice",
+          platform_fixed_fee_cents: String(PLATFORM_FIXED_FEE_CENTS),
+          platform_variable_fee_percent: String(PLATFORM_VARIABLE_FEE_PERCENT),
+          base_audio_minutes: String(BASE_AUDIO_MINUTES),
+          base_text_turns: String(BASE_TEXT_TURNS),
+          block_audio_minutes: String(BLOCK_AUDIO_MINUTES),
+          block_text_turns: String(BLOCK_TEXT_TURNS),
         },
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/student-auth/practice/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -138,14 +160,14 @@ export async function POST(request: Request) {
   }
 }
 
-async function getOrCreateProduct() {
+async function getOrCreateBaseProduct() {
   const existingProducts = await stripe.products.list({
-    limit: 1,
+    limit: 10,
     active: true,
   });
 
   const product = existingProducts.data.find(
-    (p) => p.metadata?.type === "ai_practice_subscription"
+    (p) => p.metadata?.type === "ai_practice_base"
   );
 
   if (product) {
@@ -153,23 +175,25 @@ async function getOrCreateProduct() {
   }
 
   return stripe.products.create({
-    name: "AI Practice Companion",
-    description: "Unlimited AI conversation practice between lessons",
+    name: "AI Practice Companion - Base",
+    description: `${BASE_AUDIO_MINUTES} audio minutes + ${BASE_TEXT_TURNS} text turns per month`,
     metadata: {
-      type: "ai_practice_subscription",
+      type: "ai_practice_base",
+      audio_minutes: String(BASE_AUDIO_MINUTES),
+      text_turns: String(BASE_TEXT_TURNS),
     },
   });
 }
 
-async function getOrCreatePrice(productId: string) {
+async function getOrCreateBasePrice(productId: string) {
   const existingPrices = await stripe.prices.list({
     product: productId,
     active: true,
-    limit: 1,
+    limit: 10,
   });
 
   const price = existingPrices.data.find(
-    (p) => p.unit_amount === AI_PRACTICE_PRICE_CENTS && p.recurring?.interval === "month"
+    (p) => p.unit_amount === AI_PRACTICE_BASE_PRICE_CENTS && p.recurring?.interval === "month"
   );
 
   if (price) {
@@ -178,10 +202,72 @@ async function getOrCreatePrice(productId: string) {
 
   return stripe.prices.create({
     product: productId,
-    unit_amount: AI_PRACTICE_PRICE_CENTS,
+    unit_amount: AI_PRACTICE_BASE_PRICE_CENTS,
     currency: "usd",
     recurring: {
       interval: "month",
+    },
+    metadata: {
+      type: "ai_practice_base",
+    },
+  });
+}
+
+async function getOrCreateBlockProduct() {
+  const existingProducts = await stripe.products.list({
+    limit: 10,
+    active: true,
+  });
+
+  const product = existingProducts.data.find(
+    (p) => p.metadata?.type === "ai_practice_block"
+  );
+
+  if (product) {
+    return product;
+  }
+
+  return stripe.products.create({
+    name: "AI Practice Block",
+    description: `+${BLOCK_AUDIO_MINUTES} audio minutes + ${BLOCK_TEXT_TURNS} text turns`,
+    metadata: {
+      type: "ai_practice_block",
+      audio_minutes: String(BLOCK_AUDIO_MINUTES),
+      text_turns: String(BLOCK_TEXT_TURNS),
+    },
+  });
+}
+
+async function getOrCreateBlockPrice(productId: string) {
+  const existingPrices = await stripe.prices.list({
+    product: productId,
+    active: true,
+    limit: 10,
+  });
+
+  // Look for metered price
+  const price = existingPrices.data.find(
+    (p) =>
+      p.unit_amount === AI_PRACTICE_BLOCK_PRICE_CENTS &&
+      p.recurring?.interval === "month" &&
+      p.recurring?.usage_type === "metered"
+  );
+
+  if (price) {
+    return price;
+  }
+
+  return (stripe.prices as any).create({
+    product: productId,
+    unit_amount: AI_PRACTICE_BLOCK_PRICE_CENTS,
+    currency: "usd",
+    recurring: {
+      interval: "month",
+      usage_type: "metered",
+      aggregate_usage: "sum",
+    },
+    metadata: {
+      type: "ai_practice_block",
     },
   });
 }

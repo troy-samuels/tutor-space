@@ -22,6 +22,7 @@ import {
   CheckCircle,
   Clock,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -44,11 +45,21 @@ export type PracticeAssignmentItem = {
   scenario?: PracticeScenario | null;
 };
 
+export type PendingHomeworkItem = {
+  id: string;
+  title: string;
+  topic: string | null;
+  due_date: string | null;
+  status: string;
+  practice_assignment_id: string | null;
+};
+
 type PracticeAssignmentPanelProps = {
   studentId: string;
   studentName: string;
   assignments: PracticeAssignmentItem[];
   scenarios: PracticeScenario[];
+  pendingHomework: PendingHomeworkItem[];
   studentHasSubscription: boolean;
 };
 
@@ -57,9 +68,11 @@ export function PracticeAssignmentPanel({
   studentName,
   assignments,
   scenarios,
+  pendingHomework,
   studentHasSubscription,
 }: PracticeAssignmentPanelProps) {
   const [items, setItems] = useState<PracticeAssignmentItem[]>(assignments);
+  const [homeworkList, setHomeworkList] = useState<PendingHomeworkItem[]>(pendingHomework);
   const [isSaving, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -67,7 +80,26 @@ export function PracticeAssignmentPanel({
     instructions: "",
     scenarioId: "",
     dueDate: "",
+    homeworkId: "",
   });
+
+  // When homework is selected, auto-fill title, topic (as instructions hint), and due date
+  const handleHomeworkSelect = (homeworkId: string) => {
+    if (!homeworkId) {
+      setForm((prev) => ({ ...prev, homeworkId: "" }));
+      return;
+    }
+    const hw = homeworkList.find((h) => h.id === homeworkId);
+    if (hw) {
+      setForm((prev) => ({
+        ...prev,
+        homeworkId,
+        title: prev.title || `Practice: ${hw.title}`,
+        dueDate: prev.dueDate || (hw.due_date ? hw.due_date.split("T")[0] : ""),
+        instructions: prev.instructions || (hw.topic ? `Focus on: ${hw.topic}` : ""),
+      }));
+    }
+  };
 
   const statusStyles: Record<string, { label: string; className: string }> = {
     assigned: { label: "Assigned", className: "bg-blue-100 text-blue-800" },
@@ -95,6 +127,7 @@ export function PracticeAssignmentPanel({
             instructions: form.instructions || null,
             scenarioId: form.scenarioId || null,
             dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
+            homeworkAssignmentId: form.homeworkId || null,
           }),
         });
 
@@ -106,7 +139,11 @@ export function PracticeAssignmentPanel({
         }
 
         setItems((prev) => [data.assignment, ...prev]);
-        setForm({ title: "", instructions: "", scenarioId: "", dueDate: "" });
+        // Remove the linked homework from the list so it can't be selected again
+        if (form.homeworkId) {
+          setHomeworkList((prev) => prev.filter((hw) => hw.id !== form.homeworkId));
+        }
+        setForm({ title: "", instructions: "", scenarioId: "", dueDate: "", homeworkId: "" });
         setMessage(`Practice assigned to ${studentName}!`);
       } catch (error) {
         setMessage("Failed to assign practice");
@@ -141,7 +178,7 @@ export function PracticeAssignmentPanel({
               {studentName} hasn&apos;t subscribed yet
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Once they subscribe to AI Practice ($6/mo), you can assign
+              Once they subscribe to AI Practice ($8/mo), you can assign
               conversation scenarios for them to practice between lessons.
             </p>
             <div className="mt-4 text-xs text-muted-foreground">
@@ -178,6 +215,38 @@ export function PracticeAssignmentPanel({
 
         {/* Assignment form */}
         <form onSubmit={handleAssign} className="rounded-xl border border-border/70 bg-muted/10 p-4 space-y-3">
+          {/* Homework link dropdown - shows when there's pending homework */}
+          {homeworkList.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <BookOpen className="h-3.5 w-3.5" />
+                Link to homework (optional)
+              </label>
+              <Select
+                value={form.homeworkId}
+                onValueChange={handleHomeworkSelect}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select homework to reinforce with practice" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No homework link - standalone practice</SelectItem>
+                  {homeworkList.map((hw) => (
+                    <SelectItem key={hw.id} value={hw.id}>
+                      {hw.title}
+                      {hw.due_date && ` (due ${new Date(hw.due_date).toLocaleDateString()})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.homeworkId && (
+                <p className="text-[11px] text-muted-foreground">
+                  Practice will appear as extra opportunity on this homework
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
             <Input
               placeholder="Practice title (e.g., 'Restaurant roleplay')"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -24,6 +25,8 @@ import {
   FileText,
   Image as ImageIcon,
   Video,
+  Bot,
+  Sparkles,
 } from "lucide-react";
 import {
   type LearningStats,
@@ -36,6 +39,7 @@ import {
   markHomeworkCompleted,
 } from "@/lib/actions/progress";
 import { AIPracticeCard } from "@/components/student/AIPracticeCard";
+import { HomeworkPracticeButton } from "@/components/student/HomeworkPracticeButton";
 import {
   LEVEL_LABELS,
   SKILL_LABELS,
@@ -306,15 +310,34 @@ export function StudentProgressClient({
                         <span className={`text-xs ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
                           {dueLabel}
                         </span>
-                        {item.status !== "completed" && item.status !== "cancelled" ? (
-                          <button
-                            onClick={() => handleComplete(item.id)}
-                            disabled={isUpdating}
-                            className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
-                          >
-                            {isUpdating ? "Saving..." : "Mark done"}
-                          </button>
-                        ) : null}
+                        <div className="flex items-center gap-2">
+                          {/* AI Practice button - shows when homework has linked practice */}
+                          {item.practice_assignment && practiceData?.isSubscribed && (
+                            <HomeworkPracticeButton
+                              practiceAssignmentId={item.practice_assignment.id}
+                              status={item.practice_assignment.status}
+                              sessionsCompleted={item.practice_assignment.sessions_completed}
+                            />
+                          )}
+                          {!practiceData?.isSubscribed && item.practice_assignment && practiceData && (
+                            <Link
+                              href={`/student-auth/practice/subscribe?student=${practiceData.studentId ?? ""}`}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span>Unlock AI practice</span>
+                            </Link>
+                          )}
+                          {item.status !== "completed" && item.status !== "cancelled" ? (
+                            <button
+                              onClick={() => handleComplete(item.id)}
+                              disabled={isUpdating}
+                              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+                            >
+                              {isUpdating ? "Saving..." : "Mark done"}
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>

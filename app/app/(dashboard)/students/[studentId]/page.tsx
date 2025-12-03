@@ -347,6 +347,7 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
           studentName={student.full_name ?? "Student"}
           assignments={practiceData.assignments}
           scenarios={practiceData.scenarios}
+          pendingHomework={practiceData.pendingHomework}
           studentHasSubscription={practiceData.isSubscribed}
         />
         <AIPracticeAnalytics
