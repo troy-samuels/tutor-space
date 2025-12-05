@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
   }
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const connectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     console.error("STRIPE_WEBHOOK_SECRET is not set");
@@ -86,14 +87,30 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
 
+  // Try main webhook secret first, then Connect webhook secret
+  // This handles both Account events (payments) and Connect events (tutor onboarding)
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error("Webhook signature verification failed:", err);
-    return NextResponse.json(
-      { error: "Invalid signature" },
-      { status: 400 }
-    );
+    // If main secret fails and we have a Connect secret, try that
+    if (connectWebhookSecret) {
+      try {
+        event = stripe.webhooks.constructEvent(body, signature, connectWebhookSecret);
+        console.log("Event verified with Connect webhook secret");
+      } catch (connectErr) {
+        console.error("Webhook signature verification failed with both secrets:", err);
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 400 }
+        );
+      }
+    } else {
+      console.error("Webhook signature verification failed:", err);
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 400 }
+      );
+    }
   }
 
   const supabase = createServiceRoleClient();
@@ -741,7 +758,7 @@ async function handleSubscriptionDeleted(
     console.error("Failed to update subscription status:", updateSubError);
   }
 
-  const fallbackPlan = "founder_lifetime";
+  const fallbackPlan = "professional";
 
   const { error: updateError } = await supabase
     .from("profiles")
