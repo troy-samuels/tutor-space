@@ -1599,7 +1599,7 @@ Located in `/docs/blog/`:
 **Single All-Access Plan** (Tutor Subscription):
 - **Price**: $29/month or $199/year (~$16.58/month)
 - **Features**: All platform features included, no tiers
-- **Positioning**: "One flat price. Full platform access. No add-on fees."
+- **Positioning**: "One flat price. Full platform access."
 
 **Founder Lifetime Offer** (limited time):
 - **Price**: $49 one-time (vs. $29/month recurring)

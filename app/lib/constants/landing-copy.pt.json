@@ -1,7 +1,7 @@
 {
   "hero": {
     "headline": "Criado para tutores.",
-    "subheadline": "Teste gratuito de 14 dias. Depois US$ 39/mês ou US$ 299/ano. Todas as ferramentas. Sem taxas adicionais.",
+    "subheadline": "Teste gratuito de 14 dias. Depois US$ 39/mês ou US$ 299/ano. Todas as ferramentas incluídas.",
     "primaryCTA": "Comece grátis",
     "secondaryCTA": "Veja como funciona",
     "variants": {
@@ -199,7 +199,7 @@
           "Checkout seguro com Stripe — cobrança após o teste",
           "Notas e tarefas para cada aluno",
           "E-mail e WhatsApp incorporados",
-          "Sem taxas adicionais. Pare quando quiser."
+          "Acesso total incluído. Pare quando quiser."
         ],
         "cta": "Comece grátis",
         "highlighted": true

@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         stripe_charges_enabled,
         stripe_onboarding_status,
         onboarding_completed,
+        calendar_provider,
         timezone,
         created_at,
         updated_at,

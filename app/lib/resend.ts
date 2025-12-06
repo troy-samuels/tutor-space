@@ -80,8 +80,15 @@ class ResendClient {
 }
 
 class NoopResendClient {
+  constructor(private shouldError: boolean) {}
+
   emails = {
     send: async (payload: EmailPayload): Promise<EmailResult> => {
+      const message = "Resend API key is not configured. Email send skipped.";
+      if (this.shouldError) {
+        return { error: new Error(message) };
+      }
+
       console.warn("[Resend] Email send skipped (no API key configured)", {
         to: payload.to,
         subject: payload.subject,
@@ -91,24 +98,22 @@ class NoopResendClient {
   };
 }
 
-export const resend = resendApiKey ? new ResendClient(resendApiKey) : new NoopResendClient();
-
-if (!resendApiKey && isProduction) {
-  throw new Error("RESEND_API_KEY is not set");
-}
-if (!resendApiKey && !isProduction) {
-  console.warn("[Resend] RESEND_API_KEY is not set. Emails will be skipped in development.");
+if (!resendApiKey) {
+  console.warn(
+    "[Resend] RESEND_API_KEY is not set. Emails will be skipped until it is configured."
+  );
 }
 
 const emailFrom = process.env.EMAIL_FROM;
 const emailReplyTo = process.env.EMAIL_REPLY_TO;
 
 const resolvedEmailFrom =
-  emailFrom ||
-  (!isProduction ? "TutorLingua Dev <dev@localhost>" : null);
+  emailFrom || "TutorLingua Dev <dev@localhost>";
 
-if (!resolvedEmailFrom) {
-  throw new Error("EMAIL_FROM is not set");
+if (!emailFrom && isProduction) {
+  console.warn(
+    "[Resend] EMAIL_FROM is not set. Using fallback dev sender address."
+  );
 }
 
 /**
@@ -118,3 +123,7 @@ export const EMAIL_CONFIG = {
   from: resolvedEmailFrom,
   replyTo: emailReplyTo || resolvedEmailFrom,
 } as const;
+
+export const resend = resendApiKey
+  ? new ResendClient(resendApiKey)
+  : new NoopResendClient(isProduction);

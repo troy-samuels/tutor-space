@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/lib/actions/auth";
+import { Logo } from "@/components/Logo";
 
 export default function OnboardingLayout({
   children,
@@ -30,7 +31,7 @@ export default function OnboardingLayout({
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-primary">TutorLingua</span>
+            <Logo variant="wordmark" />
           </div>
           <button
             onClick={handleLogout}

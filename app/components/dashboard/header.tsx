@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardQuickLinks } from "@/components/dashboard/quick-links";
+import { Logo } from "@/components/Logo";
 
 export function DashboardHeader() {
   const { profile } = useAuth();
@@ -26,12 +27,7 @@ export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 bg-background/95 px-4 shadow-sm backdrop-blur sm:gap-4 sm:px-6 lg:px-10">
       {/* Logo */}
-      <Link
-        href="/dashboard"
-        className="text-xl font-semibold tracking-tight hover:text-primary transition-colors shrink-0"
-      >
-        TutorLingua
-      </Link>
+      <Logo href="/dashboard" variant="wordmark" />
 
       {/* Quick Action Buttons */}
       <DashboardQuickLinks />

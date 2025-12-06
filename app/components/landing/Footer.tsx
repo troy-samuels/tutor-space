@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { LandingCopy } from "@/lib/constants/landing-copy";
+import { Logo } from "@/components/Logo";
 
 type FooterProps = {
   footer: LandingCopy["footer"];
@@ -14,9 +15,7 @@ export function Footer({ footer }: FooterProps) {
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-4">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link href="/" className="text-2xl font-bold text-brand-white">
-              TutorLingua
-            </Link>
+            <Logo href="/" variant="wordmark" className="brightness-0 invert" />
             <p className="mt-4 text-sm text-gray-400 leading-relaxed">
               {footer.tagline}
             </p>

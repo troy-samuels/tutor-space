@@ -26,7 +26,7 @@ export function FounderOfferNotice({ className, variant = "card" }: FounderOffer
           variant === "card" ? "text-sm text-foreground/80" : "text-xs text-muted-foreground"
         )}
       >
-        One flat plan. No add-on fees. Stop when you want.
+        One flat plan. Full access. Stop when you want.
       </p>
     </div>
   );

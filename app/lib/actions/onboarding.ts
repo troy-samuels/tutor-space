@@ -177,11 +177,18 @@ export async function saveOnboardingStep(
 
       case 5: {
         // Calendar Sync
+        const profileUpdate: Record<string, unknown> = {
+          onboarding_step: 5,
+        };
+
+        // Persist the selected provider so it can be surfaced in settings or telemetry
+        if (typeof data.calendar_provider !== "undefined") {
+          profileUpdate.calendar_provider = data.calendar_provider;
+        }
+
         const { error } = await supabase
           .from("profiles")
-          .update({
-            onboarding_step: 5,
-          })
+          .update(profileUpdate)
           .eq("id", user.id);
 
         if (error) throw error;

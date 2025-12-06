@@ -82,7 +82,7 @@ export function StepPayments({
         paymentUrl = `https://${paymentUrl}`;
       }
 
-      const result = await saveOnboardingStep(6, {
+      const result = await saveOnboardingStep(7, {
         payment_method: paymentMethod,
         custom_payment_url: paymentMethod === "custom" ? paymentUrl : null,
         // For Stripe, we'll handle the connect flow separately

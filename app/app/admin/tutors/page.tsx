@@ -49,6 +49,7 @@ interface Tutor {
   stripe_charges_enabled: boolean | null;
   stripe_onboarding_status: string | null;
   onboarding_completed: boolean | null;
+  calendar_provider: string | null;
   timezone: string | null;
   created_at: string;
   updated_at: string;
@@ -205,6 +206,9 @@ function TutorTableSkeleton() {
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-20" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-16" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-16" />
@@ -423,6 +427,7 @@ export default function AdminTutorsPage() {
                 <Clock className="h-4 w-4 inline mr-1" />
                 Last Login
               </TableHead>
+              <TableHead>Calendar</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -432,7 +437,7 @@ export default function AdminTutorsPage() {
               <TutorTableSkeleton />
             ) : tutors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <p className="text-muted-foreground">No tutors found</p>
                 </TableCell>
               </TableRow>
@@ -482,6 +487,9 @@ export default function AdminTutorsPage() {
                   </TableCell>
                   <TableCell>
                     <LastLoginCell lastLoginAt={tutor.last_login_at} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {tutor.calendar_provider ? tutor.calendar_provider : "Not set"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDate(tutor.created_at)}

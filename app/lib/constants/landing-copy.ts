@@ -185,7 +185,7 @@ const landingCopyEn: LandingCopy = {
   hero: {
     headline: "Built for tutors.",
     subheadline:
-      "14-day free trial. Then $39 a month or $299 a year. All tools. No add-on fees.",
+      "14-day free trial. Then $39 a month or $299 a year. All tools included.",
     primaryCTA: "Start for free",
     secondaryCTA: "See how it works",
     variants: {
@@ -370,7 +370,7 @@ const landingCopyEn: LandingCopy = {
   pricing: {
     headline: "14-day free trial",
     subheadline: "Billed $39/mo or $299/yr after the trial. One flat price for every tutor.",
-    comparisonNote: "All features included. No add-on fees. Cancel anytime before billing begins.",
+    comparisonNote: "All features included. Cancel anytime before billing begins.",
     toggle: {
       label: "Billing",
       monthlyLabel: "Monthly",
@@ -391,7 +391,7 @@ const landingCopyEn: LandingCopy = {
           "Secure Stripe checkout—billed after the trial",
           "Notes and tasks for each student",
           "Email and WhatsApp nudges built in",
-          "No add-on fees. Cancel anytime.",
+          "Full access included. Cancel anytime.",
         ],
         cta: "Start for free",
         highlighted: true,

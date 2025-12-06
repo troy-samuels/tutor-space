@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type LogoVariant = "wordmark" | "icon";
 
 const LOGO_ASSETS: Record<LogoVariant, { src: string; width: number; height: number }> = {
-  wordmark: { src: "/brand/logo-wordmark.svg", width: 160, height: 48 },
+  wordmark: { src: "/brand/logo-wordmark.svg", width: 168, height: 36 },
   icon: { src: "/brand/logo-icon.svg", width: 40, height: 40 },
 };
 
@@ -37,7 +37,7 @@ export function Logo({
       alt={alt}
       width={asset.width}
       height={asset.height}
-      className={cn("h-auto w-auto", className)}
+      className={cn("h-8 sm:h-9 w-auto", className)}
       priority={priority}
     />
   );

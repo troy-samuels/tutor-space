@@ -1,6 +1,7 @@
 import { CalendarCheck2, ShieldCheck, Zap } from "lucide-react";
 import { CalendarConnectCard } from "@/components/settings/calendar-connect-card";
 import { listCalendarConnections } from "@/lib/actions/calendar";
+import { createClient } from "@/lib/supabase/server";
 
 const PROVIDERS = [
   {
@@ -36,6 +37,19 @@ export default async function CalendarSettingsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("calendar_provider")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
+
   const connections = await listCalendarConnections();
   const params = await searchParams;
   const connectedParam = Array.isArray(params?.connected)
@@ -54,6 +68,16 @@ export default async function CalendarSettingsPage({
           OAuth connection.
         </p>
       </header>
+
+      {profile?.calendar_provider && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Default preference:{" "}
+          <span className="font-semibold">
+            {providerTitle(profile.calendar_provider)}
+          </span>
+          . You can switch or connect another provider below.
+        </div>
+      )}
 
       {connectedParam ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

@@ -4,15 +4,38 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeApiVersion = process.env.STRIPE_API_VERSION || "2024-10-17";
 
 if (!stripeSecretKey) {
-  throw new Error(
-    "STRIPE_SECRET_KEY is not set. Please add it to your environment variables."
+  console.warn(
+    "[Stripe] STRIPE_SECRET_KEY is not set. Billing features will be disabled until it is configured."
   );
 }
 
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: stripeApiVersion as Stripe.LatestApiVersion,
-  typescript: true,
-});
+const stripeClient = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: stripeApiVersion as Stripe.LatestApiVersion,
+      typescript: true,
+    })
+  : null;
+
+const missingStripeError = () =>
+  new Error(
+    "Stripe is not configured. Set STRIPE_SECRET_KEY in your environment to enable billing."
+  );
+
+// Export a proxy so existing call sites get a clear error when Stripe is not configured,
+// without failing at module load time during local development or CI.
+export const stripe =
+  (stripeClient as Stripe | null) ??
+  (new Proxy(
+    {},
+    {
+      get: () => {
+        throw missingStripeError();
+      },
+      apply: () => {
+        throw missingStripeError();
+      },
+    }
+  ) as Stripe);
 
 /**
  * Get or create a Stripe customer for a user
