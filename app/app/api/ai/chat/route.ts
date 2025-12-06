@@ -8,17 +8,6 @@ async function generateAIResponse(
   messages: Array<{ role: string; content: string }>,
   contextType: string
 ): Promise<{ content: string; tokensUsed: number }> {
-  // Context-specific system prompts
-  const systemPrompts: Record<string, string> = {
-    general: "You are a helpful AI assistant for language tutors. Help them with their tutoring business.",
-    lesson_prep: "You are an expert at creating engaging language lesson plans. Help the tutor prepare effective lessons with activities, vocabulary, and exercises.",
-    student_feedback: "You are skilled at writing constructive student feedback. Help the tutor write encouraging yet honest progress reports.",
-    content_creation: "You are a language learning content creator. Help create exercises, quizzes, worksheets, and learning materials.",
-    scheduling: "You are a scheduling assistant. Help the tutor organize their calendar, suggest optimal lesson times, and manage their availability.",
-  };
-
-  const systemPrompt = systemPrompts[contextType] || systemPrompts.general;
-
   // Get the last user message
   const lastUserMessage = messages.filter(m => m.role === "user").pop();
 

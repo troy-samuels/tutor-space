@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -83,20 +83,7 @@ export function RescheduleModal({
   const maxDateStr = maxDate.toISOString().split("T")[0];
 
   // Load available times when date changes
-  useEffect(() => {
-    if (selectedDate) {
-      loadAvailableTimes(selectedDate);
-    }
-  }, [selectedDate, booking.id]);
-
-  // Load reschedule history on open
-  useEffect(() => {
-    if (isOpen) {
-      loadHistory();
-    }
-  }, [isOpen, booking.id]);
-
-  const loadAvailableTimes = async (date: string) => {
+  const loadAvailableTimes = useCallback(async (date: string) => {
     setIsLoadingTimes(true);
     setSelectedTime("");
     setError(null);
@@ -113,12 +100,25 @@ export function RescheduleModal({
     }
 
     setIsLoadingTimes(false);
-  };
+  }, [booking.id]);
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     const historyData = await getRescheduleHistory(booking.id);
     setHistory(historyData);
-  };
+  }, [booking.id]);
+
+  useEffect(() => {
+    if (selectedDate) {
+      loadAvailableTimes(selectedDate);
+    }
+  }, [selectedDate, loadAvailableTimes]);
+
+  // Load reschedule history on open
+  useEffect(() => {
+    if (isOpen) {
+      loadHistory();
+    }
+  }, [isOpen, loadHistory]);
 
   const handleSubmit = async () => {
     if (!selectedTime) {

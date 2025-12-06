@@ -20,13 +20,6 @@ type Step2Props = {
   onSave?: (data: ProfessionalProfileData) => void;
 };
 
-const EXPERIENCE_LEVELS = [
-  { value: "beginner", label: "Beginner (0-2 years)" },
-  { value: "intermediate", label: "Intermediate (3-5 years)" },
-  { value: "experienced", label: "Experienced (6-10 years)" },
-  { value: "expert", label: "Expert (10+ years)" },
-];
-
 const SAMPLE_BIOS = [
   "Passionate about helping students discover the joy of language learning through personalized, engaging lessons.",
   "Native speaker with 10+ years of teaching experience. I specialize in conversational fluency and cultural immersion.",
@@ -35,7 +28,6 @@ const SAMPLE_BIOS = [
 
 export function Step2Professional({
   onNext,
-  onBack,
   initialValues,
   onSave,
 }: Step2Props) {

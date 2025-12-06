@@ -1,4 +1,5 @@
 import { defaultLocale, type Locale } from "@/lib/i18n/config";
+import landingCopyPtJson from "./landing-copy.pt.json";
 
 type ReusableLink = {
   label: string;
@@ -20,13 +21,22 @@ type StepCard = {
 
 type PricingTier = {
   name: string;
-  price: string;
-  period: string;
+  monthlyPrice: string;
+  annualPrice: string;
+  monthlyPeriod: string;
+  annualPeriod: string;
   badge?: string;
   description: string;
   features: string[];
   cta: string;
   highlighted?: boolean;
+};
+
+type PricingToggle = {
+  label: string;
+  monthlyLabel: string;
+  annualLabel: string;
+  helper: string;
 };
 
 type ComparisonColumn = {
@@ -69,6 +79,19 @@ type FooterSection = {
   links: ReusableLink[];
 };
 
+type PhoneMockupFeature = {
+  icon: string;
+  title: string;
+  description: string;
+};
+
+type PhoneMockupSection = {
+  headline: string;
+  subheadline: string;
+  features: PhoneMockupFeature[];
+  cta: string;
+};
+
 export type LandingCopy = {
   hero: {
     headline: string;
@@ -90,6 +113,7 @@ export type LandingCopy = {
     subtitle: string;
     items: FeatureCard[];
   };
+  phoneMockup: PhoneMockupSection;
   solution: {
     headline: string;
     subheadline: string;
@@ -108,6 +132,7 @@ export type LandingCopy = {
     headline: string;
     subheadline: string;
     comparisonNote: string;
+    toggle: PricingToggle;
     tiers: PricingTier[];
   };
   comparison: {
@@ -160,8 +185,8 @@ const landingCopyEn: LandingCopy = {
   hero: {
     headline: "Built for tutors.",
     subheadline:
-      "$29 a month. All tools. No add-on fees.",
-    primaryCTA: "Start now",
+      "14-day free trial. Then $39 a month or $299 a year. All tools. No add-on fees.",
+    primaryCTA: "Start for free",
     secondaryCTA: "See how it works",
     variants: {
       outcomeHeadline: "Less admin. More students.",
@@ -203,6 +228,34 @@ const landingCopyEn: LandingCopy = {
           "Share your link. They pick a time. You get paid. Done.",
       },
     ],
+  },
+
+  phoneMockup: {
+    headline: "Your site, ready to share",
+    subheadline: "Professional. Mobile-friendly. Takes 10 minutes.",
+    features: [
+      {
+        icon: "Palette",
+        title: "Your brand, your way",
+        description: "Pick colors, fonts, and photos that feel like you",
+      },
+      {
+        icon: "Layers",
+        title: "All your services in one place",
+        description: "Students see what you offer and book instantly",
+      },
+      {
+        icon: "Star",
+        title: "Reviews that build trust",
+        description: "Showcase what students say about you",
+      },
+      {
+        icon: "Smartphone",
+        title: "Works on any phone",
+        description: "Share your link anywhere—Instagram, WhatsApp, email",
+      },
+    ],
+    cta: "Start for free",
   },
 
   solution: {
@@ -255,7 +308,7 @@ const landingCopyEn: LandingCopy = {
           "All your students in one place. Notes, schedules, payments. No more scattered tools.",
       },
     ],
-    cta: "Start free",
+    cta: "Start for free",
   },
 
   featuresDeepDive: {
@@ -315,24 +368,32 @@ const landingCopyEn: LandingCopy = {
   },
 
   pricing: {
-    headline: "$29 a month",
-    subheadline: "One flat price for every tutor.",
-    comparisonNote: "All features included. No add-on fees. Cancel anytime.",
+    headline: "14-day free trial",
+    subheadline: "Billed $39/mo or $299/yr after the trial. One flat price for every tutor.",
+    comparisonNote: "All features included. No add-on fees. Cancel anytime before billing begins.",
+    toggle: {
+      label: "Billing",
+      monthlyLabel: "Monthly",
+      annualLabel: "Annual (save 36%)",
+      helper: "Switch anytime—your plan stays all-access.",
+    },
     tiers: [
       {
         name: "Full access",
-        price: "$29",
-        period: "per month",
+        monthlyPrice: "$39",
+        annualPrice: "$299",
+        monthlyPeriod: "per month",
+        annualPeriod: "per year",
         badge: "All features",
-        description: "One plan. Full platform.",
+        description: "14-day free trial. One plan. Full platform.",
         features: [
           "Site, links, and bookings in one place",
-          "Pay upfront with Stripe or PayPal",
+          "Secure Stripe checkout—billed after the trial",
           "Notes and tasks for each student",
           "Email and WhatsApp nudges built in",
-          "No add-on fees. Stop when you want.",
+          "No add-on fees. Cancel anytime.",
         ],
-        cta: "Start now",
+        cta: "Start for free",
         highlighted: true,
       },
     ],
@@ -466,26 +527,25 @@ const landingCopyEn: LandingCopy = {
     ],
     totalLabel: "What you'd spend otherwise",
     platformLabel: "Join TutorLingua",
-    platformPrice: "$29",
+    platformPrice: "$39",
     platformPeriod: "/mo",
-    cta: "Start now",
+    cta: "Start for free",
     ctaHref: "/signup",
   },
 
   finalCTA: {
     headline: "Ready to own your business?",
-    subheadline:
-      "Free to start. Ready in 10 minutes. No credit card needed.",
+    subheadline: "Start your 14-day free trial. Ready in 10 minutes.",
     calculatorLabel: "Monthly revenue:",
     calculatorUnit: "/month",
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Marketplace fees (25%):",
-    platformCostLabel: "TutorLingua ($29):",
+    platformCostLabel: "TutorLingua ($39):",
     monthlySavingsLabel: "Monthly savings:",
     annualSavingsLabel: "Annual savings",
-    button: "Start now",
-    finePrint: "Free forever. Upgrade anytime.",
+    button: "Start for free",
+    finePrint: "14-day free trial. Billed after the trial; cancel anytime before day 14.",
     trustBadges: ["Stripe Verified", "GDPR Compliant", "SOC 2 Ready"],
   },
 
@@ -537,8 +597,8 @@ const landingCopyEs: LandingCopy = {
   hero: {
     headline: "Creado para tutores.",
     subheadline:
-      "$29 al mes. Todas las funciones. Sin extras.",
-    primaryCTA: "Empieza ahora",
+      "Prueba gratis 14 días. Luego $39 al mes o $299 al año. Todas las funciones. Sin extras.",
+    primaryCTA: "Empieza gratis",
     secondaryCTA: "Ver cómo funciona",
     variants: {
       outcomeHeadline: "Menos admin. Más estudiantes.",
@@ -580,6 +640,34 @@ const landingCopyEs: LandingCopy = {
           "Comparte tu enlace. Eligen horario. Pagas. Listo.",
       },
     ],
+  },
+
+  phoneMockup: {
+    headline: "Tu sitio, listo para compartir",
+    subheadline: "Profesional. Optimizado para móvil. En 10 minutos.",
+    features: [
+      {
+        icon: "Palette",
+        title: "Tu marca, a tu manera",
+        description: "Elige colores, fuentes y fotos que te representen",
+      },
+      {
+        icon: "Layers",
+        title: "Todos tus servicios en un lugar",
+        description: "Los estudiantes ven lo que ofreces y reservan al instante",
+      },
+      {
+        icon: "Star",
+        title: "Reseñas que generan confianza",
+        description: "Muestra lo que dicen tus estudiantes de ti",
+      },
+      {
+        icon: "Smartphone",
+        title: "Funciona en cualquier teléfono",
+        description: "Comparte tu enlace donde quieras—Instagram, WhatsApp, email",
+      },
+    ],
+    cta: "Empieza gratis",
   },
 
   solution: {
@@ -692,24 +780,32 @@ const landingCopyEs: LandingCopy = {
   },
 
   pricing: {
-    headline: "$29 al mes",
-    subheadline: "Un solo precio para tutores.",
-    comparisonNote: "Acceso completo. Sin extras. Cancela cuando quieras.",
+    headline: "Prueba gratis 14 días",
+    subheadline: "Luego $39/mes o $299/año. Un precio fijo para cada tutor.",
+    comparisonNote: "Acceso completo. Sin cargos hasta el día 14. Cancela antes del cobro.",
+    toggle: {
+      label: "Facturación",
+      monthlyLabel: "Mensual",
+      annualLabel: "Anual (ahorra 36%)",
+      helper: "Cambia cuando quieras—el plan sigue siendo completo.",
+    },
     tiers: [
       {
         name: "Acceso total",
-        price: "$29",
-        period: "al mes",
+        monthlyPrice: "$39",
+        annualPrice: "$299",
+        monthlyPeriod: "al mes",
+        annualPeriod: "al año",
         badge: "Todo incluido",
-        description: "Un plan. Toda la plataforma.",
+        description: "Prueba gratis 14 días. Un plan. Toda la plataforma.",
         features: [
           "Sitio y reservas en un solo lugar",
-          "Cobros por Stripe o PayPal",
+          "Checkout seguro con Stripe—cobro después de la prueba",
           "Notas y tareas por alumno",
           "Emails y recordatorios listos",
           "Sin extras. Cancela cuando quieras.",
         ],
-        cta: "Empieza ahora",
+        cta: "Empieza gratis",
         highlighted: true,
       },
     ],
@@ -843,26 +939,26 @@ const landingCopyEs: LandingCopy = {
     ],
     totalLabel: "Lo que gastarías normalmente",
     platformLabel: "Únete a TutorLingua",
-    platformPrice: "$29",
+    platformPrice: "$39",
     platformPeriod: "/mes",
-    cta: "Empieza ahora",
+    cta: "Empieza gratis",
     ctaHref: "/signup",
   },
 
   finalCTA: {
     headline: "¿Listo para ser dueño de tu negocio?",
     subheadline:
-      "Gratis para empezar. Listo en 10 minutos. Sin tarjeta necesaria.",
+      "Prueba gratis 14 días. Listo en 10 minutos.",
     calculatorLabel: "Ingresos mensuales:",
     calculatorUnit: "/mes",
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Comisiones marketplace (25%):",
-    platformCostLabel: "TutorLingua ($29):",
+    platformCostLabel: "TutorLingua ($39):",
     monthlySavingsLabel: "Ahorro mensual:",
     annualSavingsLabel: "Ahorro anual",
     button: "Empieza gratis",
-    finePrint: "Gratis para siempre. Actualiza cuando quieras.",
+    finePrint: "Prueba gratis de 14 días. Cargo después; cancela antes del día 14.",
     trustBadges: ["Stripe verificado", "Cumplimos con GDPR", "Listo para SOC 2"],
   },
 
@@ -910,9 +1006,426 @@ const landingCopyEs: LandingCopy = {
   },
 };
 
+const landingCopyFr: LandingCopy = {
+  hero: {
+    headline: "Conçu pour les tuteurs.",
+    subheadline:
+      "Essai gratuit de 14 jours. Puis 39 $/mois ou 299 $/an. Toutes les fonctionnalités. Aucun frais supplémentaire.",
+    primaryCTA: "Commencer gratuitement",
+    secondaryCTA: "Voir comment ça fonctionne",
+    variants: {
+      outcomeHeadline: "Moins d'admin. Plus d'étudiants.",
+      financialHeadline: "Gardez 100 % — aucune commission.",
+      aspirationalHeadline: "Votre académie indépendante, entièrement automatisée.",
+    },
+  },
+
+  socialProof: {
+    text: "Utilisé par des tuteurs de langues sur Preply, iTalki et Verbling pour maîtriser leur activité récurrente",
+    tutors: [
+      { name: "Sarai A.", language: "Professeure d'espagnol" },
+      { name: "Thomas B.", language: "Tuteur de français" },
+      { name: "Ricardo M.", language: "Tuteur de portugais" },
+    ],
+  },
+
+  problems: {
+    headline: "Votre activité est éparpillée. Elle ne devrait pas l'être.",
+    subtitle:
+      "Étudiants sur Preply. Réservations sur Calendly. Liens sur Beacons. TutorLingua réunit tout.",
+    items: [
+      {
+        icon: "Layers",
+        title: "Conçu uniquement pour les tuteurs",
+        description:
+          "Contrairement aux outils génériques. Tout ce dont vous avez besoin. Rien de superflu.",
+      },
+      {
+        icon: "Users",
+        title: "Maîtrisez votre activité récurrente",
+        description:
+          "Les marketplaces trouvent les étudiants. Vous les gardez. Sans commissions.",
+      },
+      {
+        icon: "Clock",
+        title: "Les étudiants réservent instantanément",
+        description:
+          "Partagez votre lien. Ils choisissent un créneau. Vous êtes payé. Terminé.",
+      },
+    ],
+  },
+
+  phoneMockup: {
+    headline: "Votre site, prêt à partager",
+    subheadline: "Professionnel. Optimisé mobile. En 10 minutes.",
+    features: [
+      {
+        icon: "Palette",
+        title: "Votre marque, à votre façon",
+        description: "Choisissez les couleurs, polices et photos qui vous ressemblent",
+      },
+      {
+        icon: "Layers",
+        title: "Tous vos services au même endroit",
+        description: "Les étudiants voient ce que vous proposez et réservent instantanément",
+      },
+      {
+        icon: "Star",
+        title: "Des avis qui inspirent confiance",
+        description: "Mettez en avant ce que vos étudiants disent de vous",
+      },
+      {
+        icon: "Smartphone",
+        title: "Fonctionne sur tous les téléphones",
+        description: "Partagez votre lien partout — Instagram, WhatsApp, email",
+      },
+    ],
+    cta: "Commencer gratuitement",
+  },
+
+  solution: {
+    headline: "Tout ce dont vous avez besoin. Rien de superflu.",
+    subheadline: "Conçu pour les tuteurs de langues. Prêt en 10 minutes.",
+    features: [
+      {
+        icon: "Globe",
+        title: "Votre hub professionnel",
+        description:
+          "Site web et link-in-bio. Partagez sur Instagram, TikTok, profils marketplace. Un lien vers tout.",
+      },
+      {
+        icon: "Calendar",
+        title: "Réservations directes",
+        description:
+          "Les étudiants choisissent un créneau. Paient à l'avance. Reçoivent le lien Zoom automatiquement. Fini les relances.",
+      },
+      {
+        icon: "Users",
+        title: "Suivez vos étudiants",
+        description:
+          "Notez après chaque leçon. Souvenez-vous de ce que vous avez enseigné. Suivez les progrès. Tout au même endroit.",
+      },
+    ],
+  },
+
+  howItWorks: {
+    headline: "Prêt en 10 minutes",
+    steps: [
+      {
+        number: 1,
+        icon: "UserPlus",
+        title: "Partagez votre lien",
+        description:
+          "Mettez-le sur Instagram. Ajoutez-le sur TikTok. Incluez-le dans votre bio Preply. Partagez-le partout.",
+      },
+      {
+        number: 2,
+        icon: "Calendar",
+        title: "Les étudiants réservent directement",
+        description:
+          "Ils choisissent un créneau. Paient à l'avance. Reçoivent leur lien Zoom instantanément. Vous êtes notifié.",
+      },
+      {
+        number: 3,
+        icon: "Users",
+        title: "Vous suivez tout",
+        description:
+          "Tous vos étudiants au même endroit. Notes, horaires, paiements. Fini les outils éparpillés.",
+      },
+    ],
+    cta: "Commencer gratuitement",
+  },
+
+  featuresDeepDive: {
+    headline: "Contrôle total. Parents ravis.",
+    categories: [
+      {
+        name: "Présence professionnelle",
+        items: [
+          "Sous-domaine personnalisé",
+          "Link-in-bio avec analytics",
+          "Page de crédibilité",
+          "Support multilingue",
+          "Intégrations réseaux sociaux",
+        ],
+      },
+      {
+        name: "Réservations et paiements",
+        items: [
+          "Calendrier interactif",
+          "Forfaits récurrents",
+          "Paiement Stripe et PayPal",
+          "Facturation automatique",
+          "Génération liens Zoom",
+        ],
+      },
+      {
+        name: "Outils pédagogiques",
+        items: [
+          "Partenaire de conversation IA 24/7",
+          "Plans de cours et devoirs IA",
+          "Bibliothèque de ressources",
+          "Notes de cours structurées",
+          "Suivi progression CECR",
+        ],
+      },
+      {
+        name: "Communication",
+        items: [
+          "Confirmations automatisées",
+          "Séquences email et WhatsApp",
+          "Collecte de témoignages",
+          "Résumé quotidien tuteur",
+          "Mises à jour parents en un clic",
+        ],
+      },
+      {
+        name: "Intelligence business",
+        items: [
+          "Analytics revenus",
+          "Tunnels de conversion",
+          "Contrôle usage IA",
+          "Tableau de bord exécutif",
+          "Export complet des données",
+        ],
+      },
+    ],
+  },
+
+  pricing: {
+    headline: "Essai gratuit 14 jours",
+    subheadline: "Puis 39 $/mois ou 299 $/an. Un prix unique pour chaque tuteur.",
+    comparisonNote: "Accès complet. Aucun prélèvement avant le jour 14. Résiliez avant la facturation.",
+    toggle: {
+      label: "Facturation",
+      monthlyLabel: "Mensuel",
+      annualLabel: "Annuel (économisez 36 %)",
+      helper: "Changez quand vous voulez — le plan reste complet.",
+    },
+    tiers: [
+      {
+        name: "Accès complet",
+        monthlyPrice: "39 $",
+        annualPrice: "299 $",
+        monthlyPeriod: "par mois",
+        annualPeriod: "par an",
+        badge: "Tout inclus",
+        description: "Essai gratuit de 14 jours. Un plan. Toute la plateforme.",
+        features: [
+          "Site et réservations au même endroit",
+          "Paiement sécurisé via Stripe — facturé après l'essai",
+          "Notes et tâches par élève",
+          "Emails et rappels intégrés",
+          "Sans supplément. Résiliez quand vous voulez.",
+        ],
+        cta: "Commencer gratuitement",
+        highlighted: true,
+      },
+    ],
+  },
+
+  comparison: {
+    headline: "Conçu pour les tuteurs. Pas pour tout le monde.",
+    caption:
+      "Les outils génériques fonctionnent pour tous. TutorLingua fonctionne spécifiquement pour les tuteurs de langues.",
+    tableHeaders: {
+      feature: "Ce que vous obtenez",
+      marketplace: "Outils génériques",
+      platform: "TutorLingua",
+    },
+    columns: [
+      { label: "", marketplace: "", platform: "" },
+      { label: "Système de réservation", marketplace: "Outil séparé", platform: "Intégré" },
+      { label: "Collecte de paiements", marketplace: "Outil séparé", platform: "Intégré" },
+      { label: "Notes et CRM étudiants", marketplace: "Non inclus", platform: "Intégré" },
+      { label: "Suivi des leçons", marketplace: "Non inclus", platform: "Intégré" },
+      { label: "Site web professionnel", marketplace: "Page de liens uniquement", platform: "Site complet + liens" },
+    ],
+  },
+
+  testimonials: {
+    headline: "Vrais tuteurs, vrais résultats",
+    featured: {
+      quote:
+        "Je reste sur Preply pour les nouveaux étudiants. Mais les leçons récurrentes passent par TutorLingua. J'ai économisé 7 500 $ en commissions cette année.",
+      author: "Sarai A.",
+      role: "Professeure d'espagnol",
+      image: "/testimonials/sara.jpg",
+    },
+    list: [
+      {
+        quote:
+          "Mes abonnés Instagram peuvent enfin me réserver directement. 12 leçons réservées la première semaine.",
+        author: "Thomas B.",
+        role: "Tuteur de français",
+      },
+      {
+        quote:
+          "Tous mes étudiants au même endroit. Notes, horaires, paiements. Fini les tableurs éparpillés.",
+        author: "Ricardo M.",
+        role: "Tuteur de portugais",
+      },
+    ],
+  },
+
+  faq: {
+    headline: "Questions fréquentes",
+    items: [
+      {
+        question: "Dois-je quitter Preply ou iTalki ?",
+        answer:
+          "Non. Utilisez les marketplaces pour être découvert. Utilisez TutorLingua pour les réservations directes de vos abonnés et étudiants récurrents.",
+      },
+      {
+        question: "Est-ce facile à utiliser ?",
+        answer:
+          "Si vous utilisez Instagram, vous pouvez utiliser TutorLingua. La plupart des tuteurs sont prêts en 10 minutes.",
+      },
+      {
+        question: "Comment les étudiants réservent-ils ?",
+        answer:
+          "Ils cliquent sur votre lien. Choisissent un créneau. Paient. Reçoivent leur lien Zoom instantanément. Terminé.",
+      },
+      {
+        question: "Je garde tous mes revenus ?",
+        answer:
+          "Oui. Aucune commission sur les réservations directes via TutorLingua. Vous gardez 100 %.",
+      },
+      {
+        question: "Puis-je suivre mes étudiants ?",
+        answer:
+          "Oui. Notez après chaque leçon. Suivez les progrès. Tous vos étudiants organisés au même endroit.",
+      },
+      {
+        question: "Puis-je partir quand je veux ?",
+        answer:
+          "Oui. Exportez toutes vos données. Sans engagement. Résiliez quand vous voulez.",
+      },
+    ],
+  },
+
+  valueStack: {
+    headline: "Ce que vous paieriez ailleurs",
+    items: [
+      {
+        icon: "Globe",
+        feature: "Site Web Professionnel et Link-in-Bio",
+        replaces: ["Squarespace", "Linktree"],
+        competitorPrice: 16,
+      },
+      {
+        icon: "Calendar",
+        feature: "Calendrier et Réservations",
+        replaces: ["Calendly", "Acuity Scheduling"],
+        competitorPrice: 12,
+      },
+      {
+        icon: "GraduationCap",
+        feature: "Forfaits de Cours",
+        replaces: ["Kajabi", "Teachable"],
+        competitorPrice: 59,
+      },
+      {
+        icon: "Users",
+        feature: "CRM Étudiants et Notes",
+        replaces: ["HubSpot", "Notion"],
+        competitorPrice: 20,
+      },
+      {
+        icon: "Mail",
+        feature: "Liste Email et Séquences",
+        replaces: ["ConvertKit", "Mailchimp"],
+        competitorPrice: 15,
+      },
+      {
+        icon: "CreditCard",
+        feature: "Traitement des Paiements",
+        replaces: ["Stripe setup", "PayPal Business"],
+        competitorPrice: 0,
+      },
+      {
+        icon: "BarChart3",
+        feature: "Tableau de Bord Analytics",
+        replaces: ["Google Analytics"],
+        competitorPrice: 0,
+      },
+    ],
+    totalLabel: "Ce que vous dépenseriez normalement",
+    platformLabel: "Rejoignez TutorLingua",
+    platformPrice: "39 $",
+    platformPeriod: "/mois",
+    cta: "Commencer gratuitement",
+    ctaHref: "/signup",
+  },
+
+  finalCTA: {
+    headline: "Prêt à maîtriser votre activité ?",
+    subheadline:
+      "Essai gratuit de 14 jours. Prêt en 10 minutes.",
+    calculatorLabel: "Revenus mensuels :",
+    calculatorUnit: "/mois",
+    rangeMinLabel: "500 $",
+    rangeMaxLabel: "10 000 $",
+    commissionLabel: "Frais marketplace (25 %) :",
+    platformCostLabel: "TutorLingua (39 $) :",
+    monthlySavingsLabel: "Économies mensuelles :",
+    annualSavingsLabel: "Économies annuelles",
+    button: "Commencer gratuitement",
+    finePrint: "Essai gratuit de 14 jours. Facturation après l'essai ; annulez avant le jour 14.",
+    trustBadges: ["Stripe vérifié", "Conforme RGPD", "Prêt SOC 2"],
+  },
+
+  navigation: {
+    links: [
+      { label: "Fonctionnalités", href: "#features" },
+      { label: "Comment ça marche", href: "#how-it-works" },
+      { label: "Tarifs", href: "#pricing" },
+      { label: "Témoignages", href: "#testimonials" },
+    ],
+    cta: "Se connecter",
+  },
+
+  footer: {
+    tagline: "TutorLingua — Maîtrisez votre activité récurrente. Conçu pour les tuteurs de langues.",
+    sections: [
+      {
+        title: "Produit",
+        links: [
+          { label: "Fonctionnalités", href: "#features" },
+          { label: "Tarifs", href: "#pricing" },
+          { label: "Sécurité", href: "/security" },
+        ],
+      },
+      {
+        title: "Ressources",
+        links: [
+          { label: "Blog", href: "/fr/blog" },
+          { label: "Centre d'aide", href: "/help" },
+          { label: "Communauté", href: "/community" },
+        ],
+      },
+      {
+        title: "Entreprise",
+        links: [
+          { label: "À propos", href: "/about" },
+          { label: "Contact", href: "/contact" },
+          { label: "Confidentialité", href: "/privacy" },
+          { label: "Conditions", href: "/terms" },
+          { label: "Admin", href: "/admin/login" },
+        ],
+      },
+    ],
+    copyright: `© ${new Date().getFullYear()} TutorLingua. Tous droits réservés.`,
+  },
+};
+
+const landingCopyPt: LandingCopy = landingCopyPtJson as LandingCopy;
+
 const landingCopyByLocale: Record<Locale, LandingCopy> = {
   en: landingCopyEn,
   es: landingCopyEs,
+  fr: landingCopyFr,
+  pt: landingCopyPt,
 };
 
 export function getLandingCopy(locale: string | Locale): LandingCopy {

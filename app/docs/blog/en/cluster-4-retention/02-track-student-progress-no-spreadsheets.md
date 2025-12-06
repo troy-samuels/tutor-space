@@ -1,20 +1,37 @@
 ---
-title: "How to Track Student Progress Without Spreadsheets"
-slug: "track-student-progress-no-spreadsheets"
-description: "Discover modern alternatives to spreadsheets for tracking language student progress, measuring improvement, and keeping students motivated—without the manual work."
-category: "Student Management"
-tags: ["student progress", "CRM", "productivity", "student tracking", "tutoring tools"]
-author: "TutorLingua Team"
-publishDate: "2025-01-16"
-updateDate: "2025-01-16"
-readingTime: "6 min"
+title: How to Track Student Progress Without Spreadsheets
+slug: track-student-progress-no-spreadsheets
+description: "Discover modern alternatives to spreadsheets for tracking language student\
+  \ progress, measuring improvement, and keeping students motivated\u2014without the\
+  \ manual work."
+category: Student Management
+tags:
+- student progress
+- CRM
+- productivity
+- student tracking
+- tutoring tools
+author: TutorLingua Team
+readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["track student progress", "student progress tracking", "language tutor CRM", "spreadsheet alternative", "student management system"]
-relatedArticles: ["student-retention-guide-tutors", "writing-effective-lesson-notes", "stop-using-spreadsheets-tutoring", "tutor-tech-stack-2025"]
-alternateLocale: "es"
-alternateSlug: "rastrear-progreso-sin-hojas-calculo"
-position: "Replacement"
+seoKeywords:
+- track student progress
+- student progress tracking
+- language tutor CRM
+- spreadsheet alternative
+- student management system
+relatedArticles:
+- student-retention-guide-tutors
+- writing-effective-lesson-notes
+- stop-using-spreadsheets-tutoring
+- tutor-tech-stack-2025
+alternateLocale:
+  locale: es
+  slug: rastrear-progreso-sin-hojas-calculo
+position: replacement
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 ---
 
 # How to Track Student Progress Without Spreadsheets
@@ -283,5 +300,11 @@ Start small: pick one tool, set up basic tracking for your current students, and
 - Mobile-friendly for updates on the go
 
 [Try TutorLingua free for 14 days](/pricing) and see how much time you save when you stop fighting with spreadsheets.
+
+---
+
+*Également disponible en français : [Comment Suivre les Progrès des Étudiants Sans Tableurs](/fr/blog/suivre-progres-sans-tableurs)*
+
+---
 
 Plus, explore our guides on [building your complete tutoring business](/blog/student-retention-guide-tutors) and [converting students to direct booking](/blog/convert-students-direct-booking) for a truly independent practice.

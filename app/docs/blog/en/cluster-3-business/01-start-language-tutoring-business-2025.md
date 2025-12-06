@@ -1,19 +1,36 @@
 ---
-title: "How to Start a Private Language Tutoring Business: The 2025 Guide"
-slug: "start-language-tutoring-business-2025"
-description: "Complete step-by-step guide to launching a profitable private language tutoring business in 2025. From pricing to platforms, get everything you need to start teaching online."
-category: "Business & Income"
-tags: ["starting a tutoring business", "online language tutoring", "tutor business plan", "language teaching income", "tutor startup guide"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-15"
-updatedAt: "2025-01-15"
+title: 'How to Start a Private Language Tutoring Business: The 2025 Guide'
+slug: start-language-tutoring-business-2025
+description: Complete step-by-step guide to launching a profitable private language
+  tutoring business in 2025. From pricing to platforms, get everything you need to
+  start teaching online.
+category: Business & Income
+tags:
+- starting a tutoring business
+- online language tutoring
+- tutor business plan
+- language teaching income
+- tutor startup guide
+author: TutorLingua Team
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 readingTime: 10
 wordCount: 2000
 featured: true
-seoKeywords: ["how to start tutoring business", "private language tutoring", "online tutoring business 2025", "become a language tutor", "tutoring business startup"]
-relatedArticles: ["how-much-charge-private-lessons", "first-10-students-new-tutor", "quit-job-tutor-full-time"]
-alternateLocale: "es"
-position: "Authority"
+seoKeywords:
+- how to start tutoring business
+- private language tutoring
+- online tutoring business 2025
+- become a language tutor
+- tutoring business startup
+relatedArticles:
+- how-much-charge-private-lessons
+- first-10-students-new-tutor
+- quit-job-tutor-full-time
+alternateLocale:
+  locale: es
+  slug: empezar-negocio-tutoria-idiomas-2025
+position: authority
 ---
 
 You've been teaching languages, helping friends practice conversation, or watching established tutors on social media and thinking: *I could do this.* You absolutely can. The private language tutoring industry is projected to reach $12.3 billion globally by 2026, and independent tutors who build their own businesses keep 85-100% of their revenue instead of the 40-60% that platform-based tutors typically earn.
@@ -431,6 +448,10 @@ Starting a private tutoring business is one of the few ventures where you can be
 The tutoring business you're imagining? It's completely achievable. The tutors earning $5,000-10,000 monthly started exactly where you are now: with a decision to begin and a plan to follow.
 
 **Ready to launch?** [Start your free TutorLingua account](/signup) and have your professional tutoring business live in 15 minutes.
+
+---
+
+*Également disponible en français : [Comment Démarrer une Entreprise de Tutorat de Langues en 2025](/fr/blog/demarrer-entreprise-tutorat-langues-2025)*
 
 ---
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 interface CancelledPageProps {
@@ -9,6 +10,7 @@ interface CancelledPageProps {
 
 export default async function BookingCancelledPage({ searchParams }: CancelledPageProps) {
   const { booking_id } = await searchParams;
+  const t = await getTranslations("bookingCancelledPage");
 
   let tutorUsername = "";
 
@@ -59,17 +61,16 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Booking Cancelled
+            {t("title")}
           </h1>
 
           <p className="text-gray-600 mb-8">
-            Your booking was not completed. No payment was processed.
+            {t("message")}
           </p>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 text-left">
             <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> The time slot you selected may still be available.
-              You can try booking again if you&apos;d like.
+              <strong>{t("note")}</strong> {t("noteBody")}
             </p>
           </div>
 
@@ -79,7 +80,7 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
                 href={`/book/${tutorUsername}`}
                 className="block w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >
-                Try Again
+                {t("tryAgain")}
               </Link>
             )}
 
@@ -87,13 +88,13 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
               href="/"
               className="block w-full px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
             >
-              Back to Home
+              {t("backHome")}
             </Link>
           </div>
 
           {booking_id && (
             <p className="text-xs text-gray-500 mt-6">
-              Reference: {booking_id}
+              {t("reference", { bookingId: booking_id })}
             </p>
           )}
         </div>

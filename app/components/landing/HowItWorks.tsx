@@ -24,26 +24,26 @@ export function HowItWorks({ howItWorks }: HowItWorksProps) {
         </div>
 
         <div className="mx-auto mt-16 max-w-5xl">
-          <div className="space-y-12">
+          <div className="space-y-10 sm:space-y-12">
             {howItWorks.steps.map((step, index) => {
               const Icon = iconMap[step.icon] ?? UserPlus;
 
               return (
                 <div
                   key={step.number}
-                  className="relative flex gap-x-6 md:gap-x-8"
+                  className="relative flex flex-col gap-4 md:flex-row md:items-start md:gap-x-8"
                 >
                   {/* Step number with icon */}
                   <div className="flex-none">
-                    <div className="relative flex h-16 w-16 items-center justify-center">
+                    <div className="relative flex h-14 w-14 items-center justify-center md:h-16 md:w-16">
                       {/* Circular background */}
                       <div className="absolute inset-0 rounded-full bg-primary shadow-lg" />
                       {/* Number */}
-                      <span className="relative z-10 text-2xl font-bold text-primary-foreground">
+                      <span className="relative z-10 text-xl font-bold text-primary-foreground md:text-2xl">
                         {step.number}
                       </span>
                       {/* Small icon overlay */}
-                      <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-muted flex items-center justify-center shadow-sm">
+                      <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-muted shadow-sm md:h-8 md:w-8">
                         <Icon
                           className="text-primary"
                           size={14}
@@ -55,18 +55,18 @@ export function HowItWorks({ howItWorks }: HowItWorksProps) {
                   </div>
 
                   {/* Step content */}
-                  <div className="flex-1 rounded-2xl bg-brand-white p-8 shadow-sm">
-                    <h3 className="text-2xl font-semibold text-foreground mb-3">
+                  <div className="flex-1 rounded-2xl bg-brand-white p-6 shadow-sm md:p-8">
+                    <h3 className="mb-3 text-xl font-semibold text-foreground md:text-2xl">
                       {step.title}
                     </h3>
-                    <p className="text-lg text-gray-700 leading-relaxed">
+                    <p className="text-base leading-relaxed text-gray-700 md:text-lg">
                       {step.description}
                     </p>
                   </div>
 
                   {/* Connecting line */}
                   {index < howItWorks.steps.length - 1 && (
-                    <div className="absolute left-8 top-16 -ml-px h-full w-0.5 bg-primary/30" />
+                    <div className="absolute left-7 top-16 -ml-px hidden h-full w-0.5 bg-primary/30 md:block" />
                   )}
                 </div>
               );

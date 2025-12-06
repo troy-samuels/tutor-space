@@ -1,13 +1,21 @@
 ---
-title: "Establecer Límites: Cuándo Decir No a los Estudiantes"
+title: "Establecer L\xEDmites: Cu\xE1ndo Decir No a los Estudiantes"
 slug: establecer-limites-tutoria
-description: "Aprende a establecer límites profesionales saludables con estudiantes de tutoría. Descubre cuándo y cómo decir no sin culpa mientras construyes una práctica de enseñanza sostenible y respetuosa."
-category: "Operaciones y Productividad"
-author: "Equipo TutorLingua"
-date: "2025-01-17"
-image: "/images/blog/setting-boundaries-tutoring.jpg"
-tags: ["límites", "equilibrio vida-trabajo", "desarrollo profesional", "gestión estudiantes", "autocuidado"]
-lang: "es"
+description: "Aprende a establecer l\xEDmites profesionales saludables con estudiantes\
+  \ de tutor\xEDa. Descubre cu\xE1ndo y c\xF3mo decir no sin culpa mientras construyes\
+  \ una pr\xE1ctica de ense\xF1anza sostenible y respetuosa."
+category: Operaciones y Productividad
+author: Equipo TutorLingua
+image: /images/blog/setting-boundaries-tutoring.jpg
+tags:
+- "l\xEDmites"
+- equilibrio vida-trabajo
+- desarrollo profesional
+- "gesti\xF3n estudiantes"
+- autocuidado
+lang: es
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 ---
 
 # Establecer Límites: Cuándo Decir No a los Estudiantes

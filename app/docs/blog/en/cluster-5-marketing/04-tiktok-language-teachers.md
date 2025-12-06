@@ -1,23 +1,25 @@
 ---
-title: "TikTok for Language Teachers: Is It Worth Your Time?"
+title: 'TikTok for Language Teachers: Is It Worth Your Time?'
 slug: tiktok-language-teachers
-description: "Honest analysis of TikTok for language tutors. Learn if this platform fits your marketing strategy, what content works, and how to convert views into students."
-category: "Marketing & Growth"
-readTime: "6 min read"
+description: Honest analysis of TikTok for language tutors. Learn if this platform
+  fits your marketing strategy, what content works, and how to convert views into
+  students.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "tiktok-profesores-idiomas"
-keywords:
-  - TikTok for language teachers
-  - language tutor TikTok
-  - grow tutoring on TikTok
-  - TikTok marketing tutors
-  - should tutors use TikTok
+  locale: es
+  slug: tiktok-profesores-idiomas
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 6
+seoKeywords:
+- TikTok for language teachers
+- language tutor TikTok
+- grow tutoring on TikTok
+- TikTok marketing tutors
+- should tutors use TikTok
 ---
 
 # TikTok for Language Teachers: Is It Worth Your Time?

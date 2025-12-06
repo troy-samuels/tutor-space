@@ -342,4 +342,8 @@ Ready to streamline your booking process? [Try TutorLingua free for 14 days](/si
 
 ---
 
+*Également disponible en français : [Le Meilleur Système de Réservation pour Tuteurs en 2025](/fr/blog/meilleur-systeme-reservation-tuteurs)*
+
+---
+
 *Still not sure which booking system is right for you? [Contact our team](/contact) for a personalized recommendation based on your student count, revenue, and goals.*

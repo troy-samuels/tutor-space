@@ -1,20 +1,36 @@
 ---
-title: "How to Handle Student Cancellations Without Losing Income"
-slug: "handle-student-cancellations"
-description: "Create a fair cancellation policy that protects your time and income while maintaining good student relationships. Includes policy templates and communication strategies."
-category: "Student Management"
-tags: ["cancellation policy", "tutoring business", "income protection", "student management", "boundaries"]
-author: "TutorLingua Team"
-publishDate: "2025-01-18"
-updateDate: "2025-01-18"
-readingTime: "6 min"
+title: How to Handle Student Cancellations Without Losing Income
+slug: handle-student-cancellations
+description: Create a fair cancellation policy that protects your time and income
+  while maintaining good student relationships. Includes policy templates and communication
+  strategies.
+category: Student Management
+tags:
+- cancellation policy
+- tutoring business
+- income protection
+- student management
+- boundaries
+author: TutorLingua Team
+readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["tutor cancellation policy", "handle student cancellations", "no-show policy", "tutoring income protection", "late cancellation fee"]
-relatedArticles: ["student-retention-guide-tutors", "session-packages-students-buy", "student-onboarding-process"]
-alternateLocale: "es"
-alternateSlug: "manejar-cancelaciones-estudiantes"
-position: "Replacement"
+seoKeywords:
+- tutor cancellation policy
+- handle student cancellations
+- no-show policy
+- tutoring income protection
+- late cancellation fee
+relatedArticles:
+- student-retention-guide-tutors
+- session-packages-students-buy
+- student-onboarding-process
+alternateLocale:
+  locale: es
+  slug: manejar-cancelaciones-estudiantes
+position: replacement
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 ---
 
 # How to Handle Student Cancellations Without Losing Income
@@ -285,5 +301,11 @@ For existing students, send an update:
 Most students will understand and respect you more for having professional boundaries.
 
 [TutorLingua](/) makes policy enforcement effortless with built-in cancellation management, automated reminders, and package tracking. [Start your free trial](/pricing) and stop losing income to last-minute cancellations.
+
+---
+
+*Également disponible en français : [Comment Gérer les Annulations d'Étudiants Professionnellement](/fr/blog/gerer-annulations-etudiants)*
+
+---
 
 Your time is valuable. Protect it.

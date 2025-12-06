@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Instagram, Mail, Globe, Check, Loader2 } from "lucide-react";
+import { Instagram, Globe, Check, Loader2 } from "lucide-react";
 import { useProfileWizard } from "@/lib/contexts/profile-wizard-context";
 
 type SocialProofData = {
@@ -16,7 +16,7 @@ type Step4Props = {
   onSave?: (data: SocialProofData) => void;
 };
 
-export function Step4Social({ onNext, onBack, initialValues, onSave }: Step4Props) {
+export function Step4Social({ onNext, initialValues, onSave }: Step4Props) {
   const wizard = useProfileWizard();
   const [formData, setFormData] = useState<SocialProofData>({
     website_url: initialValues?.website_url || wizard.state.step4.website_url || "",

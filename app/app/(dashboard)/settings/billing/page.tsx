@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import BillingPortalButton from "@/components/settings/BillingPortalButton";
-import ConnectStripeButton from "@/components/settings/ConnectStripeButton";
 import SubscriptionCard from "@/components/settings/SubscriptionCard";
+import { PlatformSubscriptionCTA } from "@/components/settings/PlatformSubscriptionCTA";
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -33,7 +33,9 @@ export default async function BillingPage() {
   const currentPlan = profile?.plan || "professional";
   const displayPlan =
     currentPlan === "founder_lifetime" ? "Founder lifetime" : "All-access";
+  const hasPaidPlan = currentPlan === "growth" || currentPlan === "founder_lifetime";
   const hasStripeCustomer = !!profile?.stripe_customer_id;
+  const hasActiveSubscription = hasPaidPlan || Boolean(subscription);
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -51,32 +53,53 @@ export default async function BillingPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold capitalize">{displayPlan}</span>
-              {subscription && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
-                  Active
-                </span>
-              )}
+              <span className="text-2xl font-bold capitalize">
+                {hasPaidPlan ? displayPlan : "No active subscription"}
+              </span>
+              <span
+                className={`px-3 py-1 text-sm rounded-full ${
+                  hasActiveSubscription
+                    ? "bg-green-100 text-green-800"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {hasActiveSubscription ? "Active" : "Inactive"}
+              </span>
             </div>
-            {subscription && (
+            {subscription ? (
               <p className="text-gray-600 mt-1">
                 Renews on {new Date(subscription.current_period_end).toLocaleDateString()}
+              </p>
+            ) : hasPaidPlan ? (
+              <p className="text-gray-600 mt-1">Lifetime access active.</p>
+            ) : (
+              <p className="text-gray-600 mt-1">
+                Start your 14-day free trial to unlock TutorLingua.
               </p>
             )}
           </div>
 
-          {hasStripeCustomer && (
+          {hasStripeCustomer && hasActiveSubscription && (
             <BillingPortalButton />
           )}
         </div>
+
+        {!hasActiveSubscription && (
+          <div className="mt-4">
+            <PlatformSubscriptionCTA
+              defaultCycle="monthly"
+              helperText="14-day free trial. Then $39/mo or $299/yr. Switch anytime."
+            />
+          </div>
+        )}
       </div>
 
       {/* Plan Features */}
       <div className="grid md:grid-cols-1 lg:grid-cols-1 gap-6">
         <SubscriptionCard
           title="All-access"
-          price="$29/mo or $199/yr"
-          subtitle="Full platform access. No tiers."
+          price="14-day free trial → then $39/mo or $299/yr"
+          subtitle="Full platform access. Cancel anytime during the trial."
           features={[
             "All current features included",
             "Calendar sync keeps you aligned with Preply/iTalki bookings",
@@ -90,7 +113,7 @@ export default async function BillingPage() {
       </div>
 
       {/* Billing History - Only show if has Stripe customer */}
-      {hasStripeCustomer && (
+      {hasStripeCustomer && hasActiveSubscription && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Billing History</h2>
           <p className="text-gray-600 text-sm mb-4">
@@ -101,26 +124,13 @@ export default async function BillingPage() {
       )}
 
       {/* Payment Method - Only show if has Stripe customer */}
-      {hasStripeCustomer && (
+      {hasStripeCustomer && hasActiveSubscription && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
           <p className="text-gray-600 text-sm mb-4">
             Manage your payment methods through the billing portal
           </p>
           <BillingPortalButton variant="secondary" text="Manage Payment Methods" />
-        </div>
-      )}
-
-      {/* No Stripe customer notice */}
-      {!hasStripeCustomer && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-2">Get Started</h3>
-          <p className="text-blue-800 text-sm">
-            Subscribe to a paid plan to unlock premium features and grow your tutoring business.
-          </p>
-          <div className="mt-4">
-            <ConnectStripeButton />
-          </div>
         </div>
       )}
     </div>

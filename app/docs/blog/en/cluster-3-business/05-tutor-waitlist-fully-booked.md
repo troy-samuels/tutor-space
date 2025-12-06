@@ -1,19 +1,36 @@
 ---
-title: "Building a Waitlist: What to Do When You're Fully Booked"
-slug: "tutor-waitlist-fully-booked"
-description: "Turn your fully booked calendar into a strategic advantage. Learn how to create and manage a tutor waitlist that increases demand, justifies rate increases, and grows your business."
-category: "Business & Income"
-tags: ["waitlist", "fully booked tutor", "student demand", "rate increase", "booking management"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-19"
-updatedAt: "2025-01-19"
+title: 'Building a Waitlist: What to Do When You''re Fully Booked'
+slug: tutor-waitlist-fully-booked
+description: Turn your fully booked calendar into a strategic advantage. Learn how
+  to create and manage a tutor waitlist that increases demand, justifies rate increases,
+  and grows your business.
+category: Business & Income
+tags:
+- waitlist
+- fully booked tutor
+- student demand
+- rate increase
+- booking management
+author: TutorLingua Team
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["tutor waitlist", "fully booked tutor", "high demand tutoring", "waitlist management", "tutor booking capacity"]
-relatedArticles: ["how-much-charge-private-lessons", "start-language-tutoring-business-2025", "side-hustle-full-time-tutoring"]
-alternateLocale: "es"
-position: "Authority"
+seoKeywords:
+- tutor waitlist
+- fully booked tutor
+- high demand tutoring
+- waitlist management
+- tutor booking capacity
+relatedArticles:
+- how-much-charge-private-lessons
+- start-language-tutoring-business-2025
+- side-hustle-full-time-tutoring
+alternateLocale:
+  locale: es
+  slug: lista-espera-tutor-reservado
+position: authority
 ---
 
 Being fully booked feels amazing—for about two weeks. Then you realize you're turning away potential students, leaving money on the table, and have zero flexibility in your schedule. Your calendar is packed, but your business isn't growing.

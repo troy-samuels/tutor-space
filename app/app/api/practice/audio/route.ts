@@ -76,8 +76,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const now = new Date();
-
     // Get or create the current usage period (billing cycle)
     const usagePeriod = await getOrCreateUsagePeriod(
       adminClient,
@@ -258,7 +256,7 @@ export async function POST(request: Request) {
 }
 
 // Get current audio budget for a student
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -411,6 +409,7 @@ async function incrementAudioWithBilling(params: {
         stripe_usage_record_id: usageRecord.id,
       });
     } catch (stripeError) {
+      console.error("Stripe usage record failed", stripeError);
       await adminClient
         .from("practice_usage_periods")
         .update({

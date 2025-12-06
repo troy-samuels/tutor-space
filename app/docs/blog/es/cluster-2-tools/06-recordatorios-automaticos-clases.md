@@ -1,21 +1,36 @@
 ---
-title: "Configurando Recordatorios Automáticos de Clases Que Realmente Funcionan"
-slug: "recordatorios-automaticos-clases"
-description: "Reduce las ausencias en 70% con recordatorios automáticos de clases. Aprende cuándo enviar recordatorios, qué incluir y qué herramientas funcionan mejor para tutores de idiomas."
-category: "Herramientas y Tecnología"
-tags: ["recordatorios automáticos", "ausencias", "recordatorios clases", "automatización email", "herramientas tutor"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-16"
-updatedAt: "2025-01-16"
+title: "Configurando Recordatorios Autom\xE1ticos de Clases Que Realmente Funcionan"
+slug: recordatorios-automaticos-clases
+description: "Reduce las ausencias en 70% con recordatorios autom\xE1ticos de clases.\
+  \ Aprende cu\xE1ndo enviar recordatorios, qu\xE9 incluir y qu\xE9 herramientas funcionan\
+  \ mejor para tutores de idiomas."
+category: "Herramientas y Tecnolog\xEDa"
+tags:
+- "recordatorios autom\xE1ticos"
+- ausencias
+- recordatorios clases
+- "automatizaci\xF3n email"
+- herramientas tutor
+author: TutorLingua Team
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["recordatorios automáticos clases", "reducir ausencias tutor", "sistema recordatorios clases", "recordatorios automatizados tutores", "emails recordatorio tutor"]
-relatedArticles: ["stack-tecnologico-tutores-2025", "mejor-sistema-reservas-tutores", "links-zoom-automaticos-estudiantes"]
+seoKeywords:
+- "recordatorios autom\xE1ticos clases"
+- reducir ausencias tutor
+- sistema recordatorios clases
+- recordatorios automatizados tutores
+- emails recordatorio tutor
+relatedArticles:
+- stack-tecnologico-tutores-2025
+- mejor-sistema-reservas-tutores
+- links-zoom-automaticos-estudiantes
 alternateLocale:
-  locale: "en"
-  slug: "automated-lesson-reminders"
-position: "replacement"
+  locale: en
+  slug: automated-lesson-reminders
+position: replacement
 ---
 
 # Configurando Recordatorios Automáticos de Clases Que Realmente Funcionan
@@ -425,7 +440,7 @@ Los recordatorios automatizados no son fastidiosos—son cortesía profesional. 
 
 Los tutores con tasas de ausencia más bajas no son más estrictos o exigentes. Simplemente hacen imposible olvidar removiendo la carga de memoria a través de automatización inteligente.
 
-Ya sea que uses [un sistema básico de reservas](/es/blog/cluster-2-herramientas/mejor-sistema-reservas-tutores) con recordatorios integrados o [una plataforma completa como TutorLingua](/es/features/booking), lo importante es automatizar esto completamente. Tu tiempo es demasiado valioso para gastarlo recordando manualmente a estudiantes.
+Ya sea que uses [un sistema básico de reservas](/es/blog/mejor-sistema-reservas-tutores) con recordatorios integrados o [una plataforma completa como TutorLingua](/es/features/booking), lo importante es automatizar esto completamente. Tu tiempo es demasiado valioso para gastarlo recordando manualmente a estudiantes.
 
 Configúralo una vez, ajusta basado en resultados, luego observa tu tasa de ausencia desplomarse mientras te enfocas en lo que importa: gran enseñanza.
 

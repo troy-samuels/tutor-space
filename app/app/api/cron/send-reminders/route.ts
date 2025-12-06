@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { sendLessonReminderEmail } from "@/lib/emails/reminder-emails";
 import { queueReengageAutomation } from "@/lib/server/email-automations";
-import { resend, EMAIL_CONFIG } from "@/lib/resend";
+import { sendEmail } from "@/lib/email/send";
 import {
   BroadcastCampaignEmail,
   BroadcastCampaignEmailText,
@@ -474,13 +474,40 @@ async function processEmailCampaignQueue(adminClient: ReturnType<typeof createSe
         unsubscribeUrl,
       });
 
-      await resend.emails.send({
-        from: EMAIL_CONFIG.from,
+      const sendResult = await sendEmail({
         to: recipient.student_email,
         subject,
         html,
         text,
+        category: `marketing.${recipient.email_campaigns?.kind || "campaign"}`,
+        tags: [
+          { name: "campaign_id", value: recipient.campaign_id },
+          { name: "recipient_id", value: recipient.id },
+        ],
+        metadata: {
+          campaignId: recipient.campaign_id,
+          recipientId: recipient.id,
+          unsubscribeUrl,
+        },
       });
+
+      if (!sendResult.success) {
+        const status = sendResult.skipped ? "skipped" : "failed";
+        const errorMessage = sendResult.error || (sendResult.skipped ? "Suppressed" : "Send failed");
+
+        await adminClient
+          .from("email_campaign_recipients")
+          .update({
+            status,
+            error_message: errorMessage,
+          })
+          .eq("id", recipient.id);
+
+        if (status === "failed") {
+          failed++;
+        }
+        continue;
+      }
 
       await adminClient
         .from("email_campaign_recipients")
@@ -699,13 +726,29 @@ async function sendPracticeReminders(
         practiceUrl,
       });
 
-      await resend.emails.send({
-        from: EMAIL_CONFIG.from,
+      const sendResult = await sendEmail({
         to: student.email,
         subject: `Extra practice available for "${hw.title}"`,
         html,
         text,
+        category: "transactional.practice_reminder",
+        metadata: {
+          homeworkId: hw.id,
+          practiceAssignmentId: hw.practice_assignment_id,
+        },
       });
+
+      if (!sendResult.success) {
+        console.error(`[Cron] Practice reminder send failed for hw ${hw.id}:`, sendResult.error);
+        await adminClient
+          .from("homework_assignments")
+          .update({
+            practice_reminder_sent: sendResult.skipped ? true : false,
+            practice_reminder_sent_at: sendResult.skipped ? now.toISOString() : null,
+          })
+          .eq("id", hw.id);
+        continue;
+      }
 
       // Mark as sent
       await adminClient

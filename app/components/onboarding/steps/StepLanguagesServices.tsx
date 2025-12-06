@@ -5,7 +5,6 @@ import { Loader2, Plus, X } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepLanguagesServicesProps = {
-  profileId: string;
   onComplete: () => void;
 };
 
@@ -39,7 +38,6 @@ const CURRENCIES = [
 ];
 
 export function StepLanguagesServices({
-  profileId,
   onComplete,
 }: StepLanguagesServicesProps) {
   const [formData, setFormData] = useState({

@@ -1,15 +1,24 @@
 ---
-title: "Preparación IELTS y Cambridge: Un Nicho Rentable para Tutores"
+title: "Preparaci\xF3n IELTS y Cambridge: Un Nicho Rentable para Tutores"
 slug: preparacion-ielts-cambridge-nicho
-description: "Descubre por qué la preparación para exámenes IELTS y Cambridge representa una de las especializaciones de enseñanza más lucrativas y aprende cómo construir una práctica exitosa de tutoría de preparación de exámenes con métodos probados y precios premium."
-category: "Enseñanza y Especializaciones"
-date: 2025-01-17
-author: "Equipo TutorLingua"
-image: "/blog/ielts-cambridge-prep.jpg"
-tags: ["preparación IELTS", "exámenes Cambridge", "tutoría de exámenes", "preparación de pruebas"]
+description: "Descubre por qu\xE9 la preparaci\xF3n para ex\xE1menes IELTS y Cambridge\
+  \ representa una de las especializaciones de ense\xF1anza m\xE1s lucrativas y aprende\
+  \ c\xF3mo construir una pr\xE1ctica exitosa de tutor\xEDa de preparaci\xF3n de ex\xE1\
+  menes con m\xE9todos probados y precios premium."
+category: "Ense\xF1anza y Especializaciones"
+author: Equipo TutorLingua
+image: /blog/ielts-cambridge-prep.jpg
+tags:
+- "preparaci\xF3n IELTS"
+- "ex\xE1menes Cambridge"
+- "tutor\xEDa de ex\xE1menes"
+- "preparaci\xF3n de pruebas"
 locale: es
-alternateLocale: en
-alternateSlug: ielts-cambridge-exam-prep-niche
+alternateLocale:
+  locale: en
+  slug: ielts-cambridge-exam-prep-niche
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 ---
 
 # Preparación IELTS y Cambridge: Un Nicho Rentable para Tutores

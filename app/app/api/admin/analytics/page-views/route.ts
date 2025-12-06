@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
 
     // Views by day
     const viewsByDay: Record<string, number> = {};
-    const uniqueSessionsByDay: Record<string, Set<string>> = {};
 
     // Views by path
     const viewsByPath: Record<string, number> = {};

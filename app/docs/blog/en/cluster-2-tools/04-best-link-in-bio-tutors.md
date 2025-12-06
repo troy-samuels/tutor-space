@@ -336,4 +336,8 @@ Your link-in-bio isn't just a tool—it's your 24/7 sales page working while you
 
 ---
 
+*Également disponible en français : [Linktree vs Beacons vs Solutions Spécialisées](/fr/blog/meilleur-lien-bio-tuteurs)*
+
+---
+
 *Not sure which link-in-bio tool matches your tutoring business? [Contact us](/contact) for personalized recommendations based on your social strategy and student volume.*

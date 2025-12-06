@@ -9,11 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Bot,
   MessageSquare,
-  Clock,
   CheckCircle,
   Sparkles,
   ArrowRight,
@@ -27,8 +25,6 @@ import {
   AI_PRACTICE_BASE_PRICE_CENTS,
   BASE_AUDIO_MINUTES,
   BASE_TEXT_TURNS,
-  BLOCK_AUDIO_MINUTES,
-  BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
 
 export interface PracticeAssignment {

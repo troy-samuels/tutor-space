@@ -1,19 +1,36 @@
 ---
-title: "Cómo Conseguir Tus Primeros 10 Estudiantes Como Tutor Online Nuevo"
-slug: "primeros-10-estudiantes-tutor-nuevo"
-description: "Estrategias probadas de adquisición de estudiantes para tutores nuevos de idiomas. Salta la lucha de meses y reserva tus primeros 10 estudiantes pagadores en 4-6 semanas con este enfoque sistemático."
-category: "Negocio e Ingresos"
-tags: ["adquisición de estudiantes", "marketing para tutores", "tutor nuevo", "encontrar estudiantes", "marketing tutor"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-18"
-updatedAt: "2025-01-18"
+title: "C\xF3mo Conseguir Tus Primeros 10 Estudiantes Como Tutor Online Nuevo"
+slug: primeros-10-estudiantes-tutor-nuevo
+description: "Estrategias probadas de adquisici\xF3n de estudiantes para tutores nuevos\
+  \ de idiomas. Salta la lucha de meses y reserva tus primeros 10 estudiantes pagadores\
+  \ en 4-6 semanas con este enfoque sistem\xE1tico."
+category: Negocio e Ingresos
+tags:
+- "adquisici\xF3n de estudiantes"
+- marketing para tutores
+- tutor nuevo
+- encontrar estudiantes
+- marketing tutor
+author: TutorLingua Team
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 readingTime: 8
 wordCount: 1500
 featured: false
-seoKeywords: ["cómo encontrar estudiantes tutoría", "conseguir primeros estudiantes tutor", "marketing tutor idiomas", "encontrar estudiantes online", "estudiantes tutor nuevo"]
-relatedArticles: ["empezar-negocio-tutoria-idiomas-2025", "cuanto-cobrar-clases-particulares", "ingreso-extra-tiempo-completo-tutoria"]
-alternateLocale: "en"
-position: "Complement"
+seoKeywords:
+- "c\xF3mo encontrar estudiantes tutor\xEDa"
+- conseguir primeros estudiantes tutor
+- marketing tutor idiomas
+- encontrar estudiantes online
+- estudiantes tutor nuevo
+relatedArticles:
+- empezar-negocio-tutoria-idiomas-2025
+- cuanto-cobrar-clases-particulares
+- ingreso-extra-tiempo-completo-tutoria
+alternateLocale:
+  locale: en
+  slug: first-10-students-new-tutor
+position: complement
 ---
 
 Has configurado tu página de reservas, elegido tus tarifas y creado tus primeros materiales de lección. Ahora viene la parte más difícil: conseguir que la gente realmente reserve.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format, setHours, setMinutes, addHours } from "date-fns";
+import { format, setHours, setMinutes } from "date-fns";
 import { X, Loader2, Clock, Calendar } from "lucide-react";
 import { createBlockedTime } from "@/lib/actions/blocked-times";
 
@@ -76,7 +76,7 @@ export function QuickBlockDialog({
       } else {
         setError(result.error || "Failed to create blocked time");
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);

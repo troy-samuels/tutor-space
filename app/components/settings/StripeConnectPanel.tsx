@@ -12,7 +12,7 @@ type Props = {
 
 export default function StripeConnectPanel(props: Props) {
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<Pick<Props, "accountId" | "chargesEnabled" | "payoutsEnabled" | "onboardingStatus">>({
+  const [status] = useState<Pick<Props, "accountId" | "chargesEnabled" | "payoutsEnabled" | "onboardingStatus">>({
     accountId: props.accountId,
     chargesEnabled: props.chargesEnabled,
     payoutsEnabled: props.payoutsEnabled,

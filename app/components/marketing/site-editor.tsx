@@ -59,8 +59,6 @@ type InitialSiteData = {
 type SiteEditorProps = {
   profile: EditorProfile;
   services: ServiceLite[];
-  students: Array<{ id: string; name: string; hasContact: boolean }>;
-  defaultReviewFormUrl: string;
   initialSiteData: InitialSiteData;
 };
 
@@ -215,8 +213,6 @@ const FONT_OPTIONS: Array<{ value: FontOption; label: string }> = [
 export function SiteEditor({
   profile,
   services,
-  students,
-  defaultReviewFormUrl,
   initialSiteData,
 }: SiteEditorProps) {
   const [previewPage, setPreviewPage] = useState<SitePageView>("home");
@@ -433,6 +429,7 @@ export function SiteEditor({
     lessonsStyle,
     reviewsStyle,
     siteId,
+    lastUpdatedAt,
     profile.stripe_payment_link,
     profile.username,
     profile.email,
@@ -492,7 +489,7 @@ export function SiteEditor({
           setTimeout(() => setSaveMessage(null), 3000);
         }
       }
-    } catch (error) {
+    } catch {
       setSaveMessage("Failed to save draft");
     } finally {
       setIsSaving(false);
@@ -515,7 +512,7 @@ export function SiteEditor({
         setSaveMessage("Site published!");
         setTimeout(() => setSaveMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setSaveMessage("Failed to publish");
     } finally {
       setIsPublishing(false);

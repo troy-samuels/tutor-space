@@ -8,7 +8,7 @@ import { PublicBookingLanding } from "@/components/booking/PublicBookingLanding"
 import { AccessRequestStatus } from "@/components/booking/AccessRequestStatus";
 import { checkStudentAccess } from "@/lib/actions/student-auth";
 import { getStudentLessonHistory } from "@/lib/actions/student-lessons";
-import { generateTutorPersonSchema, generateServiceSchema, generateBreadcrumbSchema } from "@/lib/utils/structured-data";
+import { generateTutorPersonSchema, generateBreadcrumbSchema } from "@/lib/utils/structured-data";
 
 interface BookPageProps {
   params: Promise<{ username: string }>;

@@ -172,7 +172,7 @@ export function DayLessonsPanel({
                 role="region"
                 aria-label="Scheduled lessons"
               >
-                {bookings.map((booking, index) => (
+                {bookings.map((booking) => (
                   <motion.div
                     key={booking.id}
                     variants={cardVariants}

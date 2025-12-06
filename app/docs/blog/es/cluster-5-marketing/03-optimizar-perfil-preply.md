@@ -1,23 +1,25 @@
 ---
-title: "Cómo Optimizar Tu Perfil de Preply para Obtener Más Lecciones de Prueba"
+title: "C\xF3mo Optimizar Tu Perfil de Preply para Obtener M\xE1s Lecciones de Prueba"
 slug: optimizar-perfil-preply
-description: "Guía completa para optimizar tu perfil de tutor de Preply para máxima visibilidad y reservas. Aprende qué funciona en 2025 para destacar y convertir navegadores en estudiantes."
-category: "Marketing y Crecimiento"
-readTime: "6 min lectura"
+description: "Gu\xEDa completa para optimizar tu perfil de tutor de Preply para m\xE1\
+  xima visibilidad y reservas. Aprende qu\xE9 funciona en 2025 para destacar y convertir\
+  \ navegadores en estudiantes."
+category: Marketing y Crecimiento
 featured: false
-author: "Equipo TutorLingua"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "es"
+author: Equipo TutorLingua
+locale: es
 alternateLocale:
-  locale: "en"
-  slug: "optimize-preply-profile"
-keywords:
-  - optimizar perfil Preply
-  - consejos tutor Preply
-  - conseguir más estudiantes Preply
-  - optimización perfil Preply
-  - aumentar reservas Preply
+  locale: en
+  slug: optimize-preply-profile
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 6
+seoKeywords:
+- optimizar perfil Preply
+- consejos tutor Preply
+- "conseguir m\xE1s estudiantes Preply"
+- "optimizaci\xF3n perfil Preply"
+- aumentar reservas Preply
 ---
 
 # Cómo Optimizar Tu Perfil de Preply para Obtener Más Lecciones de Prueba
@@ -248,13 +250,13 @@ Una estrategia común: precio más bajo inicialmente para atraer estudiantes, so
 
 ## Integrando Preply con Tu Estrategia Más Amplia
 
-Mientras optimizar tu perfil de Preply maximiza tu éxito en la plataforma, recuerda que Preply es solo un canal en tu [estrategia general de marketing para tutores de idiomas](/es/blog/marketing-language-tutors-2025).
+Mientras optimizar tu perfil de Preply maximiza tu éxito en la plataforma, recuerda que Preply es solo un canal en tu [estrategia general de marketing para tutores de idiomas](/es/blog/marketing-tutores-idiomas-2025).
 
-Los tutores más inteligentes usan Preply para lo que hace mejor—descubrimiento y credibilidad inicial—y luego [convierten estudiantes a reservas directas](/es/blog/convert-students-direct-booking) después de construir rapport. Esto evita las comisiones de Preply y te da control total sobre precios, programación y relaciones con estudiantes.
+Los tutores más inteligentes usan Preply para lo que hace mejor—descubrimiento y credibilidad inicial—y luego [convierten estudiantes a reservas directas](/es/blog/convertir-estudiantes-reservas-directas) después de construir rapport. Esto evita las comisiones de Preply y te da control total sobre precios, programación y relaciones con estudiantes.
 
 Incluye tu enlace bio en tu descripción de perfil de Preply (si está permitido) o compártelo naturalmente en mensajes una vez que las relaciones se desarrollan. [TutorLingua](https://tutorlingua.com) hace esta transición perfecta con páginas profesionales de reserva, procesamiento de pagos y herramientas de gestión de estudiantes.
 
-También promociona tu perfil de Preply a través de tu [Instagram](/es/blog/instagram-language-tutors) y otras redes sociales, animando a seguidores comprometidos a reservar lecciones de prueba. Esto crea un ciclo virtuoso: las redes sociales construyen confianza, Preply proporciona credibilidad a través de reseñas, y los estudiantes eventualmente se mueven a reservas directas.
+También promociona tu perfil de Preply a través de tu [Instagram](/es/blog/instagram-tutores-idiomas) y otras redes sociales, animando a seguidores comprometidos a reservar lecciones de prueba. Esto crea un ciclo virtuoso: las redes sociales construyen confianza, Preply proporciona credibilidad a través de reseñas, y los estudiantes eventualmente se mueven a reservas directas.
 
 ## Lista de Verificación de Optimización de Perfil
 

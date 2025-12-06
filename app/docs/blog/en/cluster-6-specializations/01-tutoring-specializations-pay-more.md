@@ -1,15 +1,23 @@
 ---
-title: "Niche Down to Scale Up: Specializations That Pay More"
+title: 'Niche Down to Scale Up: Specializations That Pay More'
 slug: tutoring-specializations-pay-more
-description: "Discover the most profitable teaching specializations for language tutors and learn how focusing on a specific niche can increase your rates, attract better clients, and build your authority in the language tutoring market."
-category: "Teaching & Specializations"
-date: 2025-01-15
-author: "TutorLingua Team"
-image: "/blog/specializations-pay-more.jpg"
-tags: ["teaching specializations", "tutoring income", "premium pricing", "niche marketing"]
+description: Discover the most profitable teaching specializations for language tutors
+  and learn how focusing on a specific niche can increase your rates, attract better
+  clients, and build your authority in the language tutoring market.
+category: Teaching & Specializations
+author: TutorLingua Team
+image: /blog/specializations-pay-more.jpg
+tags:
+- teaching specializations
+- tutoring income
+- premium pricing
+- niche marketing
 locale: en
-alternateLocale: es
-alternateSlug: especializaciones-tutoria-pagan-mas
+alternateLocale:
+  locale: es
+  slug: especializaciones-tutoria-pagan-mas
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 ---
 
 # Niche Down to Scale Up: Specializations That Pay More
@@ -277,5 +285,11 @@ When you [start your language tutoring business](/blog/en/cluster-3-pricing/star
 TutorLingua supports specialized tutors with tools to showcase your expertise, demonstrate your results, and attract your ideal students. Whether you're focusing on business clients, exam preparation, academic support, or any other niche, our platform helps you position yourself as the expert solution.
 
 Ready to niche down and scale up? [Create your specialized tutor profile](/) today and start attracting the high-value students who need exactly what you offer.
+
+---
+
+*Également disponible en français : [Les Spécialisations de Tutorat les Mieux Payées](/fr/blog/specialisations-tutorat-mieux-payees)*
+
+---
 
 Remember: In a crowded market, the generalists compete on price. The specialists compete on value. Choose specialization, choose profitability.

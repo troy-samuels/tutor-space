@@ -1,19 +1,37 @@
 ---
-title: "Construir una Lista de Espera: Qué Hacer Cuando Estás Completamente Reservado"
-slug: "lista-espera-tutor-reservado"
-description: "Convierte tu calendario completamente reservado en una ventaja estratégica. Aprende cómo crear y gestionar una lista de espera de tutor que aumenta demanda, justifica aumentos de tarifas y hace crecer tu negocio."
-category: "Negocio e Ingresos"
-tags: ["lista de espera", "tutor completamente reservado", "demanda de estudiantes", "aumento de tarifa", "gestión de reservas"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-19"
-updatedAt: "2025-01-19"
+title: "Construir una Lista de Espera: Qu\xE9 Hacer Cuando Est\xE1s Completamente\
+  \ Reservado"
+slug: lista-espera-tutor-reservado
+description: "Convierte tu calendario completamente reservado en una ventaja estrat\xE9\
+  gica. Aprende c\xF3mo crear y gestionar una lista de espera de tutor que aumenta\
+  \ demanda, justifica aumentos de tarifas y hace crecer tu negocio."
+category: Negocio e Ingresos
+tags:
+- lista de espera
+- tutor completamente reservado
+- demanda de estudiantes
+- aumento de tarifa
+- "gesti\xF3n de reservas"
+author: TutorLingua Team
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["lista espera tutor", "tutor completamente reservado", "tutoría alta demanda", "gestión lista espera", "capacidad reservas tutor"]
-relatedArticles: ["cuanto-cobrar-clases-particulares", "empezar-negocio-tutoria-idiomas-2025", "ingreso-extra-tiempo-completo-tutoria"]
-alternateLocale: "en"
-position: "Authority"
+seoKeywords:
+- lista espera tutor
+- tutor completamente reservado
+- "tutor\xEDa alta demanda"
+- "gesti\xF3n lista espera"
+- capacidad reservas tutor
+relatedArticles:
+- cuanto-cobrar-clases-particulares
+- empezar-negocio-tutoria-idiomas-2025
+- ingreso-extra-tiempo-completo-tutoria
+alternateLocale:
+  locale: en
+  slug: tutor-waitlist-fully-booked
+position: authority
 ---
 
 Estar completamente reservado se siente increíble—por aproximadamente dos semanas. Luego te das cuenta de que estás rechazando estudiantes potenciales, dejando dinero sobre la mesa y no tienes flexibilidad en tu horario. Tu calendario está lleno, pero tu negocio no está creciendo.

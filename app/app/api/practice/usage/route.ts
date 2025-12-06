@@ -26,7 +26,7 @@ export interface PracticeUsageStats {
  * GET /api/practice/usage
  * Returns current usage and allowance for the authenticated student
  */
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

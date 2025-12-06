@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { CalendarDays, Instagram, Mail, Link2, MessageCircle, Sparkles, Facebook, Twitter, Youtube, Music2 } from "lucide-react";
+import { CalendarDays, Instagram, Mail, Link2, MessageCircle, Facebook, Twitter, Youtube, Music2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +113,7 @@ type SitePreviewProps = {
   theme: ThemeSettings;
   pageVisibility: PageVisibilityConfig;
   heroImageUrl: string | null;
-  galleryImages: string[];
+  galleryImages?: string[];
   contactCTA: PreviewContactCTA | null;
   socialLinks: PreviewResourceLink[];
   digitalResources: PreviewResourceLink[];
@@ -125,9 +124,9 @@ type SitePreviewProps = {
     ctaLabel: string;
     ctaUrl: string;
   };
-  showDigital: boolean;
+  showDigital?: boolean;
   showSocialIconsHeader: boolean;
-  showSocialIconsFooter: boolean;
+  showSocialIconsFooter?: boolean;
   heroStyle: "minimal" | "portrait" | "banner";
   lessonsStyle: "cards" | "list";
   reviewsStyle: "cards" | "highlight";
@@ -149,29 +148,25 @@ function isColorDark(color: string): boolean {
   return luminance < 0.5;
 }
 
-export function SitePreview({
-  profile,
-  about,
-  services,
-  reviews,
-  theme,
-  pageVisibility,
-  heroImageUrl,
-  galleryImages,
-  contactCTA,
-  socialLinks,
-  digitalResources,
-  additionalPages,
-  booking,
-  showDigital,
-  showSocialIconsHeader,
-  showSocialIconsFooter,
-  heroStyle,
-  lessonsStyle,
-  reviewsStyle,
-  page,
-  onNavigate,
-}: SitePreviewProps) {
+export function SitePreview(props: SitePreviewProps) {
+  const {
+    profile,
+    about,
+    services,
+    reviews,
+    theme,
+    pageVisibility,
+    heroImageUrl,
+    contactCTA,
+    socialLinks,
+    additionalPages,
+    booking,
+    showSocialIconsHeader,
+    heroStyle,
+    lessonsStyle,
+    page,
+    onNavigate,
+  } = props;
   const previewFont = FONT_STACKS[theme.font] ?? FONT_STACKS.system;
 
   const spacingClass =
@@ -193,8 +188,6 @@ export function SitePreview({
   const textPrimary = isDark ? "#ffffff" : "#0a0a0a";
   const textSecondary = isDark ? "#b0b0b0" : "#666666";
   const borderColor = isDark ? "#333333" : "#e5e5e5";
-  const navBg = isDark ? "#0a0a0a" : "#ffffff";
-  const navTabInactiveBg = isDark ? "#2a2a2a" : "#f5f5f5";
 
   // Hero content with placeholder fallbacks
   const heroTitleValue = about.title || profile.full_name;
@@ -205,31 +198,6 @@ export function SitePreview({
   const heroSubtitle = heroSubtitleValue || PLACEHOLDER_DEFAULTS.tagline;
 
   const fallbackCheckout = profile.stripe_payment_link || (profile.username ? `/book/${profile.username}` : "#");
-  const heroCtaLabel = booking.ctaLabel?.trim() || "Book a class";
-  const heroCtaHref = booking.ctaUrl?.trim() || fallbackCheckout;
-  const renderHeroCta = (variant: "solid" | "outline" = "solid") => (
-    <Link
-      href={heroCtaHref}
-      className="inline-flex items-center gap-2.5 rounded-full px-7 py-3 text-sm font-semibold transition-all hover:scale-[1.03]"
-      style={
-        variant === "solid"
-          ? {
-              backgroundColor: theme.primary,
-              color: "#ffffff",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }
-          : {
-              border: "2px solid #ffffff",
-              color: "#ffffff",
-              backgroundColor: "transparent",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }
-      }
-    >
-      <CalendarDays className="h-4 w-4" />
-      {heroCtaLabel}
-    </Link>
-  );
 
   const renderSocialIconChips = (appearance: "default" | "inverted" = "default") => {
     const chipBorder = appearance === "inverted" ? "rgba(255,255,255,0.4)" : borderColor;
@@ -521,62 +489,6 @@ export function SitePreview({
     );
   };
 
-  const renderReviewsContent = () => {
-    if (reviewsStyle === "highlight" && reviews.length > 0) {
-      const [featured, ...rest] = reviews;
-      return (
-        <div className="mt-3 space-y-3">
-          <blockquote
-            className="rounded-3xl p-5 text-sm shadow-sm"
-            style={{
-              border: `1px solid ${borderColor}`,
-              backgroundColor: cardBg
-            }}
-          >
-            <Sparkles className="h-4 w-4" style={{ color: theme.primary }} />
-            <p className="mt-2" style={{ color: textSecondary }}>"{featured.quote}"</p>
-            <footer className="mt-2 text-xs font-semibold" style={{ color: textPrimary }}>— {featured.author}</footer>
-          </blockquote>
-          {rest.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {rest.map((r, i) => (
-                <blockquote
-                  key={`${r.author}-${i}`}
-                  className="rounded-2xl p-3 text-xs"
-                  style={{
-                    border: `1px solid ${borderColor}`,
-                    backgroundColor: cardBg
-                  }}
-                >
-                  <p style={{ color: textSecondary }}>"{r.quote}"</p>
-                  <footer className="mt-2 font-semibold" style={{ color: textPrimary }}>— {r.author}</footer>
-                </blockquote>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-3 space-y-3">
-        {reviews.map((r, i) => (
-          <blockquote
-            key={`${r.author}-${i}`}
-            className="rounded-2xl p-4 text-sm"
-            style={{
-              border: `1px solid ${borderColor}`,
-              backgroundColor: cardBg
-            }}
-          >
-            <p style={{ color: textSecondary }}>"{r.quote}"</p>
-            <footer className="mt-2 text-xs font-semibold" style={{ color: textPrimary }}>— {r.author}</footer>
-          </blockquote>
-        ))}
-      </div>
-    );
-  };
-
   // Booking page variables - defined before render functions that use them
   const bookingHeadline = booking.headline?.trim() || "Ready to start?";
   const bookingSubcopy = booking.subcopy?.trim() || "Pick a time that works — we will map out goals in the first call.";
@@ -737,154 +649,6 @@ export function SitePreview({
     </>
   );
 
-  const renderBookingPage = () => {
-    if (!pageVisibility.booking) {
-      return <p className="text-sm" style={{ color: textSecondary }}>Booking page is hidden.</p>;
-    }
-    return (
-      <section
-        className="rounded-3xl p-6 shadow-sm text-center"
-        style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: sectionBg
-        }}
-      >
-        <h2 className="text-base font-semibold" style={{ color: textPrimary }}>Book a trial</h2>
-        <p className="mt-3 text-xl font-semibold" style={{ color: textPrimary }}>{bookingHeadline}</p>
-        <p className="mt-2 text-sm" style={{ color: textSecondary }}>{bookingSubcopy}</p>
-        <div className="mt-4 flex justify-center">
-          <a
-            href={bookingUrl}
-            className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm"
-            style={{ backgroundColor: theme.primary }}
-          >
-            {bookingLabel}
-          </a>
-        </div>
-      </section>
-    );
-  };
-
-  const renderTestimonialsPage = () => {
-    if (!pageVisibility.reviews || reviews.length === 0) {
-      return <p className="text-sm" style={{ color: textSecondary }}>Toggle on your testimonials to display this page.</p>;
-    }
-    return (
-      <section
-        className="rounded-3xl p-5 shadow-sm text-center"
-        style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: sectionBg
-        }}
-      >
-        <h2 className="text-base font-semibold" style={{ color: textPrimary }}>Testimonials</h2>
-        {renderReviewsContent()}
-      </section>
-    );
-  };
-
-  const renderSocialPage = () => {
-    if (!pageVisibility.social) {
-      return <p className="text-sm" style={{ color: textSecondary }}>Social page is hidden.</p>;
-    }
-    return (
-      <section
-        className="space-y-4 rounded-3xl p-5 text-center shadow-sm"
-        style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: sectionBg
-        }}
-      >
-        <h2 className="text-base font-semibold" style={{ color: textPrimary }}>Stay in touch</h2>
-        {socialLinks.length > 0 ? (
-          <div className="space-y-2">
-            {socialLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm transition"
-                style={{
-                  border: `1px solid ${borderColor}`,
-                  backgroundColor: cardBg,
-                  color: textPrimary
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="truncate text-center">{link.label}</span>
-                <Link2 className="h-4 w-4 shrink-0" />
-              </a>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm" style={{ color: textSecondary }}>No links yet.</p>
-        )}
-        {pageVisibility.contact && contactCTA?.url ? (
-          <div
-            className="rounded-2xl p-4 text-center"
-            style={{
-              border: `1px solid ${borderColor}`,
-              backgroundColor: cardBg
-            }}
-          >
-            <p className="text-sm font-semibold" style={{ color: textPrimary }}>Prefer a direct reply?</p>
-            <Link
-              href={contactCTA.url}
-              className="mt-3 inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition"
-              style={{
-                border: `1px solid ${theme.primary}`,
-                color: theme.primary
-              }}
-            >
-              <MessageCircle className="h-4 w-4" />
-              {contactCTA.label || "Contact me"}
-            </Link>
-          </div>
-        ) : null}
-      </section>
-    );
-  };
-
-  const renderDigitalPage = () => {
-    if (!showDigital || !pageVisibility.digital) {
-      return <p className="text-sm" style={{ color: textSecondary }}>Digital products page is hidden.</p>;
-    }
-    return (
-      <section
-        className="rounded-3xl p-5 text-center shadow-sm"
-        style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: sectionBg
-        }}
-      >
-        <h2 className="text-base font-semibold" style={{ color: textPrimary }}>Digital products</h2>
-        {digitalResources.length > 0 ? (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {digitalResources.map((item) => (
-              <a
-                key={item.id}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-2xl p-4 text-sm text-center transition"
-                style={{
-                  border: `1px solid ${borderColor}`,
-                  backgroundColor: cardBg,
-                  color: textPrimary
-                }}
-              >
-                <p className="font-semibold">{item.label}</p>
-                <p className="text-xs" style={{ color: textSecondary }}>Instant download</p>
-              </a>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm" style={{ color: textSecondary }}>No products yet.</p>
-        )}
-      </section>
-    );
-  };
-
   const renderFaqPage = () => {
     const displayFaq = additionalPages.faq && additionalPages.faq.length > 0
       ? additionalPages.faq
@@ -913,48 +677,6 @@ export function SitePreview({
               <p className="text-sm font-semibold" style={{ color: textPrimary }}>{item.q}</p>
               <p className="mt-1 text-sm" style={{ color: textSecondary }}>{item.a}</p>
             </div>
-          ))}
-        </div>
-      </section>
-    );
-  };
-
-  const renderResourcesPage = () => {
-    if (!pageVisibility.resources) {
-      return <p className="text-sm" style={{ color: textSecondary }}>Resources page is hidden.</p>;
-    }
-    if (!additionalPages.resources || additionalPages.resources.length === 0) {
-      return <p className="text-sm" style={{ color: textSecondary }}>Add at least one resource to publish this page.</p>;
-    }
-    return (
-      <section
-        className="rounded-3xl p-5 text-center shadow-sm"
-        style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: sectionBg
-        }}
-      >
-        <h2 className="text-base font-semibold" style={{ color: textPrimary }}>Resources</h2>
-        <div className="mt-3 space-y-3">
-          {additionalPages.resources.map((resource, index) => (
-            <a
-              key={`${resource.url}-${index}`}
-              href={resource.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-2xl p-4 transition"
-              style={{
-                border: `1px solid ${borderColor}`,
-                backgroundColor: cardBg,
-                color: textPrimary
-              }}
-            >
-              <p className="font-semibold">{resource.title}</p>
-              {resource.description ? (
-                <p className="text-sm" style={{ color: textSecondary }}>{resource.description}</p>
-              ) : null}
-              <p className="mt-1 text-xs" style={{ color: textSecondary }}>{resource.url}</p>
-            </a>
           ))}
         </div>
       </section>

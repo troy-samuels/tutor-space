@@ -1,19 +1,35 @@
 ---
-title: "How Much Should I Charge for Private Language Lessons?"
-slug: "how-much-charge-private-lessons"
-description: "Science-backed pricing strategies for language tutors. Calculate your true hourly rate, position competitively, and charge what you're worth without guilt."
-category: "Business & Income"
-tags: ["tutor pricing", "hourly rate", "pricing strategy", "language lesson rates", "tutor income"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-16"
-updatedAt: "2025-01-16"
+title: How Much Should I Charge for Private Language Lessons?
+slug: how-much-charge-private-lessons
+description: Science-backed pricing strategies for language tutors. Calculate your
+  true hourly rate, position competitively, and charge what you're worth without guilt.
+category: Business & Income
+tags:
+- tutor pricing
+- hourly rate
+- pricing strategy
+- language lesson rates
+- tutor income
+author: TutorLingua Team
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 readingTime: 7
 wordCount: 1400
 featured: false
-seoKeywords: ["how much to charge tutoring", "language tutor rates", "private lesson pricing", "tutor hourly rate", "language teaching income"]
-relatedArticles: ["start-language-tutoring-business-2025", "session-packages-students-buy", "side-hustle-full-time-tutoring"]
-alternateLocale: "es"
-position: "Authority"
+seoKeywords:
+- how much to charge tutoring
+- language tutor rates
+- private lesson pricing
+- tutor hourly rate
+- language teaching income
+relatedArticles:
+- start-language-tutoring-business-2025
+- session-packages-students-buy
+- side-hustle-full-time-tutoring
+alternateLocale:
+  locale: es
+  slug: cuanto-cobrar-clases-particulares
+position: authority
 ---
 
 You're staring at the "Set Your Hourly Rate" field and feeling paralyzed. Too high and nobody books. Too low and you can't pay rent. The psychology of pricing makes this decision feel massive.
@@ -340,6 +356,10 @@ Pricing is just one piece of building a sustainable tutoring business. You also 
 - Systems for scaling without burning out ([side hustle to full-time framework](/blog/en/cluster-3-business/side-hustle-full-time-tutoring))
 
 **Ready to start building?** [Set up your professional booking page and start accepting payments in minutes with TutorLingua](/signup). Try free, upgrade when you're earning.
+
+---
+
+*Également disponible en français : [Combien Facturer pour des Cours Particuliers de Langues](/fr/blog/combien-facturer-cours-prives)*
 
 ---
 

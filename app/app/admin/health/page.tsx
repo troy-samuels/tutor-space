@@ -13,9 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Activity,
-  CheckCircle,
   AlertTriangle,
-  XCircle,
   RefreshCw,
   Loader2,
   Clock,
@@ -67,19 +65,6 @@ const serviceLabels: Record<string, string> = {
   google_calendar: "Google Calendar",
   outlook_calendar: "Outlook Calendar",
 };
-
-function StatusIcon({ status }: { status: string }) {
-  switch (status) {
-    case "operational":
-      return <CheckCircle className="h-5 w-5 text-green-500" />;
-    case "degraded":
-      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-    case "outage":
-      return <XCircle className="h-5 w-5 text-red-500" />;
-    default:
-      return <AlertCircle className="h-5 w-5 text-gray-400" />;
-  }
-}
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string; text: string }> = {

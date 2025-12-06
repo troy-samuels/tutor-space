@@ -8,13 +8,7 @@ export const metadata = {
   description: "Unlock AI-powered language practice between lessons",
 };
 
-interface PageProps {
-  searchParams: Promise<{ student?: string }>;
-}
-
-export default async function SubscribePage({ searchParams }: PageProps) {
-  const { student: studentIdParam } = await searchParams;
-
+export default async function SubscribePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

@@ -5,13 +5,12 @@ import { Loader2, Video, Check } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepVideoProps = {
-  profileId: string;
   onComplete: () => void;
 };
 
 type VideoProvider = "zoom_personal" | "google_meet" | "custom" | "none";
 
-export function StepVideo({ profileId, onComplete }: StepVideoProps) {
+export function StepVideo({ onComplete }: StepVideoProps) {
   const [selectedProvider, setSelectedProvider] = useState<VideoProvider | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [customPlatformName, setCustomPlatformName] = useState("");

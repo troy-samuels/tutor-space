@@ -1,13 +1,21 @@
 ---
-title: "Prevenir el Agotamiento del Tutor: Autocuidado para Maestros en Línea"
+title: "Prevenir el Agotamiento del Tutor: Autocuidado para Maestros en L\xEDnea"
 slug: prevenir-agotamiento-autocuidado
-description: "Reconoce las señales del agotamiento del tutor y aprende estrategias prácticas de autocuidado para mantener energía, pasión y efectividad en tu práctica de enseñanza en línea."
-category: "Operaciones y Productividad"
-author: "Equipo TutorLingua"
-date: "2025-01-19"
-image: "/images/blog/prevent-tutor-burnout.jpg"
-tags: ["prevención agotamiento", "autocuidado", "salud mental", "equilibrio vida-trabajo", "bienestar docente"]
-lang: "es"
+description: "Reconoce las se\xF1ales del agotamiento del tutor y aprende estrategias\
+  \ pr\xE1cticas de autocuidado para mantener energ\xEDa, pasi\xF3n y efectividad\
+  \ en tu pr\xE1ctica de ense\xF1anza en l\xEDnea."
+category: Operaciones y Productividad
+author: Equipo TutorLingua
+image: /images/blog/prevent-tutor-burnout.jpg
+tags:
+- "prevenci\xF3n agotamiento"
+- autocuidado
+- salud mental
+- equilibrio vida-trabajo
+- bienestar docente
+lang: es
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 ---
 
 # Prevenir el Agotamiento del Tutor: Autocuidado para Maestros en Línea

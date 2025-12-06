@@ -1,14 +1,23 @@
 ---
-title: "Gestión del Tiempo para Tutores: Cómo Enseñar Más Sin Agotarte"
+title: "Gesti\xF3n del Tiempo para Tutores: C\xF3mo Ense\xF1ar M\xE1s Sin Agotarte"
 slug: gestion-tiempo-tutores
-description: "Domina estrategias de gestión del tiempo para hacer crecer tu negocio de tutoría de forma sostenible. Aprende técnicas de programación, trucos de productividad y consejos de equilibrio trabajo-vida para enseñar a más estudiantes sin agotarte."
-category: "Operaciones y Productividad"
-author: "Equipo TutorLingua"
-date: "2025-01-15"
-image: "/images/blog/time-management-tutors.jpg"
-tags: ["gestión del tiempo", "productividad", "equilibrio vida-trabajo", "negocio de tutoría", "programación"]
-lang: "es"
+description: "Domina estrategias de gesti\xF3n del tiempo para hacer crecer tu negocio\
+  \ de tutor\xEDa de forma sostenible. Aprende t\xE9cnicas de programaci\xF3n, trucos\
+  \ de productividad y consejos de equilibrio trabajo-vida para ense\xF1ar a m\xE1\
+  s estudiantes sin agotarte."
+category: Operaciones y Productividad
+author: Equipo TutorLingua
+image: /images/blog/time-management-tutors.jpg
+tags:
+- "gesti\xF3n del tiempo"
+- productividad
+- equilibrio vida-trabajo
+- "negocio de tutor\xEDa"
+- "programaci\xF3n"
+lang: es
 featured: true
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 ---
 
 # Gestión del Tiempo para Tutores: Cómo Enseñar Más Sin Agotarte

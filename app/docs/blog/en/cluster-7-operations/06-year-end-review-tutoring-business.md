@@ -1,13 +1,21 @@
 ---
-title: "Year-End Review: How to Evaluate and Plan Your Tutoring Business"
+title: 'Year-End Review: How to Evaluate and Plan Your Tutoring Business'
 slug: year-end-review-tutoring-business
-description: "Complete guide to conducting a strategic year-end review for your tutoring business. Analyze performance, celebrate wins, and create an actionable plan for growth."
-category: "Operations & Productivity"
-author: "TutorLingua Team"
-date: "2025-01-20"
-image: "/images/blog/year-end-review-tutoring.jpg"
-tags: ["business planning", "goal setting", "performance review", "strategy", "growth"]
-lang: "en"
+description: Complete guide to conducting a strategic year-end review for your tutoring
+  business. Analyze performance, celebrate wins, and create an actionable plan for
+  growth.
+category: Operations & Productivity
+author: TutorLingua Team
+image: /images/blog/year-end-review-tutoring.jpg
+tags:
+- business planning
+- goal setting
+- performance review
+- strategy
+- growth
+lang: en
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 ---
 
 # Year-End Review: How to Evaluate and Plan Your Tutoring Business

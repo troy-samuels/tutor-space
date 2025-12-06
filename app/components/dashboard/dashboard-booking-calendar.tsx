@@ -10,7 +10,6 @@ type DashboardBookingCalendarProps = {
   signupDate?: string | null;
   selectedDate?: Date | null;
   onDateSelect?: (date: Date) => void;
-  showBuiltInSidebar?: boolean;
 };
 
 const formatKey = (date: Date) => format(date, "yyyy-MM-dd");
@@ -40,7 +39,6 @@ export function DashboardBookingCalendar({
   signupDate,
   selectedDate: controlledSelectedDate,
   onDateSelect,
-  showBuiltInSidebar = false,
 }: DashboardBookingCalendarProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const earliest = useMemo(() => (signupDate ? startOfMonth(new Date(signupDate)) : startOfMonth(today)), [signupDate, today]);
@@ -49,7 +47,6 @@ export function DashboardBookingCalendar({
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(initialSelected));
   const [internalSelectedDate, setInternalSelectedDate] = useState(initialSelected);
   const [bookingsByDay, setBookingsByDay] = useState<Record<string, DayBookingInfo>>({});
-  const [loadingCounts, setLoadingCounts] = useState(false);
 
   // Use controlled date if provided, otherwise internal state
   const selectedDate = controlledSelectedDate ?? internalSelectedDate;
@@ -57,11 +54,9 @@ export function DashboardBookingCalendar({
   useEffect(() => {
     let mounted = true;
     async function loadCounts() {
-      setLoadingCounts(true);
       const response = await getMonthlyBookingCounts(currentMonth.getFullYear(), currentMonth.getMonth());
       if (mounted) {
         setBookingsByDay(response.bookingsByDay);
-        setLoadingCounts(false);
       }
     }
     loadCounts();

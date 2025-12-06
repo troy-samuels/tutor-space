@@ -1,15 +1,23 @@
 ---
-title: "IELTS and Cambridge Exam Prep: A Profitable Niche for Tutors"
+title: 'IELTS and Cambridge Exam Prep: A Profitable Niche for Tutors'
 slug: ielts-cambridge-exam-prep-niche
-description: "Discover why IELTS and Cambridge exam preparation represents one of the most lucrative teaching specializations and learn how to build a successful exam prep tutoring practice with proven methods and premium pricing."
-category: "Teaching & Specializations"
-date: 2025-01-17
-author: "TutorLingua Team"
-image: "/blog/ielts-cambridge-prep.jpg"
-tags: ["IELTS preparation", "Cambridge exams", "exam tutoring", "test prep"]
+description: Discover why IELTS and Cambridge exam preparation represents one of the
+  most lucrative teaching specializations and learn how to build a successful exam
+  prep tutoring practice with proven methods and premium pricing.
+category: Teaching & Specializations
+author: TutorLingua Team
+image: /blog/ielts-cambridge-prep.jpg
+tags:
+- IELTS preparation
+- Cambridge exams
+- exam tutoring
+- test prep
 locale: en
-alternateLocale: es
-alternateSlug: preparacion-ielts-cambridge-nicho
+alternateLocale:
+  locale: es
+  slug: preparacion-ielts-cambridge-nicho
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 ---
 
 # IELTS and Cambridge Exam Prep: A Profitable Niche for Tutors
@@ -428,5 +436,11 @@ When [planning your tutoring business](/blog/en/cluster-3-pricing/start-language
 TutorLingua provides the professional platform to showcase your exam prep expertise, display your success rates, and attract students seeking specialists. Create a profile highlighting your exam focus, student results, and proven methodology.
 
 Ready to build your exam prep practice? [Create your specialist profile](/) and start attracting students who need exactly what you offer—expert guidance to achieve their target scores.
+
+---
+
+*Également disponible en français : [Préparation aux Examens IELTS et Cambridge : Une Niche Rentable](/fr/blog/preparation-examens-ielts-cambridge)*
+
+---
 
 Remember: Exam preparation isn't just teaching English. It's coaching students through high-stakes situations with proven strategies and building the confidence they need to succeed when it counts.

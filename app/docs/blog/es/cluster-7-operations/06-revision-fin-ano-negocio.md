@@ -1,13 +1,22 @@
 ---
-title: "Revisión de Fin de Año: Cómo Evaluar y Planificar Tu Negocio de Tutoría"
+title: "Revisi\xF3n de Fin de A\xF1o: C\xF3mo Evaluar y Planificar Tu Negocio de Tutor\xED\
+  a"
 slug: revision-fin-ano-negocio
-description: "Guía completa para realizar una revisión estratégica de fin de año para tu negocio de tutoría. Analiza rendimiento, celebra victorias y crea un plan accionable para crecimiento."
-category: "Operaciones y Productividad"
-author: "Equipo TutorLingua"
-date: "2025-01-20"
-image: "/images/blog/year-end-review-tutoring.jpg"
-tags: ["planificación empresarial", "establecimiento objetivos", "revisión rendimiento", "estrategia", "crecimiento"]
-lang: "es"
+description: "Gu\xEDa completa para realizar una revisi\xF3n estrat\xE9gica de fin\
+  \ de a\xF1o para tu negocio de tutor\xEDa. Analiza rendimiento, celebra victorias\
+  \ y crea un plan accionable para crecimiento."
+category: Operaciones y Productividad
+author: Equipo TutorLingua
+image: /images/blog/year-end-review-tutoring.jpg
+tags:
+- "planificaci\xF3n empresarial"
+- establecimiento objetivos
+- "revisi\xF3n rendimiento"
+- estrategia
+- crecimiento
+lang: es
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 ---
 
 # Revisión de Fin de Año: Cómo Evaluar y Planificar Tu Negocio de Tutoría

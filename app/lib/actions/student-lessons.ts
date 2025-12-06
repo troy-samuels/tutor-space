@@ -30,20 +30,6 @@ export interface Booking {
   lesson_notes?: string | null;
 }
 
-type BookingRow = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  status: string;
-  meeting_url: string | null;
-  services: {
-    name: string | null;
-  } | null;
-  lesson_notes: Array<{
-    notes: string | null;
-  }> | null;
-};
-
 export interface StudentLessonHistoryData {
   stats: LessonHistoryStats;
   upcoming: Booking[];

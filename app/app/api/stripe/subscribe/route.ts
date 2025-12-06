@@ -1,13 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const priceId = process.env.STRIPE_ALL_ACCESS_PRICE_ID;
+    // Parse billing cycle from request body (defaults to monthly)
+    let billingCycle: "monthly" | "annual" = "monthly";
+    try {
+      const body = await request.json();
+      if (body.billingCycle === "annual") {
+        billingCycle = "annual";
+      }
+    } catch {
+      // No body or invalid JSON - use default monthly
+    }
+
+    const monthlyPriceId = process.env.STRIPE_ALL_ACCESS_PRICE_ID;
+    const yearlyPriceId = process.env.STRIPE_ALL_YEAR_ACCESS_PRICE_ID;
+
+    const priceId = billingCycle === "annual" ? yearlyPriceId : monthlyPriceId;
+
     if (!priceId) {
-      console.error("[Stripe] Missing STRIPE_ALL_ACCESS_PRICE_ID env var");
+      console.error(`[Stripe] Missing ${billingCycle === "annual" ? "STRIPE_ALL_YEAR_ACCESS_PRICE_ID" : "STRIPE_ALL_ACCESS_PRICE_ID"} env var`);
       return NextResponse.json({ error: "Service unavailable" }, { status: 500 });
     }
 

@@ -92,7 +92,6 @@ export async function getStudentBillingHistory(): Promise<{
     .eq("user_id", user.id);
 
   const studentIds = students?.map((s) => s.id) || [];
-  const tutorIds = students?.map((s) => s.tutor_id) || [];
 
   if (studentIds.length === 0) {
     return {
@@ -234,4 +233,3 @@ export async function getStudentBillingHistory(): Promise<{
 
   return { payments: allPayments, packages, summary };
 }
-

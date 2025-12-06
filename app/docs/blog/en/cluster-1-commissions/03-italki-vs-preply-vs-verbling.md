@@ -292,6 +292,8 @@ The lowest commission? Zero. TutorLingua helps you accept direct bookings from s
 
 *También disponible en español: [iTalki vs Preply vs Verbling: ¿Cuál Cobra Menos?](/es/blog/italki-vs-preply-vs-verbling-comision)*
 
+*Également disponible en français : [iTalki vs Preply vs Verbling](/fr/blog/italki-vs-preply-vs-verbling)*
+
 ---
 
 **Related Articles:**

@@ -36,14 +36,14 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
         </div>
 
         <div className="mx-auto mt-16 max-w-7xl">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
             {solution.features.map((feature, index) => {
               const Icon = iconMap[feature.icon] ?? Globe;
 
               return (
                 <div
                   key={index}
-                  className="relative rounded-2xl bg-muted p-8 transition-all hover:-translate-y-1 hover:shadow-lg group"
+                  className="relative rounded-2xl bg-muted p-6 transition-all hover:-translate-y-1 hover:shadow-lg group sm:p-8"
                 >
                   {/* Icon */}
                   <div className="mb-4">
@@ -70,7 +70,7 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
         </div>
 
         {/* Interactive Calendar Demo */}
-        <div className="mx-auto mt-20 max-w-4xl">
+        <div id="calendar-demo" className="mx-auto mt-20 max-w-4xl">
           <div className="mb-8 text-center">
             <h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               From scattered tools to one dashboard

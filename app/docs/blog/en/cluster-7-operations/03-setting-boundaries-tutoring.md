@@ -1,13 +1,21 @@
 ---
-title: "Setting Boundaries: When to Say No to Students"
+title: 'Setting Boundaries: When to Say No to Students'
 slug: setting-boundaries-tutoring
-description: "Learn how to set healthy professional boundaries with tutoring students. Discover when and how to say no without guilt while building a sustainable, respectful teaching practice."
-category: "Operations & Productivity"
-author: "TutorLingua Team"
-date: "2025-01-17"
-image: "/images/blog/setting-boundaries-tutoring.jpg"
-tags: ["boundaries", "work-life balance", "professional development", "student management", "self-care"]
-lang: "en"
+description: Learn how to set healthy professional boundaries with tutoring students.
+  Discover when and how to say no without guilt while building a sustainable, respectful
+  teaching practice.
+category: Operations & Productivity
+author: TutorLingua Team
+image: /images/blog/setting-boundaries-tutoring.jpg
+tags:
+- boundaries
+- work-life balance
+- professional development
+- student management
+- self-care
+lang: en
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 ---
 
 # Setting Boundaries: When to Say No to Students
@@ -464,6 +472,12 @@ Setting boundaries isn't about being rigid or unhelpful—it's about creating a 
 Remember: You teach students how to treat you. Set high standards from day one, enforce them consistently, and watch your tutoring practice transform.
 
 Ready to implement professional systems that support healthy boundaries? [TutorLingua](/features/booking) includes automated policy enforcement, cancellation management, and professional communication tools. [Explore pricing](/pricing) to build your boundary-respecting tutoring business.
+
+---
+
+---
+
+*Également disponible en français : [Établir des Limites dans Votre Activité de Tutorat](/fr/blog/etablir-limites-tutorat)*
 
 ---
 

@@ -13,7 +13,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
 
   // Calculate savings
   const currencySymbol = "$";
-  const platformCost = 29;
+  const platformCost = 39;
   const averageCommission = 0.25; // 25%
   const marketplaceFees = revenue * averageCommission;
   const monthlySavings = marketplaceFees - platformCost;

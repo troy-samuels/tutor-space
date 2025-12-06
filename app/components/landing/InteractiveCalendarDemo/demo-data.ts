@@ -88,7 +88,6 @@ function getDateString(daysFromToday: number): string {
 
 // Generate bookings spread across the current period
 export function generateDemoBookings(): DemoBooking[] {
-  const today = new Date();
   const bookings: DemoBooking[] = [];
 
   // Today - 3 bookings

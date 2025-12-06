@@ -1,15 +1,23 @@
 ---
-title: "Teaching Business English: How to Attract Corporate Clients"
+title: 'Teaching Business English: How to Attract Corporate Clients'
 slug: teaching-business-english-corporate
-description: "Learn proven strategies for breaking into the lucrative corporate language training market, from positioning yourself as a business English specialist to building relationships with HR departments and training managers."
-category: "Teaching & Specializations"
-date: 2025-01-16
-author: "TutorLingua Team"
-image: "/blog/business-english-corporate.jpg"
-tags: ["business English", "corporate clients", "B2B marketing", "professional development"]
+description: Learn proven strategies for breaking into the lucrative corporate language
+  training market, from positioning yourself as a business English specialist to building
+  relationships with HR departments and training managers.
+category: Teaching & Specializations
+author: TutorLingua Team
+image: /blog/business-english-corporate.jpg
+tags:
+- business English
+- corporate clients
+- B2B marketing
+- professional development
 locale: en
-alternateLocale: es
-alternateSlug: ensenando-ingles-negocios-corporativo
+alternateLocale:
+  locale: es
+  slug: ensenando-ingles-negocios-corporativo
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 ---
 
 # Teaching Business English: How to Attract Corporate Clients
@@ -375,5 +383,11 @@ TutorLingua provides the professional platform you need to attract corporate cli
 When [starting your language tutoring business](/blog/en/cluster-3-pricing/start-language-tutoring-business-2025), you might begin with individual students. As you grow, corporate clients offer the opportunity to scale your income, work with engaged learners, and build a stable, high-value practice.
 
 Ready to attract corporate clients? [Build your professional tutor profile](/) today and position yourself as the business English specialist that companies need.
+
+---
+
+*Également disponible en français : [Enseigner l'Anglais des Affaires : Guide pour les Tuteurs](/fr/blog/enseigner-anglais-affaires)*
+
+---
 
 The corporate training market is substantial and growing. With the right positioning and professional approach, you can capture your share of this lucrative segment.

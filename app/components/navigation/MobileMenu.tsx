@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -53,9 +54,7 @@ export function MobileMenu({ isOpen, onClose, links, brandHref = "/" }: MobileMe
           {/* Menu content */}
           <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-brand-white px-6 pb-4 shadow-xl">
             <div className="flex h-16 shrink-0 items-center">
-              <Link href={brandHref} className="text-2xl font-bold text-primary" onClick={onClose}>
-                TutorLingua
-              </Link>
+              <Logo href={brandHref} variant="wordmark" onClick={onClose} />
             </div>
 
             <nav className="flex flex-1 flex-col">

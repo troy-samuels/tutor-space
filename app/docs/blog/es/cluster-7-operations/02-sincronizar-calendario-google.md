@@ -1,13 +1,21 @@
 ---
-title: "Cómo Sincronizar Tu Calendario de Tutoría con Google Calendar"
+title: "C\xF3mo Sincronizar Tu Calendario de Tutor\xEDa con Google Calendar"
 slug: sincronizar-calendario-google
-description: "Guía paso a paso para sincronizar tu horario de tutoría con Google Calendar. Previene dobles reservas, gestiona múltiples calendarios y optimiza tu flujo de programación."
-category: "Operaciones y Productividad"
-author: "Equipo TutorLingua"
-date: "2025-01-16"
-image: "/images/blog/sync-google-calendar.jpg"
-tags: ["google calendar", "programación", "productividad", "sincronización calendario", "automatización"]
-lang: "es"
+description: "Gu\xEDa paso a paso para sincronizar tu horario de tutor\xEDa con Google\
+  \ Calendar. Previene dobles reservas, gestiona m\xFAltiples calendarios y optimiza\
+  \ tu flujo de programaci\xF3n."
+category: Operaciones y Productividad
+author: Equipo TutorLingua
+image: /images/blog/sync-google-calendar.jpg
+tags:
+- google calendar
+- "programaci\xF3n"
+- productividad
+- "sincronizaci\xF3n calendario"
+- "automatizaci\xF3n"
+lang: es
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 ---
 
 # Cómo Sincronizar Tu Calendario de Tutoría con Google Calendar

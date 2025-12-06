@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Clock3, ShieldCheck } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { RequestAccessForm } from "@/components/student-auth/RequestAccessForm";
 
@@ -16,6 +17,7 @@ export default async function RequestAccessPage({
 }: {
   searchParams: Promise<{ tutor?: string; tutor_id?: string; email?: string; name?: string }>;
 }) {
+  const t = await getTranslations("requestAccessPage");
   const params = await searchParams;
   const tutorUsernameParam = params.tutor;
   const tutorIdParam = params.tutor_id;
@@ -60,7 +62,7 @@ export default async function RequestAccessPage({
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary transition"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to booking
+          {t("back")}
         </Link>
 
         <div className="grid lg:grid-cols-2 gap-6 items-start">
@@ -79,8 +81,8 @@ export default async function RequestAccessPage({
                   {(tutor.full_name || tutor.username || "T")[0]}
                 </div>
               )}
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Tutor</p>
+                <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("tutorLabel")}</p>
                 <h1 className="text-xl font-semibold text-foreground">
                   {tutor.full_name || tutor.username || "Your tutor"}
                 </h1>
@@ -92,24 +94,24 @@ export default async function RequestAccessPage({
               <div className="flex items-start gap-3">
                 <ShieldCheck className="h-4 w-4 text-primary mt-0.5" />
                 <div>
-                  <p className="font-semibold text-foreground">You were added as a student</p>
-                  <p>Set a password and confirm your details to unlock bookings.</p>
+                  <p className="font-semibold text-foreground">{t("cardTitle")}</p>
+                  <p>{t("cardBody")}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Clock3 className="h-4 w-4 text-primary mt-0.5" />
                 <div>
-                  <p className="font-semibold text-foreground">Fast path to your first class</p>
-                  <p>Complete the form, then pick a time on the next screen.</p>
+                  <p className="font-semibold text-foreground">{t("fastPathTitle")}</p>
+                  <p>{t("fastPathBody")}</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="rounded-2xl border border-border bg-white p-6 shadow-md">
-            <h2 className="text-lg font-semibold text-foreground mb-1">Finish your profile</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-1">{t("formTitle")}</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Create your login and request calendar access with {tutor.full_name || "your tutor"}.
+              {t("formSubtitle", { tutorName: tutor.full_name || "your tutor" })}
             </p>
             <RequestAccessForm
               tutorUsername={tutorUsername}

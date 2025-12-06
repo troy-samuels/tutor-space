@@ -1,19 +1,36 @@
 ---
-title: "The Tutoring Business Expenses Nobody Talks About"
-slug: "tutoring-business-expenses"
-description: "Complete breakdown of hidden costs in language tutoring. Real expense data from working tutors, tax deductions you're missing, and budgeting frameworks to maximize profit."
-category: "Business & Income"
-tags: ["business expenses", "tutor costs", "tax deductions", "tutoring budget", "hidden costs"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-22"
-updatedAt: "2025-01-22"
+title: The Tutoring Business Expenses Nobody Talks About
+slug: tutoring-business-expenses
+description: Complete breakdown of hidden costs in language tutoring. Real expense
+  data from working tutors, tax deductions you're missing, and budgeting frameworks
+  to maximize profit.
+category: Business & Income
+tags:
+- business expenses
+- tutor costs
+- tax deductions
+- tutoring budget
+- hidden costs
+author: TutorLingua Team
+publishedAt: '2025-01-22'
+updatedAt: '2025-01-22'
 readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["tutoring business expenses", "tutor costs", "language tutor budget", "tutoring tax deductions", "business expenses tutor"]
-relatedArticles: ["quit-job-tutor-full-time", "side-hustle-full-time-tutoring", "how-much-charge-private-lessons"]
-alternateLocale: "es"
-position: "Authority"
+seoKeywords:
+- tutoring business expenses
+- tutor costs
+- language tutor budget
+- tutoring tax deductions
+- business expenses tutor
+relatedArticles:
+- quit-job-tutor-full-time
+- side-hustle-full-time-tutoring
+- how-much-charge-private-lessons
+alternateLocale:
+  locale: es
+  slug: gastos-negocio-tutoria
+position: authority
 ---
 
 Most new tutors calculate their income like this: "$40/hour × 20 hours per week = $800/week. That's $3,200/month!"

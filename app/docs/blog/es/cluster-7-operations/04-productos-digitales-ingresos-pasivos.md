@@ -1,13 +1,21 @@
 ---
-title: "Crear Productos Digitales para Ganar Ingresos Pasivos como Tutor"
+title: Crear Productos Digitales para Ganar Ingresos Pasivos como Tutor
 slug: productos-digitales-ingresos-pasivos
-description: "Aprende a crear y vender productos digitales que generen ingresos pasivos para tu negocio de tutoría. Desde cursos hasta plantillas, descubre qué se vende y cómo comenzar."
-category: "Operaciones y Productividad"
-author: "Equipo TutorLingua"
-date: "2025-01-18"
-image: "/images/blog/digital-products-passive-income.jpg"
-tags: ["ingresos pasivos", "productos digitales", "cursos en línea", "diversificación ingresos", "escalabilidad"]
-lang: "es"
+description: "Aprende a crear y vender productos digitales que generen ingresos pasivos\
+  \ para tu negocio de tutor\xEDa. Desde cursos hasta plantillas, descubre qu\xE9\
+  \ se vende y c\xF3mo comenzar."
+category: Operaciones y Productividad
+author: Equipo TutorLingua
+image: /images/blog/digital-products-passive-income.jpg
+tags:
+- ingresos pasivos
+- productos digitales
+- "cursos en l\xEDnea"
+- "diversificaci\xF3n ingresos"
+- escalabilidad
+lang: es
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 ---
 
 # Crear Productos Digitales para Ganar Ingresos Pasivos como Tutor

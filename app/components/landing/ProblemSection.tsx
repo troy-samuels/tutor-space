@@ -23,14 +23,14 @@ export function ProblemSection({ problems }: ProblemSectionProps) {
         </div>
 
         <div className="mx-auto mt-16 max-w-7xl">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-3">
             {problems.items.map((problem, index) => {
               const Icon = iconMap[problem.icon] ?? TrendingDown;
 
               return (
                 <div
                   key={index}
-                  className="relative rounded-2xl bg-brand-white p-8 shadow-sm transition-all hover:shadow-md group"
+                  className="relative rounded-2xl bg-brand-white p-6 shadow-sm transition-all hover:shadow-md group sm:p-8"
                 >
                   {/* Icon Container */}
                   <div className="mb-6 flex justify-center">

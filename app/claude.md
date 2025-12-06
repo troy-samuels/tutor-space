@@ -72,7 +72,11 @@ app/
 │   │   ├── calendar/            # Calendar view
 │   │   ├── onboarding/          # New user onboarding
 │   │   ├── admin/               # Platform admin dashboard
-│   │   └── upgrade/             # Subscription upgrade
+│   │   ├── upgrade/             # Subscription upgrade
+│   │   ├── notifications/       # Notification center
+│   │   ├── practice-scenarios/  # AI practice scenario builder
+│   │   ├── marketplace/         # Marketplace sales dashboard
+│   │   └── ai/                  # AI assistant dashboard
 │   ├── (public)/                # Public-facing pages
 │   │   ├── [username]/          # Dynamic tutor pages
 │   │   ├── page/[username]/     # Tutor site pages
@@ -90,6 +94,7 @@ app/
 │   │   ├── admin/               # Admin dashboard API
 │   │   ├── email/               # Email operations
 │   │   ├── pricing/             # Pricing calculations
+│   │   ├── practice/            # AI Practice endpoints
 │   │   └── cron/                # Scheduled tasks
 │   ├── book/                    # Public booking flow
 │   ├── signup/                  # Registration
@@ -105,7 +110,7 @@ app/
 │   ├── ui/                      # shadcn/ui components
 │   └── ...
 ├── lib/                         # Business logic & utilities
-│   ├── actions/                 # Server actions (30+ modules)
+│   ├── actions/                 # Server actions (39+ modules)
 │   ├── supabase/                # Supabase clients
 │   ├── stripe.ts                # Stripe utilities
 │   ├── calendar/                # Calendar integrations
@@ -117,6 +122,7 @@ app/
 │   ├── services/                # Business services
 │   ├── payments/                # Payment processing
 │   ├── pricing/                 # Pricing calculations
+│   ├── practice/                # AI Practice constants & utils
 │   ├── admin/                   # Admin utilities
 │   ├── middleware/              # Custom middleware
 │   ├── utils/                   # Utility functions
@@ -255,6 +261,135 @@ app/
     - Student reviews on tutor sites
     - Rating, comment, approval status
     - Pinned review feature
+
+24. **notifications**
+    - Notification center for tutors and students
+    - 14+ notification types (booking, payment, message, student events)
+    - Read/unread status, grouping by date
+    - Action links and rich metadata (JSONB)
+
+25. **booking_reschedule_history**
+    - Full audit trail for booking reschedules
+    - Tracks who requested (tutor/student), reason, timestamps
+    - Original and new scheduled times
+
+26. **practice_scenarios**
+    - Custom AI conversation templates created by tutors
+    - Title, description, language, proficiency level, topic
+    - Custom system prompts, vocabulary/grammar focus
+    - Usage tracking (times_used counter)
+
+27. **practice_assignments**
+    - AI practice assignments for students
+    - Status (assigned/in_progress/completed)
+    - Linked to practice scenarios and homework
+
+28. **student_practice_sessions**
+    - Active and completed AI practice sessions
+    - Message count, grammar corrections tracked
+    - Session feedback and ratings
+
+29. **student_practice_messages**
+    - Individual messages in AI practice sessions
+    - Grammar corrections metadata (JSONB)
+    - Token usage tracking
+
+30. **grammar_issues**
+    - Grammar error tracking by category
+    - 11 categories: verb_tense, subject_verb_agreement, etc.
+    - Trend analysis (improving/stable/declining)
+
+31. **pronunciation_assessments**
+    - Audio pronunciation analysis records
+    - Accuracy scores and feedback
+
+32. **practice_usage_periods**
+    - Monthly usage tracking for AI Practice billing
+    - Text turns used, audio seconds used
+    - Blocks consumed for metered billing
+
+33. **homework_assignments**
+    - Tutor-assigned homework with resources
+    - Due dates, status tracking, student notes
+    - Resource attachments (JSONB)
+
+34. **learning_goals**
+    - Student learning goals with progress tracking
+    - Target dates, progress percentage
+    - Status (active/completed/paused/abandoned)
+
+35. **proficiency_assessments**
+    - Skill assessments by area (8 areas)
+    - speaking, listening, reading, writing, vocabulary, grammar, pronunciation, overall
+    - Levels: beginner → proficient
+
+36. **learning_stats**
+    - Aggregate student statistics
+    - Total lessons, minutes, streaks
+    - Homework completed count
+
+37. **lesson_notes**
+    - Post-lesson notes from tutors
+    - Topics, vocabulary, grammar points covered
+    - Student-visible feedback section
+
+38. **content_reports**
+    - Content moderation report system
+    - Report types: spam, harassment, inappropriate, scam, etc.
+    - Priority levels and resolution workflow
+
+39. **moderation_actions**
+    - Audit trail for moderation decisions
+    - Actions: warning_issued, content_removed, user_suspended, etc.
+
+40. **support_tickets**
+    - Platform support ticket system
+    - Categories, status workflow (open/in_progress/closed)
+    - User role tracking
+
+41. **marketplace_transactions**
+    - Digital product sales tracking
+    - Gross revenue, platform fees, net earnings
+    - Tiered commission calculation
+
+42. **ai_conversations**
+    - AI assistant conversation threads
+    - Context types: lesson_prep, student_feedback, etc.
+    - Token usage tracking
+
+43. **ai_messages**
+    - Individual AI assistant messages
+    - Role (user/assistant/system)
+    - Message metadata
+
+44. **ai_usage**
+    - Monthly AI usage statistics by user
+    - Token counts for billing
+
+45. **lifetime_purchases**
+    - Pre-signup lifetime deal purchases
+    - Email-based linking during signup
+    - Stripe session tracking
+
+46. **tutor_reengagement_emails**
+    - Re-engagement campaign tracking for inactive tutors
+    - Email templates and send history
+
+47. **processed_stripe_events**
+    - Webhook deduplication
+    - Prevents duplicate event processing
+
+48. **email_events**
+    - Raw events from Resend webhooks (bounces, complaints, deliveries, etc.)
+    - Tracks message_id, recipient, event_type, reason, metadata
+    - Used for delivery tracking and debugging
+    - Indexed by email address and event type
+
+49. **email_suppressions**
+    - Global suppression list based on bounces/complaints
+    - Prevents future sends to bad email addresses
+    - Automatically populated by Resend webhook on bounce/complaint/dropped events
+    - Checked before every email send via `sendEmail()`
 
 ---
 
@@ -665,6 +800,276 @@ app/
 
 ---
 
+### Feature: AI Practice Companion
+
+**What it does**: Subscription-based conversational AI practice for students to practice between lessons. Features real-time grammar corrections, pronunciation assessment, vocabulary tracking, and session feedback.
+
+**Where the code lives**:
+- Student pages: `/app/student-auth/practice/[assignmentId]/page.tsx`, `/app/student-auth/practice/subscribe/page.tsx`
+- Tutor builder: `/app/(dashboard)/practice-scenarios/page.tsx`
+- API routes: `/app/api/practice/`
+- Components: `/components/student/AIPracticeChat.tsx`, `/components/student/AIPracticeCard.tsx`
+- Actions: `/lib/actions/progress.ts`, `/lib/actions/ai-assistant.ts`
+- Constants: `/lib/practice/constants.ts`
+
+**How it works**:
+
+**Practice Scenario Creation (Tutor)**:
+1. Tutor opens Practice Scenarios builder
+2. Creates scenario with title, language, proficiency level, topic
+3. Customizes system prompt and focus areas (vocabulary/grammar)
+4. Sets max messages per session
+5. Assigns scenario to student as homework
+
+**AI Practice Session (Student)**:
+1. Student subscribes to AI Practice ($8/month base)
+2. Views assigned practice scenarios in progress dashboard
+3. Opens assigned session → starts conversation with AI
+4. Types or speaks (audio input with pronunciation assessment)
+5. AI responds with grammar corrections inline
+6. Grammar errors tracked by category (11 types)
+7. Session ends manually or at message limit
+8. Displays session summary with feedback, rating, vocabulary
+
+**Usage-Based Billing**:
+- Base tier: $8/month = 100 audio minutes + 300 text turns
+- Block add-ons: $5 each = +60 audio minutes + +200 text turns
+- Blocks auto-charge via Stripe metered billing when exceeded
+- Usage tracked in `practice_usage_periods` table
+
+**Grammar Categories Tracked**:
+verb_tense, subject_verb_agreement, preposition, article, word_order, gender_agreement, conjugation, pronoun, plural_singular, spelling, vocabulary
+
+**Key actions**:
+- `getStudentPracticeData()` - Fetches practice assignments and stats
+- `getTutorStudentPracticeData()` - Tutor CRM view of student practice
+- `getStudentPracticeAnalytics()` - Analytics summary with grammar trends
+
+---
+
+### Feature: Homework Planner
+
+**What it does**: Tutors assign homework with resources and due dates. Students view and complete homework from their portal.
+
+**Where the code lives**:
+- Tutor page: `/app/(dashboard)/students/[studentId]/page.tsx`
+- Student page: `/app/student-auth/progress/page.tsx`
+- Components: `/components/students/HomeworkPlanner.tsx`, `/components/student/HomeworkPracticeButton.tsx`
+- Actions: `/lib/actions/progress.ts`
+
+**How it works**:
+
+**Tutor Creates Homework**:
+1. Opens student detail page
+2. Scrolls to Homework Planner section
+3. Enters title, instructions, due date
+4. Adds resource attachments (PDFs, videos, links)
+5. Optionally links to AI practice assignment
+6. Student immediately sees in progress portal
+
+**Student Completes Homework**:
+1. Views homework in progress dashboard
+2. Opens to see instructions and resources
+3. Completes work and clicks "Mark as completed"
+4. Optionally adds completion notes
+5. Tutor sees completion status
+
+**Key actions**:
+- `assignHomework()` - Creates homework assignment
+- `updateHomeworkStatus()` - Changes status
+- `markHomeworkCompleted()` - Student marks complete
+
+---
+
+### Feature: Student Progress Tracking
+
+**What it does**: Unified progress dashboard for students with goals, proficiency assessments, learning stats, and lesson notes.
+
+**Where the code lives**:
+- Student page: `/app/student-auth/progress/page.tsx`
+- Components: `/app/student-auth/progress/StudentProgressClient.tsx`
+- Actions: `/lib/actions/progress.ts`
+
+**How it works**:
+1. Tutor records learning goals (e.g., "Achieve B2 by June")
+2. Tutor records proficiency assessments after lessons
+3. Tutor adds lesson notes with student-visible feedback
+4. Student views unified progress dashboard showing:
+   - Learning stats (total lessons, minutes, streaks)
+   - Active and completed goals with progress bars
+   - Latest assessments per skill area (8 areas)
+   - Recent lesson notes and feedback
+   - Open homework assignments
+   - AI Practice status
+
+**Proficiency Levels**:
+beginner → elementary → intermediate → upper_intermediate → advanced → proficient
+
+**Skill Areas**:
+speaking, listening, reading, writing, vocabulary, grammar, pronunciation, overall
+
+**Key actions**:
+- `getStudentProgress()` - Fetches all progress data
+- `createLearningGoal()` - Add goal with target date
+- `updateLearningGoalProgress()` - Update goal completion
+- `recordProficiencyAssessment()` - Record skill assessment
+
+---
+
+### Feature: Notifications System
+
+**What it does**: Comprehensive notification center for tutors with 14+ notification types, grouped by date.
+
+**Where the code lives**:
+- Page: `/app/(dashboard)/notifications/page.tsx`
+- Actions: `/lib/actions/notifications.ts`
+
+**How it works**:
+1. Events trigger notifications (booking, payment, message, etc.)
+2. Notifications stored with type, title, message, metadata
+3. Grouped by date (Today, Yesterday, specific dates)
+4. Unread badge tracking in sidebar
+5. "Mark all as read" functionality
+6. Delete individual notifications
+7. Filter by All/Unread tabs
+
+**Notification Types**:
+booking_new, booking_confirmed, booking_cancelled, booking_reminder, payment_received, payment_failed, message_new, message_reply, student_new, student_access_request, package_purchased, package_expiring, review_received, review_approved, system_announcement, account_update
+
+**Key actions**:
+- `getNotifications()` - Fetches paginated notifications
+- `markNotificationRead()` - Mark single as read
+- `markAllNotificationsRead()` - Mark all as read
+- `deleteNotification()` - Remove notification
+
+---
+
+### Feature: Marketplace Sales Dashboard
+
+**What it does**: Real-time sales dashboard for digital products with tiered commission tracking.
+
+**Where the code lives**:
+- Page: `/app/(dashboard)/marketplace/page.tsx`
+- Component: `/app/(dashboard)/marketplace/marketplace-dashboard.tsx`
+
+**How it works**:
+1. Tutors sell digital products (PDFs, ebooks, etc.)
+2. Sales tracked in `marketplace_transactions` table
+3. Dashboard shows:
+   - Gross revenue, earnings, platform fees
+   - Transaction list with product details
+   - Commission rate progress tracker
+4. Tiered commission: 15% until $500 lifetime sales, then 10%
+
+**Key features**:
+- `get_tutor_commission_rate()` - Dynamic commission calculation
+- Product category and level tracking
+- Transaction history with status
+
+---
+
+### Feature: Practice Scenarios Builder
+
+**What it does**: Tutors create custom AI conversation practice templates for students.
+
+**Where the code lives**:
+- Page: `/app/(dashboard)/practice-scenarios/page.tsx`
+- Component: `/components/practice/ScenarioBuilder.tsx`
+
+**How it works**:
+1. Tutor opens Practice Scenarios page
+2. Creates new scenario with:
+   - Title and description
+   - Target language and proficiency level
+   - Topic (e.g., "Restaurant ordering", "Job interview")
+   - Custom system prompt (with default template)
+   - Vocabulary and grammar focus areas
+   - Max messages per session
+3. Toggles scenario active/inactive
+4. Assigns to students for practice
+5. Tracks usage (times_used counter)
+
+**Supported Languages**:
+English, Spanish, French, German, Portuguese, Italian, Chinese, Japanese, Korean, Arabic, Russian, Hindi, Dutch, Polish, Turkish
+
+---
+
+### Feature: Booking Reschedule
+
+**What it does**: Full reschedule workflow with history tracking and conflict detection.
+
+**Where the code lives**:
+- Actions: `/lib/actions/reschedule.ts`
+
+**How it works**:
+1. Tutor or student requests reschedule
+2. System checks for conflicts
+3. If available, booking updated with new time
+4. `original_scheduled_at` preserved for reference
+5. `reschedule_count` incremented
+6. Full history tracked in `booking_reschedule_history`
+
+**Key actions**:
+- `rescheduleBooking()` - Reschedule with conflict check
+- `getBookingRescheduleHistory()` - View reschedule history
+
+---
+
+### Feature: Content Moderation
+
+**What it does**: Report system for platform content with admin review workflow.
+
+**Where the code lives**:
+- Admin page: `/app/admin/moderation/`
+- API: `/api/admin/moderation`
+
+**How it works**:
+1. User reports content (message, review, profile, etc.)
+2. Report created with reason and priority
+3. Admin reviews in moderation dashboard
+4. Resolution actions: no_action, warning_issued, content_removed, user_suspended, user_banned
+5. Full audit trail in `moderation_actions` table
+
+**Report Reasons**:
+spam, harassment, inappropriate, scam, impersonation, copyright, other
+
+**Priority Levels**:
+low, normal, high, urgent
+
+---
+
+### Feature: Support Tickets
+
+**What it does**: Platform support ticket system for tutors and students.
+
+**Where the code lives**:
+- Migration: `20251128100000_create_support_tickets.sql`
+
+**How it works**:
+1. User submits support ticket with subject, message, category
+2. Ticket created with status "open"
+3. Admin reviews and responds
+4. Status workflow: open → in_progress → closed
+5. Tracks user role (tutor/student) for context
+
+---
+
+### Feature: Admin Health & Config
+
+**What it does**: Platform health monitoring and centralized configuration.
+
+**Where the code lives**:
+- Pages: `/app/admin/health/`, `/app/admin/settings/`
+- API: `/api/admin/health`
+
+**How it works**:
+- System health monitoring with status tracking
+- Platform-wide configuration settings
+- Admin user management
+- Tutor inactivity tracking with re-engagement emails
+
+---
+
 ## 4. API ROUTES
 
 **Authentication**:
@@ -697,6 +1102,24 @@ app/
 
 **Cron Jobs**:
 - `POST /api/cron/send-reminders` - Send lesson reminders
+
+**AI Practice**:
+- `POST /api/practice/chat` - AI conversation with grammar corrections
+- `POST /api/practice/audio` - Audio processing and pronunciation assessment
+- `POST /api/practice/subscribe` - Create AI Practice subscription
+- `POST /api/practice/end-session` - Finalize session and generate feedback
+- `GET /api/practice/usage` - Get current usage period and allowances
+- `POST /api/practice/assign` - Assign practice scenario to student
+- `GET /api/practice/scenarios` - List tutor's practice scenarios
+- `GET /api/practice/stats` - Practice statistics
+- `GET /api/practice/progress` - Student practice progress
+
+**Admin**:
+- `GET /api/admin/health` - System health check
+- `GET /api/admin/moderation` - Moderation queue
+- `POST /api/admin/moderation/resolve` - Resolve moderation report
+- `GET /api/admin/tutors/inactive` - List inactive tutors
+- `POST /api/admin/tutors/reengagement` - Send re-engagement emails
 
 ---
 
@@ -922,6 +1345,44 @@ Located in `/lib/actions/`:
 - `sendCampaign()` - Send to recipients
 - `getCampaignStats()` - Open/click rates
 
+**Progress & Homework** (`progress.ts`):
+- `getStudentProgress()` - Fetches all progress data for student
+- `getTutorStudentProgress()` - Tutor view of student progress
+- `createLearningGoal()` - Add goal with target date
+- `updateLearningGoalProgress()` - Update goal completion
+- `recordProficiencyAssessment()` - Record skill assessment
+- `assignHomework()` - Create homework assignment
+- `updateHomeworkStatus()` - Change homework status
+- `markHomeworkCompleted()` - Student marks complete
+- `getStudentPracticeData()` - Practice assignments and stats
+- `getTutorStudentPracticeData()` - Tutor CRM view of practice
+- `getStudentPracticeAnalytics()` - Analytics with grammar trends
+
+**AI Assistant** (`ai-assistant.ts`):
+- `createAIConversation()` - Start new AI conversation
+- `addAIMessage()` - Add message to conversation
+- `getAIConversationHistory()` - Fetch conversation history
+- `trackAIUsage()` - Track token usage
+
+**Notifications** (`notifications.ts`):
+- `getNotifications()` - Fetches paginated notifications
+- `markNotificationRead()` - Mark single as read
+- `markAllNotificationsRead()` - Mark all as read
+- `deleteNotification()` - Remove notification
+- `createNotification()` - Create new notification
+
+**Reschedule** (`reschedule.ts`):
+- `rescheduleBooking()` - Reschedule with conflict check
+- `getBookingRescheduleHistory()` - View reschedule history
+
+**Engagement** (`engagement.ts`):
+- `trackEngagement()` - Track user engagement metrics
+- `getEngagementStats()` - Engagement analytics
+
+**Student Billing** (`student-billing.ts`):
+- `getStudentSubscription()` - Fetch subscription status
+- `cancelStudentSubscription()` - Cancel subscription
+
 ---
 
 ## 8. COMPONENT LIBRARY
@@ -1004,8 +1465,27 @@ Located in `/components/ui/`:
 - `StudentBookingForm` - Book lessons
 - `ConnectionRequestModal` - Connection request UI
 
+**Student Components** (`/components/student/`):
+- `AIPracticeChat` - Main AI conversation interface
+- `AIPracticeCard` - Subscription and usage display card
+- `AudioInputButton` - Pronunciation recording and assessment
+- `HomeworkPracticeButton` - Homework completion actions
+- `SubscribeClient` - AI Practice subscription flow
+
+**AI Practice** (`/components/practice/`):
+- `ScenarioBuilder` - Create custom AI conversation templates
+
+**AI Interface** (`/components/ai/`):
+- `AIChatInterface` - AI assistant conversation interface
+
+**Students CRM** (`/components/students/`):
+- `HomeworkPlanner` - Tutor homework assignment interface
+- `AIPracticeAnalytics` - Student AI practice analytics view
+
 **Admin** (`/components/admin/`):
 - Admin dashboard components for platform management
+- Moderation queue interface
+- Health monitoring dashboard
 
 ---
 
@@ -1033,6 +1513,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Stripe Subscription (All-Access Plan)
 STRIPE_ALL_ACCESS_PRICE_ID=price_...
 STRIPE_LIFETIME_PRICE_ID=price_...
+
+# AI Features (Required for AI Practice Companion)
+OPENAI_API_KEY=sk-...
 ```
 
 ### Optional (Extended Features)
@@ -1113,7 +1596,7 @@ Located in `/docs/blog/`:
 
 ### Pricing Model
 
-**Single All-Access Plan**:
+**Single All-Access Plan** (Tutor Subscription):
 - **Price**: $29/month or $199/year (~$16.58/month)
 - **Features**: All platform features included, no tiers
 - **Positioning**: "One flat price. Full platform access. No add-on fees."
@@ -1122,6 +1605,16 @@ Located in `/docs/blog/`:
 - **Price**: $49 one-time (vs. $29/month recurring)
 - **Deadline**: December 3, 2025
 - **Features**: Lifetime access to all current and future features
+
+**AI Practice Companion** (Student Subscription):
+- **Base tier**: $8/month = 100 audio minutes + 300 text turns
+- **Add-on blocks**: $5 each = +60 audio minutes + +200 text turns
+- **Billing**: Metered via Stripe (blocks auto-charge when exceeded)
+- **Constants**: `/lib/practice/constants.ts`
+
+**Marketplace Commissions** (Digital Products):
+- **Tier 1**: 15% platform fee (up to $500 lifetime sales)
+- **Tier 2**: 10% platform fee (after $500 lifetime sales)
 
 **Value Proposition vs. Marketplaces**:
 
@@ -1170,6 +1663,16 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-This documentation covers all **working, functional features** in the TutorLingua platform as of the current codebase state.
+This documentation covers all **working, functional features** in the TutorLingua platform as of the current codebase state. New features documented in this update include:
+
+- AI Practice Companion with grammar tracking and pronunciation assessment
+- Usage-based billing for AI Practice ($8/month base + $5 blocks)
+- Homework Planner and Student Progress Tracking
+- Notifications System (14+ notification types)
+- Marketplace Sales Dashboard with tiered commissions
+- Practice Scenarios Builder
+- Booking Reschedule with history tracking
+- Content Moderation and Support Tickets
+- Admin Health Monitoring and Platform Config
 
 *Last updated: 3 December 2025*

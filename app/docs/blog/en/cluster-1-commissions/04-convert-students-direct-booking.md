@@ -283,6 +283,8 @@ TutorLingua gives you everything you need: professional booking page, payment pr
 
 *También disponible en español: [Cómo Convertir Estudiantes a Reservas Directas](/es/blog/convertir-estudiantes-reservas-directas)*
 
+*Également disponible en français : [Comment Convertir Vos Étudiants vers la Réservation Directe](/fr/blog/convertir-etudiants-reservation-directe)*
+
 ---
 
 **Related Articles:**

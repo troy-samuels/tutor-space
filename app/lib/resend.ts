@@ -10,6 +10,9 @@ type EmailPayload = {
   cc?: string | string[];
   bcc?: string | string[];
   replyTo?: string | string[];
+  tags?: Array<{ name: string; value: string }>;
+  headers?: Record<string, string>;
+  idempotencyKey?: string;
 };
 
 type EmailResult = {
@@ -27,12 +30,18 @@ class ResendClient {
       }
 
       try {
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        };
+
+        if (payload.idempotencyKey) {
+          headers["Idempotency-Key"] = payload.idempotencyKey;
+        }
+
         const response = await fetch("https://api.resend.com/emails", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify({
             from: payload.from,
             to: Array.isArray(payload.to) ? payload.to : [payload.to],
@@ -42,6 +51,8 @@ class ResendClient {
             cc: payload.cc,
             bcc: payload.bcc,
             reply_to: payload.replyTo,
+            tags: payload.tags,
+            headers: payload.headers,
           }),
         });
 

@@ -157,7 +157,7 @@ export async function uploadHeroImage(file: File) {
     const path = `${user.id}/hero/${Date.now()}.${fileExtension}`;
 
     // Upload to storage
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(HERO_IMAGE_BUCKET)
       .upload(path, buffer, {
         contentType: file.type || "image/jpeg",

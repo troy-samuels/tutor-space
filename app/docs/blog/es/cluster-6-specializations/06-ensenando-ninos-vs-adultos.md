@@ -1,15 +1,24 @@
 ---
-title: "Enseñando a Niños vs Adultos: Diferentes Enfoques para Diferentes Aprendices"
+title: "Ense\xF1ando a Ni\xF1os vs Adultos: Diferentes Enfoques para Diferentes Aprendices"
 slug: ensenando-ninos-vs-adultos
-description: "Descubre las diferencias clave entre enseñar a niños y adultos, aprende estrategias especializadas para cada grupo de edad, y encuentra qué demografía de estudiantes se alinea mejor con tus fortalezas de enseñanza y objetivos de negocio."
-category: "Enseñanza y Especializaciones"
-date: 2025-01-20
-author: "Equipo TutorLingua"
-image: "/blog/kids-vs-adults.jpg"
-tags: ["enseñar niños", "aprendices adultos", "enseñanza por edad", "pedagogía"]
+description: "Descubre las diferencias clave entre ense\xF1ar a ni\xF1os y adultos,\
+  \ aprende estrategias especializadas para cada grupo de edad, y encuentra qu\xE9\
+  \ demograf\xEDa de estudiantes se alinea mejor con tus fortalezas de ense\xF1anza\
+  \ y objetivos de negocio."
+category: "Ense\xF1anza y Especializaciones"
+author: Equipo TutorLingua
+image: /blog/kids-vs-adults.jpg
+tags:
+- "ense\xF1ar ni\xF1os"
+- aprendices adultos
+- "ense\xF1anza por edad"
+- "pedagog\xEDa"
 locale: es
-alternateLocale: en
-alternateSlug: teaching-kids-vs-adults
+alternateLocale:
+  locale: en
+  slug: teaching-kids-vs-adults
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 ---
 
 # Enseñando a Niños vs Adultos: Diferentes Enfoques para Diferentes Aprendices

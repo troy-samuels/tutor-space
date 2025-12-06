@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { studentLogin } from "@/lib/actions/student-auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -11,6 +12,7 @@ interface StudentLoginFormProps {
 
 export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
   const router = useRouter();
+  const t = useTranslations("studentForms");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +41,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
       router.push(redirectUrl);
       router.refresh();
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t("unexpectedError"));
       setLoading(false);
     }
   }
@@ -59,7 +61,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
           htmlFor="email"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Email address
+          {t("email")}
         </label>
         <input
           id="email"
@@ -70,7 +72,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
         />
       </div>
 
@@ -80,7 +82,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
           htmlFor="password"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Password
+          {t("password")}
         </label>
         <div className="relative">
           <input
@@ -92,7 +94,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
-            placeholder="••••••••"
+          placeholder={t("passwordExistingPlaceholder")}
           />
           <button
             type="button"
@@ -116,10 +118,10 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
             type="checkbox"
             className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
           />
-          <span className="ml-2 text-gray-600">Remember me</span>
+          <span className="ml-2 text-gray-600">{t("rememberMe")}</span>
         </label>
         <a href="#" className="text-primary hover:underline">
-          Forgot password?
+          {t("forgotPassword")}
         </a>
       </div>
 
@@ -132,10 +134,10 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
         {loading ? (
           <>
             <Loader2 className="h-5 w-5 animate-spin" />
-            Signing in...
+            {t("signingIn")}
           </>
         ) : (
-          "Sign in"
+          t("signIn")
         )}
       </button>
     </form>

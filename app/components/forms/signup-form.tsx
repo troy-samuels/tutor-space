@@ -3,8 +3,6 @@ import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
-import { FounderOfferNotice } from "@/components/pricing/FounderOfferNotice";
-import { getFounderPlanName } from "@/lib/pricing/founder";
 
 const initialState: AuthActionState = { error: undefined, success: undefined };
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
@@ -168,7 +166,7 @@ export function SignupForm() {
             ? `Great choice! @${value} is available.`
             : "That username is already taken. Try another."
         );
-      } catch (error) {
+      } catch {
         if (lastRequestId.current !== requestId) {
           return;
         }
@@ -282,14 +280,9 @@ export function SignupForm() {
   const usernameDescriptionIds = usernameMessage
     ? "signup-username-helper signup-username-status"
     : "signup-username-helper";
-  const plan = getFounderPlanName();
 
   return (
     <form action={formAction} className="space-y-6">
-      <input type="hidden" name="plan" value={plan} />
-
-      <FounderOfferNotice variant="card" />
-
       <div className="space-y-2">
         <label htmlFor="full_name" className="block text-sm font-medium text-foreground">
           Full name

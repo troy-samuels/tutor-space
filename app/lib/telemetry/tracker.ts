@@ -11,13 +11,11 @@ export function track(event: TelemetryEvent, props?: Record<string, unknown>) {
   // No-op for now; plug your provider here (e.g., PostHog/Amplitude/Sentry breadcrumbs)
   try {
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.debug("[telemetry]", event, props ?? {});
     }
   } catch {
     // ignore
   }
 }
-
 
 

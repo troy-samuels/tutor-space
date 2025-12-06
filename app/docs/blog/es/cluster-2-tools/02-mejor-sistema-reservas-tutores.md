@@ -1,21 +1,38 @@
 ---
-title: "Mejores Sistemas de Reservas para Tutores de Idiomas: Calendly vs Acuity vs Todo-en-Uno"
-slug: "mejor-sistema-reservas-tutores"
-description: "Compara los mejores sistemas de reservas para tutores de idiomas. Revisión detallada de Calendly, Acuity Scheduling y plataformas todo-en-uno para encontrar tu opción perfecta."
-category: "Herramientas y Tecnología"
-tags: ["sistema de reservas", "software de programación", "calendly", "acuity", "herramientas para tutores"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-16"
-updatedAt: "2025-01-16"
+title: 'Mejores Sistemas de Reservas para Tutores de Idiomas: Calendly vs Acuity vs
+  Todo-en-Uno'
+slug: mejor-sistema-reservas-tutores
+description: "Compara los mejores sistemas de reservas para tutores de idiomas. Revisi\xF3\
+  n detallada de Calendly, Acuity Scheduling y plataformas todo-en-uno para encontrar\
+  \ tu opci\xF3n perfecta."
+category: "Herramientas y Tecnolog\xEDa"
+tags:
+- sistema de reservas
+- "software de programaci\xF3n"
+- calendly
+- acuity
+- herramientas para tutores
+author: TutorLingua Team
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 readingTime: 8
 wordCount: 1500
 featured: false
-seoKeywords: ["mejor sistema reservas tutores", "calendly para tutores", "acuity scheduling tutores", "software programación tutor", "reservas online tutores"]
-relatedArticles: ["stack-tecnologico-tutores-2025", "links-zoom-automaticos-estudiantes", "deja-hojas-calculo-tutoria", "reducir-comisiones-plataformas"]
+seoKeywords:
+- mejor sistema reservas tutores
+- calendly para tutores
+- acuity scheduling tutores
+- "software programaci\xF3n tutor"
+- reservas online tutores
+relatedArticles:
+- stack-tecnologico-tutores-2025
+- links-zoom-automaticos-estudiantes
+- deja-hojas-calculo-tutoria
+- reducir-comisiones-plataformas
 alternateLocale:
-  locale: "en"
-  slug: "best-booking-system-tutors"
-position: "replacement"
+  locale: en
+  slug: best-booking-system-tutors
+position: replacement
 ---
 
 # Mejores Sistemas de Reservas para Tutores de Idiomas: Calendly vs Acuity vs Todo-en-Uno
@@ -181,13 +198,13 @@ Divulgación completa: Construimos TutorLingua específicamente para resolver el
 
 **Diseño tutor-primero:** Cada función considera el flujo de trabajo del tutor de idiomas. No somos una herramienta general de programación adaptada para enseñanza—estamos construidos desde cero para tu caso de uso.
 
-**Solución de pago completa:** Integración con Stripe con facturación automática, rastreo de paquetes y analíticas de ingresos. Ve exactamente lo que ganas después de [evitar comisiones de plataforma](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas).
+**Solución de pago completa:** Integración con Stripe con facturación automática, rastreo de paquetes y analíticas de ingresos. Ve exactamente lo que ganas después de [evitar comisiones de plataforma](/es/blog/reducir-comisiones-plataformas).
 
 **Portal de estudiantes:** Los estudiantes inician sesión para ver sus clases próximas, historial de pagos y notas de progreso—reduciendo mensajes de "¿cuándo es mi próxima clase?" en 90%.
 
 **Presencia web profesional:** Sitio web instantáneo de tutor, página bio personalizada y enlaces de reserva que puedes compartir en cualquier lugar. No necesitas constructores de sitios web separados.
 
-**Recordatorios automatizados:** Recordatorios por email y SMS (SMS próximamente Q2 2025) con [entrega automática de enlaces Zoom](/es/blog/cluster-2-herramientas/links-zoom-automaticos-estudiantes).
+**Recordatorios automatizados:** Recordatorios por email y SMS (SMS próximamente Q2 2025) con [entrega automática de enlaces Zoom](/es/blog/links-zoom-automaticos-estudiantes).
 
 **Lo que no hace:**
 
@@ -334,7 +351,7 @@ El mejor sistema de reservas para ti depende de dónde estás en tu viaje de tut
 
 **¿Construyendo un negocio independiente?** Plataformas todo-en-uno como [TutorLingua](/es/signup) eliminan la complejidad de coordinar múltiples suscripciones mientras te dan capacidades profesionales.
 
-Los tutores que tienen éxito a largo plazo son aquellos que [dejan de perder 18-33% en comisiones de plataforma](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas) e invierten en su propia infraestructura. Tu sistema de reservas es la fundación de esa infraestructura.
+Los tutores que tienen éxito a largo plazo son aquellos que [dejan de perder 18-33% en comisiones de plataforma](/es/blog/reducir-comisiones-plataformas) e invierten en su propia infraestructura. Tu sistema de reservas es la fundación de esa infraestructura.
 
 Sea lo que elijas, lo importante es ir más allá de la programación basada en email. Cada día que dependes de coordinación manual es un día que pierdes estudiantes potenciales frente a competidores con reserva instantánea.
 

@@ -1,15 +1,23 @@
 ---
-title: "DELE and SIELE Exam Prep: Specializing in Spanish Certifications"
+title: 'DELE and SIELE Exam Prep: Specializing in Spanish Certifications'
 slug: dele-siele-exam-prep-spanish
-description: "Learn how Spanish tutors can build a profitable practice specializing in DELE and SIELE exam preparation, from understanding certification requirements to developing effective test strategies and attracting motivated students."
-category: "Teaching & Specializations"
-date: 2025-01-18
-author: "TutorLingua Team"
-image: "/blog/dele-siele-prep.jpg"
-tags: ["DELE preparation", "SIELE exam", "Spanish certification", "exam tutoring"]
+description: Learn how Spanish tutors can build a profitable practice specializing
+  in DELE and SIELE exam preparation, from understanding certification requirements
+  to developing effective test strategies and attracting motivated students.
+category: Teaching & Specializations
+author: TutorLingua Team
+image: /blog/dele-siele-prep.jpg
+tags:
+- DELE preparation
+- SIELE exam
+- Spanish certification
+- exam tutoring
 locale: en
-alternateLocale: es
-alternateSlug: preparacion-dele-siele-espanol
+alternateLocale:
+  locale: es
+  slug: preparacion-dele-siele-espanol
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 ---
 
 # DELE and SIELE Exam Prep: Specializing in Spanish Certifications

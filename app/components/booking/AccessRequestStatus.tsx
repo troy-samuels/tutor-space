@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Clock, XCircle, Ban, Mail, ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { AccessStatus } from "@/lib/actions/student-auth";
 
 interface TutorInfo {
@@ -24,13 +25,15 @@ export function AccessRequestStatus({
   tutor,
   accessStatus,
 }: AccessRequestStatusProps) {
+  const t = useTranslations("accessStatus");
+
   const statusConfig = {
     pending: {
       icon: Clock,
       iconBg: "bg-yellow-100",
       iconColor: "text-yellow-600",
-      title: "Access Request Pending",
-      message: `Your request to book lessons with ${tutor.fullName} is under review. You&apos;ll receive an email once approved.`,
+      title: t("pendingTitle"),
+      message: t("pendingMessage", { tutorName: tutor.fullName }),
       bgColor: "bg-yellow-50",
       borderColor: "border-yellow-200",
     },
@@ -38,8 +41,8 @@ export function AccessRequestStatus({
       icon: XCircle,
       iconBg: "bg-red-100",
       iconColor: "text-red-600",
-      title: "Access Request Denied",
-      message: `Unfortunately, ${tutor.fullName} is unable to accept your booking request at this time. Please contact them directly for more information.`,
+      title: t("deniedTitle"),
+      message: t("deniedMessage", { tutorName: tutor.fullName }),
       bgColor: "bg-red-50",
       borderColor: "border-red-200",
     },
@@ -47,8 +50,8 @@ export function AccessRequestStatus({
       icon: Ban,
       iconBg: "bg-orange-100",
       iconColor: "text-orange-600",
-      title: "Access Temporarily Suspended",
-      message: `Your calendar access has been temporarily suspended. Please contact ${tutor.fullName} to resolve this.`,
+      title: t("suspendedTitle"),
+      message: t("suspendedMessage", { tutorName: tutor.fullName }),
       bgColor: "bg-orange-50",
       borderColor: "border-orange-200",
     },
@@ -66,7 +69,7 @@ export function AccessRequestStatus({
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary mb-8 transition"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to home
+          {t("backHome")}
         </Link>
 
         {/* Tutor Header */}
@@ -101,23 +104,23 @@ export function AccessRequestStatus({
             {/* Status-Specific Information */}
             {accessStatus === "pending" && (
               <div className="bg-white rounded-lg p-4 mb-4">
-                <h3 className="font-semibold text-gray-900 mb-2">What happens next?</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">{t("whatNext")}</h3>
                 <ul className="text-sm sm:text-base text-gray-600 space-y-2 text-left">
                   <li className="flex gap-2">
                     <span>1.</span>
-                    <span>{tutor.fullName} will review your request</span>
+                    <span>{t("step1", { tutorName: tutor.fullName })}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>2.</span>
-                    <span>You&apos;ll receive payment instructions via email</span>
+                    <span>{t("step2")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>3.</span>
-                    <span>Once approved, you can book lessons from the calendar</span>
+                    <span>{t("step3")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>4.</span>
-                    <span>You&apos;ll get email confirmations and reminders</span>
+                    <span>{t("step4")}</span>
                   </li>
                 </ul>
               </div>
@@ -127,15 +130,15 @@ export function AccessRequestStatus({
             <div className="bg-white rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-3">
                 {accessStatus === "pending"
-                  ? "Have questions while you wait?"
-                  : "Need to discuss your access?"}
+                  ? t("contactPromptPending")
+                  : t("contactPromptOther")}
               </p>
               <a
                 href={`mailto:${tutor.email}`}
                 className="inline-flex items-center gap-2 text-primary hover:underline font-semibold"
               >
                 <Mail className="h-4 w-4" />
-                Contact {tutor.fullName}
+                {t("contactTutor", { tutorName: tutor.fullName })}
               </a>
             </div>
           </div>
@@ -145,7 +148,7 @@ export function AccessRequestStatus({
         {accessStatus === "pending" && (
           <div className="bg-white shadow-sm rounded-xl p-5 sm:p-6 text-center">
             <p className="text-sm text-gray-600 mb-4">
-              Didn&apos;t receive a confirmation email? Check your spam folder or request a new one.
+              {t("resendNote")}
             </p>
             <button
               className="text-sm font-semibold text-primary hover:underline"
@@ -154,7 +157,7 @@ export function AccessRequestStatus({
                 alert("Email resent! Please check your inbox.");
               }}
             >
-              Resend confirmation email
+              {t("resend")}
             </button>
           </div>
         )}
@@ -162,7 +165,7 @@ export function AccessRequestStatus({
         {accessStatus === "denied" && (
           <div className="bg-white shadow-sm rounded-xl p-5 sm:p-6 text-center">
             <p className="text-sm text-gray-600 mb-4">
-              If you believe this was a mistake, please reach out to {tutor.fullName} directly.
+              {t("deniedNote", { tutorName: tutor.fullName })}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
@@ -170,7 +173,7 @@ export function AccessRequestStatus({
                 className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition"
               >
                 <Mail className="h-4 w-4" />
-                Email Tutor
+                {t("emailTutor")}
               </a>
               {tutor.instagramHandle && (
                 <a
@@ -179,7 +182,7 @@ export function AccessRequestStatus({
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 bg-white text-primary shadow-md px-6 py-3 rounded-lg font-semibold hover:bg-primary/5 transition"
                 >
-                  Contact on Instagram
+                  {t("contactInstagram")}
                 </a>
               )}
             </div>

@@ -17,16 +17,25 @@ test("maps all-access price ID to growth", () => {
   assert.equal(mapPriceIdToPlan("price_all_access_test"), "growth");
 });
 
-test("falls back to growth when an all-access price is configured", () => {
+test("maps yearly all-access price ID to growth", () => {
+  process.env.STRIPE_LIFETIME_PRICE_ID = "price_lifetime_test";
+  process.env.STRIPE_ALL_YEAR_ACCESS_PRICE_ID = "price_all_year_access_test";
+
+  assert.equal(mapPriceIdToPlan("price_all_year_access_test"), "growth");
+});
+
+test("does not unlock paid plan for unknown price IDs", () => {
   process.env.STRIPE_LIFETIME_PRICE_ID = "price_lifetime_test";
   process.env.STRIPE_ALL_ACCESS_PRICE_ID = "price_all_access_test";
+  process.env.STRIPE_ALL_YEAR_ACCESS_PRICE_ID = "price_all_year_access_test";
 
-  assert.equal(mapPriceIdToPlan("unknown_price"), "growth");
+  assert.equal(mapPriceIdToPlan("unknown_price"), "professional");
 });
 
 test("falls back to professional when no prices are configured", () => {
   delete process.env.STRIPE_LIFETIME_PRICE_ID;
   delete process.env.STRIPE_ALL_ACCESS_PRICE_ID;
+  delete process.env.STRIPE_ALL_YEAR_ACCESS_PRICE_ID;
 
   assert.equal(mapPriceIdToPlan("unknown_price"), "professional");
 });

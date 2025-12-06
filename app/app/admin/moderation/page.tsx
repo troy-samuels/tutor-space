@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -99,11 +99,7 @@ export default function AdminModerationPage() {
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    fetchReports();
-  }, [page, statusFilter, contentTypeFilter, priorityFilter]);
-
-  async function fetchReports() {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -125,7 +121,11 @@ export default function AdminModerationPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, perPage, statusFilter, contentTypeFilter, priorityFilter]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   async function handleAction(action: string, value?: string, notes?: string) {
     if (!selectedReport) return;

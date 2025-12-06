@@ -23,18 +23,37 @@ A comprehensive business management platform for independent language tutors. Tu
 ## Features
 
 ### Core Platform
-- **Booking System** - Timezone-aware scheduling with conflict detection
+- **Booking System** - Timezone-aware scheduling with conflict detection and reschedule tracking
 - **Stripe Connect** - Direct payouts to tutors, 0% platform commission
 - **Student CRM** - Manage students, notes, lesson history, access control
 - **Session Packages** - Pre-paid lesson bundles with redemption tracking
 - **Calendar Sync** - Two-way sync with Google Calendar & Outlook
 - **Messaging** - Direct tutor-student communication
+- **Notifications** - Real-time notification center with 14+ event types
+- **Homework Planner** - Assign homework with resources and due dates
+- **Progress Tracking** - Student goals, proficiency assessments, learning stats
+
+### AI Practice Companion
+- **Conversational AI** - Real-time practice conversations between lessons
+- **Grammar Tracking** - Automatic grammar corrections with explanations (11 categories)
+- **Pronunciation Assessment** - Audio input with pronunciation feedback
+- **Practice Scenarios** - Tutors create custom AI conversation templates
+- **Usage-Based Billing** - $8/month base + $5 add-on blocks for heavy usage
+
+### Marketplace
+- **Digital Product Sales** - Sell PDFs, ebooks, worksheets with download tracking
+- **Tiered Commission** - 15% fee → 10% after $500 lifetime sales
+- **Sales Dashboard** - Revenue analytics, transaction history, earnings tracking
 
 ### Marketing Tools
 - **Tutor Sites** - Custom website builder with themes and layouts
 - **Link-in-Bio** - Customizable landing pages with click tracking
-- **Digital Products** - Sell downloadable resources (PDFs, ebooks)
 - **Email Campaigns** - Bulk email with unsubscribe management
+
+### Admin & Moderation
+- **Content Moderation** - Report system for messages, reviews, profiles
+- **Support Tickets** - Platform support ticket workflow
+- **Health Monitoring** - System health dashboard and alerts
 
 ### Public Pages
 - `/[username]` - Custom tutor website
@@ -42,6 +61,11 @@ A comprehensive business management platform for independent language tutors. Tu
 - `/profile/[username]` - Public tutor profile
 - `/book/[username]` - Booking page
 - `/products/[username]` - Digital product catalog
+
+### Student Portal
+- `/student-auth/progress` - Learning progress dashboard
+- `/student-auth/practice/[id]` - AI Practice sessions
+- `/student-auth/messages` - Direct messaging with tutors
 
 ## Getting Started
 
@@ -82,6 +106,7 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 RESEND_API_KEY=
 NEXT_PUBLIC_APP_URL=
+OPENAI_API_KEY=              # For AI Practice Companion
 ```
 
 ## Development

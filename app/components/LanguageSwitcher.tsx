@@ -4,12 +4,14 @@ import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Globe } from "lucide-react";
 
-const locales = ["en", "es"] as const;
+const locales = ["en", "es", "fr", "pt"] as const;
 type Locale = (typeof locales)[number];
 
 const languageNames: Record<Locale, string> = {
   en: "English",
   es: "Español",
+  fr: "Français",
+  pt: "Português",
 };
 
 export function LanguageSwitcher() {

@@ -1,23 +1,24 @@
 ---
-title: "How to Optimize Your Preply Profile to Get More Trial Lessons"
+title: How to Optimize Your Preply Profile to Get More Trial Lessons
 slug: optimize-preply-profile
-description: "Complete guide to optimizing your Preply tutor profile for maximum visibility and bookings. Learn what works in 2025 to stand out and convert browsers to students."
-category: "Marketing & Growth"
-readTime: "6 min read"
+description: Complete guide to optimizing your Preply tutor profile for maximum visibility
+  and bookings. Learn what works in 2025 to stand out and convert browsers to students.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "optimizar-perfil-preply"
-keywords:
-  - optimize Preply profile
-  - Preply tutor tips
-  - get more Preply students
-  - Preply profile optimization
-  - increase Preply bookings
+  locale: es
+  slug: optimizar-perfil-preply
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 6
+seoKeywords:
+- optimize Preply profile
+- Preply tutor tips
+- get more Preply students
+- Preply profile optimization
+- increase Preply bookings
 ---
 
 # How to Optimize Your Preply Profile to Get More Trial Lessons
@@ -305,5 +306,11 @@ The tutors earning $3,000-$5,000+ monthly on Preply didn't get there accidentall
 Your potential students are on Preply right now, searching for a tutor. Will they find a generic profile they scroll past, or a compelling one that makes them click "Book Trial Lesson"?
 
 That choice is yours.
+
+---
+
+*Également disponible en français : [Comment Optimiser Votre Profil Preply pour Plus d'Étudiants](/fr/blog/optimiser-profil-preply)*
+
+---
 
 Ready to take full control of your tutoring business beyond platform limitations? [Start with TutorLingua](https://tutorlingua.com/signup) to create your own professional booking site and transition students to direct booking—keeping 100% of your earnings.

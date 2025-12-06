@@ -1,0 +1,478 @@
+{
+  "hero": {
+    "headline": "Criado para tutores.",
+    "subheadline": "Teste gratuito de 14 dias. Depois US$ 39/mês ou US$ 299/ano. Todas as ferramentas. Sem taxas adicionais.",
+    "primaryCTA": "Comece grátis",
+    "secondaryCTA": "Veja como funciona",
+    "variants": {
+      "outcomeHeadline": "Menos administração. Mais alunos.",
+      "financialHeadline": "Mantenha 100% - sem taxas de plataforma.",
+      "aspirationalHeadline": "Sua academia independente, totalmente automatizada."
+    }
+  },
+  "socialProof": {
+    "text": "Usado por tutores de idiomas no Preply, iTalki e Verbling para obter negócios recorrentes",
+    "tutors": [
+      {
+        "name": "Sarai A.",
+        "language": "Professor de espanhol"
+      },
+      {
+        "name": "Thomas B.",
+        "language": "Tutor de francês"
+      },
+      {
+        "name": "Ricardo M.",
+        "language": "Portuguese Tutor"
+      }
+    ]
+  },
+  "problems": {
+    "headline": "Sua empresa está dispersa. Não deveria estar.",
+    "subtitle": "Alunos na Preply. Reservas no Calendly. Links no Beacons. O TutorLingua reúne tudo isso.",
+    "items": [
+      {
+        "icon": "Layers",
+        "title": "Criado apenas para tutores",
+        "description": "Diferente das ferramentas genéricas. Tudo o que você precisa. Nada do que você não precisa."
+      },
+      {
+        "icon": "Users",
+        "title": "Seja dono de seu negócio recorrente",
+        "description": "Os marketplaces encontram alunos. Você os mantém. Sem comissões."
+      },
+      {
+        "icon": "Clock",
+        "title": "Os alunos reservam instantaneamente",
+        "description": "Compartilhe seu link. Eles escolhem um horário. Você é pago. Feito."
+      }
+    ]
+  },
+  "phoneMockup": {
+    "headline": "Seu site, pronto para ser compartilhado",
+    "subheadline": "Profissional. Compatível com dispositivos móveis. Leva 10 minutos.",
+    "features": [
+      {
+        "icon": "Palette",
+        "title": "Sua marca, seu jeito",
+        "description": "Escolha cores, fontes e fotos que tenham a ver com você"
+      },
+      {
+        "icon": "Layers",
+        "title": "Todos os seus serviços em um só lugar",
+        "description": "Os alunos veem o que você oferece e fazem a reserva instantaneamente"
+      },
+      {
+        "icon": "Star",
+        "title": "Avaliações que geram confiança",
+        "description": "Mostre o que os alunos dizem sobre você"
+      },
+      {
+        "icon": "Smartphone",
+        "title": "Funciona em qualquer telefone",
+        "description": "Compartilhe seu link em qualquer lugar - Instagram, WhatsApp, e-mail"
+      }
+    ],
+    "cta": "Comece grátis"
+  },
+  "solution": {
+    "headline": "Tudo o que você precisa. Nada do que você não precisa.",
+    "subheadline": "Criado para professores de idiomas. Pronto em 10 minutos.",
+    "features": [
+      {
+        "icon": "Globe",
+        "title": "Seu centro profissional",
+        "description": "Site e link na biografia. Compartilhe no Instagram, TikTok, perfis de mercado. Um link para tudo."
+      },
+      {
+        "icon": "Calendar",
+        "title": "Reservas diretas",
+        "description": "Os alunos escolhem um horário. Pagamento adiantado. Recebem links do Zoom automaticamente. Não é preciso correr atrás de pagamentos. Sem idas e vindas."
+      },
+      {
+        "icon": "Users",
+        "title": "Acompanhe seus alunos",
+        "description": "Faça anotações após cada aula. Lembre-se do que você ensinou. Acompanhe o progresso ao longo do tempo. Tudo em um só lugar."
+      }
+    ]
+  },
+  "howItWorks": {
+    "headline": "Pronto em 10 minutos",
+    "steps": [
+      {
+        "number": 1,
+        "icon": "UserPlus",
+        "title": "Compartilhe seu link",
+        "description": "Coloque-o no Instagram. Adicione-o ao TikTok. Inclua-o em sua biografia do Preply. Compartilhe-o em todos os lugares."
+      },
+      {
+        "number": 2,
+        "icon": "Calendar",
+        "title": "Os alunos fazem a reserva diretamente",
+        "description": "Eles escolhem um horário. Pagam adiantado. Recebem o link do Zoom instantaneamente. Você recebe uma notificação."
+      },
+      {
+        "number": 3,
+        "icon": "Users",
+        "title": "Você rastreia tudo",
+        "description": "Todos os seus alunos em um só lugar. Notas, horários, pagamentos. Não há mais ferramentas dispersas."
+      }
+    ],
+    "cta": "Iniciar gratuitamente"
+  },
+  "featuresDeepDive": {
+    "headline": "Controle total. Pais satisfeitos.",
+    "categories": [
+      {
+        "name": "Presença profissional",
+        "items": [
+          "Subdomínio personalizado",
+          "Link-in-bio com análises",
+          "Página de credibilidade dos pais",
+          "Suporte a vários idiomas",
+          "Integrações de mídia social"
+        ]
+      },
+      {
+        "name": "Reservas e pagamentos",
+        "items": [
+          "Calendário interativo",
+          "Pacotes recorrentes",
+          "Checkout com Stripe e PayPal",
+          "Faturamento automático",
+          "Geração de links de zoom"
+        ]
+      },
+      {
+        "name": "Ferramentas de ensino",
+        "items": [
+          "Parceiro de conversação de IA 24 horas por dia, 7 dias por semana",
+          "Planos de aula e lição de casa de IA",
+          "Biblioteca de recursos",
+          "Notas de aula estruturadas",
+          "Acompanhamento do progresso alinhado ao CEFR"
+        ]
+      },
+      {
+        "name": "Comunicação",
+        "items": [
+          "Confirmações automatizadas",
+          "Sequências de e-mail e WhatsApp",
+          "Captura de testemunho",
+          "Resumo diário do tutor",
+          "Atualizações dos pais com um clique"
+        ]
+      },
+      {
+        "name": "Insights de negócios",
+        "items": [
+          "Análise de receita",
+          "Funis de conversão",
+          "Controles de uso de IA",
+          "Painel de controle executivo",
+          "Full data export"
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "headline": "Teste grátis de 14 dias",
+    "subheadline": "Depois US$ 39/mês ou US$ 299/ano. Preço único para cada tutor.",
+    "comparisonNote": "Todos os recursos incluídos. Sem cobrança até o dia 14. Cancele antes da cobrança.",
+    "toggle": {
+      "label": "Faturamento",
+      "monthlyLabel": "Mensal",
+      "annualLabel": "Anual (economia de 36%)",
+      "helper": "Troque a qualquer momento - seu plano continua sendo de acesso total."
+    },
+    "tiers": [
+      {
+        "name": "Acesso total",
+        "monthlyPrice": "$39",
+        "annualPrice": "$299",
+        "monthlyPeriod": "por mês",
+        "annualPeriod": "por ano",
+        "badge": "Todos os recursos",
+        "description": "Teste gratuito de 14 dias. Um plano. Plataforma completa.",
+        "features": [
+          "Site, links e reservas em um só lugar",
+          "Checkout seguro com Stripe — cobrança após o teste",
+          "Notas e tarefas para cada aluno",
+          "E-mail e WhatsApp incorporados",
+          "Sem taxas adicionais. Pare quando quiser."
+        ],
+        "cta": "Comece grátis",
+        "highlighted": true
+      }
+    ]
+  },
+  "comparison": {
+    "headline": "Criado para tutores. Não para todos.",
+    "caption": "As ferramentas de links genéricos funcionam para qualquer pessoa. O TutorLingua funciona especificamente para professores de idiomas.",
+    "tableHeaders": {
+      "feature": "O que você recebe",
+      "marketplace": "Ferramentas genéricas",
+      "platform": "TutorLingua"
+    },
+    "columns": [
+      {
+        "label": "",
+        "marketplace": "",
+        "platform": ""
+      },
+      {
+        "label": "Sistema de reservas",
+        "marketplace": "Ferramenta separada",
+        "platform": "Construído em"
+      },
+      {
+        "label": "Cobrança de pagamentos",
+        "marketplace": "Ferramenta separada",
+        "platform": "Construído em"
+      },
+      {
+        "label": "Notas do aluno e CRM",
+        "marketplace": "Não incluído",
+        "platform": "Construído em"
+      },
+      {
+        "label": "Rastreamento de lições",
+        "marketplace": "Não incluído",
+        "platform": "Construído em"
+      },
+      {
+        "label": "Site profissional",
+        "marketplace": "Somente página de links",
+        "platform": "Site completo + links"
+      }
+    ]
+  },
+  "testimonials": {
+    "headline": "Tutores reais, resultados reais",
+    "featured": {
+      "quote": "Eu permaneço na Preply para novos alunos. Mas as aulas repetidas passam pelo TutorLingua. Economizei US$ 7.500 em comissões este ano.",
+      "author": "Sarai A.",
+      "role": "Professor de espanhol",
+      "image": "/testimonials/sara.jpg"
+    },
+    "list": [
+      {
+        "quote": "Meus seguidores do Instagram finalmente podem me reservar diretamente. 12 aulas reservadas na primeira semana.",
+        "author": "Thomas B.",
+        "role": "Tutor de francês"
+      },
+      {
+        "quote": "Todos os meus alunos em um só lugar. Notas, horários, pagamentos. Não há mais planilhas espalhadas.",
+        "author": "Ricardo M.",
+        "role": "Portuguese Tutor"
+      }
+    ]
+  },
+  "faq": {
+    "headline": "Perguntas comuns",
+    "items": [
+      {
+        "question": "Preciso sair da Preply ou do iTalki?",
+        "answer": "Não. Use os mercados para ser descoberto. Use o TutorLingua para obter reservas diretas de seus seguidores e alunos recorrentes."
+      },
+      {
+        "question": "É fácil de usar?",
+        "answer": "Se você pode usar o Instagram, você pode usar o TutorLingua. A maioria dos tutores está pronta em 10 minutos."
+      },
+      {
+        "question": "Como os alunos fazem a reserva?",
+        "answer": "Eles clicam em seu link. Escolhem um horário. Pague. Recebem o link do Zoom instantaneamente. Pronto."
+      },
+      {
+        "question": "Fico com todos os meus ganhos?",
+        "answer": "Sim. Não há comissões sobre reservas diretas por meio do TutorLingua. Você fica com 100%."
+      },
+      {
+        "question": "Posso monitorar meus alunos?",
+        "answer": "Sim. Salve anotações após cada lição. Acompanhe o progresso. Todos os seus alunos em um local organizado."
+      },
+      {
+        "question": "Posso sair a qualquer momento?",
+        "answer": "Sim. Exporte todos os seus dados. Sem bloqueio. Cancele a qualquer momento."
+      }
+    ]
+  },
+  "valueStack": {
+    "headline": "O que você pagaria em outro lugar",
+    "items": [
+      {
+        "icon": "Globe",
+        "feature": "Site profissional e link-in-Bio",
+        "replaces": [
+          "Squarespace",
+          "Linktree"
+        ],
+        "competitorPrice": 16
+      },
+      {
+        "icon": "Calendar",
+        "feature": "Convites e reservas de calendário",
+        "replaces": [
+          "Calendly",
+          "Acuity Scheduling"
+        ],
+        "competitorPrice": 12
+      },
+      {
+        "icon": "GraduationCap",
+        "feature": "Pacotes de aulas e criador de cursos",
+        "replaces": [
+          "Kajabi",
+          "Teachable"
+        ],
+        "competitorPrice": 59
+      },
+      {
+        "icon": "Users",
+        "feature": "CRM e anotações do aluno",
+        "replaces": [
+          "HubSpot",
+          "Notion"
+        ],
+        "competitorPrice": 20
+      },
+      {
+        "icon": "Mail",
+        "feature": "Lista e sequências de e-mail",
+        "replaces": [
+          "ConvertKit",
+          "Mailchimp"
+        ],
+        "competitorPrice": 15
+      },
+      {
+        "icon": "CreditCard",
+        "feature": "Processamento de pagamentos",
+        "replaces": [
+          "Stripe setup",
+          "PayPal Business"
+        ],
+        "competitorPrice": 0
+      },
+      {
+        "icon": "BarChart3",
+        "feature": "Painel de controle do Analytics",
+        "replaces": [
+          "Google Analytics"
+        ],
+        "competitorPrice": 0
+      }
+    ],
+    "totalLabel": "O que você gastaria de outra forma",
+    "platformLabel": "Junte-se ao TutorLingua",
+    "platformPrice": "$39",
+    "platformPeriod": "/mo",
+    "cta": "Comece grátis",
+    "ctaHref": "/signup"
+  },
+  "finalCTA": {
+    "headline": "Pronto para ter seu próprio negócio?",
+    "subheadline": "Teste gratuito de 14 dias. Pronto em 10 minutos.",
+    "calculatorLabel": "Receita mensal:",
+    "calculatorUnit": "/mês",
+    "rangeMinLabel": "$500",
+    "rangeMaxLabel": "$10,000",
+    "commissionLabel": "Taxas de marketplace (25%):",
+    "platformCostLabel": "TutorLingua ($39):",
+    "monthlySavingsLabel": "Economia mensal:",
+    "annualSavingsLabel": "Economia anual",
+    "button": "Comece grátis",
+    "finePrint": "Teste grátis de 14 dias. Cobrança após o teste; cancele antes do dia 14.",
+    "trustBadges": [
+      "Stripe Verified",
+      "GDPR Compliant",
+      "SOC 2 Ready"
+    ]
+  },
+  "navigation": {
+    "links": [
+      {
+        "label": "Recursos",
+        "href": "#features"
+      },
+      {
+        "label": "Como funciona",
+        "href": "#how-it-works"
+      },
+      {
+        "label": "Preços",
+        "href": "#pricing"
+      },
+      {
+        "label": "Depoimentos",
+        "href": "#testimonials"
+      }
+    ],
+    "cta": "Fazer login"
+  },
+  "footer": {
+    "tagline": "TutorLingua - Seja dono de seu negócio recorrente. Criado para professores de idiomas.",
+    "sections": [
+      {
+        "title": "Produto",
+        "links": [
+          {
+            "label": "Recursos",
+            "href": "#features"
+          },
+          {
+            "label": "Preços",
+            "href": "#pricing"
+          },
+          {
+            "label": "Segurança",
+            "href": "/security"
+          }
+        ]
+      },
+      {
+        "title": "Recursos",
+        "links": [
+          {
+            "label": "Blog",
+            "href": "/blog"
+          },
+          {
+            "label": "Central de Ajuda",
+            "href": "/help"
+          },
+          {
+            "label": "Comunidade",
+            "href": "/community"
+          }
+        ]
+      },
+      {
+        "title": "Empresa",
+        "links": [
+          {
+            "label": "Sobre",
+            "href": "/about"
+          },
+          {
+            "label": "Contato",
+            "href": "/contact"
+          },
+          {
+            "label": "Privacidade",
+            "href": "/privacy"
+          },
+          {
+            "label": "Termos",
+            "href": "/terms"
+          },
+          {
+            "label": "Administrador",
+            "href": "/admin/login"
+          }
+        ]
+      }
+    ],
+    "copyright": "© 2025 TutorLingua. Todos os direitos reservados."
+  }
+}

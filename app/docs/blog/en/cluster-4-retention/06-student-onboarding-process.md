@@ -1,20 +1,37 @@
 ---
-title: "Creating a Student Onboarding Process That Sets Expectations"
-slug: "student-onboarding-process"
-description: "Build a structured onboarding process that sets clear expectations, reduces confusion, and establishes the foundation for long-term student retention from day one."
-category: "Student Management"
-tags: ["onboarding", "student success", "retention", "communication", "tutoring systems"]
-author: "TutorLingua Team"
-publishDate: "2025-01-20"
-updateDate: "2025-01-20"
-readingTime: "6 min"
+title: Creating a Student Onboarding Process That Sets Expectations
+slug: student-onboarding-process
+description: Build a structured onboarding process that sets clear expectations, reduces
+  confusion, and establishes the foundation for long-term student retention from day
+  one.
+category: Student Management
+tags:
+- onboarding
+- student success
+- retention
+- communication
+- tutoring systems
+author: TutorLingua Team
+readingTime: 6
 wordCount: 1100
 featured: false
-seoKeywords: ["student onboarding", "tutor onboarding process", "new student welcome", "onboarding template", "student expectations"]
-relatedArticles: ["student-retention-guide-tutors", "writing-effective-lesson-notes", "handle-student-cancellations", "track-student-progress-no-spreadsheets"]
-alternateLocale: "es"
-alternateSlug: "proceso-onboarding-estudiantes"
-position: "Authority"
+seoKeywords:
+- student onboarding
+- tutor onboarding process
+- new student welcome
+- onboarding template
+- student expectations
+relatedArticles:
+- student-retention-guide-tutors
+- writing-effective-lesson-notes
+- handle-student-cancellations
+- track-student-progress-no-spreadsheets
+alternateLocale:
+  locale: es
+  slug: proceso-onboarding-estudiantes
+position: authority
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 ---
 
 # Creating a Student Onboarding Process That Sets Expectations

@@ -1,31 +1,33 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { StudentSignupForm } from "@/components/student-auth/StudentSignupForm";
+import { Logo } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Student Sign Up | TutorLingua",
   description: "Create a student account to find tutors and book lessons",
 };
 
-export default function StudentSignupPage() {
+export default async function StudentSignupPage() {
+  const t = await getTranslations("studentSignupPage");
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-muted via-muted/40 to-white px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="inline-block">
-            <h1 className="mb-2 text-3xl font-bold text-primary">
-              TutorLingua
-            </h1>
+        <div className="mb-8 text-center space-y-2">
+          <Link href="/" className="inline-flex items-center justify-center">
+            <Logo variant="wordmark" />
           </Link>
-          <p className="text-gray-600">Student Sign Up</p>
+          <p className="text-gray-600">{t("title")}</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-white p-8 shadow-lg">
           <h2 className="mb-2 text-2xl font-semibold text-gray-900">
-            Create your account
+            {t("createTitle")}
           </h2>
           <p className="mb-6 text-sm text-gray-500">
-            Sign up to find tutors and start learning
+            {t("createSubtitle")}
           </p>
 
           <StudentSignupForm />
@@ -33,9 +35,9 @@ export default function StudentSignupPage() {
 
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            Are you a tutor?{" "}
+            {t("ctaTutorPrefix")}{" "}
             <Link href="/signup" className="text-primary hover:underline">
-              Create tutor account
+              {t("ctaTutor")}
             </Link>
           </p>
         </div>

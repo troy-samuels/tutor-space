@@ -27,7 +27,7 @@ export async function signUp(
   const role = (formData.get("role") as string) || "tutor";
   const planFromForm = (formData.get("plan") as string) || "";
   const founderPlan = getFounderPlanName();
-  const desiredPlan = role === "tutor" ? planFromForm || founderPlan : planFromForm || "professional";
+  const desiredPlan = planFromForm || "professional";
 
   if (!email) {
     return { error: "Please enter an email address." };

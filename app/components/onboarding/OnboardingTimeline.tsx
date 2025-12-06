@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TimelineStep, StepStatus } from "./TimelineStep";
 import { StepProfileBasics } from "./steps/StepProfileBasics";
@@ -65,8 +65,6 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const getStepStatus = (stepNumber: number): StepStatus => {
     if (stepNumber < currentStep) return "completed";
@@ -103,26 +101,13 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
         setIsCompleting(false);
       }
     } else {
-      // Animate transition to next step
-      setIsTransitioning(true);
-
-      // Small delay for the completion animation
-      setTimeout(() => {
-        setCurrentStep(stepNumber + 1);
-
-        // Smooth scroll to the next step after state updates
-        requestAnimationFrame(() => {
-          const nextStepElement = document.getElementById(`step-${stepNumber + 1}`);
-          if (nextStepElement) {
-            smoothScrollTo(nextStepElement);
-          }
-        });
-
-        // Reset transitioning state after scroll completes
-        setTimeout(() => {
-          setIsTransitioning(false);
-        }, 400);
-      }, 250);
+      setCurrentStep(stepNumber + 1);
+      requestAnimationFrame(() => {
+        const nextStepElement = document.getElementById(`step-${stepNumber + 1}`);
+        if (nextStepElement) {
+          smoothScrollTo(nextStepElement);
+        }
+      });
     }
   };
 
@@ -142,35 +127,30 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
       case 2:
         return (
           <StepProfessionalInfo
-            profileId={profile.id}
             onComplete={() => handleStepComplete(2)}
           />
         );
       case 3:
         return (
           <StepLanguagesServices
-            profileId={profile.id}
             onComplete={() => handleStepComplete(3)}
           />
         );
       case 4:
         return (
           <StepAvailability
-            profileId={profile.id}
             onComplete={() => handleStepComplete(4)}
           />
         );
       case 5:
         return (
           <StepCalendarSync
-            profileId={profile.id}
             onComplete={() => handleStepComplete(5)}
           />
         );
       case 6:
         return (
           <StepVideo
-            profileId={profile.id}
             onComplete={() => handleStepComplete(6)}
           />
         );

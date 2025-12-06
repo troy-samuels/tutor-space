@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  Calendar, 
-  MessageSquare, 
-  Wallet, 
-  FileText, 
-  Star, 
-  Clock,
-  AlertCircle
+import Image from "next/image";
+import {
+  Calendar,
+  MessageSquare,
+  Wallet,
+  FileText,
+  AlertCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
 
 export type StudentListRowData = {
   id: string;
@@ -52,9 +50,11 @@ export function StudentListRow({ student }: { student: StudentListRowData }) {
       {/* Avatar */}
       <div className="relative flex-shrink-0">
         {student.avatarUrl ? (
-          <img
+          <Image
             src={student.avatarUrl}
             alt={student.fullName}
+            width={32}
+            height={32}
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (

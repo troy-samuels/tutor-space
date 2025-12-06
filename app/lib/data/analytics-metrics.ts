@@ -142,7 +142,7 @@ export async function getStudentMetrics(
   ).length;
 
   // Churn risk (no booking in last 30 days but had previous bookings)
-  const churnRiskStudents = Array.from(bookingsPerStudent.entries()).filter(([_, data]) => {
+  const churnRiskStudents = Array.from(bookingsPerStudent.entries()).filter(([, data]) => {
     if (data.count === 0) return false;
     if (!data.lastBooking) return true;
     return new Date(data.lastBooking) < new Date(thirtyDaysAgo);

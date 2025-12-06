@@ -74,7 +74,6 @@ export default function AdminEmailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Tutor[]>([]);
   const [searching, setSearching] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
   // Recipient counts
   const [recipientCount, setRecipientCount] = useState<number | null>(null);

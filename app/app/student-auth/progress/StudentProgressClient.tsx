@@ -25,7 +25,6 @@ import {
   FileText,
   Image as ImageIcon,
   Video,
-  Bot,
   Sparkles,
 } from "lucide-react";
 import {

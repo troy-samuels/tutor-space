@@ -1,20 +1,37 @@
 ---
-title: "Crear un Proceso de Onboarding de Estudiantes Que Establezca Expectativas"
-slug: "proceso-onboarding-estudiantes"
-description: "Construye un proceso de onboarding estructurado que establezca expectativas claras, reduzca confusión y cimente la base para retención de estudiantes a largo plazo desde el primer día."
-category: "Gestión de Estudiantes"
-tags: ["onboarding", "éxito estudiantes", "retención", "comunicación", "sistemas de tutoría"]
-author: "TutorLingua Team"
-publishDate: "2025-01-20"
-updateDate: "2025-01-20"
-readingTime: "6 min"
+title: Crear un Proceso de Onboarding de Estudiantes Que Establezca Expectativas
+slug: proceso-onboarding-estudiantes
+description: "Construye un proceso de onboarding estructurado que establezca expectativas\
+  \ claras, reduzca confusi\xF3n y cimente la base para retenci\xF3n de estudiantes\
+  \ a largo plazo desde el primer d\xEDa."
+category: "Gesti\xF3n de Estudiantes"
+tags:
+- onboarding
+- "\xE9xito estudiantes"
+- "retenci\xF3n"
+- "comunicaci\xF3n"
+- "sistemas de tutor\xEDa"
+author: TutorLingua Team
+readingTime: 6
 wordCount: 1100
 featured: false
-seoKeywords: ["onboarding estudiantes", "proceso onboarding tutor", "bienvenida nuevos estudiantes", "plantilla onboarding", "expectativas estudiantes"]
-relatedArticles: ["guia-retencion-estudiantes-tutores", "escribir-notas-clase-efectivas", "manejar-cancelaciones-estudiantes", "rastrear-progreso-sin-hojas-calculo"]
-alternateLocale: "en"
-alternateSlug: "student-onboarding-process"
-position: "Authority"
+seoKeywords:
+- onboarding estudiantes
+- proceso onboarding tutor
+- bienvenida nuevos estudiantes
+- plantilla onboarding
+- expectativas estudiantes
+relatedArticles:
+- guia-retencion-estudiantes-tutores
+- escribir-notas-clase-efectivas
+- manejar-cancelaciones-estudiantes
+- rastrear-progreso-sin-hojas-calculo
+alternateLocale:
+  locale: en
+  slug: student-onboarding-process
+position: authority
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 ---
 
 # Crear un Proceso de Onboarding de Estudiantes Que Establezca Expectativas

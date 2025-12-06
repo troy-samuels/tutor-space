@@ -1,20 +1,37 @@
 ---
-title: "Cómo Rastrear el Progreso de Estudiantes Sin Hojas de Cálculo"
-slug: "rastrear-progreso-sin-hojas-calculo"
-description: "Descubre alternativas modernas a las hojas de cálculo para rastrear el progreso de estudiantes de idiomas, medir mejoras y mantener a los estudiantes motivados—sin el trabajo manual."
-category: "Gestión de Estudiantes"
-tags: ["progreso de estudiantes", "CRM", "productividad", "seguimiento de estudiantes", "herramientas de tutoría"]
-author: "TutorLingua Team"
-publishDate: "2025-01-16"
-updateDate: "2025-01-16"
-readingTime: "6 min"
+title: "C\xF3mo Rastrear el Progreso de Estudiantes Sin Hojas de C\xE1lculo"
+slug: rastrear-progreso-sin-hojas-calculo
+description: "Descubre alternativas modernas a las hojas de c\xE1lculo para rastrear\
+  \ el progreso de estudiantes de idiomas, medir mejoras y mantener a los estudiantes\
+  \ motivados\u2014sin el trabajo manual."
+category: "Gesti\xF3n de Estudiantes"
+tags:
+- progreso de estudiantes
+- CRM
+- productividad
+- seguimiento de estudiantes
+- "herramientas de tutor\xEDa"
+author: TutorLingua Team
+readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["rastrear progreso estudiantes", "seguimiento progreso estudiantes", "CRM tutor idiomas", "alternativa hojas cálculo", "sistema gestión estudiantes"]
-relatedArticles: ["guia-retencion-estudiantes-tutores", "escribir-notas-clase-efectivas", "stop-using-spreadsheets-tutoring", "tutor-tech-stack-2025"]
-alternateLocale: "en"
-alternateSlug: "track-student-progress-no-spreadsheets"
-position: "Replacement"
+seoKeywords:
+- rastrear progreso estudiantes
+- seguimiento progreso estudiantes
+- CRM tutor idiomas
+- "alternativa hojas c\xE1lculo"
+- "sistema gesti\xF3n estudiantes"
+relatedArticles:
+- guia-retencion-estudiantes-tutores
+- escribir-notas-clase-efectivas
+- stop-using-spreadsheets-tutoring
+- tutor-tech-stack-2025
+alternateLocale:
+  locale: en
+  slug: track-student-progress-no-spreadsheets
+position: replacement
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 ---
 
 # Cómo Rastrear el Progreso de Estudiantes Sin Hojas de Cálculo

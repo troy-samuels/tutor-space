@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
 
 export type NotificationType =
   | "booking_new"

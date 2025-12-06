@@ -8,6 +8,7 @@ import { MobileMenu } from "@/components/navigation/MobileMenu";
 import { MobileMenuButton } from "@/components/navigation/MobileMenuButton";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { Logo } from "@/components/Logo";
 
 type NavigationProps = {
   navigation: LandingCopy["navigation"];
@@ -30,9 +31,7 @@ export function Navigation({ navigation }: NavigationProps) {
 
             {/* Logo */}
             <div className="flex items-center">
-              <Link href={brandHref} className="text-2xl font-bold text-primary">
-                TutorLingua
-              </Link>
+              <Logo href={brandHref} variant="wordmark" />
             </div>
 
             {/* Navigation links - Desktop */}

@@ -1,19 +1,36 @@
 ---
-title: "¿Cuánto Debería Cobrar por Clases Privadas de Idiomas?"
-slug: "cuanto-cobrar-clases-particulares"
-description: "Estrategias de precios respaldadas por datos para tutores de idiomas. Calcula tu tarifa real por hora, posiciónate competitivamente y cobra lo que vales sin culpa."
-category: "Negocio e Ingresos"
-tags: ["precios tutor", "tarifa por hora", "estrategia de precios", "tarifas clases idiomas", "ingresos tutor"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-16"
-updatedAt: "2025-01-16"
+title: "\xBFCu\xE1nto Deber\xEDa Cobrar por Clases Privadas de Idiomas?"
+slug: cuanto-cobrar-clases-particulares
+description: "Estrategias de precios respaldadas por datos para tutores de idiomas.\
+  \ Calcula tu tarifa real por hora, posici\xF3nate competitivamente y cobra lo que\
+  \ vales sin culpa."
+category: Negocio e Ingresos
+tags:
+- precios tutor
+- tarifa por hora
+- estrategia de precios
+- tarifas clases idiomas
+- ingresos tutor
+author: TutorLingua Team
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 readingTime: 7
 wordCount: 1400
 featured: false
-seoKeywords: ["cuánto cobrar tutoría", "tarifas tutor idiomas", "precios clases privadas", "tarifa horaria tutor", "ingresos enseñanza idiomas"]
-relatedArticles: ["empezar-negocio-tutoria-idiomas-2025", "paquetes-sesiones-estudiantes-compran", "ingreso-extra-tiempo-completo-tutoria"]
-alternateLocale: "en"
-position: "Authority"
+seoKeywords:
+- "cu\xE1nto cobrar tutor\xEDa"
+- tarifas tutor idiomas
+- precios clases privadas
+- tarifa horaria tutor
+- "ingresos ense\xF1anza idiomas"
+relatedArticles:
+- empezar-negocio-tutoria-idiomas-2025
+- paquetes-sesiones-estudiantes-compran
+- ingreso-extra-tiempo-completo-tutoria
+alternateLocale:
+  locale: en
+  slug: how-much-charge-private-lessons
+position: authority
 ---
 
 Estás mirando el campo "Establece Tu Tarifa por Hora" y te sientes paralizado. Muy alto y nadie reserva. Muy bajo y no puedes pagar la renta. La psicología de los precios hace que esta decisión se sienta masiva.

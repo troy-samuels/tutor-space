@@ -1,15 +1,25 @@
 ---
-title: "Preparación DELE y SIELE: Especializándote en Certificaciones de Español"
+title: "Preparaci\xF3n DELE y SIELE: Especializ\xE1ndote en Certificaciones de Espa\xF1\
+  ol"
 slug: preparacion-dele-siele-espanol
-description: "Aprende cómo los tutores de español pueden construir una práctica rentable especializándose en preparación de exámenes DELE y SIELE, desde entender requisitos de certificación hasta desarrollar estrategias efectivas de examen y atraer estudiantes motivados."
-category: "Enseñanza y Especializaciones"
-date: 2025-01-18
-author: "Equipo TutorLingua"
-image: "/blog/dele-siele-prep.jpg"
-tags: ["preparación DELE", "examen SIELE", "certificación español", "tutoría exámenes"]
+description: "Aprende c\xF3mo los tutores de espa\xF1ol pueden construir una pr\xE1\
+  ctica rentable especializ\xE1ndose en preparaci\xF3n de ex\xE1menes DELE y SIELE,\
+  \ desde entender requisitos de certificaci\xF3n hasta desarrollar estrategias efectivas\
+  \ de examen y atraer estudiantes motivados."
+category: "Ense\xF1anza y Especializaciones"
+author: Equipo TutorLingua
+image: /blog/dele-siele-prep.jpg
+tags:
+- "preparaci\xF3n DELE"
+- examen SIELE
+- "certificaci\xF3n espa\xF1ol"
+- "tutor\xEDa ex\xE1menes"
 locale: es
-alternateLocale: en
-alternateSlug: dele-siele-exam-prep-spanish
+alternateLocale:
+  locale: en
+  slug: dele-siele-exam-prep-spanish
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 ---
 
 # Preparación DELE y SIELE: Especializándote en Certificaciones de Español

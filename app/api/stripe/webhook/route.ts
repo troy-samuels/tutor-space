@@ -98,7 +98,10 @@ export async function POST(req: NextRequest) {
         event = stripe.webhooks.constructEvent(body, signature, connectWebhookSecret);
         console.log("Event verified with Connect webhook secret");
       } catch (connectErr) {
-        console.error("Webhook signature verification failed with both secrets:", err);
+        console.error("Webhook signature verification failed with both secrets:", {
+          primaryError: err,
+          connectError: connectErr,
+        });
         return NextResponse.json(
           { error: "Invalid signature" },
           { status: 400 }

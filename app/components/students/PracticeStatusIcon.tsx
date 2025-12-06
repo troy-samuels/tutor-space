@@ -53,7 +53,7 @@ export function PracticeStatusIcon({
       const data = await response.json();
       setStats(data);
       onStatsUpdate?.(data as PracticeStats);
-    } catch (err) {
+    } catch {
       setError("Unable to load stats");
     } finally {
       setIsLoading(false);

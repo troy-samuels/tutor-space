@@ -40,7 +40,11 @@ export default async function BookingsPage() {
   const serviceRows = (servicesResponse.data as ServiceRow[] | null) ?? [];
   const activeServices: ServiceSummary[] = serviceRows
     .filter((service) => service.is_active)
-    .map(({ is_active: _ignore, ...service }) => service);
+    .map((service) => ({
+      id: service.id,
+      name: service.name,
+      duration_minutes: service.duration_minutes,
+    }));
   const timezone = profileResponse.data?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const availability = availabilityResponse.slots.map((slot) => ({
     day_of_week: slot.day_of_week,

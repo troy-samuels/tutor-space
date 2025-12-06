@@ -1,23 +1,24 @@
 ---
-title: "Marketing for Language Tutors: How to Get Found by Students in 2025"
+title: 'Marketing for Language Tutors: How to Get Found by Students in 2025'
 slug: marketing-language-tutors-2025
-description: "Complete marketing guide for language tutors in 2025. Learn proven strategies to attract students, build your brand, and grow your tutoring business online."
-category: "Marketing & Growth"
-readTime: "10 min read"
+description: Complete marketing guide for language tutors in 2025. Learn proven strategies
+  to attract students, build your brand, and grow your tutoring business online.
+category: Marketing & Growth
 featured: true
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "marketing-tutores-idiomas-2025"
-keywords:
-  - marketing for language tutors
-  - how to get tutoring students
-  - tutor marketing strategies
-  - attract language students
-  - grow tutoring business
+  locale: es
+  slug: marketing-tutores-idiomas-2025
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 10
+seoKeywords:
+- marketing for language tutors
+- how to get tutoring students
+- tutor marketing strategies
+- attract language students
+- grow tutoring business
 ---
 
 # Marketing for Language Tutors: How to Get Found by Students in 2025
@@ -207,5 +208,11 @@ If the word "marketing" makes you uncomfortable, reframe it. Marketing isn't sle
 When you create helpful content, optimize your profile to clearly communicate your value, ask satisfied students for referrals, and show up consistently where your ideal students spend time, you're not being pushy. You're making it easier for students who need your help to find you.
 
 The tutors struggling to fill their schedule aren't better or worse teachers than those with waitlists. They just haven't prioritized marketing. In 2025, teaching skill and marketing skill are equally important for building a successful tutoring business.
+
+---
+
+*Également disponible en français : [Guide Marketing pour les Tuteurs de Langues en 2025](/fr/blog/marketing-tuteurs-langues-2025)*
+
+---
 
 Ready to simplify your marketing and grow your tutoring business? [Get started with TutorLingua](https://tutorlingua.com/signup) and create a professional tutor site that attracts and converts your ideal students—all in one platform.

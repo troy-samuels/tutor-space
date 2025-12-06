@@ -181,8 +181,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       transferDestinationAccountId: tutorProfile.stripe_account_id,
-      // No platform fee for now as per user requirements
-      applicationFeeCents: undefined,
+      // 1% platform fee on booking payments
+      applicationFeeCents: Math.round(normalizedAmount * 100 * 0.01),
     });
 
     return NextResponse.json({

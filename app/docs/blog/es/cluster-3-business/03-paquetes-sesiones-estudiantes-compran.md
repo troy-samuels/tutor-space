@@ -1,19 +1,36 @@
 ---
-title: "Crear Paquetes de Sesiones Que Los Estudiantes Realmente Compran"
-slug: "paquetes-sesiones-estudiantes-compran"
-description: "Domina la psicología de precios de paquetes para tutores de idiomas. Aprende a estructurar paquetes que aumenten el compromiso de estudiantes, impulsen ingresos y mejoren resultados de aprendizaje."
-category: "Negocio e Ingresos"
-tags: ["paquetes de sesiones", "estrategia de precios", "retención estudiantes", "ingresos tutor", "diseño de paquetes"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-17"
-updatedAt: "2025-01-17"
+title: Crear Paquetes de Sesiones Que Los Estudiantes Realmente Compran
+slug: paquetes-sesiones-estudiantes-compran
+description: "Domina la psicolog\xEDa de precios de paquetes para tutores de idiomas.\
+  \ Aprende a estructurar paquetes que aumenten el compromiso de estudiantes, impulsen\
+  \ ingresos y mejoren resultados de aprendizaje."
+category: Negocio e Ingresos
+tags:
+- paquetes de sesiones
+- estrategia de precios
+- "retenci\xF3n estudiantes"
+- ingresos tutor
+- "dise\xF1o de paquetes"
+author: TutorLingua Team
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["paquetes sesiones tutoría", "paquetes lecciones", "precios de paquetes", "paquetes tutor", "paquetes clases idiomas"]
-relatedArticles: ["cuanto-cobrar-clases-particulares", "empezar-negocio-tutoria-idiomas-2025", "ingreso-extra-tiempo-completo-tutoria"]
-alternateLocale: "en"
-position: "Replacement"
+seoKeywords:
+- "paquetes sesiones tutor\xEDa"
+- paquetes lecciones
+- precios de paquetes
+- paquetes tutor
+- paquetes clases idiomas
+relatedArticles:
+- cuanto-cobrar-clases-particulares
+- empezar-negocio-tutoria-idiomas-2025
+- ingreso-extra-tiempo-completo-tutoria
+alternateLocale:
+  locale: en
+  slug: session-packages-students-buy
+position: replacement
 ---
 
 Las reservas de sesión única se sienten seguras cuando estás comenzando. Sin presión, fácil de probar, bajo compromiso. Pero están matando el crecimiento de tu negocio.

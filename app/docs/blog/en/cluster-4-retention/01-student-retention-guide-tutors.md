@@ -1,20 +1,36 @@
 ---
-title: "The Complete Guide to Student Retention for Language Tutors"
-slug: "student-retention-guide-tutors"
-description: "Learn proven strategies to keep language students engaged, reduce churn, and build a thriving tutoring business with long-term client relationships."
-category: "Student Management"
-tags: ["student retention", "client management", "tutoring business", "student engagement", "CRM"]
-author: "TutorLingua Team"
-publishDate: "2025-01-15"
-updateDate: "2025-01-15"
-readingTime: "9 min"
+title: The Complete Guide to Student Retention for Language Tutors
+slug: student-retention-guide-tutors
+description: Learn proven strategies to keep language students engaged, reduce churn,
+  and build a thriving tutoring business with long-term client relationships.
+category: Student Management
+tags:
+- student retention
+- client management
+- tutoring business
+- student engagement
+- CRM
+author: TutorLingua Team
+readingTime: 9
 wordCount: 1800
 featured: true
-seoKeywords: ["student retention strategies", "keep language students", "reduce student churn", "tutoring client retention", "student engagement techniques"]
-relatedArticles: ["track-student-progress-no-spreadsheets", "student-onboarding-process", "writing-effective-lesson-notes", "collect-student-testimonials"]
-alternateLocale: "es"
-alternateSlug: "guia-retencion-estudiantes-tutores"
-position: "Replacement"
+seoKeywords:
+- student retention strategies
+- keep language students
+- reduce student churn
+- tutoring client retention
+- student engagement techniques
+relatedArticles:
+- track-student-progress-no-spreadsheets
+- student-onboarding-process
+- writing-effective-lesson-notes
+- collect-student-testimonials
+alternateLocale:
+  locale: es
+  slug: guia-retencion-estudiantes-tutores
+position: replacement
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 ---
 
 # The Complete Guide to Student Retention for Language Tutors
@@ -301,5 +317,11 @@ The right tools make all the difference. [TutorLingua](/) provides everything yo
 - [Affordable pricing](/pricing) that grows with your business
 
 When you reduce friction for both yourself and your students, retention takes care of itself. Start building your retention system today, and watch your tutoring business transform from a constant cycle of student acquisition into a stable, growing practice built on long-term relationships.
+
+---
+
+*Également disponible en français : [Le Guide Complet de la Rétention des Étudiants pour les Tuteurs](/fr/blog/guide-retention-etudiants)*
+
+---
 
 Want to learn more about [converting students to direct booking](/blog/convert-students-direct-booking) and building a sustainable tutoring business? Explore our complete library of resources for independent tutors.

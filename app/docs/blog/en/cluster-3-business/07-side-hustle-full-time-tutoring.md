@@ -1,19 +1,36 @@
 ---
-title: "From Side Hustle to Full-Time: Scaling Your Tutoring Income"
-slug: "side-hustle-full-time-tutoring"
-description: "Proven roadmap for growing from part-time language tutor to full-time income. Month-by-month strategies to add revenue streams, scale beyond 1-on-1 hours, and build a sustainable business."
-category: "Business & Income"
-tags: ["scaling tutoring business", "full-time tutor", "tutor income growth", "side hustle", "revenue scaling"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-21"
-updatedAt: "2025-01-21"
+title: 'From Side Hustle to Full-Time: Scaling Your Tutoring Income'
+slug: side-hustle-full-time-tutoring
+description: Proven roadmap for growing from part-time language tutor to full-time
+  income. Month-by-month strategies to add revenue streams, scale beyond 1-on-1 hours,
+  and build a sustainable business.
+category: Business & Income
+tags:
+- scaling tutoring business
+- full-time tutor
+- tutor income growth
+- side hustle
+- revenue scaling
+author: TutorLingua Team
+publishedAt: '2025-01-21'
+updatedAt: '2025-01-21'
 readingTime: 7
 wordCount: 1400
 featured: false
-seoKeywords: ["scale tutoring income", "grow tutoring business", "side hustle to full time", "tutor revenue growth", "language tutor scaling"]
-relatedArticles: ["quit-job-tutor-full-time", "session-packages-students-buy", "tutor-waitlist-fully-booked"]
-alternateLocale: "es"
-position: "Authority"
+seoKeywords:
+- scale tutoring income
+- grow tutoring business
+- side hustle to full time
+- tutor revenue growth
+- language tutor scaling
+relatedArticles:
+- quit-job-tutor-full-time
+- session-packages-students-buy
+- tutor-waitlist-fully-booked
+alternateLocale:
+  locale: es
+  slug: ingreso-extra-tiempo-completo-tutoria
+position: authority
 ---
 
 You're earning $1,500-2,500 monthly from tutoring while working your day job. It's nice supplemental income, but you want more. The problem? You're already teaching 10-15 hours per week, which feels like your maximum while employed.

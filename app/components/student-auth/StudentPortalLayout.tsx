@@ -7,6 +7,7 @@ import { LogOut, MessageSquare, User, Settings } from "lucide-react";
 import { StudentBottomNav } from "./StudentBottomNav";
 import { studentLogout } from "@/lib/actions/student-auth";
 import { useUnreadMessages } from "@/lib/hooks/useUnreadMessages";
+import { Logo } from "@/components/Logo";
 
 interface StudentPortalLayoutProps {
   children: React.ReactNode;
@@ -40,9 +41,7 @@ export function StudentPortalLayout({
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
           <Link href="/student-auth/search" className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-primary">
-              TutorLingua
-            </span>
+            <Logo variant="wordmark" className="h-8 w-auto" />
           </Link>
 
           <div className="flex items-center gap-3">

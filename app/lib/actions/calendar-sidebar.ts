@@ -23,25 +23,6 @@ export type DailyLesson = {
   } | null;
 };
 
-type BookingRow = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  status: string;
-  meeting_url: string | null;
-  meeting_provider: string | null;
-  payment_status: string | null;
-  students: {
-    id: string;
-    full_name: string;
-    email: string;
-  } | null;
-  services: {
-    name: string;
-    offer_type?: string;
-  } | null;
-};
-
 // Helper to map offer_type to PackageType
 function mapOfferTypeToPackageType(offerType?: string | null): PackageType {
   if (offerType === "trial") return "trial";

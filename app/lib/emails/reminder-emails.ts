@@ -1,10 +1,10 @@
 "use server";
 
-import { resend, EMAIL_CONFIG } from "@/lib/resend";
 import {
   LessonReminderEmail,
   LessonReminderEmailText,
 } from "@/emails/lesson-reminder";
+import { sendEmail } from "@/lib/email/send";
 
 interface SendLessonReminderParams {
   studentName: string;
@@ -58,20 +58,25 @@ export async function sendLessonReminderEmail(
         ? `🔔 Lesson starting in 1 hour with ${params.tutorName}`
         : `📚 Reminder: Lesson tomorrow with ${params.tutorName}`;
 
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_CONFIG.from,
+    const result = await sendEmail({
       to: params.studentEmail,
       subject,
       html,
       text,
+      category: "transactional.lesson_reminder",
+      metadata: {
+        hoursUntil: params.hoursUntil,
+        tutorName: params.tutorName,
+      },
     });
 
-    if (error) {
-      console.error("Failed to send lesson reminder email:", error);
-      return { success: false, error: error.message };
+    if (!result.success) {
+      const reason = result.error || (result.skipped ? "Suppressed" : "Failed to send");
+      console.error("Failed to send lesson reminder email:", reason);
+      return { success: false, error: reason };
     }
 
-    return { success: true, data };
+    return { success: true, data: result.data, suppressed: result.suppressed };
   } catch (error) {
     console.error("Error sending lesson reminder email:", error);
     return { success: false, error: "Failed to send email" };

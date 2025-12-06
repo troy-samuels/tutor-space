@@ -1,20 +1,36 @@
 ---
-title: "Recolectar Testimonios: Cómo Obtener Reseñas de Estudiantes Satisfechos"
-slug: "recolectar-testimonios-estudiantes"
-description: "Aprende el proceso exacto para recolectar testimonios auténticos y reseñas de estudiantes de idiomas, incluyendo cuándo preguntar, qué decir y cómo mostrarlos efectivamente."
-category: "Gestión de Estudiantes"
-tags: ["testimonios", "reseñas", "marketing", "prueba social", "éxito estudiantes"]
-author: "TutorLingua Team"
-publishDate: "2025-01-19"
-updateDate: "2025-01-19"
-readingTime: "5 min"
+title: "Recolectar Testimonios: C\xF3mo Obtener Rese\xF1as de Estudiantes Satisfechos"
+slug: recolectar-testimonios-estudiantes
+description: "Aprende el proceso exacto para recolectar testimonios aut\xE9nticos\
+  \ y rese\xF1as de estudiantes de idiomas, incluyendo cu\xE1ndo preguntar, qu\xE9\
+  \ decir y c\xF3mo mostrarlos efectivamente."
+category: "Gesti\xF3n de Estudiantes"
+tags:
+- testimonios
+- "rese\xF1as"
+- marketing
+- prueba social
+- "\xE9xito estudiantes"
+author: TutorLingua Team
+readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["recolectar testimonios estudiantes", "reseñas tutor", "obtener reseñas estudiantes", "plantilla solicitud testimonio", "prueba social tutoría"]
-relatedArticles: ["guia-retencion-estudiantes-tutores", "convert-students-direct-booking", "proceso-onboarding-estudiantes"]
-alternateLocale: "en"
-alternateSlug: "collect-student-testimonials"
-position: "Replacement"
+seoKeywords:
+- recolectar testimonios estudiantes
+- "rese\xF1as tutor"
+- "obtener rese\xF1as estudiantes"
+- plantilla solicitud testimonio
+- "prueba social tutor\xEDa"
+relatedArticles:
+- guia-retencion-estudiantes-tutores
+- convert-students-direct-booking
+- proceso-onboarding-estudiantes
+alternateLocale:
+  locale: en
+  slug: collect-student-testimonials
+position: replacement
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 ---
 
 # Recolectar Testimonios: Cómo Obtener Reseñas de Estudiantes Satisfechos

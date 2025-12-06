@@ -5,7 +5,6 @@ import { Loader2, Plus, Trash2, Calendar } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepAvailabilityProps = {
-  profileId: string;
   onComplete: () => void;
 };
 
@@ -36,7 +35,6 @@ const TIME_OPTIONS = [
 ];
 
 export function StepAvailability({
-  profileId,
   onComplete,
 }: StepAvailabilityProps) {
   const [slots, setSlots] = useState<TimeSlot[]>([
@@ -161,7 +159,7 @@ export function StepAvailability({
 
       {/* Time Slots */}
       <div className="space-y-3">
-        {slots.map((slot, index) => (
+        {slots.map((slot) => (
           <div
             key={slot.id}
             className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 p-3"

@@ -2,6 +2,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { RequestRefundButton } from "@/components/refunds/RequestRefundButton";
 
 interface SuccessPageProps {
@@ -48,15 +49,16 @@ type BookingSuccessRecord = {
 };
 
 export default async function BookingSuccessPage({ searchParams }: SuccessPageProps) {
-  const { booking_id, session_id } = await searchParams;
+  const { booking_id } = await searchParams;
+  const t = await getTranslations("bookingSuccessPage");
 
   if (!booking_id) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold mb-4">Booking Not Found</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("notFoundTitle")}</h1>
           <p className="text-gray-600">
-            We couldn&apos;t find your booking information. Please check your email for confirmation.
+            {t("notFoundBody")}
           </p>
         </div>
       </div>
@@ -69,9 +71,9 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold mb-4">Service Unavailable</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("serviceUnavailableTitle")}</h1>
           <p className="text-gray-600">
-            Please check your email for booking confirmation.
+            {t("serviceUnavailableBody")}
           </p>
         </div>
       </div>
@@ -127,9 +129,9 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold mb-4">Booking Not Found</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("notFoundTitle")}</h1>
           <p className="text-gray-600">
-            Please check your email for confirmation details.
+            {t("notFoundBody")}
           </p>
         </div>
       </div>
@@ -168,66 +170,68 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            {booking.payment_status === "paid" ? "Booking Confirmed!" : "Booking Request Received!"}
+            {booking.payment_status === "paid" ? t("confirmedTitle") : t("requestReceivedTitle")}
           </h1>
 
           <p className="text-gray-600 mb-8">
-            {booking.payment_status === "paid" ? (
-              <>Your payment was successful and your booking is confirmed. You&apos;ll receive a confirmation email at{" "}
-              <strong>{booking.students?.email}</strong>.</>
-            ) : (
-              <>Your booking request has been submitted. You&apos;ll receive a confirmation email at{" "}
-              <strong>{booking.students?.email}</strong> with payment instructions.</>
-            )}
+            {booking.payment_status === "paid"
+              ? t.rich("paidDescription", {
+                  email: booking.students?.email ?? "",
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })
+              : t.rich("unpaidDescription", {
+                  email: booking.students?.email ?? "",
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
           </p>
 
           {/* Booking Details */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
-            <h2 className="font-semibold text-lg mb-4">Booking Details</h2>
+            <h2 className="font-semibold text-lg mb-4">{t("detailsTitle")}</h2>
 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Tutor:</span>
+                <span className="text-gray-600">{t("tutor")}</span>
                 <span className="font-medium">{tutorProfile?.full_name}</span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Service:</span>
+                <span className="text-gray-600">{t("service")}</span>
                 <span className="font-medium">{booking.services?.name}</span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Student:</span>
+                <span className="text-gray-600">{t("student")}</span>
                 <span className="font-medium">{booking.students?.full_name}</span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
+                <span className="text-gray-600">{t("date")}</span>
                 <span className="font-medium">
                   {format(zonedStart, "EEEE, MMMM d, yyyy")}
                 </span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Time:</span>
+                <span className="text-gray-600">{t("time")}</span>
                 <span className="font-medium">
                   {format(zonedStart, "h:mm a")} - {format(zonedEnd, "h:mm a")}
                 </span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Timezone:</span>
+                <span className="text-gray-600">{t("timezone")}</span>
                 <span className="font-medium">{booking.timezone}</span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-600">Duration:</span>
+                <span className="text-gray-600">{t("duration")}</span>
                 <span className="font-medium">{booking.duration_minutes} minutes</span>
               </div>
 
               {booking.payment_amount && (
                 <div className="flex justify-between pt-3 border-t border-gray-200">
-                  <span className="text-gray-600">Lesson Price:</span>
+                  <span className="text-gray-600">{t("lessonPrice")}</span>
                   <span className="font-bold">
                     {booking.currency?.toUpperCase()} {booking.payment_amount}
                   </span>
@@ -239,15 +243,20 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
           {/* Meeting Link */}
           {meetingUrl && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-blue-900 mb-3">🎥 Join Your Lesson</h3>
+              <h3 className="font-semibold text-blue-900 mb-3">🎥 {t("joinLesson")}</h3>
               <p className="text-sm text-blue-800 mb-4">
-                Your lesson will take place on {
-                  meetingProvider === "zoom_personal" ? "Zoom" :
-                  meetingProvider === "google_meet" ? "Google Meet" :
-                  meetingProvider === "calendly" ? "Calendly" :
-                  meetingProvider === "custom" ? (tutorProfile?.custom_video_name || "Video Platform") :
-                  "Video call"
-                }
+                {t("meetingOn", {
+                  provider:
+                    meetingProvider === "zoom_personal"
+                      ? "Zoom"
+                      : meetingProvider === "google_meet"
+                        ? "Google Meet"
+                        : meetingProvider === "calendly"
+                          ? "Calendly"
+                          : meetingProvider === "custom"
+                            ? tutorProfile?.custom_video_name || "Video Platform"
+                            : "Video call",
+                })}
               </p>
               <a
                 href={meetingUrl}
@@ -268,7 +277,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
                     d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
                   />
                 </svg>
-                Join Meeting
+                {t("joinMeeting")}
               </a>
               <p className="text-xs text-blue-600 mt-3 break-all">{meetingUrl}</p>
             </div>
@@ -277,7 +286,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
           {/* Payment Instructions (only show for unpaid bookings) */}
           {booking.payment_status !== "paid" && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-yellow-900 mb-3">💳 Payment Instructions</h3>
+              <h3 className="font-semibold text-yellow-900 mb-3">💳 {t("paymentInstructionsTitle")}</h3>
 
               {tutorProfile?.payment_instructions ||
                tutorProfile?.venmo_handle ||
@@ -348,8 +357,10 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
               </div>
             ) : (
               <p className="text-sm text-yellow-800">
-                Your tutor will send you payment instructions via email shortly.
-                Please check <strong>{booking.students?.email}</strong> for details.
+                {t.rich("paymentInstructionsFallback", {
+                  email: booking.students?.email ?? "",
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </p>
             )}
             </div>
@@ -358,13 +369,13 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
           {/* Payment Confirmation (only show for paid bookings) */}
           {booking.payment_status === "paid" && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-green-900 mb-3">✅ Payment Confirmed</h3>
+              <h3 className="font-semibold text-green-900 mb-3">✅ {t("paymentConfirmedTitle")}</h3>
               <p className="text-sm text-green-800">
-                Your payment has been processed successfully. The funds will be transferred to your tutor.
+                {t("paymentConfirmedBody")}
               </p>
               {booking.payment_amount && (
                 <div className="mt-3 text-sm">
-                  <span className="text-green-700 font-medium">Amount paid: </span>
+                  <span className="text-green-700 font-medium">{t("amountPaid")} </span>
                   <span className="text-green-900 font-bold">
                     {booking.currency?.toUpperCase()} {(booking.payment_amount / 100).toFixed(2)}
                   </span>
@@ -375,25 +386,25 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
 
           {/* Next Steps */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
-            <h3 className="font-semibold text-blue-900 mb-3">What&apos;s Next?</h3>
+            <h3 className="font-semibold text-blue-900 mb-3">{t("whatsNextTitle")}</h3>
             <ul className="text-sm text-blue-800 space-y-2">
               {booking.payment_status !== "paid" && (
                 <>
                   <li className="flex gap-2">
                     <span>1.</span>
-                    <span><strong>Complete payment</strong> using the instructions above</span>
+                    <span>{t("stepPay1")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>2.</span>
-                    <span>Check your email for confirmation and meeting details</span>
+                    <span>{t("stepPay2")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>3.</span>
-                    <span>Your tutor will confirm once payment is received</span>
+                    <span>{t("stepPay3")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>4.</span>
-                    <span>You&apos;ll receive a reminder 24 hours before your lesson</span>
+                    <span>{t("stepPay4")}</span>
                   </li>
                 </>
               )}
@@ -401,19 +412,19 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
                 <>
                   <li className="flex gap-2">
                     <span>1.</span>
-                    <span>Check your email for confirmation details</span>
+                    <span>{t("stepPaid1")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>2.</span>
-                    <span>Add the lesson to your calendar</span>
+                    <span>{t("stepPaid2")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>3.</span>
-                    <span>You&apos;ll receive a reminder 24 hours before your lesson</span>
+                    <span>{t("stepPaid3")}</span>
                   </li>
                   <li className="flex gap-2">
                     <span>4.</span>
-                    <span>Join the meeting link at the scheduled time</span>
+                    <span>{t("stepPaid4")}</span>
                   </li>
                 </>
               )}
@@ -426,7 +437,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
               href="/"
               className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
-              Back to Home
+              {t("backHome")}
             </Link>
             {booking.payment_status === "paid" && booking.student_id && (
               <RequestRefundButton
@@ -440,7 +451,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
           </div>
 
           <p className="text-xs text-gray-500 mt-6">
-            Booking ID: {booking.id}
+            {t("bookingId", { bookingId: booking.id })}
           </p>
         </div>
       </div>

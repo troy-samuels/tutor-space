@@ -1,15 +1,24 @@
 ---
-title: "Especialízate para Crecer: Nichos que Pagan Más"
+title: "Especial\xEDzate para Crecer: Nichos que Pagan M\xE1s"
 slug: especializaciones-tutoria-pagan-mas
-description: "Descubre las especializaciones de enseñanza más rentables para tutores de idiomas y aprende cómo enfocarte en un nicho específico puede aumentar tus tarifas, atraer mejores clientes y construir tu autoridad en el mercado de tutoría."
-category: "Enseñanza y Especializaciones"
-date: 2025-01-15
-author: "Equipo TutorLingua"
-image: "/blog/specializations-pay-more.jpg"
-tags: ["especializaciones docentes", "ingresos tutorías", "precios premium", "marketing nicho"]
+description: "Descubre las especializaciones de ense\xF1anza m\xE1s rentables para\
+  \ tutores de idiomas y aprende c\xF3mo enfocarte en un nicho espec\xEDfico puede\
+  \ aumentar tus tarifas, atraer mejores clientes y construir tu autoridad en el mercado\
+  \ de tutor\xEDa."
+category: "Ense\xF1anza y Especializaciones"
+author: Equipo TutorLingua
+image: /blog/specializations-pay-more.jpg
+tags:
+- especializaciones docentes
+- "ingresos tutor\xEDas"
+- precios premium
+- marketing nicho
 locale: es
-alternateLocale: en
-alternateSlug: tutoring-specializations-pay-more
+alternateLocale:
+  locale: en
+  slug: tutoring-specializations-pay-more
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 ---
 
 # Especialízate para Crecer: Nichos que Pagan Más

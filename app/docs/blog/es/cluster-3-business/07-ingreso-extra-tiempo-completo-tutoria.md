@@ -1,19 +1,36 @@
 ---
-title: "De Ingreso Extra a Tiempo Completo: Escalando Tus Ingresos de Tutoría"
-slug: "ingreso-extra-tiempo-completo-tutoria"
-description: "Hoja de ruta probada para crecer de tutor de idiomas a tiempo parcial a ingresos de tiempo completo. Estrategias mes a mes para agregar flujos de ingresos, escalar más allá de horas 1-a-1 y construir un negocio sostenible."
-category: "Negocio e Ingresos"
-tags: ["escalar negocio tutoría", "tutor tiempo completo", "crecimiento ingresos tutor", "ingreso extra", "escalar ingresos"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-21"
-updatedAt: "2025-01-21"
+title: "De Ingreso Extra a Tiempo Completo: Escalando Tus Ingresos de Tutor\xEDa"
+slug: ingreso-extra-tiempo-completo-tutoria
+description: "Hoja de ruta probada para crecer de tutor de idiomas a tiempo parcial\
+  \ a ingresos de tiempo completo. Estrategias mes a mes para agregar flujos de ingresos,\
+  \ escalar m\xE1s all\xE1 de horas 1-a-1 y construir un negocio sostenible."
+category: Negocio e Ingresos
+tags:
+- "escalar negocio tutor\xEDa"
+- tutor tiempo completo
+- crecimiento ingresos tutor
+- ingreso extra
+- escalar ingresos
+author: TutorLingua Team
+publishedAt: '2025-01-21'
+updatedAt: '2025-01-21'
 readingTime: 7
 wordCount: 1400
 featured: false
-seoKeywords: ["escalar ingresos tutoría", "crecer negocio tutoría", "ingreso extra a tiempo completo", "crecimiento ingresos tutor", "escalar tutor idiomas"]
-relatedArticles: ["dejar-trabajo-tutoria-tiempo-completo", "paquetes-sesiones-estudiantes-compran", "lista-espera-tutor-reservado"]
-alternateLocale: "en"
-position: "Authority"
+seoKeywords:
+- "escalar ingresos tutor\xEDa"
+- "crecer negocio tutor\xEDa"
+- ingreso extra a tiempo completo
+- crecimiento ingresos tutor
+- escalar tutor idiomas
+relatedArticles:
+- dejar-trabajo-tutoria-tiempo-completo
+- paquetes-sesiones-estudiantes-compran
+- lista-espera-tutor-reservado
+alternateLocale:
+  locale: en
+  slug: side-hustle-full-time-tutoring
+position: authority
 ---
 
 Estás ganando $1,500-2,500 mensuales de tutoría mientras trabajas tu empleo diurno. Es un buen ingreso suplementario, pero quieres más. ¿El problema? Ya estás enseñando 10-15 horas por semana, lo que se siente como tu máximo mientras empleado.

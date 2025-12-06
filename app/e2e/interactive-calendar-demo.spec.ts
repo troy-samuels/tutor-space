@@ -12,9 +12,6 @@ test.describe("Interactive Calendar Demo", () => {
     test("auto-cycles through different dates", async ({ page }) => {
       const panel = page.getByTestId("day-lessons-panel");
 
-      // Get initial date header text
-      const initialHeader = await panel.locator("h4").textContent();
-
       // Wait for auto-cycle to change dates (~4s)
       await page.waitForTimeout(5000);
 

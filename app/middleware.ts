@@ -5,7 +5,6 @@ import { updateSession } from "@/lib/supabase/middleware";
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
 const ADMIN_PUBLIC_ROUTES = ["/admin/login"];
 
-const AI_ROUTE_ENABLED = process.env.NEXT_PUBLIC_AI_TOOLS_ENABLED === "true";
 
 const PROTECTED_ROUTES = [
   "/dashboard",
@@ -32,9 +31,6 @@ const ONBOARDING_REQUIRED_ROUTES = [
   "/analytics",
   "/marketing",
 ];
-
-const GROWTH_ROUTES: string[] = [];
-const STUDIO_ROUTES: string[] = [];
 
 function routeMatches(pathname: string, routes: string[]) {
   return routes.some((route) => pathname.startsWith(route));
@@ -66,7 +62,7 @@ function createSupabaseClient(request: NextRequest, response: NextResponse) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/api")) {
+  if (pathname.startsWith("/api") || pathname.startsWith("/app/api")) {
     return NextResponse.next();
   }
 
@@ -108,13 +104,14 @@ export async function middleware(request: NextRequest) {
 
   // Check onboarding status for protected routes (except /onboarding itself)
   const requiresOnboarding = routeMatches(pathname, ONBOARDING_REQUIRED_ROUTES);
-  if (requiresOnboarding) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", user.id)
-      .single();
+  // Load plan + onboarding once for gating below
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_completed, plan")
+    .eq("id", user.id)
+    .single();
 
+  if (requiresOnboarding) {
     // Redirect to onboarding if not completed
     // onboarding_completed will be false or null for new users
     if (profile && profile.onboarding_completed !== true) {
@@ -122,10 +119,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const isGrowthRoute = routeMatches(pathname, GROWTH_ROUTES);
-  const isStudioRoute = routeMatches(pathname, STUDIO_ROUTES);
+  // Require paid access (growth or founder_lifetime) for protected routes,
+  // but allow navigation to onboarding and billing so users can activate.
+  const SUBSCRIPTION_ALLOWED_ROUTES = ["/settings/billing", "/onboarding"];
+  const isAllowedForUnpaid = routeMatches(pathname, SUBSCRIPTION_ALLOWED_ROUTES);
 
-  // Growth/Studio gating disabled: single-tier access for tutors
+  if (
+    !isAllowedForUnpaid &&
+    (!profile || (profile.plan !== "growth" && profile.plan !== "founder_lifetime"))
+  ) {
+    const billingUrl = new URL("/settings/billing", request.url);
+    billingUrl.searchParams.set("subscribe", "1");
+    return NextResponse.redirect(billingUrl);
+  }
 
   return response;
 }

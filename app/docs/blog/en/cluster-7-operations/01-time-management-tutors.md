@@ -1,14 +1,22 @@
 ---
-title: "Time Management for Tutors: How to Teach More Without Burning Out"
+title: 'Time Management for Tutors: How to Teach More Without Burning Out'
 slug: time-management-tutors
-description: "Master time management strategies to grow your tutoring business sustainably. Learn scheduling techniques, productivity hacks, and work-life balance tips to teach more students without burnout."
-category: "Operations & Productivity"
-author: "TutorLingua Team"
-date: "2025-01-15"
-image: "/images/blog/time-management-tutors.jpg"
-tags: ["time management", "productivity", "work-life balance", "tutoring business", "scheduling"]
-lang: "en"
+description: Master time management strategies to grow your tutoring business sustainably.
+  Learn scheduling techniques, productivity hacks, and work-life balance tips to teach
+  more students without burnout.
+category: Operations & Productivity
+author: TutorLingua Team
+image: /images/blog/time-management-tutors.jpg
+tags:
+- time management
+- productivity
+- work-life balance
+- tutoring business
+- scheduling
+lang: en
 featured: true
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 ---
 
 # Time Management for Tutors: How to Teach More Without Burning Out
@@ -331,6 +339,12 @@ By implementing these strategies, you'll:
 Remember, the goal isn't perfection—it's progress. Start with one or two strategies from this guide, master them, then add more. Your future self will thank you.
 
 Ready to take control of your time? [TutorLingua's scheduling tools](/features/booking) automate the busy work so you can focus on teaching. [See pricing plans](/pricing) designed for tutors who want to work smarter, not harder.
+
+---
+
+---
+
+*Également disponible en français : [Gestion du Temps pour les Tuteurs : Travailler Plus Efficacement](/fr/blog/gestion-temps-tuteurs)*
 
 ---
 

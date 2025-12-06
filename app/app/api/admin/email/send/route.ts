@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { requireAdmin, logAdminAction, getClientIP } from "@/lib/admin/auth";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "@/lib/email/send";
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,9 +70,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Send emails
-    const emailPromises = recipients.map((recipient) =>
-      resend.emails.send({
-        from: "TutorLingua <noreply@tutorlingua.co>",
+    const emailPromises = recipients.map(async (recipient) => {
+      const result = await sendEmail({
         to: recipient.email,
         subject,
         html: `
@@ -87,10 +84,36 @@ export async function POST(request: NextRequest) {
             </p>
           </div>
         `,
-      })
-    );
+        category: "admin.broadcast",
+        metadata: {
+          recipientId: recipient.id,
+          recipientType: recipientType || "specific",
+          adminId: adminSession.adminId,
+        },
+      });
 
-    await Promise.allSettled(emailPromises);
+      return { recipientId: recipient.id, ...result };
+    });
+
+    const sendResults = await Promise.allSettled(emailPromises);
+
+    let sentCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
+    for (const result of sendResults) {
+      if (result.status === "fulfilled") {
+        if (result.value.success) {
+          sentCount++;
+        } else if (result.value.skipped) {
+          skippedCount++;
+        } else {
+          failedCount++;
+        }
+      } else {
+        failedCount++;
+      }
+    }
 
     // Log to admin_emails table
     await supabase.from("admin_emails").insert({
@@ -114,7 +137,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      sentCount: recipients.length,
+      sentCount,
+      skippedCount,
+      failedCount,
     });
   } catch (error) {
     console.error("Admin email send error:", error);

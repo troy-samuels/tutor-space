@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Calendar, Check, ExternalLink } from "lucide-react";
+import { Loader2, Calendar, ExternalLink } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 import { requestCalendarConnection } from "@/lib/actions/calendar";
 
 type StepCalendarSyncProps = {
-  profileId: string;
   onComplete: () => void;
 };
 
 export function StepCalendarSync({
-  profileId,
   onComplete,
 }: StepCalendarSyncProps) {
   const [selectedProvider, setSelectedProvider] = useState<"google" | "outlook" | null>(null);

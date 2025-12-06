@@ -1,19 +1,36 @@
 ---
-title: "Creating Session Packages That Students Actually Buy"
-slug: "session-packages-students-buy"
-description: "Master the psychology of package pricing for language tutors. Learn how to structure bundles that increase student commitment, boost revenue, and improve learning outcomes."
-category: "Business & Income"
-tags: ["session packages", "pricing strategy", "student retention", "tutor revenue", "package design"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-17"
-updatedAt: "2025-01-17"
+title: Creating Session Packages That Students Actually Buy
+slug: session-packages-students-buy
+description: Master the psychology of package pricing for language tutors. Learn how
+  to structure bundles that increase student commitment, boost revenue, and improve
+  learning outcomes.
+category: Business & Income
+tags:
+- session packages
+- pricing strategy
+- student retention
+- tutor revenue
+- package design
+author: TutorLingua Team
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["session packages tutoring", "lesson bundles", "package pricing", "tutor packages", "language lesson packages"]
-relatedArticles: ["how-much-charge-private-lessons", "start-language-tutoring-business-2025", "side-hustle-full-time-tutoring"]
-alternateLocale: "es"
-position: "Replacement"
+seoKeywords:
+- session packages tutoring
+- lesson bundles
+- package pricing
+- tutor packages
+- language lesson packages
+relatedArticles:
+- how-much-charge-private-lessons
+- start-language-tutoring-business-2025
+- side-hustle-full-time-tutoring
+alternateLocale:
+  locale: es
+  slug: paquetes-sesiones-estudiantes-compran
+position: replacement
 ---
 
 Single-session bookings feel safe when you're starting out. No pressure, easy to try, low commitment. But they're killing your business growth.
@@ -353,6 +370,10 @@ If completion rate is low, packages might be too large or expiration too short�
 Packages aren't complicated. They're about guiding students toward the commitment level that creates results—and building a business with predictable, growing income.
 
 **Ready to start?** [Set up package pricing on your TutorLingua booking page in 5 minutes](/signup). Students can purchase and schedule immediately.
+
+---
+
+*Également disponible en français : [Forfaits de Sessions : Comment Créer des Offres Que les Étudiants Achètent](/fr/blog/forfaits-sessions-etudiants)*
 
 ---
 

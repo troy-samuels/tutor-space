@@ -21,7 +21,6 @@ const PRESET_BUFFER_TIMES = [0, 5, 10, 15, 30, 45, 60];
 
 export function Step3Preferences({
   onNext,
-  onBack,
   initialValues,
   onSave,
 }: Step3Props) {

@@ -37,11 +37,9 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dailyLessons, setDailyLessons] = useState<DailyLesson[]>([]);
   const [externalEvents, setExternalEvents] = useState<CalendarEvent[]>([]);
-  const [loadingLessons, setLoadingLessons] = useState(false);
 
   // Load lessons when date is selected
   const loadDayData = useCallback(async (date: Date) => {
-    setLoadingLessons(true);
     try {
       const [lessonsResult, eventsResult] = await Promise.all([
         getDailyLessons(date),
@@ -55,8 +53,6 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
       setExternalEvents(external);
     } catch (error) {
       console.error("Failed to load day data:", error);
-    } finally {
-      setLoadingLessons(false);
     }
   }, []);
 

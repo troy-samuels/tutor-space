@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, CreditCard, Link as LinkIcon, Check } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
+import { PlatformSubscriptionCTA } from "@/components/settings/PlatformSubscriptionCTA";
 
 type StepPaymentsProps = {
   profileId: string;
@@ -239,6 +240,24 @@ export function StepPayments({
       {errors.submit && (
         <p className="text-sm text-red-600">{errors.submit}</p>
       )}
+
+      {/* Platform subscription */}
+      <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Activate TutorLingua</p>
+            <p className="text-xs text-muted-foreground">
+              Start your 14-day free trial. Then $39/mo or $299/yr. Cancel anytime during the trial.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <PlatformSubscriptionCTA
+            ctaLabel="Start 14-day free trial"
+            helperText="14-day free trial. Then $39/mo or $299/yr. Annual saves 36%."
+          />
+        </div>
+      </div>
 
       {/* Submit */}
       <div className="flex justify-end pt-2">

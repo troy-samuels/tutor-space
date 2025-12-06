@@ -9,6 +9,7 @@ import {
   LifetimeFAQ,
   LifetimeCTA,
 } from "@/components/lifetime";
+import { Logo } from "@/components/Logo";
 
 export function LifetimePageClient() {
   const [isLoading, setIsLoading] = useState(false);
@@ -43,9 +44,7 @@ export function LifetimePageClient() {
       {/* Simple header */}
       <header className="fixed top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link href="/" className="text-xl font-bold text-foreground">
-            TutorLingua
-          </Link>
+          <Logo href="/" variant="wordmark" />
           <Link
             href="/login"
             className="text-sm font-medium text-gray-600 hover:text-foreground transition-colors"
@@ -68,9 +67,7 @@ export function LifetimePageClient() {
       <footer className="bg-brand-black text-brand-white py-12">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex flex-col items-center gap-6 text-center">
-            <Link href="/" className="text-2xl font-bold">
-              TutorLingua
-            </Link>
+            <Logo href="/" variant="wordmark" className="h-8 w-auto" />
             <p className="text-sm text-gray-400 max-w-md">
               The all-in-one platform for language tutors. Own your business, own your
               students.

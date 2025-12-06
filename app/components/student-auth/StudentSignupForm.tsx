@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { studentSignup } from "@/lib/actions/student-auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -10,6 +11,7 @@ export function StudentSignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tutorParam = searchParams.get("tutor");
+  const t = useTranslations("studentForms");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,7 +26,7 @@ export function StudentSignupForm() {
     setError("");
 
     if (!acceptTerms) {
-      setError("Please accept the Terms & Conditions and Privacy Notice");
+      setError(t("errorAcceptTerms"));
       return;
     }
 
@@ -50,7 +52,7 @@ export function StudentSignupForm() {
       router.push(redirectUrl);
       router.refresh();
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t("unexpectedError"));
       setLoading(false);
     }
   }
@@ -70,7 +72,7 @@ export function StudentSignupForm() {
           htmlFor="fullName"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Full name
+          {t("fullName")}
         </label>
         <input
           id="fullName"
@@ -81,7 +83,7 @@ export function StudentSignupForm() {
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
-          placeholder="Your full name"
+          placeholder={t("fullNamePlaceholder")}
         />
       </div>
 
@@ -91,7 +93,7 @@ export function StudentSignupForm() {
           htmlFor="email"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Email address
+          {t("email")}
         </label>
         <input
           id="email"
@@ -102,7 +104,7 @@ export function StudentSignupForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
         />
       </div>
 
@@ -112,7 +114,7 @@ export function StudentSignupForm() {
           htmlFor="password"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Password
+          {t("password")}
         </label>
         <div className="relative">
           <input
@@ -125,7 +127,7 @@ export function StudentSignupForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
-            placeholder="At least 8 characters"
+            placeholder={t("passwordNewPlaceholder")}
           />
           <button
             type="button"
@@ -141,40 +143,39 @@ export function StudentSignupForm() {
           </button>
         </div>
         <p className="mt-1 text-xs text-gray-500">
-          Must be at least 8 characters
+          {t("mustBe8")}
         </p>
       </div>
 
       {/* Terms Acceptance */}
       <div className="flex items-start gap-3">
         <input
-          type="checkbox"
-          id="terms"
-          checked={acceptTerms}
-          onChange={(e) => setAcceptTerms(e.target.checked)}
-          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-        />
+            type="checkbox"
+            id="terms"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+          />
         <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
-          I agree to the{" "}
+          {t("termsPrefix")}{" "}
           <Link
             href="/terms"
             target="_blank"
             className="text-primary font-medium hover:underline"
           >
-            Terms &amp; Conditions
+            {t("terms")}
           </Link>{" "}
-          and{" "}
+          {t("and")}{" "}
           <Link
             href="/privacy"
             target="_blank"
             className="text-primary font-medium hover:underline"
           >
-            Privacy Notice
+            {t("privacy")}
           </Link>
           .
           <span className="mt-1 block text-xs text-gray-500">
-            I understand TutorLingua only facilitates connections and is not a party to, nor liable
-            for, any agreements between tutors and students.
+            {t("termsNote")}
           </span>
         </label>
       </div>
@@ -188,21 +189,21 @@ export function StudentSignupForm() {
         {loading ? (
           <>
             <Loader2 className="h-5 w-5 animate-spin" />
-            Creating account...
+            {t("creatingAccount")}
           </>
         ) : (
-          "Create account"
+          t("createAccount")
         )}
       </button>
 
       {/* Login Link */}
       <p className="text-center text-sm text-gray-600">
-        Already have an account?{" "}
+        {t("alreadyHave")}{" "}
         <Link
           href={tutorParam ? `/student-auth/login?tutor=${tutorParam}` : "/student-auth/login"}
           className="text-primary font-medium hover:underline"
         >
-          Sign in
+          t("signIn")
         </Link>
       </p>
     </form>

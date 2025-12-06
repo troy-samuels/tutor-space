@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
 
     // Check storage (list buckets)
     try {
-      const { data: buckets, error: storageError } = await supabase.storage.listBuckets();
+      const { error: storageError } = await supabase.storage.listBuckets();
       if (storageError) throw storageError;
       results.storage = { status: "operational" };
       await supabase

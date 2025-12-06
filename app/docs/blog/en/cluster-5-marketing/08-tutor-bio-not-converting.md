@@ -1,23 +1,24 @@
 ---
-title: "Why Your Tutor Bio Isn't Converting (And How to Fix It)"
+title: Why Your Tutor Bio Isn't Converting (And How to Fix It)
 slug: tutor-bio-not-converting
-description: "Discover why your tutor bio isn't booking students and how to fix it. Learn the psychology and copywriting principles that turn browsers into bookers."
-category: "Marketing & Growth"
-readTime: "6 min read"
+description: Discover why your tutor bio isn't booking students and how to fix it.
+  Learn the psychology and copywriting principles that turn browsers into bookers.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "bio-tutor-no-convierte"
-keywords:
-  - tutor bio not converting
-  - improve tutor bio
-  - tutor profile conversion
-  - write better tutor bio
-  - tutor bio copywriting
+  locale: es
+  slug: bio-tutor-no-convierte
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 6
+seoKeywords:
+- tutor bio not converting
+- improve tutor bio
+- tutor profile conversion
+- write better tutor bio
+- tutor bio copywriting
 ---
 
 # Why Your Tutor Bio Isn't Converting (And How to Fix It)

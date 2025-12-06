@@ -3,16 +3,22 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
 /**
- * Automated translation script using DeepL API
- * Translates messages/en.json to messages/es.json
+ * Automated translation script using DeepL API.
  *
- * Usage: node scripts/translate-deepl.js
+ * Defaults: Translates messages/en.json to messages/es.json.
+ * You can override with CLI flags:
+ *   --source=messages/en.json
+ *   --target=messages/pt.json
+ *   --lang=PT-BR
+ *
+ * Usage: node scripts/translate-deepl.js --lang=PT-BR --target=messages/pt.json
  * Requires: DEEPL_API_KEY in .env.local
  */
 
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { URL } = require('url');
 
 // Load environment variables from .env.local
 const envPath = path.join(__dirname, '../.env.local');
@@ -44,7 +50,7 @@ const API_ENDPOINT = isFreeKey
 /**
  * Translate text using DeepL API
  */
-async function translateText(text, targetLang = 'ES') {
+async function translateText(text, targetLang = 'ES', attempt = 1) {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({
       text: [text],
@@ -52,10 +58,10 @@ async function translateText(text, targetLang = 'ES') {
       formality: 'default', // Can be 'more' for formal, 'less' for informal
     });
 
-    const url = new URL(API_ENDPOINT);
+    const apiUrl = new URL(API_ENDPOINT);
     const options = {
-      hostname: url.hostname,
-      path: url.pathname,
+      hostname: apiUrl.hostname,
+      path: apiUrl.pathname,
       method: 'POST',
       headers: {
         'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
@@ -71,7 +77,7 @@ async function translateText(text, targetLang = 'ES') {
         data += chunk;
       });
 
-      res.on('end', () => {
+      res.on('end', async () => {
         if (res.statusCode === 200) {
           try {
             const result = JSON.parse(data);
@@ -79,6 +85,17 @@ async function translateText(text, targetLang = 'ES') {
           } catch (error) {
             reject(new Error(`Failed to parse response: ${error.message}`));
           }
+        } else if (res.statusCode === 429 && attempt < 4) {
+          // Backoff on rate limits
+          const delayMs = 500 * attempt;
+          setTimeout(async () => {
+            try {
+              const retried = await translateText(text, targetLang, attempt + 1);
+              resolve(retried);
+            } catch (retryError) {
+              reject(retryError);
+            }
+          }, delayMs);
         } else {
           reject(new Error(`DeepL API error (${res.statusCode}): ${data}`));
         }
@@ -97,7 +114,7 @@ async function translateText(text, targetLang = 'ES') {
 /**
  * Recursively translate all strings in an object
  */
-async function translateObject(obj, prefix = '') {
+async function translateObject(obj, prefix = '', targetLang = 'ES') {
   const result = {};
   let translatedCount = 0;
 
@@ -107,7 +124,7 @@ async function translateObject(obj, prefix = '') {
     if (typeof value === 'string') {
       try {
         // Translate the string
-        const translated = await translateText(value, 'ES');
+        const translated = await translateText(value, targetLang);
         result[key] = translated;
         translatedCount++;
 
@@ -115,14 +132,14 @@ async function translateObject(obj, prefix = '') {
         console.log(`✓ ${currentPath}: "${value}" → "${translated}"`);
 
         // Add small delay to respect API rate limits
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       } catch (error) {
         console.error(`✗ Failed to translate ${currentPath}:`, error.message);
         result[key] = value; // Keep original on error
       }
     } else if (typeof value === 'object' && value !== null) {
       // Recursively translate nested objects
-      const nestedResult = await translateObject(value, currentPath);
+      const nestedResult = await translateObject(value, currentPath, targetLang);
       result[key] = nestedResult.translations;
       translatedCount += nestedResult.count;
     } else {
@@ -138,36 +155,45 @@ async function translateObject(obj, prefix = '') {
  * Main translation function
  */
 async function main() {
+  // CLI args
+  const argv = process.argv.slice(2);
+  const argMap = argv.reduce((acc, arg) => {
+    const [key, value] = arg.replace(/^--/, "").split("=");
+    if (key && value) acc[key] = value;
+    return acc;
+  }, {});
+
+  const sourcePath = path.join(__dirname, '../', argMap.source || 'messages/en.json');
+  const targetPath = path.join(__dirname, '../', argMap.target || 'messages/es.json');
+  const targetLang = (argMap.lang || 'ES').toUpperCase();
+
   console.log('🌐 DeepL Translation Script');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  // Read English messages
-  const enPath = path.join(__dirname, '../messages/en.json');
-  if (!fs.existsSync(enPath)) {
-    console.error(`❌ Error: ${enPath} not found`);
+  // Read source messages
+  if (!fs.existsSync(sourcePath)) {
+    console.error(`❌ Error: ${sourcePath} not found`);
     process.exit(1);
   }
 
-  console.log(`📖 Reading ${enPath}...\n`);
-  const enMessages = JSON.parse(fs.readFileSync(enPath, 'utf-8'));
+  console.log(`📖 Reading ${sourcePath}...\n`);
+  const sourceMessages = JSON.parse(fs.readFileSync(sourcePath, 'utf-8'));
 
-  // Translate to Spanish
-  console.log('🔄 Translating to Spanish (ES)...\n');
+  console.log(`🔄 Translating to ${targetLang}...\n`);
   const startTime = Date.now();
 
-  const { translations: esMessages, count } = await translateObject(enMessages);
+  const { translations: translatedMessages, count } = await translateObject(sourceMessages, '', targetLang);
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-  // Write Spanish messages
-  const esPath = path.join(__dirname, '../messages/es.json');
-  fs.writeFileSync(esPath, JSON.stringify(esMessages, null, 2), 'utf-8');
+  // Write translated messages
+  fs.writeFileSync(targetPath, JSON.stringify(translatedMessages, null, 2), 'utf-8');
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`✅ Translation complete!`);
   console.log(`   Translated: ${count} strings`);
   console.log(`   Time: ${duration}s`);
-  console.log(`   Output: ${esPath}`);
+  console.log(`   Output: ${targetPath}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 

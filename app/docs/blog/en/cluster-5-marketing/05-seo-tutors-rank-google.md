@@ -1,23 +1,24 @@
 ---
-title: "SEO for Tutors: How to Rank Your Tutor Website on Google"
+title: 'SEO for Tutors: How to Rank Your Tutor Website on Google'
 slug: seo-tutors-rank-google
-description: "Complete SEO guide for language tutors. Learn how to optimize your tutor website to rank on Google, get found by students, and drive organic bookings."
-category: "Marketing & Growth"
-readTime: "8 min read"
+description: Complete SEO guide for language tutors. Learn how to optimize your tutor
+  website to rank on Google, get found by students, and drive organic bookings.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "seo-tutores-posicionar-google"
-keywords:
-  - SEO for tutors
-  - tutor website SEO
-  - rank on Google tutors
-  - local SEO tutors
-  - language tutor SEO
+  locale: es
+  slug: seo-tutores-posicionar-google
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 8
+seoKeywords:
+- SEO for tutors
+- tutor website SEO
+- rank on Google tutors
+- local SEO tutors
+- language tutor SEO
 ---
 
 # SEO for Tutors: How to Rank Your Tutor Website on Google

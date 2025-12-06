@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -29,14 +29,11 @@ import {
   Phone,
   Globe,
   Calendar,
-  Clock,
   DollarSign,
   MessageSquare,
-  Package,
   GraduationCap,
   Link as LinkIcon,
   CheckCircle,
-  XCircle,
 } from "lucide-react";
 
 interface StudentDetail {
@@ -119,11 +116,7 @@ export default function AdminStudentDetailPage({
   const [packages, setPackages] = useState<PackagePurchase[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
 
-  useEffect(() => {
-    fetchStudentDetail();
-  }, [studentId]);
-
-  async function fetchStudentDetail() {
+  const fetchStudentDetail = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/students/${studentId}`);
@@ -140,7 +133,11 @@ export default function AdminStudentDetailPage({
     } finally {
       setLoading(false);
     }
-  }
+  }, [studentId]);
+
+  useEffect(() => {
+    fetchStudentDetail();
+  }, [fetchStudentDetail]);
 
   function getStatusBadge(status: string | null) {
     switch (status) {

@@ -41,7 +41,7 @@ export function InteractiveCalendarDemo() {
   const bookings = useMemo(() => generateDemoBookings(), []);
 
   // Auto-cycle state
-  const [dateIndex, setDateIndex] = useState(0);
+  const [, setDateIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);

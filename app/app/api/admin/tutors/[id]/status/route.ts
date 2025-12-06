@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, logAdminAction, getClientIP, hasRole } from "@/lib/admin/auth";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { Resend } from "resend";
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+import { sendEmail } from "@/lib/email/send";
 
 type AccountStatus = "active" | "suspended" | "deactivated" | "pending_review";
 
@@ -113,11 +111,10 @@ export async function PATCH(
     });
 
     // Send email notification to tutor
-    if (resend && tutor.email) {
+    if (tutor.email) {
       try {
         if (status === "suspended") {
-          await resend.emails.send({
-            from: "TutorLingua <noreply@tutorlingua.co>",
+          const result = await sendEmail({
             to: tutor.email,
             subject: "Your TutorLingua Account Has Been Suspended",
             html: `
@@ -134,10 +131,14 @@ export async function PATCH(
               <p>If you believe this is an error or would like to appeal this decision, please contact our support team at support@tutorlingua.co.</p>
               <p>Best regards,<br>The TutorLingua Team</p>
             `,
+            category: "admin.tutor_status",
+            metadata: { tutorId, status },
           });
+          if (!result.success) {
+            throw new Error(result.error || "Failed to send suspension email");
+          }
         } else if (status === "active" && previousStatus === "suspended") {
-          await resend.emails.send({
-            from: "TutorLingua <noreply@tutorlingua.co>",
+          const result = await sendEmail({
             to: tutor.email,
             subject: "Your TutorLingua Account Has Been Reactivated",
             html: `
@@ -153,10 +154,14 @@ export async function PATCH(
               <p>Welcome back! If you have any questions, please contact our support team at support@tutorlingua.co.</p>
               <p>Best regards,<br>The TutorLingua Team</p>
             `,
+            category: "admin.tutor_status",
+            metadata: { tutorId, status },
           });
+          if (!result.success) {
+            throw new Error(result.error || "Failed to send reactivation email");
+          }
         } else if (status === "deactivated") {
-          await resend.emails.send({
-            from: "TutorLingua <noreply@tutorlingua.co>",
+          const result = await sendEmail({
             to: tutor.email,
             subject: "Your TutorLingua Account Has Been Deactivated",
             html: `
@@ -167,7 +172,12 @@ export async function PATCH(
               <p>If you would like to reactivate your account in the future, please contact our support team at support@tutorlingua.co.</p>
               <p>Best regards,<br>The TutorLingua Team</p>
             `,
+            category: "admin.tutor_status",
+            metadata: { tutorId, status },
           });
+          if (!result.success) {
+            throw new Error(result.error || "Failed to send deactivation email");
+          }
         }
       } catch (emailError) {
         console.error("Failed to send status notification email:", emailError);

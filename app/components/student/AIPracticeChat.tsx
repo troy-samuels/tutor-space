@@ -89,7 +89,6 @@ export function AIPracticeChat({
   language,
   level,
   topic,
-  systemPrompt,
   initialMessages = [],
   maxMessages = 20,
   initialUsage,

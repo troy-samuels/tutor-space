@@ -36,7 +36,6 @@ const COMMON_LANGUAGES = [
 
 export function Step1Essential({
   onNext,
-  onBack,
   initialValues,
   onSave,
 }: Step1Props) {
@@ -61,7 +60,7 @@ export function Step1Essential({
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setFormData((prev) => ({ ...prev, timezone: detected }));
     }
-  }, []);
+  }, [formData.timezone]);
 
   // Username availability check with debounce
   useEffect(() => {

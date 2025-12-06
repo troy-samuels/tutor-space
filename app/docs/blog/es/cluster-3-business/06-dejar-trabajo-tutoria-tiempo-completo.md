@@ -1,19 +1,37 @@
 ---
-title: "¿Deberías Dejar Tu Trabajo para Dar Tutoría a Tiempo Completo? Un Desglose Financiero"
-slug: "dejar-trabajo-tutoria-tiempo-completo"
-description: "Calcula los números antes de dar el salto. Análisis financiero detallado, evaluación de riesgos y marco de decisión para transicionar de empleado a tutor de idiomas de tiempo completo."
-category: "Negocio e Ingresos"
-tags: ["tutoría tiempo completo", "dejar trabajo", "ingresos tutor", "planificación financiera", "transición de carrera"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-20"
-updatedAt: "2025-01-20"
+title: "\xBFDeber\xEDas Dejar Tu Trabajo para Dar Tutor\xEDa a Tiempo Completo? Un\
+  \ Desglose Financiero"
+slug: dejar-trabajo-tutoria-tiempo-completo
+description: "Calcula los n\xFAmeros antes de dar el salto. An\xE1lisis financiero\
+  \ detallado, evaluaci\xF3n de riesgos y marco de decisi\xF3n para transicionar de\
+  \ empleado a tutor de idiomas de tiempo completo."
+category: Negocio e Ingresos
+tags:
+- "tutor\xEDa tiempo completo"
+- dejar trabajo
+- ingresos tutor
+- "planificaci\xF3n financiera"
+- "transici\xF3n de carrera"
+author: TutorLingua Team
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 readingTime: 8
 wordCount: 1600
 featured: false
-seoKeywords: ["dejar trabajo por tutoría", "tutor idiomas tiempo completo", "ingresos tutoría", "planificación financiera tutor", "dejar empleo por tutoría"]
-relatedArticles: ["ingreso-extra-tiempo-completo-tutoria", "gastos-negocio-tutoria", "cuanto-cobrar-clases-particulares"]
-alternateLocale: "en"
-position: "Authority"
+seoKeywords:
+- "dejar trabajo por tutor\xEDa"
+- tutor idiomas tiempo completo
+- "ingresos tutor\xEDa"
+- "planificaci\xF3n financiera tutor"
+- "dejar empleo por tutor\xEDa"
+relatedArticles:
+- ingreso-extra-tiempo-completo-tutoria
+- gastos-negocio-tutoria
+- cuanto-cobrar-clases-particulares
+alternateLocale:
+  locale: en
+  slug: quit-job-tutor-full-time
+position: authority
 ---
 
 Estás ganando $2,000-3,000 mensuales dando tutoría como trabajo extra. Amas el trabajo, odias tu empleo diurno, y sigues corriendo la fantasía: "¿Qué pasaría si solo hiciera esto a tiempo completo?"

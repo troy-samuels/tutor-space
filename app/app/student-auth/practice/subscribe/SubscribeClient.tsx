@@ -55,7 +55,7 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

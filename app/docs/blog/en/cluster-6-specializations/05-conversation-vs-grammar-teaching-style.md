@@ -1,15 +1,23 @@
 ---
-title: "Teaching Conversation vs Grammar: Finding Your Teaching Style"
+title: 'Teaching Conversation vs Grammar: Finding Your Teaching Style'
 slug: conversation-vs-grammar-teaching-style
-description: "Explore the differences between conversation-focused and grammar-focused language teaching, discover which approach aligns with your strengths, and learn how to combine both methods for maximum student success and tutor satisfaction."
-category: "Teaching & Specializations"
-date: 2025-01-19
-author: "TutorLingua Team"
-image: "/blog/conversation-grammar-style.jpg"
-tags: ["teaching methods", "conversation practice", "grammar instruction", "teaching style"]
+description: Explore the differences between conversation-focused and grammar-focused
+  language teaching, discover which approach aligns with your strengths, and learn
+  how to combine both methods for maximum student success and tutor satisfaction.
+category: Teaching & Specializations
+author: TutorLingua Team
+image: /blog/conversation-grammar-style.jpg
+tags:
+- teaching methods
+- conversation practice
+- grammar instruction
+- teaching style
 locale: en
-alternateLocale: es
-alternateSlug: conversacion-vs-gramatica-estilo
+alternateLocale:
+  locale: es
+  slug: conversacion-vs-gramatica-estilo
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 ---
 
 # Teaching Conversation vs Grammar: Finding Your Teaching Style

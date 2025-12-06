@@ -237,15 +237,11 @@ export async function POST(request: Request) {
     openAIMessages.push({ role: "user", content: clippedMessage });
 
     // Save user message first
-    const { data: userMsg } = await adminClient
-      .from("student_practice_messages")
-      .insert({
-        session_id: sessionId,
-        role: "user",
-        content: message,
-      })
-      .select()
-      .single();
+    await adminClient.from("student_practice_messages").insert({
+      session_id: sessionId,
+      role: "user",
+      content: message,
+    });
 
     // Call OpenAI
     const openai = await getOpenAI();
@@ -547,7 +543,7 @@ function parseStructuredResponse(content: string): {
           });
         }
       }
-    } catch (e) {
+    } catch {
       // If JSON parsing fails, try fallback regex parsing
       const fallbackCorrections = parseFallbackCorrections(content);
       corrections.push(...fallbackCorrections);
@@ -572,7 +568,7 @@ function parseStructuredResponse(content: string): {
           });
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore phonetic parsing errors
     }
   }
@@ -707,6 +703,7 @@ async function incrementTextTurnWithBilling(params: {
         stripe_usage_record_id: usageRecord.id,
       });
     } catch (stripeError) {
+      console.error("Stripe usage record failed for text overflow", stripeError);
       // Roll back the block + text increment so billing stays aligned
       await adminClient
         .from("practice_usage_periods")

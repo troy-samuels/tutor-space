@@ -9,6 +9,7 @@ import {
   BLOCK_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
+import { HOMEWORK_STATUSES } from "@/lib/types/progress";
 
 export interface LearningGoal {
   id: string;
@@ -102,13 +103,8 @@ export interface HomeworkAssignment {
   practice_assignment?: PracticeAssignmentRef | null;
 }
 
-export const HOMEWORK_STATUSES: HomeworkStatus[] = [
-  "assigned",
-  "in_progress",
-  "submitted",
-  "completed",
-  "cancelled",
-];
+// HOMEWORK_STATUSES moved to @/lib/types/progress to allow export from "use server" file
+// Import from there: import { HOMEWORK_STATUSES } from "@/lib/types/progress";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -582,7 +578,7 @@ export async function updateHomeworkStatus(input: {
  * Allow students to mark homework as completed (service role validates ownership)
  */
 export async function markHomeworkCompleted(assignmentId: string, studentNotes?: string | null) {
-  const { supabase, user } = await requireUser();
+  const { user } = await requireUser();
   if (!user) {
     return { error: "You need to be signed in to update homework." };
   }

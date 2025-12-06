@@ -1,26 +1,43 @@
 ---
-title: "Cómo Aceptar Pagos como Tutor Privado de Idiomas (Stripe, PayPal y Más)"
-slug: "aceptar-pagos-tutor-privado"
-description: "Guía completa sobre procesamiento de pagos para tutores privados de idiomas. Compara Stripe, PayPal, Square y soluciones integradas para cobrar más rápido con menores comisiones."
-category: "Herramientas y Tecnología"
-tags: ["procesamiento de pagos", "stripe", "paypal", "pagos tutor", "pagos online"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-16"
-updatedAt: "2025-01-16"
+title: "C\xF3mo Aceptar Pagos como Tutor Privado de Idiomas (Stripe, PayPal y M\xE1\
+  s)"
+slug: aceptar-pagos-tutor-privado
+description: "Gu\xEDa completa sobre procesamiento de pagos para tutores privados\
+  \ de idiomas. Compara Stripe, PayPal, Square y soluciones integradas para cobrar\
+  \ m\xE1s r\xE1pido con menores comisiones."
+category: "Herramientas y Tecnolog\xEDa"
+tags:
+- procesamiento de pagos
+- stripe
+- paypal
+- pagos tutor
+- pagos online
+author: TutorLingua Team
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 readingTime: 7
 wordCount: 1400
 featured: false
-seoKeywords: ["aceptar pagos tutor", "stripe para tutores", "paypal tutoría", "procesamiento pagos tutor idiomas", "cómo cobran tutores"]
-relatedArticles: ["stack-tecnologico-tutores-2025", "mejor-sistema-reservas-tutores", "reducir-comisiones-plataformas", "comision-preply-explicada"]
+seoKeywords:
+- aceptar pagos tutor
+- stripe para tutores
+- "paypal tutor\xEDa"
+- procesamiento pagos tutor idiomas
+- "c\xF3mo cobran tutores"
+relatedArticles:
+- stack-tecnologico-tutores-2025
+- mejor-sistema-reservas-tutores
+- reducir-comisiones-plataformas
+- comision-preply-explicada
 alternateLocale:
-  locale: "en"
-  slug: "accept-payments-private-tutor"
-position: "replacement"
+  locale: en
+  slug: accept-payments-private-tutor
+position: replacement
 ---
 
 # Cómo Aceptar Pagos como Tutor Privado de Idiomas (Stripe, PayPal y Más)
 
-Has escapado de la [trampa de comisiones del 18-33% de plataformas](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas) y conseguiste tu primer estudiante directo. Quieren reservar cinco clases por adelantado y preguntan: "¿Cómo te pago?"
+Has escapado de la [trampa de comisiones del 18-33% de plataformas](/es/blog/reducir-comisiones-plataformas) y conseguiste tu primer estudiante directo. Quieren reservar cinco clases por adelantado y preguntan: "¿Cómo te pago?"
 
 Si tu respuesta involucra "envíame dinero por PayPal y te facturaré," ya estás creando fricción. Peor aún, si dices "Venmo o efectivo," estás proyectando estatus amateur que hace que los estudiantes cuestionen tu profesionalismo.
 
@@ -192,7 +209,7 @@ Plataformas como [TutorLingua](/es/signup) combinan procesamiento de pagos con r
 
 **Odias el trabajo administrativo:** Si coordinar pagos te estresa, pagar $49/mes para automatizarlo vale la pena.
 
-**Quieres infraestructura profesional:** Compite con plataformas sin pagar sus [tasas de comisión del 20-33%](/es/blog/cluster-1-comisiones/comision-preply-explicada).
+**Quieres infraestructura profesional:** Compite con plataformas sin pagar sus [tasas de comisión del 20-33%](/es/blog/comision-preply-explicada).
 
 ### Ejemplo de Comparación de Costos
 
@@ -300,7 +317,7 @@ Viola los términos de servicio para transacciones comerciales. Las cuentas se c
 Algunos estudiantes pagan $40, otros $35, otro $45. La inconsistencia parece poco profesional y crea resentimiento cuando los estudiantes comparan notas.
 
 ### Error #4: Sin Política de Cancelación
-Sin una política clara de pago anticipado, desperdicias horas en cancelaciones de último minuto. [Recordatorios automatizados](/es/blog/cluster-2-herramientas/recordatorios-automaticos-clases) + prepago resuelven esto.
+Sin una política clara de pago anticipado, desperdicias horas en cancelaciones de último minuto. [Recordatorios automatizados](/es/blog/recordatorios-automaticos-clases) + prepago resuelven esto.
 
 ### Error #5: Ignorar Optimización de Moneda
 Si el 80% de los estudiantes están en la UE, pon precios en Euros para evitar comisiones de conversión devorando ingresos.
@@ -316,7 +333,7 @@ Si el 80% de los estudiantes están en la UE, pon precios en Euros para evitar c
 Si un reembolso está justificado, emítelo inmediatamente a través de tu procesador de pagos. Discutir sobre $40 te cuesta más en estrés y daño a la reputación.
 
 ### Documenta Todo
-Cuando surgen disputas, tener confirmaciones de reserva, registros de clases e historial de comunicación te protege. Aquí es donde [sistemas apropiados de gestión de estudiantes](/es/blog/cluster-2-herramientas/deja-hojas-calculo-tutoria) valen la pena.
+Cuando surgen disputas, tener confirmaciones de reserva, registros de clases e historial de comunicación te protege. Aquí es donde [sistemas apropiados de gestión de estudiantes](/es/blog/deja-hojas-calculo-tutoria) valen la pena.
 
 ## Consideraciones Fiscales y Legales
 
@@ -357,7 +374,7 @@ Usa cuentas bancarias separadas para ingresos de enseñanza. Mezclar fondos pers
 
 Los tutores que prosperan como independientes entienden que el procesamiento profesional de pagos no es un gasto—es una ventaja competitiva. Cuando un estudiante te compara (reserva instantánea, procesamiento de tarjeta de crédito, recibos automáticos) contra un competidor (coordinación por email, solicitudes Venmo, facturación manual), tú ganas.
 
-Ya no compites con plataformas; estás ofreciendo una mejor experiencia mientras te quedas con el 100% de tus ingresos menos comisiones de transacción del 2.9% en lugar de [perder 20-33% a Preply o iTalki](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas).
+Ya no compites con plataformas; estás ofreciendo una mejor experiencia mientras te quedas con el 100% de tus ingresos menos comisiones de transacción del 2.9% en lugar de [perder 20-33% a Preply o iTalki](/es/blog/reducir-comisiones-plataformas).
 
 Ya sea que elijas la flexibilidad de Stripe, la familiaridad de PayPal o la automatización de una plataforma integrada, el movimiento importante es dejar atrás los métodos de pago informales. Tu sistema de pago debe trabajar para ti 24/7, cobrando dinero mientras duermes y proyectando el profesionalismo que justifica tus tarifas.
 

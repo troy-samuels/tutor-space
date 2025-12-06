@@ -17,7 +17,6 @@ import {
   Bot,
   Plus,
   Trash2,
-  Edit2,
   Check,
   X,
   MessageSquare,
@@ -85,7 +84,6 @@ export function ScenarioBuilder({ scenarios }: ScenarioBuilderProps) {
   const [isSaving, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -112,7 +110,6 @@ export function ScenarioBuilder({ scenarios }: ScenarioBuilderProps) {
       max_messages: "20",
     });
     setIsCreating(false);
-    setEditingId(null);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -158,7 +155,7 @@ export function ScenarioBuilder({ scenarios }: ScenarioBuilderProps) {
         setItems((prev) => [data.scenario, ...prev]);
         resetForm();
         setMessage("Scenario created!");
-      } catch (error) {
+      } catch {
         setMessage("Failed to create scenario");
       }
     });

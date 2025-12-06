@@ -1,23 +1,24 @@
 ---
-title: "Creating Content That Attracts Your Ideal Students"
+title: Creating Content That Attracts Your Ideal Students
 slug: content-attract-ideal-students
-description: "Learn how to create targeted content that attracts your ideal language students. Strategic content marketing for tutors that converts browsers into bookings."
-category: "Marketing & Growth"
-readTime: "7 min read"
+description: Learn how to create targeted content that attracts your ideal language
+  students. Strategic content marketing for tutors that converts browsers into bookings.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "contenido-atrae-estudiantes-ideales"
-keywords:
-  - content marketing for tutors
-  - attract ideal students content
-  - tutor content strategy
-  - language teaching content
-  - educational content tutors
+  locale: es
+  slug: contenido-atrae-estudiantes-ideales
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 7
+seoKeywords:
+- content marketing for tutors
+- attract ideal students content
+- tutor content strategy
+- language teaching content
+- educational content tutors
 ---
 
 # Creating Content That Attracts Your Ideal Students

@@ -1,26 +1,41 @@
 ---
-title: "Cómo Crear un Sitio Web Profesional de Tutor Sin Programar"
-slug: "crear-web-tutor-sin-programar"
-description: "Construye un sitio web profesional de tutor de idiomas sin escribir código. Compara Wix, Squarespace, WordPress y plataformas específicas para tutores para establecer tu presencia online."
-category: "Herramientas y Tecnología"
-tags: ["constructor de sitios web", "sin código", "sitio web tutor", "diseño web", "presencia online"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-16"
-updatedAt: "2025-01-16"
+title: "C\xF3mo Crear un Sitio Web Profesional de Tutor Sin Programar"
+slug: crear-web-tutor-sin-programar
+description: "Construye un sitio web profesional de tutor de idiomas sin escribir\
+  \ c\xF3digo. Compara Wix, Squarespace, WordPress y plataformas espec\xEDficas para\
+  \ tutores para establecer tu presencia online."
+category: "Herramientas y Tecnolog\xEDa"
+tags:
+- constructor de sitios web
+- "sin c\xF3digo"
+- sitio web tutor
+- "dise\xF1o web"
+- presencia online
+author: TutorLingua Team
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 readingTime: 7
 wordCount: 1400
 featured: false
-seoKeywords: ["sitio web tutor sin programar", "web tutor idiomas", "constructor sitios tutores", "crear sitio tutor", "web sin código tutor"]
-relatedArticles: ["stack-tecnologico-tutores-2025", "mejor-link-in-bio-tutores", "reducir-comisiones-plataformas"]
+seoKeywords:
+- sitio web tutor sin programar
+- web tutor idiomas
+- constructor sitios tutores
+- crear sitio tutor
+- "web sin c\xF3digo tutor"
+relatedArticles:
+- stack-tecnologico-tutores-2025
+- mejor-link-in-bio-tutores
+- reducir-comisiones-plataformas
 alternateLocale:
-  locale: "en"
-  slug: "create-tutor-website-no-coding"
-position: "replacement"
+  locale: en
+  slug: create-tutor-website-no-coding
+position: replacement
 ---
 
 # Cómo Crear un Sitio Web Profesional de Tutor Sin Programar
 
-No necesitas un sitio web si estás feliz dando [18-33% de cada clase a Preply o iTalki](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas). Pero en el momento que decides construir un negocio independiente de tutoría, un sitio web profesional se vuelve innegociable.
+No necesitas un sitio web si estás feliz dando [18-33% de cada clase a Preply o iTalki](/es/blog/reducir-comisiones-plataformas). Pero en el momento que decides construir un negocio independiente de tutoría, un sitio web profesional se vuelve innegociable.
 
 Tu sitio web es:
 - **Tu señal de credibilidad** - "Esta persona es seria, no un pasatiempo"
@@ -212,7 +227,7 @@ vs.
 - Hoja de cálculo estudiantes: Gratis pero consume tiempo
 - **Total: $110/mes + tiempo administrativo**
 
-**Mejor para:** Tutores serios sobre [dejar plataformas y construir negocios independientes](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas).
+**Mejor para:** Tutores serios sobre [dejar plataformas y construir negocios independientes](/es/blog/reducir-comisiones-plataformas).
 
 **Tiempo de configuración:** 45-90 minutos con onboarding guiado
 
@@ -421,7 +436,7 @@ DIY tiene sentido inicialmente, pero considera contratar profesionales para:
 
 ## Conclusión: Tu Sitio Web como Fundación de Negocio
 
-Tu sitio web de tutoría no es un nice-to-have—es la fundación de tu negocio independiente. Trabaja 24/7 reservando estudiantes, estableciendo credibilidad y generando tráfico SEO que [te libera de dependencia de plataformas](/es/blog/cluster-1-comisiones/reducir-comisiones-plataformas).
+Tu sitio web de tutoría no es un nice-to-have—es la fundación de tu negocio independiente. Trabaja 24/7 reservando estudiantes, estableciendo credibilidad y generando tráfico SEO que [te libera de dependencia de plataformas](/es/blog/reducir-comisiones-plataformas).
 
 El mejor sitio web es el que existe. Comienza simple con una plataforma que coincida con tu nivel de comodidad técnica. Siempre puedes actualizar después a medida que creces.
 

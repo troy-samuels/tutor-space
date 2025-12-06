@@ -331,6 +331,8 @@ TutorLingua gives you everything you need to accept direct bookings: professiona
 
 *También disponible en español: [Cómo Conservar Más de Tus Ingresos como Tutor](/es/blog/reducir-comisiones-plataformas)*
 
+*Également disponible en français : [Comment Conserver Plus de Vos Revenus de Tutorat](/fr/blog/reduire-frais-plateformes-tutorat)*
+
 ---
 
 **Related Articles:**

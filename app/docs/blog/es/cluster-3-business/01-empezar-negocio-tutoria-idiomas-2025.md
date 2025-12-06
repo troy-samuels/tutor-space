@@ -1,19 +1,36 @@
 ---
-title: "Cómo Empezar un Negocio de Tutoría Privada de Idiomas: La Guía 2025"
-slug: "empezar-negocio-tutoria-idiomas-2025"
-description: "Guía completa paso a paso para lanzar un negocio rentable de tutoría privada de idiomas en 2025. Desde precios hasta plataformas, todo lo que necesitas para empezar a enseñar online."
-category: "Negocio e Ingresos"
-tags: ["iniciar negocio de tutoría", "tutoría de idiomas online", "plan de negocios tutor", "ingresos enseñanza idiomas", "guía startup tutor"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-15"
-updatedAt: "2025-01-15"
+title: "C\xF3mo Empezar un Negocio de Tutor\xEDa Privada de Idiomas: La Gu\xEDa 2025"
+slug: empezar-negocio-tutoria-idiomas-2025
+description: "Gu\xEDa completa paso a paso para lanzar un negocio rentable de tutor\xED\
+  a privada de idiomas en 2025. Desde precios hasta plataformas, todo lo que necesitas\
+  \ para empezar a ense\xF1ar online."
+category: Negocio e Ingresos
+tags:
+- "iniciar negocio de tutor\xEDa"
+- "tutor\xEDa de idiomas online"
+- plan de negocios tutor
+- "ingresos ense\xF1anza idiomas"
+- "gu\xEDa startup tutor"
+author: TutorLingua Team
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 readingTime: 10
 wordCount: 2000
 featured: true
-seoKeywords: ["cómo iniciar negocio tutoría", "tutoría privada idiomas", "negocio tutoría online 2025", "ser tutor de idiomas", "startup negocio tutoría"]
-relatedArticles: ["cuanto-cobrar-clases-particulares", "primeros-10-estudiantes-tutor-nuevo", "dejar-trabajo-tutoria-tiempo-completo"]
-alternateLocale: "en"
-position: "Authority"
+seoKeywords:
+- "c\xF3mo iniciar negocio tutor\xEDa"
+- "tutor\xEDa privada idiomas"
+- "negocio tutor\xEDa online 2025"
+- ser tutor de idiomas
+- "startup negocio tutor\xEDa"
+relatedArticles:
+- cuanto-cobrar-clases-particulares
+- primeros-10-estudiantes-tutor-nuevo
+- dejar-trabajo-tutoria-tiempo-completo
+alternateLocale:
+  locale: en
+  slug: start-language-tutoring-business-2025
+position: authority
 ---
 
 Has estado enseñando idiomas, ayudando a amigos a practicar conversación, o viendo a tutores establecidos en redes sociales y pensando: *Yo podría hacer esto*. Absolutamente puedes. Se proyecta que la industria de tutoría privada de idiomas alcance los $12.3 mil millones a nivel global para 2026, y los tutores independientes que construyen sus propios negocios se quedan con el 85-100% de sus ingresos en lugar del 40-60% que típicamente ganan los tutores en plataformas.

@@ -5,12 +5,10 @@ import { Loader2 } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepProfessionalInfoProps = {
-  profileId: string;
   onComplete: () => void;
 };
 
 export function StepProfessionalInfo({
-  profileId,
   onComplete,
 }: StepProfessionalInfoProps) {
   const [formData, setFormData] = useState({

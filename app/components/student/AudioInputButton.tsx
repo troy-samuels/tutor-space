@@ -84,6 +84,98 @@ export function AudioInputButton({
     }
   };
 
+  const processAudio = useCallback(
+    async (audioBlob: Blob) => {
+      setIsProcessing(true);
+      setError(null);
+
+      try {
+        // Determine file extension from actual mimeType
+        const ext = mimeTypeRef.current === "audio/webm" ? "webm" : "mp4";
+        const filename = `recording.${ext}`;
+
+        const formData = new FormData();
+        formData.append("audio", audioBlob, filename);
+        formData.append("sessionId", sessionId);
+        formData.append("language", language);
+        formData.append("mimeType", mimeTypeRef.current);
+
+        const response = await fetch("/api/practice/audio", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to process audio");
+        }
+
+        // Update budget with new remaining seconds
+        if (data.remaining_seconds !== undefined) {
+          setBudget((prev) =>
+            prev
+              ? { ...prev, remaining_seconds: data.remaining_seconds }
+              : null
+          );
+        }
+
+        // Notify parent of transcript
+        if (data.transcript && onTranscript) {
+          onTranscript(data.transcript);
+        }
+
+        // Notify parent of full assessment
+        if (onAssessment) {
+          onAssessment({
+            assessment_id: data.assessment_id,
+            transcript: data.transcript || "",
+            scores: data.scores || {
+              accuracy: 0,
+              fluency: 0,
+              pronunciation: 0,
+              completeness: 0,
+            },
+            word_scores: data.word_scores,
+            problem_phonemes: data.problem_phonemes,
+            remaining_seconds: data.remaining_seconds,
+            cost_cents: data.cost_cents,
+            mock: data.mock,
+          });
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to process audio";
+        setError(message);
+        onError?.(message);
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [language, onAssessment, onError, onTranscript, sessionId]
+  );
+
+  const stopRecording = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    setIsRecording(false);
+  }, []);
+
   const startRecording = useCallback(async () => {
     if (!budget?.enabled || budget.remaining_seconds <= 0) {
       setError("Audio practice limit reached for this period");
@@ -141,96 +233,7 @@ export function AudioInputButton({
       setError(message);
       onError?.(message);
     }
-  }, [budget, onError]);
-
-  const stopRecording = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
-      mediaRecorderRef.current.stop();
-    }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    setIsRecording(false);
-  }, []);
-
-  const processAudio = async (audioBlob: Blob) => {
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      // Determine file extension from actual mimeType
-      const ext = mimeTypeRef.current === "audio/webm" ? "webm" : "mp4";
-      const filename = `recording.${ext}`;
-
-      const formData = new FormData();
-      formData.append("audio", audioBlob, filename);
-      formData.append("sessionId", sessionId);
-      formData.append("language", language);
-      formData.append("mimeType", mimeTypeRef.current);
-
-      const response = await fetch("/api/practice/audio", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to process audio");
-      }
-
-      // Update budget with new remaining seconds
-      if (data.remaining_seconds !== undefined) {
-        setBudget((prev) =>
-          prev
-            ? { ...prev, remaining_seconds: data.remaining_seconds }
-            : null
-        );
-      }
-
-      // Notify parent of transcript
-      if (data.transcript && onTranscript) {
-        onTranscript(data.transcript);
-      }
-
-      // Notify parent of full assessment
-      if (onAssessment) {
-        onAssessment({
-          assessment_id: data.assessment_id,
-          transcript: data.transcript || "",
-          scores: data.scores || {
-            accuracy: 0,
-            fluency: 0,
-            pronunciation: 0,
-            completeness: 0,
-          },
-          word_scores: data.word_scores,
-          problem_phonemes: data.problem_phonemes,
-          remaining_seconds: data.remaining_seconds,
-          cost_cents: data.cost_cents,
-          mock: data.mock,
-        });
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to process audio";
-      setError(message);
-      onError?.(message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  }, [budget, onError, processAudio, stopRecording]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

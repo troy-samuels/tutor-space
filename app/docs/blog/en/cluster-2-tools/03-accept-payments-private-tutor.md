@@ -367,4 +367,8 @@ Ready to upgrade your payment processing? [TutorLingua includes professional pay
 
 ---
 
+*Également disponible en français : [Comment Accepter les Paiements en Tant que Tuteur Privé](/fr/blog/accepter-paiements-tuteur-prive)*
+
+---
+
 *Questions about setting up payment processing for your tutoring business? [Contact our team](/contact) for guidance on choosing the right solution for your student base and teaching style.*

@@ -5,6 +5,7 @@ import { getLandingCopy } from "@/lib/constants/landing-copy";
 import { Navigation } from "@/components/landing/Navigation";
 import { Hero } from "@/components/landing/Hero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
+import { PhoneMockupSection } from "@/components/landing/PhoneMockupSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -35,6 +36,7 @@ export default async function LandingPage() {
       <Navigation navigation={copy.navigation} />
       <Hero hero={copy.hero} socialProof={copy.socialProof} />
       <ProblemSection problems={copy.problems} />
+      <PhoneMockupSection copy={copy.phoneMockup} />
       <SolutionSection solution={copy.solution} />
       <HowItWorks howItWorks={copy.howItWorks} />
       <PricingSection pricing={copy.pricing} />

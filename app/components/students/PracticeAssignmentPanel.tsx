@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,8 @@ import {
   Bot,
   Calendar,
   MessageSquare,
-  Plus,
   Send,
   CheckCircle,
-  Clock,
   Sparkles,
   BookOpen,
 } from "lucide-react";
@@ -145,7 +143,7 @@ export function PracticeAssignmentPanel({
         }
         setForm({ title: "", instructions: "", scenarioId: "", dueDate: "", homeworkId: "" });
         setMessage(`Practice assigned to ${studentName}!`);
-      } catch (error) {
+      } catch {
         setMessage("Failed to assign practice");
       }
     });

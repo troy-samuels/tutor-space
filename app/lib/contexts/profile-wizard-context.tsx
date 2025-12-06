@@ -62,7 +62,6 @@ type ProfileWizardProviderProps = {
 export function ProfileWizardProvider({
   children,
   initialValues,
-  onComplete,
 }: ProfileWizardProviderProps) {
   const [state, setState] = useState<WizardState>({
     step1: initialValues?.step1 || {},

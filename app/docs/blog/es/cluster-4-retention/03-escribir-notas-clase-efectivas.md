@@ -1,20 +1,37 @@
 ---
-title: "Escribir Notas de Clase Que Ayudan a los Estudiantes a Recordar Lo Enseñado"
-slug: "escribir-notas-clase-efectivas"
-description: "Aprende a escribir notas de clase claras y concisas que refuercen el aprendizaje, mejoren la retención y te ahorren tiempo—con plantillas y ejemplos para tutores de idiomas."
-category: "Gestión de Estudiantes"
-tags: ["notas de clase", "retención de estudiantes", "consejos de enseñanza", "documentación", "productividad"]
-author: "TutorLingua Team"
-publishDate: "2025-01-17"
-updateDate: "2025-01-17"
-readingTime: "5 min"
+title: "Escribir Notas de Clase Que Ayudan a los Estudiantes a Recordar Lo Ense\xF1\
+  ado"
+slug: escribir-notas-clase-efectivas
+description: "Aprende a escribir notas de clase claras y concisas que refuercen el\
+  \ aprendizaje, mejoren la retenci\xF3n y te ahorren tiempo\u2014con plantillas y\
+  \ ejemplos para tutores de idiomas."
+category: "Gesti\xF3n de Estudiantes"
+tags:
+- notas de clase
+- "retenci\xF3n de estudiantes"
+- "consejos de ense\xF1anza"
+- "documentaci\xF3n"
+- productividad
+author: TutorLingua Team
+readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["plantilla notas clase", "notas clase efectivas", "documentación tutoría", "resumen post-clase", "retención aprendizaje estudiantes"]
-relatedArticles: ["guia-retencion-estudiantes-tutores", "rastrear-progreso-sin-hojas-calculo", "proceso-onboarding-estudiantes"]
-alternateLocale: "en"
-alternateSlug: "writing-effective-lesson-notes"
-position: "Authority"
+seoKeywords:
+- plantilla notas clase
+- notas clase efectivas
+- "documentaci\xF3n tutor\xEDa"
+- resumen post-clase
+- "retenci\xF3n aprendizaje estudiantes"
+relatedArticles:
+- guia-retencion-estudiantes-tutores
+- rastrear-progreso-sin-hojas-calculo
+- proceso-onboarding-estudiantes
+alternateLocale:
+  locale: en
+  slug: writing-effective-lesson-notes
+position: authority
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 ---
 
 # Escribir Notas de Clase Que Ayudan a los Estudiantes a Recordar Lo Enseñado

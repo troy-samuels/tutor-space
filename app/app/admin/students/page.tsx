@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,11 +64,7 @@ export default function AdminStudentsPage() {
   const [total, setTotal] = useState(0);
   const perPage = 50;
 
-  useEffect(() => {
-    fetchStudents();
-  }, [page, statusFilter]);
-
-  async function fetchStudents() {
+  const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -89,7 +85,11 @@ export default function AdminStudentsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, perPage, search, statusFilter]);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();

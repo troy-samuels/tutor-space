@@ -64,7 +64,7 @@ export default async function PaymentSettingsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
-                Included: $29/mo or $199/yr all-access
+                14-day free trial, then $39/mo or $299/yr all-access
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 TutorLingua complements marketplaces like Preply with calendar sync and direct booking tools so you keep

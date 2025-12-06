@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LogIn, UserPlus, Mail, Globe, Instagram } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { formatCurrency } from "@/lib/utils";
 
 interface TutorInfo {
@@ -34,6 +35,8 @@ export function PublicBookingLanding({
   services,
   isLoggedIn = false,
 }: PublicBookingLandingProps) {
+  const t = useTranslations("publicBooking");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted via-muted/40 to-white">
       <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -103,13 +106,13 @@ export function PublicBookingLanding({
             </div>
 
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {isLoggedIn ? "Request Calendar Access" : "Sign in to Book Lessons"}
+              {isLoggedIn ? t("requestAccess") : t("signInToBook")}
             </h2>
 
             <p className="text-gray-600 mb-6">
               {isLoggedIn
-                ? `To book lessons with ${tutor.fullName}, you need to request calendar access. Once approved, you&apos;ll be able to see available time slots and book directly.`
-                : `To view ${tutor.fullName}&apos;s calendar and book lessons, please log in or create an account. Your tutor will review your request and send payment instructions.`}
+                ? t("requestMessageLoggedIn", { tutorName: tutor.fullName })
+                : t("requestMessageLoggedOut", { tutorName: tutor.fullName })}
             </p>
 
             {/* Action Buttons */}
@@ -121,14 +124,14 @@ export function PublicBookingLanding({
                     className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:bg-primary/90 transition shadow-md"
                   >
                     <LogIn className="h-5 w-5" />
-                    Log In
+                    {t("login")}
                   </Link>
                   <Link
                     href={`/student-auth/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
                     className="inline-flex items-center justify-center gap-2 bg-white text-primary shadow-md px-8 py-4 rounded-xl font-semibold hover:bg-primary/5 transition"
                   >
                     <UserPlus className="h-5 w-5" />
-                    Request Access
+                    {t("request")}
                   </Link>
                 </>
               ) : (
@@ -137,7 +140,7 @@ export function PublicBookingLanding({
                   className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:bg-primary/90 transition shadow-md"
                 >
                   <UserPlus className="h-5 w-5" />
-                  Request Access to Calendar
+                  {t("requestCalendar")}
                 </Link>
               )}
             </div>
@@ -147,7 +150,7 @@ export function PublicBookingLanding({
         {/* Services Preview */}
         <div className="bg-white rounded-2xl shadow-sm shadow-sm p-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-6">
-            Available Services
+            {t("availableServices")}
           </h3>
           <div className="grid gap-4 sm:grid-cols-2">
             {services.map((service) => (
@@ -160,7 +163,9 @@ export function PublicBookingLanding({
                   <p className="text-sm text-gray-600 mb-3">{service.description}</p>
                 )}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{service.duration_minutes} minutes</span>
+                  <span className="text-gray-500">
+                    {t("minutes", { minutes: service.duration_minutes })}
+                  </span>
                   <span className="font-semibold text-primary">
                     {formatCurrency(service.price_amount, service.price_currency)}
                   </span>
@@ -173,7 +178,7 @@ export function PublicBookingLanding({
         {/* Contact Alternative */}
         <div className="mt-6 sm:mt-8 text-center px-4">
           <p className="text-sm text-gray-600 mb-4">
-            Have questions? Contact {tutor.fullName} directly:
+            {t("contactPrompt", { tutorName: tutor.fullName })}
           </p>
           <a
             href={`mailto:${tutor.email}`}

@@ -1,20 +1,36 @@
 ---
-title: "Writing Lesson Notes That Help Students Remember What Was Taught"
-slug: "writing-effective-lesson-notes"
-description: "Learn how to write clear, concise lesson notes that reinforce learning, boost retention, and save you time—with templates and examples for language tutors."
-category: "Student Management"
-tags: ["lesson notes", "student retention", "teaching tips", "documentation", "productivity"]
-author: "TutorLingua Team"
-publishDate: "2025-01-17"
-updateDate: "2025-01-17"
-readingTime: "5 min"
+title: Writing Lesson Notes That Help Students Remember What Was Taught
+slug: writing-effective-lesson-notes
+description: "Learn how to write clear, concise lesson notes that reinforce learning,\
+  \ boost retention, and save you time\u2014with templates and examples for language\
+  \ tutors."
+category: Student Management
+tags:
+- lesson notes
+- student retention
+- teaching tips
+- documentation
+- productivity
+author: TutorLingua Team
+readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["lesson notes template", "effective lesson notes", "tutoring documentation", "post-lesson summary", "student learning retention"]
-relatedArticles: ["student-retention-guide-tutors", "track-student-progress-no-spreadsheets", "student-onboarding-process"]
-alternateLocale: "es"
-alternateSlug: "escribir-notas-clase-efectivas"
-position: "Authority"
+seoKeywords:
+- lesson notes template
+- effective lesson notes
+- tutoring documentation
+- post-lesson summary
+- student learning retention
+relatedArticles:
+- student-retention-guide-tutors
+- track-student-progress-no-spreadsheets
+- student-onboarding-process
+alternateLocale:
+  locale: es
+  slug: escribir-notas-clase-efectivas
+position: authority
+publishedAt: '2025-01-17'
+updatedAt: '2025-01-17'
 ---
 
 # Writing Lesson Notes That Help Students Remember What Was Taught
@@ -314,5 +330,11 @@ Effective lesson notes don't require hours of work or writing talent. They just 
 Start with the basic template provided above. Time yourself—you'll be surprised how quickly you can create valuable notes that make a real difference in student retention and satisfaction.
 
 [TutorLingua](/) makes lesson note-taking even easier with built-in templates, automatic organization, and a student portal where all notes are accessible in one place. [Try it free for 14 days](/pricing) and see how much faster documentation becomes.
+
+---
+
+*Également disponible en français : [Comment Rédiger des Notes de Cours Efficaces](/fr/blog/rediger-notes-cours-efficaces)*
+
+---
 
 Great lesson notes are a small investment with massive returns: better learning outcomes, higher retention, and a more professional tutoring practice. Your students will thank you, and your business will benefit.

@@ -1,15 +1,25 @@
 ---
-title: "Enseñando Conversación vs Gramática: Encontrando tu Estilo de Enseñanza"
+title: "Ense\xF1ando Conversaci\xF3n vs Gram\xE1tica: Encontrando tu Estilo de Ense\xF1\
+  anza"
 slug: conversacion-vs-gramatica-estilo
-description: "Explora las diferencias entre enseñanza de idiomas enfocada en conversación y gramática, descubre qué enfoque se alinea con tus fortalezas, y aprende cómo combinar ambos métodos para máximo éxito del estudiante y satisfacción del tutor."
-category: "Enseñanza y Especializaciones"
-date: 2025-01-19
-author: "Equipo TutorLingua"
-image: "/blog/conversation-grammar-style.jpg"
-tags: ["métodos de enseñanza", "práctica conversacional", "instrucción gramatical", "estilo docente"]
+description: "Explora las diferencias entre ense\xF1anza de idiomas enfocada en conversaci\xF3\
+  n y gram\xE1tica, descubre qu\xE9 enfoque se alinea con tus fortalezas, y aprende\
+  \ c\xF3mo combinar ambos m\xE9todos para m\xE1ximo \xE9xito del estudiante y satisfacci\xF3\
+  n del tutor."
+category: "Ense\xF1anza y Especializaciones"
+author: Equipo TutorLingua
+image: /blog/conversation-grammar-style.jpg
+tags:
+- "m\xE9todos de ense\xF1anza"
+- "pr\xE1ctica conversacional"
+- "instrucci\xF3n gramatical"
+- estilo docente
 locale: es
-alternateLocale: en
-alternateSlug: conversation-vs-grammar-teaching-style
+alternateLocale:
+  locale: en
+  slug: conversation-vs-grammar-teaching-style
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 ---
 
 # Enseñando Conversación vs Gramática: Encontrando tu Estilo de Enseñanza

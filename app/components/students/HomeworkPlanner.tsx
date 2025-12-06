@@ -21,16 +21,15 @@ import {
   Plus,
   Send,
   CheckCircle,
-  Bot,
 } from "lucide-react";
 import {
   type HomeworkAssignment,
   type HomeworkAttachment,
   type HomeworkStatus,
-  HOMEWORK_STATUSES,
   assignHomework,
   updateHomeworkStatus,
 } from "@/lib/actions/progress";
+import { HOMEWORK_STATUSES } from "@/lib/types/progress";
 import { formatDistanceToNow } from "date-fns";
 import { PracticeStatusIcon, type PracticeStats } from "./PracticeStatusIcon";
 

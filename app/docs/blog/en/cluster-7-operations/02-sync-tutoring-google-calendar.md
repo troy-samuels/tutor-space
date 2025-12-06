@@ -1,13 +1,21 @@
 ---
-title: "How to Sync Your Tutoring Calendar with Google Calendar"
+title: How to Sync Your Tutoring Calendar with Google Calendar
 slug: sync-tutoring-google-calendar
-description: "Step-by-step guide to syncing your tutoring schedule with Google Calendar. Prevent double-booking, manage multiple calendars, and streamline your scheduling workflow."
-category: "Operations & Productivity"
-author: "TutorLingua Team"
-date: "2025-01-16"
-image: "/images/blog/sync-google-calendar.jpg"
-tags: ["google calendar", "scheduling", "productivity", "calendar sync", "automation"]
-lang: "en"
+description: Step-by-step guide to syncing your tutoring schedule with Google Calendar.
+  Prevent double-booking, manage multiple calendars, and streamline your scheduling
+  workflow.
+category: Operations & Productivity
+author: TutorLingua Team
+image: /images/blog/sync-google-calendar.jpg
+tags:
+- google calendar
+- scheduling
+- productivity
+- calendar sync
+- automation
+lang: en
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 ---
 
 # How to Sync Your Tutoring Calendar with Google Calendar
@@ -439,6 +447,12 @@ The key is choosing the right sync strategy for your needs:
 - **Privacy-focused:** Busy/free sync only
 
 Ready to streamline your scheduling? [TutorLingua's calendar features](/features/booking) include native Google Calendar sync, automatic meeting links, and intelligent availability management. [See pricing](/pricing) to get started.
+
+---
+
+---
+
+*Également disponible en français : [Comment Synchroniser Votre Tutorat avec Google Calendar](/fr/blog/synchroniser-google-calendar)*
 
 ---
 

@@ -224,6 +224,8 @@ TutorLingua helps tutors build their own booking system—so you can use Preply 
 
 *También disponible en español: [Comisiones de Preply Explicadas](/es/blog/comisiones-preply-explicadas)*
 
+*Également disponible en français : [Commission Preply Expliquée](/fr/blog/commission-preply-expliquee)*
+
 ---
 
 **Related Articles:**

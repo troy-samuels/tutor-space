@@ -1,23 +1,25 @@
 ---
-title: "Por Qué Tu Bio de Tutor No Está Convirtiendo (Y Cómo Arreglarlo)"
+title: "Por Qu\xE9 Tu Bio de Tutor No Est\xE1 Convirtiendo (Y C\xF3mo Arreglarlo)"
 slug: bio-tutor-no-convierte
-description: "Descubre por qué tu bio de tutor no está reservando estudiantes y cómo arreglarlo. Aprende la psicología y principios de copywriting que convierten navegadores en reservadores."
-category: "Marketing y Crecimiento"
-readTime: "6 min lectura"
+description: "Descubre por qu\xE9 tu bio de tutor no est\xE1 reservando estudiantes\
+  \ y c\xF3mo arreglarlo. Aprende la psicolog\xEDa y principios de copywriting que\
+  \ convierten navegadores en reservadores."
+category: Marketing y Crecimiento
 featured: false
-author: "Equipo TutorLingua"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "es"
+author: Equipo TutorLingua
+locale: es
 alternateLocale:
-  locale: "en"
-  slug: "tutor-bio-not-converting"
-keywords:
-  - bio tutor no convierte
-  - mejorar bio tutor
-  - conversión perfil tutor
-  - escribir mejor bio tutor
-  - copywriting bio tutor
+  locale: en
+  slug: tutor-bio-not-converting
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 6
+seoKeywords:
+- bio tutor no convierte
+- mejorar bio tutor
+- "conversi\xF3n perfil tutor"
+- escribir mejor bio tutor
+- copywriting bio tutor
 ---
 
 # Por Qué Tu Bio de Tutor No Está Convirtiendo (Y Cómo Arreglarlo)
@@ -223,13 +225,13 @@ Diferentes plataformas requieren diferentes enfoques de bio. Una bio de Preply d
 
 **Consideraciones específicas de plataforma:**
 
-**Bios de marketplace (Preply, italki, Verbling):** Enfócate fuertemente en prueba social y especializaciones específicas. Los estudiantes están comparando compras—dales razones claras para elegirte. Incluye palabras clave que los estudiantes buscan. (Ve nuestra guía sobre [optimizar tu perfil de Preply](/es/blog/optimize-preply-profile).)
+**Bios de marketplace (Preply, italki, Verbling):** Enfócate fuertemente en prueba social y especializaciones específicas. Los estudiantes están comparando compras—dales razones claras para elegirte. Incluye palabras clave que los estudiantes buscan. (Ve nuestra guía sobre [optimizar tu perfil de Preply](/es/blog/optimizar-perfil-preply).)
 
 **Sitio web personal:** Puede ser más largo y más comprensivo. Incluye filosofía de enseñanza completa, metodología detallada, múltiples testimonios. Esta es tu plataforma propia—usa el espacio.
 
 **Bios de redes sociales:** Debe ser conciso. Una declaración de posicionamiento clara, un beneficio, un CTA, un enlace. Sin espacio para relleno.
 
-**Páginas link-in-bio:** Debe guiar visitantes a múltiples acciones—reservar lección, leer testimonios, descargar recurso gratis, seguir redes sociales. (Ve nuestra guía sobre [páginas bio link para tutores](/es/blog/best-link-in-bio-tutors).)
+**Páginas link-in-bio:** Debe guiar visitantes a múltiples acciones—reservar lección, leer testimonios, descargar recurso gratis, seguir redes sociales. (Ve nuestra guía sobre [páginas bio link para tutores](/es/blog/mejor-link-in-bio-tutores).)
 
 **La solución:** Personaliza tu bio para las restricciones únicas y expectativas de usuario de cada plataforma.
 
@@ -307,6 +309,6 @@ Tu bio es uno de tus activos de marketing más importantes. Invertir unas pocas 
 
 ## Más Allá de la Bio
 
-Una gran bio es esencial, pero es solo una pieza de tu [estrategia de marketing general para tutores de idiomas](/es/blog/marketing-language-tutors-2025). Combínala con [creación estratégica de contenido](/es/blog/content-attract-ideal-students), [presencia en redes sociales](/es/blog/instagram-language-tutors) y [sistemas de referencias](/es/blog/word-of-mouth-referrals-tutoring) para crecimiento comprensivo.
+Una gran bio es esencial, pero es solo una pieza de tu [estrategia de marketing general para tutores de idiomas](/es/blog/marketing-tutores-idiomas-2025). Combínala con [creación estratégica de contenido](/es/blog/contenido-atrae-estudiantes-ideales), [presencia en redes sociales](/es/blog/instagram-tutores-idiomas) y [sistemas de referencias](/es/blog/boca-a-boca-referidos-tutoria) para crecimiento comprensivo.
 
 ¿Listo para crear una presencia profesional completa que convierte? [Comienza con TutorLingua](https://tutorlingua.com/signup) para construir un sitio pulido de tutor con bios optimizadas, sistemas de reserva y todo lo que necesitas para atraer y convertir a tus estudiantes ideales.

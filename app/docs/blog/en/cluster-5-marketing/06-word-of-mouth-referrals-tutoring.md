@@ -1,23 +1,25 @@
 ---
-title: "The Power of Word-of-Mouth: Getting Referrals from Current Students"
+title: 'The Power of Word-of-Mouth: Getting Referrals from Current Students'
 slug: word-of-mouth-referrals-tutoring
-description: "Build a sustainable referral system for your tutoring business. Learn how to turn satisfied students into your best marketers and generate consistent word-of-mouth referrals."
-category: "Marketing & Growth"
-readTime: "6 min read"
+description: Build a sustainable referral system for your tutoring business. Learn
+  how to turn satisfied students into your best marketers and generate consistent
+  word-of-mouth referrals.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "boca-a-boca-referidos-tutoria"
-keywords:
-  - word of mouth marketing tutors
-  - tutor referral program
-  - student referrals tutoring
-  - get more tutoring referrals
-  - referral marketing tutors
+  locale: es
+  slug: boca-a-boca-referidos-tutoria
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 6
+seoKeywords:
+- word of mouth marketing tutors
+- tutor referral program
+- student referrals tutoring
+- get more tutoring referrals
+- referral marketing tutors
 ---
 
 # The Power of Word-of-Mouth: Getting Referrals from Current Students

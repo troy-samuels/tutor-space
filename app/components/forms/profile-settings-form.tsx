@@ -13,6 +13,8 @@ import { locales } from "@/lib/i18n/config";
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
   es: "Español",
+  fr: "Français",
+  pt: "Português",
 };
 
 const initialState: ProfileActionState = {};

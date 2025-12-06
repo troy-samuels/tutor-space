@@ -1,19 +1,36 @@
 ---
-title: "Should You Quit Your Job to Tutor Full-Time? A Financial Breakdown"
-slug: "quit-job-tutor-full-time"
-description: "Run the numbers before making the leap. Detailed financial analysis, risk assessment, and decision framework for transitioning from employed to full-time language tutor."
-category: "Business & Income"
-tags: ["full-time tutoring", "quit job", "tutor income", "financial planning", "career transition"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-20"
-updatedAt: "2025-01-20"
+title: Should You Quit Your Job to Tutor Full-Time? A Financial Breakdown
+slug: quit-job-tutor-full-time
+description: Run the numbers before making the leap. Detailed financial analysis,
+  risk assessment, and decision framework for transitioning from employed to full-time
+  language tutor.
+category: Business & Income
+tags:
+- full-time tutoring
+- quit job
+- tutor income
+- financial planning
+- career transition
+author: TutorLingua Team
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 readingTime: 8
 wordCount: 1600
 featured: false
-seoKeywords: ["quit job for tutoring", "full-time language tutor", "tutoring income", "tutor financial planning", "leave job for tutoring"]
-relatedArticles: ["side-hustle-full-time-tutoring", "tutoring-business-expenses", "how-much-charge-private-lessons"]
-alternateLocale: "es"
-position: "Authority"
+seoKeywords:
+- quit job for tutoring
+- full-time language tutor
+- tutoring income
+- tutor financial planning
+- leave job for tutoring
+relatedArticles:
+- side-hustle-full-time-tutoring
+- tutoring-business-expenses
+- how-much-charge-private-lessons
+alternateLocale:
+  locale: es
+  slug: dejar-trabajo-tutoria-tiempo-completo
+position: authority
 ---
 
 You're making $2,000-3,000 monthly tutoring on the side. You love the work, hate your day job, and you keep running the fantasy: "What if I just did this full-time?"

@@ -1,19 +1,36 @@
 ---
-title: "How to Get Your First 10 Students as a New Online Tutor"
-slug: "first-10-students-new-tutor"
-description: "Proven student acquisition strategies for new language tutors. Skip the months-long struggle and book your first 10 paying students in 4-6 weeks with this systematic approach."
-category: "Business & Income"
-tags: ["student acquisition", "marketing for tutors", "new tutor", "finding students", "tutor marketing"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-18"
-updatedAt: "2025-01-18"
+title: How to Get Your First 10 Students as a New Online Tutor
+slug: first-10-students-new-tutor
+description: Proven student acquisition strategies for new language tutors. Skip the
+  months-long struggle and book your first 10 paying students in 4-6 weeks with this
+  systematic approach.
+category: Business & Income
+tags:
+- student acquisition
+- marketing for tutors
+- new tutor
+- finding students
+- tutor marketing
+author: TutorLingua Team
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 readingTime: 8
 wordCount: 1500
 featured: false
-seoKeywords: ["how to find tutoring students", "get first students tutor", "language tutor marketing", "find online students", "new tutor students"]
-relatedArticles: ["start-language-tutoring-business-2025", "how-much-charge-private-lessons", "side-hustle-full-time-tutoring"]
-alternateLocale: "es"
-position: "Complement"
+seoKeywords:
+- how to find tutoring students
+- get first students tutor
+- language tutor marketing
+- find online students
+- new tutor students
+relatedArticles:
+- start-language-tutoring-business-2025
+- how-much-charge-private-lessons
+- side-hustle-full-time-tutoring
+alternateLocale:
+  locale: es
+  slug: primeros-10-estudiantes-tutor-nuevo
+position: complement
 ---
 
 You've set up your booking page, chosen your rates, and created your first lesson materials. Now comes the hardest part: getting people to actually book.
@@ -310,6 +327,10 @@ Stop reading and start doing:
 The difference between tutors who succeed and those who give up isn't talent—it's consistent action. Your first 10 students are out there looking for exactly what you offer. Go make it easy for them to find you.
 
 **Ready to start?** [Set up your professional booking page free with TutorLingua](/signup). Students can discover your services, book trials, and purchase packages instantly.
+
+---
+
+*Également disponible en français : [Comment Obtenir Vos 10 Premiers Étudiants en Tant que Nouveau Tuteur](/fr/blog/premiers-10-etudiants)*
 
 ---
 

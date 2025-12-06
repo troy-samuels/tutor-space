@@ -405,4 +405,8 @@ Ready to build your perfect tech stack? [Start with TutorLingua free for 14 days
 
 ---
 
+*Également disponible en français : [Le Stack Technologique Complet pour les Tuteurs de Langues en 2025](/fr/blog/outils-technologiques-tuteur-2025)*
+
+---
+
 *Got questions about choosing the right tech stack for your tutoring business? Join our community of independent tutors or [contact our team](/contact) for personalized recommendations.*

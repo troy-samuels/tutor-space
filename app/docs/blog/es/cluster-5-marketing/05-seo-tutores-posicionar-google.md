@@ -1,23 +1,25 @@
 ---
-title: "SEO para Tutores: Cómo Posicionar Tu Sitio Web de Tutor en Google"
+title: "SEO para Tutores: C\xF3mo Posicionar Tu Sitio Web de Tutor en Google"
 slug: seo-tutores-posicionar-google
-description: "Guía completa de SEO para tutores de idiomas. Aprende cómo optimizar tu sitio web de tutor para posicionar en Google, ser encontrado por estudiantes e impulsar reservas orgánicas."
-category: "Marketing y Crecimiento"
-readTime: "8 min lectura"
+description: "Gu\xEDa completa de SEO para tutores de idiomas. Aprende c\xF3mo optimizar\
+  \ tu sitio web de tutor para posicionar en Google, ser encontrado por estudiantes\
+  \ e impulsar reservas org\xE1nicas."
+category: Marketing y Crecimiento
 featured: false
-author: "Equipo TutorLingua"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "es"
+author: Equipo TutorLingua
+locale: es
 alternateLocale:
-  locale: "en"
-  slug: "seo-tutors-rank-google"
-keywords:
-  - SEO para tutores
-  - SEO sitio web tutor
-  - posicionar en Google tutores
-  - SEO local tutores
-  - SEO tutor de idiomas
+  locale: en
+  slug: seo-tutors-rank-google
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 8
+seoKeywords:
+- SEO para tutores
+- SEO sitio web tutor
+- posicionar en Google tutores
+- SEO local tutores
+- SEO tutor de idiomas
 ---
 
 # SEO para Tutores: Cómo Posicionar Tu Sitio Web de Tutor en Google
@@ -44,7 +46,7 @@ El SEO ofrece ventajas únicas para tutores independientes:
 
 **Costo-efectivo a largo plazo:** Después de la configuración inicial, el SEO cuesta solo tiempo. No hay gasto continuo en anuncios, comisiones de plataforma o presupuestos promocionales requeridos.
 
-Como parte de tu [estrategia de marketing completa para tutores de idiomas](/es/blog/marketing-language-tutors-2025), el SEO proporciona la base. Las redes sociales crean conciencia, el SEO captura intención.
+Como parte de tu [estrategia de marketing completa para tutores de idiomas](/es/blog/marketing-tutores-idiomas-2025), el SEO proporciona la base. Las redes sociales crean conciencia, el SEO captura intención.
 
 ## Fundamentos de SEO: Cómo Google Clasifica Sitios Web
 
@@ -268,7 +270,7 @@ La mayoría de los tutores renuncian en meses 2-4 cuando no ven resultados inmed
 
 **SEO vs. Redes sociales:** Las redes sociales construyen comunidad y engagement. El SEO captura intención. Usa ambos: redes sociales para descubrimiento y relación, SEO para conversión.
 
-**SEO vs. Perfiles de marketplace:** Los perfiles de marketplace se posicionan bien porque las plataformas hacen SEO. Pero compites con todos los demás tutores. Tu propio sitio te da clasificaciones exclusivas. Como se discutió en [convertir estudiantes a reservas directas](/es/blog/convert-students-direct-booking), usa marketplaces para descubrimiento inicial, tu sitio para reservas directas.
+**SEO vs. Perfiles de marketplace:** Los perfiles de marketplace se posicionan bien porque las plataformas hacen SEO. Pero compites con todos los demás tutores. Tu propio sitio te da clasificaciones exclusivas. Como se discutió en [convertir estudiantes a reservas directas](/es/blog/convertir-estudiantes-reservas-directas), usa marketplaces para descubrimiento inicial, tu sitio para reservas directas.
 
 ## Comenzando Esta Semana
 

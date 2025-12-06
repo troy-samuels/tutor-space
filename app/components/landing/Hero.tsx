@@ -16,10 +16,13 @@ export function Hero({ hero, socialProof }: HeroProps) {
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl space-y-2">
             <span className="block">
-              All-in-One Platform for Language Tutors
+              All-in-One Platform for
             </span>
             <span className="block text-primary">
               <LanguageRolodex />
+            </span>
+            <span className="block">
+              Language Tutors
             </span>
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-700 sm:text-xl">
@@ -27,27 +30,27 @@ export function Hero({ hero, socialProof }: HeroProps) {
           </p>
 
           {/* CTAs */}
-          <div className="mt-10 flex items-center justify-center gap-x-6">
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6">
             <Link
               href="/signup"
-              className="rounded-md bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="w-full rounded-md bg-primary px-8 py-3.5 text-center text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
             >
               {hero.primaryCTA}
             </Link>
             <Link
-              href="#how-it-works"
-              className="text-base font-semibold leading-7 text-foreground hover:text-primary transition-colors"
+              href="#calendar-demo"
+              className="w-full text-center text-base font-semibold leading-7 text-foreground transition-colors hover:text-primary sm:w-auto"
             >
               {hero.secondaryCTA} <span aria-hidden="true">→</span>
             </Link>
           </div>
 
           {/* Social proof */}
-          <div className="mt-16">
+          <div className="mt-12 sm:mt-16">
             <p className="text-sm font-medium text-gray-600">
               {socialProof.text}
             </p>
-            <div className="mt-4 flex items-center justify-center gap-x-8">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-8">
               {socialProof.tutors.map((tutor, index) => (
                 <div
                   key={index}

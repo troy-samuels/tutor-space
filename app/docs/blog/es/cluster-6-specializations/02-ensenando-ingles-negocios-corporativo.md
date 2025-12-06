@@ -1,15 +1,24 @@
 ---
-title: "Enseñando Inglés de Negocios: Cómo Atraer Clientes Corporativos"
+title: "Ense\xF1ando Ingl\xE9s de Negocios: C\xF3mo Atraer Clientes Corporativos"
 slug: ensenando-ingles-negocios-corporativo
-description: "Aprende estrategias comprobadas para entrar en el lucrativo mercado de capacitación lingüística corporativa, desde posicionarte como especialista en inglés de negocios hasta construir relaciones con departamentos de RRHH y gerentes de capacitación."
-category: "Enseñanza y Especializaciones"
-date: 2025-01-16
-author: "Equipo TutorLingua"
-image: "/blog/business-english-corporate.jpg"
-tags: ["inglés de negocios", "clientes corporativos", "marketing B2B", "desarrollo profesional"]
+description: "Aprende estrategias comprobadas para entrar en el lucrativo mercado\
+  \ de capacitaci\xF3n ling\xFC\xEDstica corporativa, desde posicionarte como especialista\
+  \ en ingl\xE9s de negocios hasta construir relaciones con departamentos de RRHH\
+  \ y gerentes de capacitaci\xF3n."
+category: "Ense\xF1anza y Especializaciones"
+author: Equipo TutorLingua
+image: /blog/business-english-corporate.jpg
+tags:
+- "ingl\xE9s de negocios"
+- clientes corporativos
+- marketing B2B
+- desarrollo profesional
 locale: es
-alternateLocale: en
-alternateSlug: teaching-business-english-corporate
+alternateLocale:
+  locale: en
+  slug: teaching-business-english-corporate
+publishedAt: '2025-01-16'
+updatedAt: '2025-01-16'
 ---
 
 # Enseñando Inglés de Negocios: Cómo Atraer Clientes Corporativos

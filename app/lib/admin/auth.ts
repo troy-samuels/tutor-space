@@ -1,6 +1,6 @@
 import "server-only";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import {
   getAdminSessionFromCookies,

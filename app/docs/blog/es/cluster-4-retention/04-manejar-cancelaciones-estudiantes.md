@@ -1,20 +1,36 @@
 ---
-title: "Cómo Manejar Cancelaciones de Estudiantes Sin Perder Ingresos"
-slug: "manejar-cancelaciones-estudiantes"
-description: "Crea una política de cancelación justa que proteja tu tiempo e ingresos mientras mantienes buenas relaciones con estudiantes. Incluye plantillas de políticas y estrategias de comunicación."
-category: "Gestión de Estudiantes"
-tags: ["política de cancelación", "negocio de tutoría", "protección de ingresos", "gestión de estudiantes", "límites"]
-author: "TutorLingua Team"
-publishDate: "2025-01-18"
-updateDate: "2025-01-18"
-readingTime: "6 min"
+title: "C\xF3mo Manejar Cancelaciones de Estudiantes Sin Perder Ingresos"
+slug: manejar-cancelaciones-estudiantes
+description: "Crea una pol\xEDtica de cancelaci\xF3n justa que proteja tu tiempo e\
+  \ ingresos mientras mantienes buenas relaciones con estudiantes. Incluye plantillas\
+  \ de pol\xEDticas y estrategias de comunicaci\xF3n."
+category: "Gesti\xF3n de Estudiantes"
+tags:
+- "pol\xEDtica de cancelaci\xF3n"
+- "negocio de tutor\xEDa"
+- "protecci\xF3n de ingresos"
+- "gesti\xF3n de estudiantes"
+- "l\xEDmites"
+author: TutorLingua Team
+readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["política cancelación tutor", "manejar cancelaciones estudiantes", "política no presentarse", "protección ingresos tutoría", "tarifa cancelación tardía"]
-relatedArticles: ["guia-retencion-estudiantes-tutores", "session-packages-students-buy", "proceso-onboarding-estudiantes"]
-alternateLocale: "en"
-alternateSlug: "handle-student-cancellations"
-position: "Replacement"
+seoKeywords:
+- "pol\xEDtica cancelaci\xF3n tutor"
+- manejar cancelaciones estudiantes
+- "pol\xEDtica no presentarse"
+- "protecci\xF3n ingresos tutor\xEDa"
+- "tarifa cancelaci\xF3n tard\xEDa"
+relatedArticles:
+- guia-retencion-estudiantes-tutores
+- session-packages-students-buy
+- proceso-onboarding-estudiantes
+alternateLocale:
+  locale: en
+  slug: handle-student-cancellations
+position: replacement
+publishedAt: '2025-01-18'
+updatedAt: '2025-01-18'
 ---
 
 # Cómo Manejar Cancelaciones de Estudiantes Sin Perder Ingresos

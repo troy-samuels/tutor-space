@@ -19,7 +19,6 @@ interface PracticeSessionClientProps {
 
 export function PracticeSessionClient({
   sessionId,
-  assignmentId,
   assignmentTitle,
   language,
   level,

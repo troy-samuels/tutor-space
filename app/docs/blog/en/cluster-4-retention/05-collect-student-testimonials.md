@@ -1,20 +1,36 @@
 ---
-title: "Collecting Testimonials: How to Get Reviews from Happy Students"
-slug: "collect-student-testimonials"
-description: "Learn the exact process for collecting authentic testimonials and reviews from language students, including when to ask, what to say, and how to showcase them effectively."
-category: "Student Management"
-tags: ["testimonials", "reviews", "marketing", "social proof", "student success"]
-author: "TutorLingua Team"
-publishDate: "2025-01-19"
-updateDate: "2025-01-19"
-readingTime: "5 min"
+title: 'Collecting Testimonials: How to Get Reviews from Happy Students'
+slug: collect-student-testimonials
+description: Learn the exact process for collecting authentic testimonials and reviews
+  from language students, including when to ask, what to say, and how to showcase
+  them effectively.
+category: Student Management
+tags:
+- testimonials
+- reviews
+- marketing
+- social proof
+- student success
+author: TutorLingua Team
+readingTime: 5
 wordCount: 1000
 featured: false
-seoKeywords: ["collect student testimonials", "tutor reviews", "get student reviews", "testimonial request template", "social proof tutoring"]
-relatedArticles: ["student-retention-guide-tutors", "convert-students-direct-booking", "student-onboarding-process"]
-alternateLocale: "es"
-alternateSlug: "recolectar-testimonios-estudiantes"
-position: "Replacement"
+seoKeywords:
+- collect student testimonials
+- tutor reviews
+- get student reviews
+- testimonial request template
+- social proof tutoring
+relatedArticles:
+- student-retention-guide-tutors
+- convert-students-direct-booking
+- student-onboarding-process
+alternateLocale:
+  locale: es
+  slug: recolectar-testimonios-estudiantes
+position: replacement
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 ---
 
 # Collecting Testimonials: How to Get Reviews from Happy Students

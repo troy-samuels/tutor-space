@@ -1,23 +1,25 @@
 ---
-title: "Creando Contenido Que Atraiga a Tus Estudiantes Ideales"
+title: Creando Contenido Que Atraiga a Tus Estudiantes Ideales
 slug: contenido-atrae-estudiantes-ideales
-description: "Aprende cómo crear contenido dirigido que atraiga a tus estudiantes ideales de idiomas. Marketing de contenido estratégico para tutores que convierte navegadores en reservas."
-category: "Marketing y Crecimiento"
-readTime: "7 min lectura"
+description: "Aprende c\xF3mo crear contenido dirigido que atraiga a tus estudiantes\
+  \ ideales de idiomas. Marketing de contenido estrat\xE9gico para tutores que convierte\
+  \ navegadores en reservas."
+category: Marketing y Crecimiento
 featured: false
-author: "Equipo TutorLingua"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "es"
+author: Equipo TutorLingua
+locale: es
 alternateLocale:
-  locale: "en"
-  slug: "content-attract-ideal-students"
-keywords:
-  - marketing de contenido para tutores
-  - atraer estudiantes ideales contenido
-  - estrategia de contenido tutor
-  - contenido enseñanza idiomas
-  - contenido educativo tutores
+  locale: en
+  slug: content-attract-ideal-students
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 7
+seoKeywords:
+- marketing de contenido para tutores
+- atraer estudiantes ideales contenido
+- estrategia de contenido tutor
+- "contenido ense\xF1anza idiomas"
+- contenido educativo tutores
 ---
 
 # Creando Contenido Que Atraiga a Tus Estudiantes Ideales
@@ -88,11 +90,11 @@ Diferentes plataformas requieren diferentes enfoques, pero la estrategia subyace
 
 **Instagram:** Mezcla de carruseles educativos (publicaciones multi-imagen deslizables enseñando conceptos), Reels demostrando pronunciación o errores comunes, Stories con consejos diarios y contenido detrás de cámaras, y testimonios y victorias de estudiantes. Enfócate en atractivo visual y entrega de valor rápido. Funciona mejor para lenguaje conversacional, contenido cultural y enseñanza impulsada por personalidad.
 
-**TikTok:** Videos educativos cortos y contundentes con ganchos fuertes. "Si estás aprendiendo español, deja de hacer esto..." Consejos rápidos, errores comunes, comparaciones de pronunciación y sonidos en tendencia con giros educativos. Mejor para alcanzar demografías más jóvenes y construir conciencia de marca. (Ve nuestra guía sobre [TikTok para profesores de idiomas](/es/blog/tiktok-language-teachers) para detalles.)
+**TikTok:** Videos educativos cortos y contundentes con ganchos fuertes. "Si estás aprendiendo español, deja de hacer esto..." Consejos rápidos, errores comunes, comparaciones de pronunciación y sonidos en tendencia con giros educativos. Mejor para alcanzar demografías más jóvenes y construir conciencia de marca. (Ve nuestra guía sobre [TikTok para profesores de idiomas](/es/blog/tiktok-profesores-idiomas) para detalles.)
 
 **YouTube:** Lecciones y tutoriales más largos y comprensivos. Explicaciones completas de gramática, guías detalladas de pronunciación, recorridos simulados de exámenes, sesiones de preguntas y respuestas de estudiantes. El contenido de YouTube vive para siempre y se posiciona en la búsqueda de Google, haciéndolo poderoso para descubrimiento a largo plazo. Requiere más esfuerzo de producción pero se compone con el tiempo.
 
-**Blog/Sitio web:** Contenido escrito en profundidad optimizado para búsqueda. Guías comprensivas, explicaciones detalladas, listas de recursos, historias de éxito de estudiantes. Esta es tu [estrategia de SEO](/es/blog/seo-tutors-rank-google)—contenido que se posiciona en Google y atrae estudiantes buscando activamente ayuda. El contenido de blog debe ser de 1,500+ palabras, optimizado para palabras clave y genuinamente útil.
+**Blog/Sitio web:** Contenido escrito en profundidad optimizado para búsqueda. Guías comprensivas, explicaciones detalladas, listas de recursos, historias de éxito de estudiantes. Esta es tu [estrategia de SEO](/es/blog/seo-tutores-posicionar-google)—contenido que se posiciona en Google y atrae estudiantes buscando activamente ayuda. El contenido de blog debe ser de 1,500+ palabras, optimizado para palabras clave y genuinamente útil.
 
 **Boletín por correo electrónico:** Comunicación más personal y directa con personas que ya han expresado interés. Comparte perspectivas, vistas previas de lecciones, victorias de estudiantes y ofertas ocasionales. El correo electrónico es donde nutres relaciones y conviertes leads cálidos en estudiantes.
 
@@ -164,9 +166,9 @@ Evita estas trampas:
 
 ## Contenido Que Funciona con Tu Marketing General
 
-La creación de contenido no es independiente. Se integra con tu [estrategia de marketing completa para tutores de idiomas](/es/blog/marketing-language-tutors-2025).
+La creación de contenido no es independiente. Se integra con tu [estrategia de marketing completa para tutores de idiomas](/es/blog/marketing-tutores-idiomas-2025).
 
-Dirige tráfico del contenido a tu [página bio link](/es/blog/best-link-in-bio-tutors) con opciones claras de reserva. Menciona tu contenido en tus [perfiles de marketplace](/es/blog/optimize-preply-profile) para diferenciarte. Usa contenido para fomentar [referidos de boca a boca](/es/blog/word-of-mouth-referrals-tutoring)—los estudiantes comparten contenido útil. Reutiliza contenido en [Instagram](/es/blog/instagram-language-tutors), blog, correo electrónico y otros canales.
+Dirige tráfico del contenido a tu [página bio link](/es/blog/mejor-link-in-bio-tutores) con opciones claras de reserva. Menciona tu contenido en tus [perfiles de marketplace](/es/blog/optimizar-perfil-preply) para diferenciarte. Usa contenido para fomentar [referidos de boca a boca](/es/blog/boca-a-boca-referidos-tutoria)—los estudiantes comparten contenido útil. Reutiliza contenido en [Instagram](/es/blog/instagram-tutores-idiomas), blog, correo electrónico y otros canales.
 
 El contenido construye el factor "conocer, gustar, confiar" que hace las conversiones más fáciles en todas partes en tu marketing.
 

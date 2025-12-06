@@ -1,13 +1,20 @@
 ---
-title: "Preventing Tutor Burnout: Self-Care for Online Teachers"
+title: 'Preventing Tutor Burnout: Self-Care for Online Teachers'
 slug: prevent-tutor-burnout-self-care
-description: "Recognize the signs of tutor burnout and learn practical self-care strategies to maintain energy, passion, and effectiveness in your online teaching practice."
-category: "Operations & Productivity"
-author: "TutorLingua Team"
-date: "2025-01-19"
-image: "/images/blog/prevent-tutor-burnout.jpg"
-tags: ["burnout prevention", "self-care", "mental health", "work-life balance", "teacher wellbeing"]
-lang: "en"
+description: Recognize the signs of tutor burnout and learn practical self-care strategies
+  to maintain energy, passion, and effectiveness in your online teaching practice.
+category: Operations & Productivity
+author: TutorLingua Team
+image: /images/blog/prevent-tutor-burnout.jpg
+tags:
+- burnout prevention
+- self-care
+- mental health
+- work-life balance
+- teacher wellbeing
+lang: en
+publishedAt: '2025-01-19'
+updatedAt: '2025-01-19'
 ---
 
 # Preventing Tutor Burnout: Self-Care for Online Teachers

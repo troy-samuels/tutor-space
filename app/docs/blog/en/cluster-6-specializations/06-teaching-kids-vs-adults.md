@@ -1,15 +1,23 @@
 ---
-title: "Teaching Kids vs Adults: Different Approaches for Different Learners"
+title: 'Teaching Kids vs Adults: Different Approaches for Different Learners'
 slug: teaching-kids-vs-adults
-description: "Discover the key differences between teaching children and adults, learn specialized strategies for each age group, and find which student demographic aligns best with your teaching strengths and business goals."
-category: "Teaching & Specializations"
-date: 2025-01-20
-author: "TutorLingua Team"
-image: "/blog/kids-vs-adults.jpg"
-tags: ["teaching children", "adult learners", "age-specific teaching", "pedagogy"]
+description: Discover the key differences between teaching children and adults, learn
+  specialized strategies for each age group, and find which student demographic aligns
+  best with your teaching strengths and business goals.
+category: Teaching & Specializations
+author: TutorLingua Team
+image: /blog/kids-vs-adults.jpg
+tags:
+- teaching children
+- adult learners
+- age-specific teaching
+- pedagogy
 locale: en
-alternateLocale: es
-alternateSlug: ensenando-ninos-vs-adultos
+alternateLocale:
+  locale: es
+  slug: ensenando-ninos-vs-adultos
+publishedAt: '2025-01-20'
+updatedAt: '2025-01-20'
 ---
 
 # Teaching Kids vs Adults: Different Approaches for Different Learners

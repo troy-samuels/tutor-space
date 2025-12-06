@@ -1,19 +1,36 @@
 ---
-title: "Los Gastos del Negocio de Tutoría de Los Que Nadie Habla"
-slug: "gastos-negocio-tutoria"
-description: "Desglose completo de costos ocultos en tutoría de idiomas. Datos reales de gastos de tutores trabajando, deducciones fiscales que estás perdiendo y marcos de presupuesto para maximizar ganancias."
-category: "Negocio e Ingresos"
-tags: ["gastos negocio", "costos tutor", "deducciones fiscales", "presupuesto tutoría", "costos ocultos"]
-author: "TutorLingua Team"
-publishedAt: "2025-01-22"
-updatedAt: "2025-01-22"
+title: "Los Gastos del Negocio de Tutor\xEDa de Los Que Nadie Habla"
+slug: gastos-negocio-tutoria
+description: "Desglose completo de costos ocultos en tutor\xEDa de idiomas. Datos\
+  \ reales de gastos de tutores trabajando, deducciones fiscales que est\xE1s perdiendo\
+  \ y marcos de presupuesto para maximizar ganancias."
+category: Negocio e Ingresos
+tags:
+- gastos negocio
+- costos tutor
+- deducciones fiscales
+- "presupuesto tutor\xEDa"
+- costos ocultos
+author: TutorLingua Team
+publishedAt: '2025-01-22'
+updatedAt: '2025-01-22'
 readingTime: 6
 wordCount: 1200
 featured: false
-seoKeywords: ["gastos negocio tutoría", "costos tutor", "presupuesto tutor idiomas", "deducciones fiscales tutoría", "gastos negocio tutor"]
-relatedArticles: ["dejar-trabajo-tutoria-tiempo-completo", "ingreso-extra-tiempo-completo-tutoria", "cuanto-cobrar-clases-particulares"]
-alternateLocale: "en"
-position: "Authority"
+seoKeywords:
+- "gastos negocio tutor\xEDa"
+- costos tutor
+- presupuesto tutor idiomas
+- "deducciones fiscales tutor\xEDa"
+- gastos negocio tutor
+relatedArticles:
+- dejar-trabajo-tutoria-tiempo-completo
+- ingreso-extra-tiempo-completo-tutoria
+- cuanto-cobrar-clases-particulares
+alternateLocale:
+  locale: en
+  slug: tutoring-business-expenses
+position: authority
 ---
 
 La mayoría de tutores nuevos calculan sus ingresos así: "$40/hora × 20 horas por semana = $800/semana. ¡Eso es $3,200/mes!"

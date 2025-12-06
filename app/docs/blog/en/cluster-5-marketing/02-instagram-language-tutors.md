@@ -1,23 +1,25 @@
 ---
-title: "Instagram for Language Tutors: Building Your Personal Brand"
+title: 'Instagram for Language Tutors: Building Your Personal Brand'
 slug: instagram-language-tutors
-description: "Master Instagram marketing for language tutors. Learn proven strategies to grow your following, create engaging content, and convert followers into paying students."
-category: "Marketing & Growth"
-readTime: "7 min read"
+description: Master Instagram marketing for language tutors. Learn proven strategies
+  to grow your following, create engaging content, and convert followers into paying
+  students.
+category: Marketing & Growth
 featured: false
-author: "TutorLingua Team"
-datePublished: "2025-01-15"
-lastUpdated: "2025-01-15"
-locale: "en"
+author: TutorLingua Team
+locale: en
 alternateLocale:
-  locale: "es"
-  slug: "instagram-tutores-idiomas"
-keywords:
-  - instagram for language tutors
-  - tutor instagram marketing
-  - grow tutor instagram
-  - language teacher instagram
-  - social media for tutors
+  locale: es
+  slug: instagram-tutores-idiomas
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
+readingTime: 7
+seoKeywords:
+- instagram for language tutors
+- tutor instagram marketing
+- grow tutor instagram
+- language teacher instagram
+- social media for tutors
 ---
 
 # Instagram for Language Tutors: Building Your Personal Brand
@@ -211,5 +213,11 @@ Instagram offers language tutors unprecedented access to potential students worl
 The tutors succeeding on Instagram aren't necessarily the best teachers—they're the ones who understand how to communicate their value, build trust through consistent content, and invite their audience to take the next step.
 
 Your teaching expertise deserves to be seen. Instagram gives you the platform. What you do with it is up to you.
+
+---
+
+*Également disponible en français : [Instagram pour les Tuteurs de Langues : Guide Complet](/fr/blog/instagram-tuteurs-langues)*
+
+---
 
 Ready to streamline your tutor business beyond social media? [Start with TutorLingua](https://tutorlingua.com/signup) to manage bookings, payments, and student relationships—all in one place, leaving you more time to create great content.

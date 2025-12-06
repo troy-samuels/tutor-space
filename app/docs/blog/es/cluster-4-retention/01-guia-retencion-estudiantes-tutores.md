@@ -1,20 +1,37 @@
 ---
-title: "Guía Completa de Retención de Estudiantes para Tutores de Idiomas"
-slug: "guia-retencion-estudiantes-tutores"
-description: "Aprende estrategias comprobadas para mantener a tus estudiantes comprometidos, reducir la deserción y construir un negocio próspero con relaciones a largo plazo."
-category: "Gestión de Estudiantes"
-tags: ["retención de estudiantes", "gestión de clientes", "negocio de tutoría", "compromiso estudiantil", "CRM"]
-author: "TutorLingua Team"
-publishDate: "2025-01-15"
-updateDate: "2025-01-15"
-readingTime: "9 min"
+title: "Gu\xEDa Completa de Retenci\xF3n de Estudiantes para Tutores de Idiomas"
+slug: guia-retencion-estudiantes-tutores
+description: "Aprende estrategias comprobadas para mantener a tus estudiantes comprometidos,\
+  \ reducir la deserci\xF3n y construir un negocio pr\xF3spero con relaciones a largo\
+  \ plazo."
+category: "Gesti\xF3n de Estudiantes"
+tags:
+- "retenci\xF3n de estudiantes"
+- "gesti\xF3n de clientes"
+- "negocio de tutor\xEDa"
+- compromiso estudiantil
+- CRM
+author: TutorLingua Team
+readingTime: 9
 wordCount: 1800
 featured: true
-seoKeywords: ["estrategias retención estudiantes", "mantener estudiantes idiomas", "reducir deserción estudiantes", "retención clientes tutoría", "técnicas compromiso estudiantes"]
-relatedArticles: ["rastrear-progreso-sin-hojas-calculo", "proceso-onboarding-estudiantes", "escribir-notas-clase-efectivas", "recolectar-testimonios-estudiantes"]
-alternateLocale: "en"
-alternateSlug: "student-retention-guide-tutors"
-position: "Replacement"
+seoKeywords:
+- "estrategias retenci\xF3n estudiantes"
+- mantener estudiantes idiomas
+- "reducir deserci\xF3n estudiantes"
+- "retenci\xF3n clientes tutor\xEDa"
+- "t\xE9cnicas compromiso estudiantes"
+relatedArticles:
+- rastrear-progreso-sin-hojas-calculo
+- proceso-onboarding-estudiantes
+- escribir-notas-clase-efectivas
+- recolectar-testimonios-estudiantes
+alternateLocale:
+  locale: en
+  slug: student-retention-guide-tutors
+position: replacement
+publishedAt: '2025-01-15'
+updatedAt: '2025-01-15'
 ---
 
 # Guía Completa de Retención de Estudiantes para Tutores de Idiomas

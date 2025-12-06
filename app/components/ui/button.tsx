@@ -10,7 +10,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   default:
     "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary",
   secondary:
-    "bg-secondary text-secondary-foreground hover:bg-secondary/80 focus-visible:ring-primary/40",
+    "bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent/40",
   outline:
     "bg-background text-foreground hover:bg-muted focus-visible:ring-primary/40",
   ghost: "text-muted-foreground hover:bg-muted focus-visible:ring-primary/40",
