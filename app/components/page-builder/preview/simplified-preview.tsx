@@ -54,7 +54,7 @@ export function SimplifiedPreview({
   const { state } = usePageBuilderWizard();
   const [previewPage, setPreviewPage] = useState<SitePageView>("home");
 
-  const { theme, layout, content, pages } = state;
+  const { theme, layout, content, pages, faq } = state;
 
   // Filter services based on selection
   const selectedServices = services.filter((s) =>
@@ -74,6 +74,8 @@ export function SimplifiedPreview({
 
   // Build visibility config
   const pageVisibility = {
+    hero: true,
+    gallery: true,
     about: true,
     lessons: pages.showLessons,
     booking: pages.showBooking,
@@ -82,7 +84,7 @@ export function SimplifiedPreview({
     resources: false,
     contact: false,
     digital: false,
-    faq: false,
+    faq: faq.length > 0,
   };
 
   // Build about section
@@ -104,18 +106,19 @@ export function SimplifiedPreview({
 
   return (
     <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:self-start">
-      <div className="rounded-3xl border border-border/60 bg-background shadow-sm overflow-hidden flex flex-col h-full">
-        {/* Preview header */}
-        <div className="border-b border-border/60 bg-background/95 px-4 py-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Live Preview</h3>
-          <span className="text-xs text-muted-foreground">
-            Mobile view
-          </span>
-        </div>
+      <div className="relative flex justify-center">
+        {/* Subtle glow behind device */}
+        <div className="absolute inset-0 bg-gradient-to-b from-muted/20 to-transparent blur-2xl -z-10 opacity-50" />
 
-        {/* Preview content */}
-        <div className="flex-1 overflow-y-auto bg-muted/10 p-4">
-          <div className="mx-auto max-w-md">
+        {/* Device frame */}
+        <div className="bg-background rounded-[2.5rem] shadow-lg shadow-black/10 ring-1 ring-border/40 overflow-hidden">
+          {/* Notch */}
+          <div className="h-5 bg-foreground/5 flex justify-center items-end pb-1">
+            <div className="w-16 h-3 bg-foreground/20 rounded-full" />
+          </div>
+
+          {/* Content */}
+          <div className="w-[320px] h-[568px] overflow-y-auto">
             <SitePreview
               profile={profile}
               about={about}
@@ -128,7 +131,7 @@ export function SimplifiedPreview({
               contactCTA={null}
               socialLinks={PLACEHOLDER_SOCIAL_LINKS}
               digitalResources={[]}
-              additionalPages={{ faq: [], resources: [] }}
+              additionalPages={{ faq, resources: [] }}
               booking={booking}
               showDigital={false}
               showSocialIconsHeader={pages.socialIconsHeader}

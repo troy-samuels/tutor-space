@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { CalendarDays, Instagram, Mail, Link2, MessageCircle, Facebook, Twitter, Youtube, Music2 } from "lucide-react";
+import { CalendarDays, Instagram, Mail, Link2, MessageCircle, Facebook, Twitter, Youtube, Music2, ChevronLeft, ChevronRight, X, Share } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useState, useEffect, type MouseEvent } from "react";
+import { InlineBookingSheet } from "@/components/booking/InlineBookingSheet";
 
 export type SitePageView =
   | "home"
@@ -28,6 +30,16 @@ type ServiceLite = {
   duration_minutes: number | null;
   price: number | null;
   currency: string | null;
+  offer_type?: "one_off" | "trial" | "subscription" | "lesson_block" | null;
+};
+
+type SubscriptionTemplateLite = {
+  id: string;
+  serviceId: string;
+  tier: string;
+  lessonsPerMonth: number;
+  priceCents: number;
+  currency: string;
 };
 
 type ThemeFont =
@@ -86,6 +98,8 @@ const PLACEHOLDER_DEFAULTS = {
 const isEmpty = (value: string | null | undefined): boolean => !value?.trim();
 
 type PageVisibilityConfig = {
+  hero: boolean;
+  gallery: boolean;
   about: boolean;
   lessons: boolean;
   booking: boolean;
@@ -109,6 +123,7 @@ type SitePreviewProps = {
   profile: EditorProfile;
   about: { title: string; subtitle: string; body: string };
   services: ServiceLite[];
+  subscriptionTemplates?: SubscriptionTemplateLite[];
   reviews: Array<{ author: string; quote: string }>;
   theme: ThemeSettings;
   pageVisibility: PageVisibilityConfig;
@@ -123,6 +138,7 @@ type SitePreviewProps = {
     subcopy: string;
     ctaLabel: string;
     ctaUrl: string;
+    inlineBookingEnabled?: boolean;
   };
   showDigital?: boolean;
   showSocialIconsHeader: boolean;
@@ -148,15 +164,259 @@ function isColorDark(color: string): boolean {
   return luminance < 0.5;
 }
 
+// Gallery Section Component
+type GallerySectionProps = {
+  images: string[];
+  borderColor: string;
+  sectionBg: string;
+  theme: ThemeSettings;
+};
+
+function GallerySection({ images, borderColor, sectionBg, theme }: GallerySectionProps) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Adaptive grid layout based on image count
+  const getGridClass = (count: number) => {
+    switch (count) {
+      case 1:
+        return "grid-cols-1";
+      case 2:
+        return "grid-cols-2";
+      case 3:
+        return "grid-cols-3";
+      case 4:
+        return "grid-cols-2";
+      case 5:
+        return "grid-cols-6";
+      default:
+        return "grid-cols-3";
+    }
+  };
+
+  const getSpanClass = (count: number, index: number) => {
+    if (count === 5) {
+      // First 2 images: 50% width each, Last 3: 33% width each
+      return index < 2 ? "col-span-3" : "col-span-2";
+    }
+    return "";
+  };
+
+  return (
+    <>
+      <section
+        className="rounded-3xl p-4 shadow-sm"
+        style={{
+          backgroundColor: sectionBg
+        }}
+      >
+        <div className={cn("grid gap-2", getGridClass(images.length))}>
+          {images.map((url, index) => (
+            <button
+              key={`gallery-${index}`}
+              type="button"
+              onClick={() => setLightboxIndex(index)}
+              className={cn(
+                "group relative overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2",
+                getSpanClass(images.length, index)
+              )}
+              style={{
+                aspectRatio: images.length === 1 ? "16/9" : "1/1",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`Gallery photo ${index + 1}`}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <GalleryLightbox
+        images={images}
+        currentIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+        primaryColor={theme.primary}
+      />
+    </>
+  );
+}
+
+// Gallery Lightbox Component
+type GalleryLightboxProps = {
+  images: string[];
+  currentIndex: number | null;
+  onClose: () => void;
+  onNavigate: (index: number) => void;
+  primaryColor: string;
+};
+
+function GalleryLightbox({ images, currentIndex, onClose, onNavigate, primaryColor }: GalleryLightboxProps) {
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+
+  // Keyboard navigation and body scroll lock
+  useEffect(() => {
+    if (currentIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && currentIndex > 0) {
+        onNavigate(currentIndex - 1);
+      }
+      if (e.key === "ArrowRight" && currentIndex < images.length - 1) {
+        onNavigate(currentIndex + 1);
+      }
+    };
+
+    // Prevent body scroll when lightbox is open
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [currentIndex, images.length, onClose, onNavigate]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null || currentIndex === null) return;
+
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+
+    // 50px swipe threshold
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < images.length - 1) {
+        onNavigate(currentIndex + 1);
+      } else if (diff < 0 && currentIndex > 0) {
+        onNavigate(currentIndex - 1);
+      }
+    }
+    setTouchStart(null);
+  };
+
+  return (
+    <AnimatePresence>
+      {currentIndex !== null && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+            aria-label="Close gallery"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {/* Navigation arrows (desktop only) */}
+          {currentIndex > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigate(currentIndex - 1);
+              }}
+              className="absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/10 p-3 text-white backdrop-blur-sm transition hover:bg-white/20 sm:block"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+          )}
+
+          {currentIndex < images.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigate(currentIndex + 1);
+              }}
+              className="absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/10 p-3 text-white backdrop-blur-sm transition hover:bg-white/20 sm:block"
+              aria-label="Next image"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          )}
+
+          {/* Image with swipe support */}
+          <motion.div
+            key={currentIndex}
+            className="relative max-h-[85vh] max-w-[90vw]"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={images[currentIndex]}
+              alt={`Gallery photo ${currentIndex + 1}`}
+              className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
+            />
+          </motion.div>
+
+          {/* Dot indicators */}
+          {images.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigate(index);
+                  }}
+                  className={cn(
+                    "h-2 rounded-full transition-all",
+                    index === currentIndex
+                      ? "w-6 bg-white"
+                      : "w-2 bg-white/40 hover:bg-white/60"
+                  )}
+                  aria-label={`Go to image ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Mobile counter */}
+          <div className="absolute bottom-6 right-4 text-sm text-white/70 sm:hidden">
+            {currentIndex + 1} / {images.length}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function SitePreview(props: SitePreviewProps) {
   const {
     profile,
     about,
     services,
+    subscriptionTemplates = [],
     reviews,
     theme,
     pageVisibility,
     heroImageUrl,
+    galleryImages = [],
     contactCTA,
     socialLinks,
     additionalPages,
@@ -167,7 +427,59 @@ export function SitePreview(props: SitePreviewProps) {
     page,
     onNavigate,
   } = props;
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [subscribingTemplateId, setSubscribingTemplateId] = useState<string | null>(null);
   const previewFont = FONT_STACKS[theme.font] ?? FONT_STACKS.system;
+
+  // Handle native share
+  const handleShare = async () => {
+    const shareUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/${profile.username}`
+      : "";
+    const shareData = {
+      title: profile.full_name || "Language Tutor",
+      text: profile.tagline || "Book a lesson with me!",
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+      }
+    } catch (err) {
+      // User cancelled or error - silently ignore
+    }
+  };
+
+  // Handle subscription checkout
+  const handleSubscribe = async (templateId: string) => {
+    setSubscribingTemplateId(templateId);
+    try {
+      const response = await fetch("/api/stripe/subscription-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId,
+          tutorUsername: profile.username,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error("Failed to create subscription checkout:", data.error);
+        setSubscribingTemplateId(null);
+      }
+    } catch (error) {
+      console.error("Subscription checkout error:", error);
+      setSubscribingTemplateId(null);
+    }
+  };
 
   const spacingClass =
     theme.spacing === "compact"
@@ -198,6 +510,7 @@ export function SitePreview(props: SitePreviewProps) {
   const heroSubtitle = heroSubtitleValue || PLACEHOLDER_DEFAULTS.tagline;
 
   const fallbackCheckout = profile.stripe_payment_link || (profile.username ? `/book/${profile.username}` : "#");
+  const inlineBookingEnabled = booking.inlineBookingEnabled !== false;
 
   const renderSocialIconChips = (appearance: "default" | "inverted" = "default") => {
     const chipBorder = appearance === "inverted" ? "rgba(255,255,255,0.4)" : borderColor;
@@ -207,14 +520,14 @@ export function SitePreview(props: SitePreviewProps) {
     // Map common social platforms to icons
     const getIcon = (label: string) => {
       const l = label.toLowerCase();
-      if (l.includes('mail') || l.includes('email')) return <Mail className="h-3.5 w-3.5" />;
-      if (l.includes('instagram') || l.includes('insta')) return <Instagram className="h-3.5 w-3.5" />;
-      if (l.includes('facebook') || l.includes('fb')) return <Facebook className="h-3.5 w-3.5" />;
-      if (l.includes('twitter') || l.includes('x.com') || l === 'x') return <Twitter className="h-3.5 w-3.5" />;
-      if (l.includes('youtube') || l.includes('yt')) return <Youtube className="h-3.5 w-3.5" />;
-      if (l.includes('tiktok') || l.includes('tik')) return <Music2 className="h-3.5 w-3.5" />;
-      if (l.includes('message') || l.includes('chat')) return <MessageCircle className="h-3.5 w-3.5" />;
-      return <Link2 className="h-3.5 w-3.5" />;
+      if (l.includes('mail') || l.includes('email')) return <Mail className="h-3 w-3" />;
+      if (l.includes('instagram') || l.includes('insta')) return <Instagram className="h-3 w-3" />;
+      if (l.includes('facebook') || l.includes('fb')) return <Facebook className="h-3 w-3" />;
+      if (l.includes('twitter') || l.includes('x.com') || l === 'x') return <Twitter className="h-3 w-3" />;
+      if (l.includes('youtube') || l.includes('yt')) return <Youtube className="h-3 w-3" />;
+      if (l.includes('tiktok') || l.includes('tik')) return <Music2 className="h-3 w-3" />;
+      if (l.includes('message') || l.includes('chat')) return <MessageCircle className="h-3 w-3" />;
+      return <Link2 className="h-3 w-3" />;
     };
 
     return (
@@ -222,7 +535,7 @@ export function SitePreview(props: SitePreviewProps) {
         {socialLinks.slice(0, 4).map((link) => (
           <span
             key={link.id}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:opacity-80"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full transition-all hover:scale-110"
             style={{
               border: `1px solid ${chipBorder}`,
               backgroundColor: chipBg,
@@ -247,34 +560,40 @@ export function SitePreview(props: SitePreviewProps) {
     };
 
     return (
-      <div
-        className="overflow-hidden rounded-full flex items-center justify-center"
-        style={{
-          width: size,
-          height: size,
-          border: `1px solid ${borderColor}`,
-          backgroundColor: profile.avatar_url ? cardBg : theme.primary
-        }}
-      >
-        {profile.avatar_url ? (
-          <Image
-            src={profile.avatar_url}
-            alt={`${profile.full_name} avatar`}
-            width={size}
-            height={size}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span
-            className="font-semibold"
-            style={{
-              color: 'white',
-              fontSize: size * 0.4
-            }}
-          >
-            {getInitials(profile.full_name || profile.username)}
-          </span>
-        )}
+      <div className="relative" style={{ width: size + 8, height: size + 8 }}>
+        {/* Soft glow behind avatar */}
+        <div
+          className="absolute inset-0 rounded-full blur-xl opacity-25"
+          style={{ backgroundColor: theme.primary }}
+        />
+        <div
+          className="relative overflow-hidden rounded-full shadow-xl ring-4 ring-white/90 flex items-center justify-center"
+          style={{
+            width: size,
+            height: size,
+            backgroundColor: profile.avatar_url ? cardBg : theme.primary
+          }}
+        >
+          {profile.avatar_url ? (
+            <Image
+              src={profile.avatar_url}
+              alt={`${profile.full_name} avatar`}
+              width={size}
+              height={size}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span
+              className="font-semibold"
+              style={{
+                color: 'white',
+                fontSize: size * 0.4
+              }}
+            >
+              {getInitials(profile.full_name || profile.username)}
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -284,7 +603,6 @@ export function SitePreview(props: SitePreviewProps) {
       <div
         className="overflow-hidden rounded-2xl"
         style={{
-          border: `1px solid ${borderColor}`,
           backgroundColor: cardBg
         }}
       >
@@ -296,18 +614,17 @@ export function SitePreview(props: SitePreviewProps) {
     if (heroStyle === "portrait") {
       return (
         <section
-          className="grid place-items-center gap-4 rounded-3xl p-5 text-center shadow-sm"
+          className="grid place-items-center gap-4 p-5 text-center"
           style={{
-            border: `1px solid ${borderColor}`,
             backgroundColor: sectionBg
           }}
         >
           <div className="flex flex-col items-center gap-3">
             {renderAvatar(96)}
-            {/* Social icons under avatar */}
-            {showSocialIconsHeader && socialLinks.length > 0 ? (
+            {/* Social icons - always show under avatar */}
+            {socialLinks.length > 0 && (
               <div className="flex justify-center">{renderSocialIconChips()}</div>
-            ) : null}
+            )}
             {mediaBlock}
           </div>
           <div className="space-y-2">
@@ -330,9 +647,8 @@ export function SitePreview(props: SitePreviewProps) {
       // Name-first layout: Name → Tagline → CTA → Avatar → Trust
       return (
         <section
-          className="rounded-3xl p-6 text-center shadow-sm"
+          className="p-6 text-center"
           style={{
-            border: `1px solid ${borderColor}`,
             backgroundColor: sectionBg
           }}
         >
@@ -353,10 +669,10 @@ export function SitePreview(props: SitePreviewProps) {
           {/* Avatar */}
           <div className="mt-5">{renderAvatar(80)}</div>
 
-          {/* Social icons if enabled */}
-          {showSocialIconsHeader && socialLinks.length > 0 ? (
+          {/* Social icons - always show under avatar */}
+          {socialLinks.length > 0 && (
             <div className="mt-3 flex justify-center">{renderSocialIconChips()}</div>
-          ) : null}
+          )}
 
           {/* Trust indicator */}
           <p className="mt-3 text-xs" style={{ color: textSecondary, opacity: 0.8 }}>
@@ -372,35 +688,19 @@ export function SitePreview(props: SitePreviewProps) {
     // Minimal style - clean but with visual polish
     return (
       <section
-        className="flex flex-col items-center rounded-3xl p-8 md:p-10 lg:p-12 text-center shadow-sm"
+        className="flex flex-col items-center p-8 md:p-10 lg:p-12 text-center"
         style={{
-          border: `1px solid ${borderColor}`,
-          backgroundColor: sectionBg,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+          backgroundColor: sectionBg
         }}
       >
-        {/* Avatar with accent ring */}
-        <div
-          className="relative"
-          style={{
-            padding: 4,
-            borderRadius: '50%',
-            backgroundColor: theme.primary
-          }}
-        >
-          {renderAvatar(100)}
-        </div>
-
-        {/* Social icons under avatar */}
-        {showSocialIconsHeader && socialLinks.length > 0 ? (
-          <div className="mt-4 flex justify-center">{renderSocialIconChips()}</div>
-        ) : null}
+        {/* Avatar with premium styling */}
+        {renderAvatar(100)}
 
         {/* Name and tagline */}
         <h1
           className={cn(
-            "mt-6 text-2xl font-bold tracking-tight",
-            isHeroTitlePlaceholder && "opacity-50 italic"
+            "mt-6 text-2xl font-bold tracking-tight leading-tight",
+            isHeroTitlePlaceholder && "opacity-40"
           )}
           style={{ color: textPrimary }}
         >
@@ -408,18 +708,34 @@ export function SitePreview(props: SitePreviewProps) {
         </h1>
         <p
           className={cn(
-            "mt-2 max-w-xs text-sm leading-relaxed",
-            isHeroSubtitlePlaceholder && "opacity-50 italic"
+            "mt-2 max-w-xs text-base font-medium leading-relaxed",
+            isHeroSubtitlePlaceholder && "opacity-40"
           )}
           style={{ color: textSecondary }}
         >
           {heroSubtitle}
         </p>
 
-        {/* Trust indicator */}
-        <p className="mt-4 text-xs" style={{ color: textSecondary, opacity: 0.8 }}>
-          ✓ Trial lesson available
-        </p>
+        {/* Social icons - below name/tagline, more subtle */}
+        {socialLinks.length > 0 && (
+          <div className="mt-4 flex justify-center opacity-70 hover:opacity-100 transition-opacity">
+            {renderSocialIconChips()}
+          </div>
+        )}
+
+        {/* Trust indicator - styled pill badge */}
+        <div
+          className="mt-5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+          style={{
+            backgroundColor: `${theme.primary}15`,
+            color: theme.primary
+          }}
+        >
+          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          Trial lesson available
+        </div>
 
         {/* Media block if present */}
         {mediaBlock ? <div className="mt-6 w-full">{mediaBlock}</div> : null}
@@ -494,11 +810,20 @@ export function SitePreview(props: SitePreviewProps) {
   const bookingSubcopy = booking.subcopy?.trim() || "Pick a time that works — we will map out goals in the first call.";
   const bookingLabel = booking.ctaLabel?.trim() || "Book a class";
   const bookingUrl = booking.ctaUrl?.trim() || fallbackCheckout;
+  const handleBookingClick = (event?: MouseEvent) => {
+    if (inlineBookingEnabled) {
+      event?.preventDefault();
+      setBookingOpen(true);
+      return;
+    }
+    if (bookingUrl) {
+      window.location.href = bookingUrl;
+    }
+  };
 
-  // Home page - Hero with value proposition
-  const renderHomePage = () => (
+  // Home page content (hero is now persistent above tabs)
+  const renderHomeContent = () => (
     <>
-      {heroSection}
       {pageVisibility.about && about.body ? (
         <section
           className="rounded-3xl p-5 shadow-sm text-center"
@@ -507,7 +832,7 @@ export function SitePreview(props: SitePreviewProps) {
             backgroundColor: sectionBg
           }}
         >
-          <h2 className="text-base font-semibold" style={{ color: textPrimary }}>About</h2>
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: textPrimary }}>About</h2>
           <p className="mt-2 text-sm leading-6" style={{ color: textSecondary }}>{about.body}</p>
         </section>
       ) : null}
@@ -519,7 +844,7 @@ export function SitePreview(props: SitePreviewProps) {
             backgroundColor: sectionBg
           }}
         >
-          <h2 className="text-base font-semibold" style={{ color: textPrimary }}>What students say</h2>
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: textPrimary }}>What Students Say</h2>
           {/* Show just the first review as social proof */}
           <blockquote
             className="mt-3 rounded-2xl p-4 text-sm"
@@ -536,10 +861,78 @@ export function SitePreview(props: SitePreviewProps) {
     </>
   );
 
+  // Helper to render subscription tier cards for a service
+  const renderSubscriptionTiers = (service: ServiceLite, templates: SubscriptionTemplateLite[]) => {
+    const serviceTemplates = templates.filter(t => t.serviceId === service.id);
+    if (serviceTemplates.length === 0) return null;
+
+    return (
+      <div
+        key={service.id}
+        className="rounded-2xl p-4 text-left"
+        style={{
+          border: `1px solid ${borderColor}`,
+          backgroundColor: cardBg
+        }}
+      >
+        <p className="font-semibold text-center" style={{ color: textPrimary }}>{service.name}</p>
+        {service.description && (
+          <p className="mt-1 text-sm text-center" style={{ color: textSecondary }}>{service.description}</p>
+        )}
+        <div className="mt-3 grid gap-2">
+          {serviceTemplates.map((template) => {
+            const isSubscribing = subscribingTemplateId === template.id;
+            return (
+              <div
+                key={template.id}
+                className="flex items-center justify-between rounded-xl px-3 py-3"
+                style={{
+                  border: `1px solid ${borderColor}`,
+                  backgroundColor: theme.background
+                }}
+              >
+                <div className="flex flex-col gap-1">
+                  <span
+                    className="inline-flex w-fit rounded-full px-2 py-0.5 text-xs font-semibold"
+                    style={{
+                      backgroundColor: `${theme.primary}20`,
+                      color: theme.primary
+                    }}
+                  >
+                    {template.lessonsPerMonth} lessons/mo
+                  </span>
+                  <span className="text-sm font-semibold" style={{ color: textPrimary }}>
+                    {formatCurrency(template.priceCents, template.currency)}/mo
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSubscribe(template.id)}
+                  disabled={isSubscribing}
+                  className="rounded-full px-4 py-2 text-xs font-semibold text-white transition-all hover:scale-105 disabled:opacity-50"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  {isSubscribing ? "Loading..." : "Subscribe"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-center" style={{ color: textSecondary, opacity: 0.8 }}>
+          Unused lessons roll over (max 1 month)
+        </p>
+      </div>
+    );
+  };
+
   // Services page - Lesson types and pricing
   const renderServicesPage = () => {
     const displayServices = services.length > 0 ? services : PLACEHOLDER_DEFAULTS.services;
     const isPlaceholder = services.length === 0;
+
+    // Separate subscription services from one-off services
+    const subscriptionServices = displayServices.filter(s => s.offer_type === "subscription");
+    const oneOffServices = displayServices.filter(s => s.offer_type !== "subscription");
 
     return (
       <section
@@ -549,9 +942,35 @@ export function SitePreview(props: SitePreviewProps) {
           backgroundColor: sectionBg
         }}
       >
-        <h2 className="text-base md:text-lg font-semibold" style={{ color: textPrimary }}>Services & Pricing</h2>
-        <p className="mt-1 text-xs md:text-sm" style={{ color: textSecondary }}>Choose a lesson type that fits your goals</p>
-        {renderLessonsContent(displayServices, isPlaceholder)}
+        <h2 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: textPrimary }}>Services & Pricing</h2>
+        <p className="mt-2 text-sm" style={{ color: textSecondary }}>Choose a lesson type that fits your goals</p>
+
+        {/* Subscription Services */}
+        {subscriptionServices.length > 0 && subscriptionTemplates.length > 0 && (
+          <div className="mt-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: textSecondary }}>
+              Monthly Subscriptions
+            </p>
+            {subscriptionServices.map((service) => renderSubscriptionTiers(service, subscriptionTemplates))}
+          </div>
+        )}
+
+        {/* One-off Services */}
+        {oneOffServices.length > 0 && (
+          <div className={subscriptionServices.length > 0 ? "mt-6" : ""}>
+            {subscriptionServices.length > 0 && (
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: textSecondary }}>
+                Single Lessons
+              </p>
+            )}
+            {renderLessonsContent(oneOffServices, isPlaceholder)}
+          </div>
+        )}
+
+        {/* Fallback if no services */}
+        {subscriptionServices.length === 0 && oneOffServices.length === 0 && (
+          renderLessonsContent(displayServices, isPlaceholder)
+        )}
       </section>
     );
   };
@@ -569,8 +988,9 @@ export function SitePreview(props: SitePreviewProps) {
         <h2 className="text-xl font-bold" style={{ color: textPrimary }}>{bookingHeadline}</h2>
         <p className="mt-2 text-sm" style={{ color: textSecondary }}>{bookingSubcopy}</p>
         <div className="mt-5">
-          <a
-            href={bookingUrl}
+          <button
+            type="button"
+            onClick={handleBookingClick}
             className="inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.03]"
             style={{
               backgroundColor: theme.primary
@@ -578,74 +998,12 @@ export function SitePreview(props: SitePreviewProps) {
           >
             <CalendarDays className="h-4 w-4" />
             {bookingLabel}
-          </a>
+          </button>
         </div>
         <p className="mt-4 text-xs" style={{ color: textSecondary, opacity: 0.7 }}>
           Usually responds within 24 hours
         </p>
       </section>
-
-      {/* Alternative contact methods */}
-      {(contactCTA?.url || socialLinks.length > 0) && (
-        <section
-          className="rounded-3xl p-5 shadow-sm text-center"
-          style={{
-            border: `1px solid ${borderColor}`,
-            backgroundColor: sectionBg
-          }}
-        >
-          <h3 className="text-sm font-semibold" style={{ color: textPrimary }}>Other ways to connect</h3>
-
-          {/* Social icons row */}
-          {socialLinks.length > 0 && (
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              {socialLinks.map((link) => {
-                const getIcon = (label: string) => {
-                  const l = label.toLowerCase();
-                  if (l.includes('mail') || l.includes('email')) return <Mail className="h-4 w-4" />;
-                  if (l.includes('instagram') || l.includes('insta')) return <Instagram className="h-4 w-4" />;
-                  if (l.includes('message') || l.includes('chat')) return <MessageCircle className="h-4 w-4" />;
-                  return <Link2 className="h-4 w-4" />;
-                };
-                return (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex h-10 w-10 items-center justify-center rounded-full transition-all hover:scale-110"
-                    style={{
-                      border: `1px solid ${borderColor}`,
-                      backgroundColor: cardBg,
-                      color: textPrimary
-                    }}
-                    title={link.label}
-                  >
-                    {getIcon(link.label)}
-                  </a>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Direct contact CTA */}
-          {contactCTA?.url && (
-            <div className="mt-4">
-              <a
-                href={contactCTA.url}
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all hover:opacity-80"
-                style={{
-                  border: `1px solid ${theme.primary}`,
-                  color: theme.primary
-                }}
-              >
-                <MessageCircle className="h-4 w-4" />
-                {contactCTA.label || "Send a message"}
-              </a>
-            </div>
-          )}
-        </section>
-      )}
     </>
   );
 
@@ -663,7 +1021,7 @@ export function SitePreview(props: SitePreviewProps) {
           backgroundColor: sectionBg
         }}
       >
-        <h2 className="text-base md:text-lg font-semibold" style={{ color: textPrimary }}>Frequently asked questions</h2>
+        <h2 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: textPrimary }}>Frequently Asked Questions</h2>
         <div className={cn("mt-3 space-y-3", isPlaceholder && "opacity-50")}>
           {displayFaq.map((item, index) => (
             <div
@@ -693,25 +1051,57 @@ export function SitePreview(props: SitePreviewProps) {
 
   return (
     <div className={cn("relative w-full rounded-3xl overflow-hidden", "font-sans")} style={{ ...backgroundLayer, fontFamily: previewFont }}>
-      {/* Minimal page indicator dots */}
-      <div className="flex justify-center py-3">
-        <div className="flex items-center gap-1.5">
-          {pageNav.map((nav) => (
-            <button
-              key={nav.id}
-              type="button"
-              onClick={() => onNavigate?.(nav.id)}
-              className={cn(
-                "rounded-full transition-all",
-                page === nav.id ? "h-1.5 w-4" : "h-1.5 w-1.5 hover:opacity-80"
-              )}
-              style={{
-                backgroundColor: page === nav.id ? theme.primary : `${textSecondary}30`
-              }}
-              aria-label={`Go to ${nav.label}`}
-            />
-          ))}
+      {/* Share button - top right */}
+      <button
+        type="button"
+        onClick={handleShare}
+        className="absolute right-3 top-3 z-20 rounded-full p-1.5 transition-all opacity-40 hover:opacity-100 hover:scale-105"
+        style={{ color: textPrimary }}
+        aria-label="Share this page"
+      >
+        <Share className="h-4 w-4" />
+      </button>
+
+      {/* Persistent Hero Section */}
+      {pageVisibility.hero && (
+        <div className="px-4 pt-8 pb-4">
+          {heroSection}
+
+          {/* Gallery below hero */}
+          {pageVisibility.gallery && galleryImages && galleryImages.length > 0 && (
+            <div className="mt-4">
+              <GallerySection
+                images={galleryImages}
+                borderColor={borderColor}
+                sectionBg={sectionBg}
+                theme={theme}
+              />
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Text Tab Navigation - Premium styling */}
+      <div className="flex justify-center gap-8 px-4 pb-4">
+        {pageNav.map((nav) => (
+          <button
+            key={nav.id}
+            type="button"
+            onClick={() => onNavigate?.(nav.id)}
+            className={cn(
+              "pb-2 text-sm font-semibold transition-all",
+              page === nav.id
+                ? "border-b-[3px]"
+                : "opacity-50 hover:opacity-80"
+            )}
+            style={{
+              color: textPrimary,
+              borderColor: page === nav.id ? theme.primary : "transparent"
+            }}
+          >
+            {nav.label}
+          </button>
+        ))}
       </div>
 
       <main
@@ -723,12 +1113,12 @@ export function SitePreview(props: SitePreviewProps) {
         <AnimatePresence mode="wait">
           <motion.div
             key={page}
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -15 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
-            {page === "home" && renderHomePage()}
+            {page === "home" && renderHomeContent()}
             {page === "services" && renderServicesPage()}
             {page === "faq" && renderFaqPage()}
             {page === "contact" && renderContactPage()}
@@ -740,15 +1130,20 @@ export function SitePreview(props: SitePreviewProps) {
       {/* Sticky bottom CTA bar - shows on all pages except Contact */}
       {page !== "contact" && (
         <div
-          className="sticky bottom-0 z-30 border-t px-4 py-3"
+          className="sticky bottom-0 z-30 px-4 py-3"
           style={{
-            backgroundColor: theme.background,
-            borderColor: borderColor
+            backgroundColor: theme.background
           }}
         >
           <button
             type="button"
-            onClick={() => onNavigate?.("contact")}
+            onClick={() => {
+              if (inlineBookingEnabled) {
+                setBookingOpen(true);
+                return;
+              }
+              onNavigate?.("contact");
+            }}
             className="w-full rounded-lg py-3 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               backgroundColor: theme.primary
@@ -758,6 +1153,15 @@ export function SitePreview(props: SitePreviewProps) {
           </button>
         </div>
       )}
+
+      {inlineBookingEnabled ? (
+        <InlineBookingSheet
+          open={bookingOpen}
+          onClose={() => setBookingOpen(false)}
+          username={profile.username}
+          fallbackUrl={bookingUrl}
+        />
+      ) : null}
     </div>
   );
 }
