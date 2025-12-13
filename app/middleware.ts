@@ -1,5 +1,20 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import { defaultLocale, locales, type Locale } from "./lib/i18n/edge-config";
+
+// Vercel Edge runtime does not provide Node's `__dirname`, but some bundled Next.js
+// dependencies still reference it (e.g. ncc-compiled `ua-parser-js`). Because ESM
+// imports execute before module code, we must define this global *before* loading
+// `next/server`.
+try {
+  const globalShim = globalThis as unknown as { __dirname?: string; __filename?: string };
+  globalShim.__dirname ??= "/";
+  globalShim.__filename ??= "/";
+} catch {
+  // Ignore if the runtime forbids mutation (shouldn't happen on Vercel).
+}
+
+type NextServerModule = typeof import("next/server");
+const nextServerPromise = import("next/server") as Promise<NextServerModule>;
 
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
 const GATE_SESSION_COOKIE = "tl_site_gate";
@@ -97,6 +112,14 @@ function withLocalePath(pathname: string, locale: Locale) {
 }
 
 export async function middleware(request: NextRequest) {
+  let NextResponse: NextServerModule["NextResponse"];
+  try {
+    ({ NextResponse } = await nextServerPromise);
+  } catch (error) {
+    console.error("[middleware] Failed to load next/server", error);
+    return new Response(null, { headers: { "x-middleware-next": "1" } });
+  }
+
   try {
     const { pathname } = request.nextUrl;
     const pathLocale = getPathLocale(pathname);
