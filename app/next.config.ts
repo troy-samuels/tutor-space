@@ -28,18 +28,32 @@ const nextConfig: NextConfig = {
     ];
   },
   webpack: (config, { nextRuntime, webpack }) => {
-    // Ensure edge bundles (middleware) have a defined __dirname to satisfy CJS helpers
     if (nextRuntime === "edge") {
-      // Replace __dirname at compile-time
-      config.plugins.push(new webpack.DefinePlugin({ __dirname: JSON.stringify("/") }));
-      // Add runtime guard in case any helper still expects __dirname
-      config.plugins.push(
+      // 1. UNSHIFT DefinePlugin to run FIRST - replaces __dirname at compile time
+      config.plugins.unshift(
+        new webpack.DefinePlugin({
+          __dirname: JSON.stringify("/"),
+          __filename: JSON.stringify("/index.js"),
+        })
+      );
+
+      // 2. UNSHIFT BannerPlugin to inject shim at very start of every file
+      config.plugins.unshift(
         new webpack.BannerPlugin({
-          banner: 'if(typeof __dirname==="undefined"){globalThis.__dirname="/";}',
+          banner: 'var __dirname="/",__filename="/index.js";',
           raw: true,
           entryOnly: false,
         })
       );
+
+      // 3. Add fallbacks for Node.js built-ins that edge doesn't have
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        path: false,
+        fs: false,
+        os: false,
+      };
     }
     return config;
   },
