@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createCheckoutSession } from "@/lib/stripe";
-import { RateLimiters } from "@/lib/middleware/rate-limit";
+import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
 
 // Maximum allowed payment amount in dollars (prevents fraud/mistakes)
 const MAX_PAYMENT_AMOUNT = 10000; // $10,000 max per transaction
@@ -10,15 +10,6 @@ const MIN_PAYMENT_AMOUNT = 1; // $1 minimum
 
 export async function POST(req: NextRequest) {
   try {
-    // RATE LIMITING: Prevent checkout session exhaustion attacks
-    const rateLimitResult = await RateLimiters.api(req);
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: rateLimitResult.error || "Too many requests" },
-        { status: 429 }
-      );
-    }
-
     const supabaseAdmin = createServiceRoleClient();
     const supabase = await createClient();
 
@@ -32,6 +23,23 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // RATE LIMITING: Per-user checkout session throttle (server-side, DB-backed)
+    const rateLimitResult = await enforceCheckoutRateLimit({
+      supabaseAdmin,
+      userId: user.id,
+      req,
+      keyPrefix: "checkout:booking",
+      limit: 5,
+      windowSeconds: 60,
+    });
+
+    if (!rateLimitResult.ok) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Too many requests" },
+        { status: rateLimitResult.status ?? 429 }
+      );
     }
 
     // Parse request body
@@ -80,7 +88,21 @@ export async function POST(req: NextRequest) {
     // Verify booking and ownership
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from("bookings")
-      .select("id, status, payment_status, tutor_id, student_id")
+      .select(`
+        id,
+        status,
+        payment_status,
+        tutor_id,
+        student_id,
+        payment_amount,
+        currency,
+        services (
+          id,
+          name,
+          price_amount,
+          price_currency
+        )
+      `)
       .eq("id", bookingId)
       .single();
 
@@ -104,6 +126,34 @@ export async function POST(req: NextRequest) {
 
     if (booking.payment_status === "paid") {
       return NextResponse.json({ error: "Booking already paid" }, { status: 400 });
+    }
+
+    const serviceRecord = Array.isArray(booking.services)
+      ? booking.services[0]
+      : booking.services;
+    const expectedAmountCents =
+      booking.payment_amount ??
+      serviceRecord?.price_amount ??
+      null;
+    const expectedCurrency =
+      (booking.currency ?? serviceRecord?.price_currency ?? normalizedCurrency).toLowerCase();
+
+    if (!expectedAmountCents) {
+      return NextResponse.json(
+        { error: "Booking price not available. Please contact support." },
+        { status: 400 }
+      );
+    }
+
+    const requestedAmountCents = Math.round(normalizedAmount * 100);
+    if (
+      requestedAmountCents !== expectedAmountCents ||
+      normalizedCurrency !== expectedCurrency
+    ) {
+      return NextResponse.json(
+        { error: "Checkout amount mismatch. Please refresh and try again." },
+        { status: 400 }
+      );
     }
 
     // Get tutor's Stripe Connect account
@@ -161,8 +211,8 @@ export async function POST(req: NextRequest) {
     // Create checkout session with destination charges
     const session = await createCheckoutSession({
       customerId: studentProfile.stripe_customer_id,
-      priceAmount: Math.round(normalizedAmount * 100), // Convert to cents
-      currency: normalizedCurrency,
+      priceAmount: expectedAmountCents,
+      currency: expectedCurrency,
       successUrl: `${baseUrl}/book/success?booking_id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${baseUrl}/book/cancelled?booking_id=${bookingId}`,
       metadata: {
@@ -172,17 +222,17 @@ export async function POST(req: NextRequest) {
       },
       lineItems: [
         {
-          name: serviceName,
+          name: serviceRecord?.name ?? serviceName,
           description:
             serviceDescription ||
             `Lesson with ${tutorProfile.full_name || "your tutor"}`,
-          amount: Math.round(normalizedAmount * 100),
+          amount: expectedAmountCents,
           quantity: 1,
         },
       ],
       transferDestinationAccountId: tutorProfile.stripe_account_id,
       // 1% platform fee on booking payments
-      applicationFeeCents: Math.round(normalizedAmount * 100 * 0.01),
+      applicationFeeCents: Math.round(expectedAmountCents * 0.01),
     });
 
     return NextResponse.json({

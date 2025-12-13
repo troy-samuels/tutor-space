@@ -9,14 +9,17 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { BookingsByPeriod } from "@/lib/data/analytics-metrics";
 
 interface BookingsChartProps {
   data: BookingsByPeriod[];
   isLoading?: boolean;
+  onHoverChange?: (hovering: boolean) => void;
+  dimmed?: boolean;
 }
 
-export function BookingsChart({ data, isLoading }: BookingsChartProps) {
+export function BookingsChart({ data, isLoading, onHoverChange, dimmed }: BookingsChartProps) {
   const totalCompleted = data.reduce((sum, d) => sum + d.completed, 0);
 
   if (isLoading) {
@@ -35,7 +38,14 @@ export function BookingsChart({ data, isLoading }: BookingsChartProps) {
   }
 
   return (
-    <Card className="rounded-3xl border border-border/60 bg-white/90 shadow-sm">
+    <Card
+      className={cn(
+        "rounded-3xl border border-border/60 bg-white/90 shadow-sm transition-opacity duration-200",
+        dimmed && "opacity-80"
+      )}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-semibold text-foreground">
           Lessons by Week

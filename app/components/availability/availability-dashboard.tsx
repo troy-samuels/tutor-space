@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { availabilitySlotSchema, type AvailabilitySlotInput } from "@/lib/validators/availability";
 import { saveAvailability } from "@/lib/actions/availability";
 
@@ -8,6 +8,8 @@ type AvailabilityDashboardProps = {
   initialSlots: Array<AvailabilitySlotInput & { id: string }>;
 };
 
+const HALF_HOUR_SEGMENTS = 48;
+const SEGMENT_MINUTES = 30;
 const DAY_LABELS = [
   "Sunday",
   "Monday",
@@ -36,6 +38,14 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
   });
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [dragSelection, setDragSelection] = useState<{ day: number; start: number; end: number } | null>(
+    null
+  );
+
+  const gridColumnsStyle = useMemo(
+    () => ({ gridTemplateColumns: `repeat(${HALF_HOUR_SEGMENTS}, minmax(0, 1fr))` }),
+    []
+  );
 
   const grouped = useMemo(() => {
     return DAY_LABELS.map((label, index) => ({
@@ -49,18 +59,52 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
     return slots.reduce((total, slot) => total + computeSlotHours(slot.start_time, slot.end_time), 0);
   }, [slots]);
 
-  function handleAddSlot() {
-    const parsed = availabilitySlotSchema.safeParse(draft);
+  const addSlotEntry = useCallback((slot: AvailabilitySlotInput, successMessage?: string) => {
+    const parsed = availabilitySlotSchema.safeParse(slot);
     if (!parsed.success) {
       setStatus({ type: "error", message: parsed.error.issues[0]?.message ?? "Invalid slot." });
-      return;
+      return false;
     }
 
+    let added = false;
+    let duplicate = false;
+
     setSlots((prev) => {
-      const updated = [...prev, { ...parsed.data }];
-      return updated.sort(sortSlots);
+      const exists = prev.some(
+        (existing) =>
+          existing.day_of_week === parsed.data.day_of_week &&
+          existing.start_time === parsed.data.start_time &&
+          existing.end_time === parsed.data.end_time
+      );
+
+      if (exists) {
+        duplicate = true;
+        return prev;
+      }
+
+      added = true;
+      return [...prev, { ...parsed.data }].sort(sortSlots);
     });
-    setStatus(null);
+
+    if (duplicate) {
+      setStatus({ type: "error", message: "That slot is already on your schedule." });
+      return false;
+    }
+
+    if (added) {
+      if (successMessage) {
+        setStatus({ type: "success", message: successMessage });
+      } else {
+        setStatus(null);
+      }
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  function handleAddSlot() {
+    addSlotEntry(draft);
   }
 
   function handleRemoveSlot(index: number) {
@@ -88,6 +132,105 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
         setStatus({ type: "success", message: "Availability saved successfully." });
       })();
     });
+  }
+
+  const commitDragSelection = useCallback(
+    (selection: { day: number; start: number; end: number }) => {
+      const startIndex = Math.min(selection.start, selection.end);
+      const endIndex = Math.max(selection.start, selection.end) + 1;
+      const slot: AvailabilitySlotInput = {
+        day_of_week: selection.day,
+        start_time: minutesToTime(startIndex * SEGMENT_MINUTES),
+        end_time: minutesToTime(endIndex * SEGMENT_MINUTES),
+        is_available: draft.is_available,
+      };
+
+      const added = addSlotEntry(
+        slot,
+        `Added ${DAY_LABELS[selection.day]} ${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}.`
+      );
+
+      if (added) {
+        setDraft(slot);
+      }
+      setDragSelection(null);
+    },
+    [addSlotEntry, draft.is_available]
+  );
+
+  useEffect(() => {
+    if (!dragSelection) return undefined;
+
+    const handleMouseUp = () => {
+      commitDragSelection(dragSelection);
+    };
+
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, [commitDragSelection, dragSelection]);
+
+  function startDrag(dayIndex: number, segmentIndex: number, event: { preventDefault: () => void }) {
+    event.preventDefault();
+    setStatus(null);
+    setDragSelection({ day: dayIndex, start: segmentIndex, end: segmentIndex });
+  }
+
+  function extendDrag(dayIndex: number, segmentIndex: number) {
+    setDragSelection((current) =>
+      current && current.day === dayIndex ? { ...current, end: segmentIndex } : current
+    );
+  }
+
+  function applyPreset(presetSlots: AvailabilitySlotInput[]) {
+    let added = 0;
+    setSlots((prev) => {
+      const existing = new Set(prev.map((s) => `${s.day_of_week}-${s.start_time}-${s.end_time}`));
+      const next = [...prev];
+      presetSlots.forEach((slot) => {
+        const key = `${slot.day_of_week}-${slot.start_time}-${slot.end_time}`;
+        if (!existing.has(key)) {
+          next.push(slot);
+          existing.add(key);
+          added += 1;
+        }
+      });
+      return next.sort(sortSlots);
+    });
+    if (added > 0) {
+      setStatus({ type: "success", message: `Added ${added} preset slot${added === 1 ? "" : "s"}.` });
+    } else {
+      setStatus({ type: "error", message: "Preset already applied." });
+    }
+  }
+
+  function copyToEmptyDays() {
+    const templateDay = grouped.find((group) => group.slots.length > 0);
+    if (!templateDay) {
+      setStatus({ type: "error", message: "Add a slot first, then copy to empty days." });
+      return;
+    }
+    const templateSlots = templateDay.slots;
+    let copied = 0;
+    setSlots((prev) => {
+      const next = [...prev];
+      grouped.forEach((group) => {
+        if (group.slots.length === 0) {
+          templateSlots.forEach((slot) => {
+            next.push({
+              ...slot,
+              day_of_week: group.day_of_week,
+            });
+            copied += 1;
+          });
+        }
+      });
+      return next.sort(sortSlots);
+    });
+    setStatus(
+      copied > 0
+        ? { type: "success", message: `Copied ${copied} slot${copied === 1 ? "" : "s"} to empty days.` }
+        : { type: "error", message: "No empty days to copy into." }
+    );
   }
 
   return (
@@ -191,6 +334,106 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
             Add slot
           </button>
         </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <span className="text-muted-foreground">Presets:</span>
+          <button
+            type="button"
+            className="rounded-full border border-border bg-background px-3 py-1 font-semibold text-foreground transition hover:bg-muted"
+            onClick={() =>
+              applyPreset(
+                Array.from({ length: 5 }).map((_, idx) => ({
+                  day_of_week: idx + 1,
+                  start_time: "09:00",
+                  end_time: "12:00",
+                  is_available: true,
+                }))
+              )
+            }
+          >
+            Weekday mornings
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-border bg-background px-3 py-1 font-semibold text-foreground transition hover:bg-muted"
+            onClick={copyToEmptyDays}
+          >
+            Copy to empty days
+          </button>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-dashed border-border/70 bg-muted/40 p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Drag to add</h3>
+              <p className="text-xs text-muted-foreground">
+                Drag across a day row to add a slot quickly. Each block equals 30 minutes.
+              </p>
+            </div>
+            <div className="hidden items-center gap-3 text-[10px] text-muted-foreground sm:flex">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-3 w-3 rounded bg-primary/25" />
+                Bookable
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-3 w-3 rounded bg-emerald-500/40" />
+                New range
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-3 w-3 rounded bg-destructive/15" />
+                Blocked
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-2 rounded-xl bg-white/70 p-3 shadow-inner">
+            {DAY_LABELS.map((day, dayIndex) => {
+              const daySlots = grouped[dayIndex].slots;
+              return (
+                <div key={day} className="flex items-center gap-3 text-xs text-foreground">
+                  <span className="w-14 shrink-0 text-right font-medium text-muted-foreground">
+                    {day.slice(0, 3)}
+                  </span>
+                  <div className="flex-1 select-none">
+                    <div className="grid gap-[2px]" style={gridColumnsStyle}>
+                      {Array.from({ length: HALF_HOUR_SEGMENTS }).map((_, segmentIndex) => {
+                        const activeSlot = findSlotForSegment(daySlots, segmentIndex);
+                        const isDragging =
+                          dragSelection &&
+                          dragSelection.day === dayIndex &&
+                          isWithinRange(segmentIndex, dragSelection.start, dragSelection.end);
+
+                        let cellClass =
+                          "h-6 rounded-sm border border-transparent bg-muted/40 transition-colors";
+
+                        if (activeSlot) {
+                          cellClass = activeSlot.is_available
+                            ? "h-6 rounded-sm border border-primary/30 bg-primary/25 transition-colors"
+                            : "h-6 rounded-sm border border-destructive/30 bg-destructive/15 transition-colors";
+                        }
+
+                        if (isDragging) {
+                          cellClass =
+                            "h-6 rounded-sm border border-emerald-500/70 bg-emerald-500/30 transition-colors";
+                        }
+
+                        return (
+                          <button
+                            key={`${day}-${segmentIndex}`}
+                            type="button"
+                            aria-label={`${day} ${formatTime(minutesToTime(segmentIndex * SEGMENT_MINUTES))}`}
+                            className={cellClass}
+                            onMouseDown={(event) => startDrag(dayIndex, segmentIndex, event)}
+                            onMouseEnter={() => extendDrag(dayIndex, segmentIndex)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-border bg-white/90 shadow-sm backdrop-blur">
@@ -259,6 +502,31 @@ export function AvailabilityDashboard({ initialSlots }: AvailabilityDashboardPro
       </section>
     </div>
   );
+}
+
+function minutesToTime(totalMinutes: number) {
+  const clamped = Math.max(0, Math.min(totalMinutes, 24 * 60));
+  const hours = Math.floor(clamped / 60);
+  const minutes = clamped % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return (Number.isNaN(hours) || Number.isNaN(minutes) ? 0 : hours) * 60 + (minutes || 0);
+}
+
+function isWithinRange(value: number, start: number, end: number) {
+  return value >= Math.min(start, end) && value <= Math.max(start, end);
+}
+
+function findSlotForSegment(slots: AvailabilitySlotInput[], segmentIndex: number) {
+  const segmentStart = segmentIndex * SEGMENT_MINUTES;
+  return slots.find((slot) => {
+    const slotStart = timeToMinutes(slot.start_time);
+    const slotEnd = timeToMinutes(slot.end_time);
+    return segmentStart >= slotStart && segmentStart < slotEnd;
+  });
 }
 
 function computeSlotHours(start: string, end: string) {

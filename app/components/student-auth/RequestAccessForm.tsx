@@ -31,6 +31,9 @@ export function RequestAccessForm({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const meetsLength = formData.password.length >= 8;
+  const hasNumber = /\d/.test(formData.password);
+  const hasLetter = /[A-Za-z]/.test(formData.password);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
@@ -82,7 +85,7 @@ export function RequestAccessForm({
       setTimeout(() => {
         const redirectTarget = `/book/${tutorUsername}`;
         router.push(
-          `/student-auth/login?tutor=${tutorUsername}&redirect=${encodeURIComponent(redirectTarget)}`
+          `/student/login?tutor=${tutorUsername}&redirect=${encodeURIComponent(redirectTarget)}`
         );
       }, 2000);
     } catch {
@@ -97,13 +100,13 @@ export function RequestAccessForm({
         <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
           <CheckCircle className="h-8 w-8 text-green-600" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+        <h3 className="text-xl font-semibold text-foreground mb-2">
           Request Submitted!
         </h3>
-        <p className="text-gray-600 mb-4">
+        <p className="text-muted-foreground mb-4">
           You&apos;ll receive an email once your tutor approves your access.
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Redirecting to login...
         </p>
       </div>
@@ -114,7 +117,7 @@ export function RequestAccessForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}
@@ -123,7 +126,7 @@ export function RequestAccessForm({
       <div>
         <label
           htmlFor="fullName"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           Full name *
         </label>
@@ -134,7 +137,7 @@ export function RequestAccessForm({
           required
           value={formData.fullName}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder="John Doe"
         />
       </div>
@@ -143,7 +146,7 @@ export function RequestAccessForm({
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           Email address *
         </label>
@@ -155,7 +158,7 @@ export function RequestAccessForm({
           required
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder="you@example.com"
         />
         {initialEmail && (
@@ -169,7 +172,7 @@ export function RequestAccessForm({
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           Password *
         </label>
@@ -182,14 +185,14 @@ export function RequestAccessForm({
             required
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
-            placeholder="••••••••"
-            minLength={8}
-          />
+            className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
+          placeholder="••••••••"
+          minLength={8}
+        />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
             tabIndex={-1}
           >
             {showPassword ? (
@@ -199,19 +202,21 @@ export function RequestAccessForm({
             )}
           </button>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
-          Must be at least 8 characters
-        </p>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+          <PasswordHint label="8+ chars" ok={meetsLength} />
+          <PasswordHint label="Letter" ok={hasLetter} />
+          <PasswordHint label="Number" ok={hasNumber} />
+        </div>
       </div>
 
       {/* Phone (Optional) */}
       <div>
         <label
           htmlFor="phone"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           Phone number
-          <span className="text-gray-500 font-normal ml-1">(optional)</span>
+          <span className="text-muted-foreground font-normal ml-1">(optional)</span>
         </label>
         <input
           id="phone"
@@ -219,7 +224,7 @@ export function RequestAccessForm({
           type="tel"
           value={formData.phone}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder="+1 (555) 123-4567"
         />
       </div>
@@ -228,10 +233,10 @@ export function RequestAccessForm({
       <div>
         <label
           htmlFor="message"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           Message to tutor
-          <span className="text-gray-500 font-normal ml-1">(optional)</span>
+          <span className="text-muted-foreground font-normal ml-1">(optional)</span>
         </label>
         <textarea
           id="message"
@@ -239,7 +244,7 @@ export function RequestAccessForm({
           rows={3}
           value={formData.message}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none"
           placeholder="Tell your tutor a bit about your learning goals..."
         />
       </div>
@@ -252,10 +257,10 @@ export function RequestAccessForm({
           name="acceptedTerms"
           checked={formData.acceptedTerms}
           onChange={handleChange}
-          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+          className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
           required
         />
-        <label htmlFor="acceptedTerms" className="text-sm text-gray-700 cursor-pointer">
+        <label htmlFor="acceptedTerms" className="text-sm text-foreground cursor-pointer">
           I agree to the{" "}
           <a
             href="/terms"
@@ -293,14 +298,14 @@ export function RequestAccessForm({
         )}
       </button>
 
-      <div className="text-center text-sm text-gray-600">
+      <div className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <button
           type="button"
           onClick={() => {
             const redirectTarget = `/book/${tutorUsername}`;
             router.push(
-              `/student-auth/login?tutor=${tutorUsername}&redirect=${encodeURIComponent(
+              `/student/login?tutor=${tutorUsername}&redirect=${encodeURIComponent(
                 redirectTarget
               )}`
             );
@@ -321,5 +326,18 @@ export function RequestAccessForm({
         </p>
       </div>
     </form>
+  );
+}
+
+function PasswordHint({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center justify-center rounded-full border px-2 py-1 font-semibold uppercase tracking-wide",
+        ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-border bg-muted text-muted-foreground",
+      ].join(" ")}
+    >
+      {label}
+    </span>
   );
 }

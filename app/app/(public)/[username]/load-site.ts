@@ -2,6 +2,7 @@
 
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { parseLanguagesWithFlags } from "@/lib/utils/language-flags";
 
 type PageParams = {
   username: string;
@@ -15,15 +16,22 @@ export async function loadPublicSite(
 ) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: profile } = await supabase
-    .from("public_profiles")
-    .select("id, full_name, username, tagline, bio, avatar_url, email, stripe_payment_link")
-    .eq("username", params.username.toLowerCase())
-    .single();
+  // Fetch auth + profile in parallel to reduce round-trips
+  const [
+    {
+      data: { user },
+    },
+    { data: profile },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("public_profiles")
+      .select(
+        "id, full_name, username, tagline, bio, avatar_url, email, stripe_payment_link, languages_taught"
+      )
+      .eq("username", params.username.toLowerCase())
+      .single(),
+  ]);
 
   if (!profile) {
     notFound();
@@ -40,49 +48,62 @@ export async function loadPublicSite(
     notFound();
   }
 
-  const { data: siteServices } = await supabase
-    .from("tutor_site_services")
-    .select("service_id")
-    .eq("tutor_site_id", site.id);
+  const [siteServicesResult, reviewsResult, resourcesResult, studentRecordResult] = await Promise.all([
+    supabase
+      .from("tutor_site_services")
+      .select("service_id")
+      .eq("tutor_site_id", site.id),
+    supabase
+      .from("tutor_site_reviews")
+      .select("author_name, quote, rating")
+      .eq("tutor_site_id", site.id)
+      .order("sort_order"),
+    supabase
+      .from("tutor_site_resources")
+      .select("id, label, url")
+      .eq("tutor_site_id", site.id),
+    user
+      ? supabase
+          .from("students")
+          .select("id, full_name")
+          .eq("user_id", user.id)
+          .eq("tutor_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const siteServices = siteServicesResult.data;
+  const reviews = reviewsResult.data;
+  const resources = resourcesResult.data;
+  const studentRecord = studentRecordResult.data;
 
   const serviceIds = siteServices?.map((s) => s.service_id) || [];
 
-  const { data: services } = await supabase
-    .from("services")
-    .select("id, name, description, duration_minutes, price, currency")
-    .in("id", serviceIds.length > 0 ? serviceIds : ["00000000-0000-0000-0000-000000000000"]);
+  const [servicesResult, subscriptionTemplatesResult, completedCountResult] = await Promise.all([
+    supabase
+      .from("services")
+      .select("id, name, description, duration_minutes, price, currency, offer_type")
+      .in("id", serviceIds.length > 0 ? serviceIds : ["00000000-0000-0000-0000-000000000000"]),
+    supabase
+      .from("lesson_subscription_templates")
+      .select("id, service_id, template_tier, lessons_per_month, price_cents, currency")
+      .in("service_id", serviceIds.length > 0 ? serviceIds : ["00000000-0000-0000-0000-000000000000"])
+      .eq("is_active", true)
+      .order("lessons_per_month", { ascending: true }),
+    studentRecord
+      ? supabase
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .eq("tutor_id", profile.id)
+          .eq("student_id", studentRecord.id)
+          .eq("status", "completed")
+      : Promise.resolve({ count: 0 }),
+  ]);
 
-  const { data: reviews } = await supabase
-    .from("tutor_site_reviews")
-    .select("author_name, quote, rating")
-    .eq("tutor_site_id", site.id)
-    .order("sort_order");
-
-  const { data: resources } = await supabase
-    .from("tutor_site_resources")
-    .select("id, label, url")
-    .eq("tutor_site_id", site.id);
-
-  const { data: studentRecord } = user
-    ? await supabase
-        .from("students")
-        .select("id, full_name")
-        .eq("user_id", user.id)
-        .eq("tutor_id", profile.id)
-        .maybeSingle()
-    : { data: null };
-
-  let hasCompletedLesson = false;
-  if (studentRecord) {
-    const { count: completedCount } = await supabase
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("tutor_id", profile.id)
-      .eq("student_id", studentRecord.id)
-      .eq("status", "completed");
-
-    hasCompletedLesson = (completedCount ?? 0) > 0;
-  }
+  const services = servicesResult.data;
+  const subscriptionTemplates = subscriptionTemplatesResult.data;
+  const completedCount = completedCountResult.count ?? 0;
+  const hasCompletedLesson = studentRecord ? completedCount > 0 : false;
 
   const defaultDisplayName =
     studentRecord?.full_name ||
@@ -100,6 +121,7 @@ export async function loadPublicSite(
         bio: profile.bio || "",
         avatar_url: profile.avatar_url,
         stripe_payment_link: profile.stripe_payment_link,
+        languages_taught: (profile as any).languages_taught || null,
       },
       about: {
         title: site.about_title || profile.full_name || "",
@@ -107,6 +129,14 @@ export async function loadPublicSite(
         body: site.about_body || profile.bio || "",
       },
       services: services || [],
+      subscriptionTemplates: subscriptionTemplates?.map((t) => ({
+        id: t.id,
+        serviceId: t.service_id,
+        tier: t.template_tier,
+        lessonsPerMonth: t.lessons_per_month,
+        priceCents: t.price_cents,
+        currency: t.currency,
+      })) || [],
       reviews:
         reviews?.map((r) => ({
           author: r.author_name,
@@ -119,10 +149,15 @@ export async function loadPublicSite(
         gradientFrom: site.theme_gradient_from || "#ffffff",
         gradientTo: site.theme_gradient_to || "#ffffff",
         primary: site.theme_primary || "#2563eb",
+        cardBg: (site as any).theme_card_bg || undefined,
+        textPrimary: (site as any).theme_text_primary || undefined,
+        textSecondary: (site as any).theme_text_secondary || undefined,
         font: (site.theme_font as any) || "system",
         spacing: (site.theme_spacing as "cozy" | "comfortable" | "compact") || "comfortable",
       },
       pageVisibility: {
+        hero: (site as any).show_hero ?? true,
+        gallery: (site as any).show_gallery ?? true,
         about: site.show_about ?? true,
         lessons: site.show_lessons ?? true,
         booking: site.show_booking ?? true,
@@ -154,14 +189,19 @@ export async function loadPublicSite(
         subcopy: site.booking_subcopy || "Pick a time that works for you",
         ctaLabel: site.booking_cta_label || "Book a class",
         ctaUrl: site.booking_cta_url || profile.stripe_payment_link || `/book/${profile.username}`,
+        inlineBookingEnabled: site.show_booking ?? true,
       },
       showDigital: site.show_digital ?? false,
       showSocialIconsHeader: false,
       showSocialIconsFooter: true,
-      heroStyle: (site.hero_layout as any) || "minimal",
+      heroStyle: (site.hero_layout as any) || "banner",
       lessonsStyle: (site.lessons_layout as any) || "cards",
       reviewsStyle: (site.reviews_layout as any) || "cards",
       page: initialPage,
+      // Cultural Banner props
+      languages: parseLanguagesWithFlags((profile as any).languages_taught),
+      borderRadius: ((site as any).theme_border_radius as any) || "3xl",
+      headingFont: ((site as any).theme_heading_font as any) || undefined,
     },
     reviewFormProps: {
       tutorId: profile.id,

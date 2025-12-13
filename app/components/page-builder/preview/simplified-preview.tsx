@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SitePreview, type SitePageView } from "@/components/marketing/site-preview";
 import { usePageBuilderWizard } from "../wizard-context";
+import { parseLanguagesWithFlags } from "@/lib/utils/language-flags";
 
 // Placeholder social links shown as examples until tutor adds their handles
 const PLACEHOLDER_SOCIAL_LINKS = [
@@ -20,6 +21,7 @@ type EditorProfile = {
   bio: string;
   avatar_url: string | null;
   stripe_payment_link?: string | null;
+  languages_taught?: string | string[] | null;
 };
 
 type ServiceLite = {
@@ -37,13 +39,14 @@ type SimplifiedPreviewProps = {
   reviews: Array<{ id?: string; author: string; quote: string }>;
 };
 
-// Map wizard font to preview font
+// Map wizard font to preview font - 6 curated fonts per Premium design spec
 const FONT_MAP: Record<string, string> = {
   system: "system",
-  serif: "serif",
   rounded: "rounded",
-  tech: "tech",
   luxury: "luxury",
+  grotesk: "grotesk",
+  serif: "serif",
+  editorial: "editorial",
 };
 
 export function SimplifiedPreview({
@@ -54,12 +57,15 @@ export function SimplifiedPreview({
   const { state } = usePageBuilderWizard();
   const [previewPage, setPreviewPage] = useState<SitePageView>("home");
 
-  const { theme, layout, content, pages, faq } = state;
+  const { theme, content, pages, faq } = state;
 
   // Filter services based on selection
   const selectedServices = services.filter((s) =>
     pages.selectedServiceIds.includes(s.id)
   );
+
+  // Parse languages from profile for Cultural Banner
+  const languages = parseLanguagesWithFlags(profile.languages_taught);
 
   // Build theme settings for preview
   const previewTheme = {
@@ -68,6 +74,9 @@ export function SimplifiedPreview({
     gradientFrom: theme.background,
     gradientTo: theme.background,
     primary: theme.primary,
+    cardBg: theme.cardBg,
+    textPrimary: theme.textPrimary,
+    textSecondary: theme.textSecondary,
     font: (FONT_MAP[theme.font] || "system") as any,
     spacing: "comfortable" as const,
   };
@@ -136,11 +145,15 @@ export function SimplifiedPreview({
               showDigital={false}
               showSocialIconsHeader={pages.socialIconsHeader}
               showSocialIconsFooter={pages.socialIconsFooter}
-              heroStyle={layout.heroStyle}
+              heroStyle="banner"
               lessonsStyle="cards"
               reviewsStyle="cards"
               page={previewPage}
               onNavigate={setPreviewPage}
+              // Cultural Banner props
+              languages={languages}
+              borderRadius={theme.borderRadius}
+              headingFont={theme.headingFont}
             />
           </div>
         </div>

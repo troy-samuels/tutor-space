@@ -1,10 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+
+type UpdateSessionResult = {
+  response: NextResponse;
+  supabase: SupabaseClient;
+  session: Awaited<ReturnType<SupabaseClient["auth"]["getSession"]>>["data"]["session"];
+};
 
 export async function updateSession(
   request: NextRequest,
   response?: NextResponse
-) {
+): Promise<UpdateSessionResult | NextResponse> {
   let supabaseResponse = response || NextResponse.next({
     request,
   });
@@ -25,9 +32,9 @@ export async function updateSession(
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
+        cookiesToSet.forEach(({ name, value, options }) => {
+          request.cookies.set({ name, value, ...options });
+        });
         const nextResponse = supabaseResponse || NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
           nextResponse.cookies.set(name, value, options)
@@ -37,11 +44,10 @@ export async function updateSession(
     },
   });
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // Refresh cookies if needed. `getSession()` avoids an auth network call in the
+  // common case (valid access token), but will still refresh via the auth API
+  // when the access token has expired.
+  const { data } = await supabase.auth.getSession();
 
-  await supabase.auth.getUser();
-
-  return supabaseResponse;
+  return { response: supabaseResponse, supabase, session: data.session };
 }

@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getSite } from "@/lib/actions/tutor-sites";
-import { PageBuilderWizard } from "@/components/page-builder";
-import type { PlatformBillingPlan } from "@/lib/types/payments";
+import type { SiteConfig } from "@/lib/types/site";
+import { normalizeSiteConfig } from "@/lib/site/site-config";
+import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import StudioEditorClient from "./editor/studio-editor-client";
+
+export const dynamic = "force-dynamic";
 
 type ProfileBasics = {
   id: string;
@@ -11,28 +14,20 @@ type ProfileBasics = {
   tagline: string | null;
   bio: string | null;
   avatar_url: string | null;
-  plan: PlatformBillingPlan | null;
-  stripe_payment_link: string | null;
 };
 
 type ServiceLite = {
   id: string;
   name: string;
   description: string | null;
-  duration_minutes: number | null;
-  price: number | null;
-  currency: string | null;
-  price_amount?: number | null;
-  price_currency?: string | null;
   is_active: boolean | null;
 };
 
-type StudentForReviews = {
+type ProductLite = {
   id: string;
-  full_name: string | null;
-  email: string | null;
-  parent_email: string | null;
-  parent_name: string | null;
+  title: string;
+  is_active: boolean | null;
+  published: boolean | null;
 };
 
 export default async function PagesBuilder() {
@@ -45,84 +40,58 @@ export default async function PagesBuilder() {
     redirect("/login?redirect=/pages");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, full_name, username, tagline, bio, avatar_url, plan, stripe_payment_link")
-    .eq("id", user.id)
-    .single<ProfileBasics>();
+  // Parallelize all queries for faster load
+  const [profileResult, siteResult, servicesResult, productsResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, username, tagline, bio, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle<ProfileBasics>(),
+    supabase
+      .from("tutor_sites")
+      .select("id, config")
+      .eq("tutor_id", user.id)
+      .maybeSingle<{ id: string; config: SiteConfig | null }>(),
+    supabase
+      .from("services")
+      .select("id, name, description, is_active")
+      .eq("tutor_id", user.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("digital_products")
+      .select("id, title, is_active, published")
+      .eq("tutor_id", user.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
-  const tutorId = profile?.id ?? user.id;
-  const derivedProfile: ProfileBasics = {
-    id: tutorId,
-    full_name: profile?.full_name ?? user.user_metadata?.full_name ?? user.email ?? "",
-    username:
-      profile?.username ??
-      user.user_metadata?.preferred_username ??
-      user.user_metadata?.user_name ??
-      "",
-    tagline: profile?.tagline ?? "",
-    bio: profile?.bio ?? "",
-    avatar_url: profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | null) ?? null,
-    plan: (profile?.plan as PlatformBillingPlan | null) ?? "professional",
-    stripe_payment_link: profile?.stripe_payment_link ?? null,
-  };
+  const profile = profileResult.data;
+  const siteRow = siteResult.data;
+  const services = servicesResult.error ? [] : (servicesResult.data as ServiceLite[] | null);
+  const products = productsResult.error ? [] : (productsResult.data as ProductLite[] | null);
 
-  const { data: services } = await supabase
-    .from("services")
-    .select(
-      "id, name, description, duration_minutes, price, price_amount, currency, price_currency, is_active"
-    )
-    .eq("tutor_id", tutorId)
-    .order("created_at", { ascending: true });
-
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, full_name, email, parent_email, parent_name")
-    .eq("tutor_id", tutorId)
-    .order("full_name", { ascending: true });
-
-  const normalizedServices = ((services as ServiceLite[] | null) ?? []).map((svc) => ({
-    ...svc,
-    price:
-      typeof svc.price_amount === "number"
-        ? svc.price_amount
-        : typeof svc.price === "number"
-          ? svc.price
-          : null,
-    currency: svc.price_currency ?? svc.currency ?? null,
-  }));
-
-  const activeServices = normalizedServices.filter((svc) => svc.is_active);
-  const reviewableStudents: StudentForReviews[] = (students as StudentForReviews[] | null) ?? [];
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.tutorlingua.com";
-  const defaultReviewFormUrl = derivedProfile.username
-    ? `${appBaseUrl}/book/${derivedProfile.username}`
-    : appBaseUrl;
-
-  // Fetch existing site data from database
-  const siteResult = await getSite();
-  const existingSite = "error" in siteResult ? null : siteResult;
+  const initialConfig = normalizeSiteConfig(siteRow?.config);
+  const siteId = siteRow?.id ?? null;
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://app.tutorlingua.com";
+  const shareHandleRaw = profile?.username ?? user.user_metadata?.user_name ?? user.email ?? "";
+  const shareHandle = normalizeUsernameSlug(shareHandleRaw) || shareHandleRaw;
+  const shareUrl = shareHandle ? `${appBaseUrl}/${shareHandle}` : appBaseUrl;
 
   return (
-    <PageBuilderWizard
+    <StudioEditorClient
+      siteId={siteId}
+      initialConfig={initialConfig}
+      services={services ?? []}
+      products={products ?? []}
+      shareUrl={shareUrl}
+      shareHandle={shareHandle}
       profile={{
-        id: derivedProfile.id,
-        full_name: derivedProfile.full_name ?? "",
-        username: derivedProfile.username ?? "",
-        tagline: derivedProfile.tagline ?? "",
-        bio: derivedProfile.bio ?? "",
-        avatar_url: derivedProfile.avatar_url ?? null,
-        email: user.email ?? null,
-        stripe_payment_link: derivedProfile.stripe_payment_link,
+        id: profile?.id ?? user.id,
+        full_name: profile?.full_name ?? user.user_metadata?.full_name ?? user.email ?? "Tutor",
+        username: profile?.username ?? user.user_metadata?.user_name ?? user.email ?? "your-page",
+        tagline: profile?.tagline ?? "Language tutor",
+        bio: profile?.bio ?? "Share your teaching story and what makes your approach unique.",
+        avatar_url: profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | null) ?? null,
       }}
-      services={activeServices}
-      students={reviewableStudents.map((student) => ({
-        id: student.id,
-        name: student.full_name ?? "Student",
-        hasContact: Boolean(student.email || student.parent_email),
-      }))}
-      defaultReviewFormUrl={defaultReviewFormUrl}
-      initialSiteData={existingSite}
     />
   );
 }

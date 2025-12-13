@@ -1,6 +1,9 @@
+"use client";
+
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, XCircle, Ban, Mail, ArrowLeft } from "lucide-react";
+import { Clock, XCircle, Ban, Mail, ArrowLeft, RotateCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AccessStatus } from "@/lib/actions/student-auth";
 
@@ -26,6 +29,8 @@ export function AccessRequestStatus({
   accessStatus,
 }: AccessRequestStatusProps) {
   const t = useTranslations("accessStatus");
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const statusConfig = {
     pending: {
@@ -59,6 +64,33 @@ export function AccessRequestStatus({
 
   const config = statusConfig[accessStatus as keyof typeof statusConfig] || statusConfig.pending;
   const Icon = config.icon;
+
+  const handleAction = (type: "resend" | "cancel") => {
+    setActionMessage(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/student/access-request/${type}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tutorId: tutor.id }),
+        });
+        const body = (await res.json()) as { error?: string };
+        if (!res.ok || body.error) {
+          setActionMessage({ type: "error", text: body.error || "Action failed. Try again." });
+          return;
+        }
+        setActionMessage({
+          type: "success",
+          text:
+            type === "resend"
+              ? "Request resent. We'll email the tutor."
+              : "Request canceled. You can request again anytime.",
+        });
+      } catch {
+        setActionMessage({ type: "error", text: "Unable to complete that action. Try again." });
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted via-muted/40 to-white">
@@ -100,6 +132,7 @@ export function AccessRequestStatus({
             </h2>
 
             <p className="text-gray-700 text-base sm:text-lg mb-6">{config.message}</p>
+            <p className="text-xs text-muted-foreground mb-4">Typical response time: under 24 hours</p>
 
             {/* Status-Specific Information */}
             {accessStatus === "pending" && (
@@ -146,19 +179,40 @@ export function AccessRequestStatus({
 
         {/* Additional Actions */}
         {accessStatus === "pending" && (
-          <div className="bg-white shadow-sm rounded-xl p-5 sm:p-6 text-center">
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="bg-white shadow-sm rounded-xl p-5 sm:p-6 text-center space-y-4">
+            <p className="text-sm text-gray-600">
               {t("resendNote")}
             </p>
-            <button
-              className="text-sm font-semibold text-primary hover:underline"
-              onClick={() => {
-                // TODO: Implement resend email functionality
-                alert("Email resent! Please check your inbox.");
-              }}
-            >
-              {t("resend")}
-            </button>
+            {actionMessage ? (
+              <div
+                className={`mx-auto w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                  actionMessage.type === "success"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {actionMessage.text}
+              </div>
+            ) : null}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => handleAction("resend")}
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RotateCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+                Resend email
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAction("cancel")}
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-5 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel request
+              </button>
+            </div>
           </div>
         )}
 

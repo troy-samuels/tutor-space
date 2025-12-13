@@ -11,9 +11,17 @@ import {
   sendPaymentReceiptEmail,
   sendTutorBookingNotificationEmail,
 } from "@/lib/emails/booking-emails";
+import {
+  sendBookingRescheduledEmails,
+  sendTutorCancellationEmail,
+} from "@/lib/emails/ops-emails";
 import { getActivePackages } from "@/lib/actions/packages";
 import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
-import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
+import {
+  createCalendarEventForBooking,
+  getCalendarBusyWindowsWithStatus,
+} from "@/lib/calendar/busy-windows";
+import { isTableMissing } from "@/lib/utils/supabase-errors";
 
 export type BookingRecord = {
   id: string;
@@ -102,6 +110,55 @@ export async function listBookings(): Promise<BookingRecord[]> {
     .limit(100);
 
   return (data as BookingRecord[] | null) ?? [];
+}
+
+export async function checkSlotAvailabilityForTutor(params: {
+  tutorId: string;
+  startISO: string;
+  durationMinutes: number;
+}): Promise<{ available: boolean } | { error: string }> {
+  const adminClient = createServiceRoleClient();
+
+  if (!adminClient) {
+    return { error: "Service unavailable. Please try again." };
+  }
+
+  const start = new Date(params.startISO);
+  if (Number.isNaN(start.getTime())) {
+    return { error: "Invalid start time." };
+  }
+
+  const end = new Date(start.getTime() + params.durationMinutes * 60000);
+  const windowStart = new Date(start.getTime() - 3 * 60 * 60000);
+  const windowEnd = new Date(end.getTime() + 3 * 60 * 60000);
+
+  const { data: bookings } = await adminClient
+    .from("bookings")
+    .select("id, scheduled_at, duration_minutes, status")
+    .eq("tutor_id", params.tutorId)
+    .in("status", ["pending", "confirmed"])
+    .gte("scheduled_at", windowStart.toISOString())
+    .lte("scheduled_at", windowEnd.toISOString());
+
+  const hasBookingConflict =
+    bookings?.some((booking) => {
+      const bookingStart = new Date(booking.scheduled_at);
+      const bookingEnd = new Date(
+        bookingStart.getTime() + (booking.duration_minutes || params.durationMinutes) * 60000
+      );
+      return bookingStart < end && bookingEnd > start;
+    }) ?? false;
+
+  const { data: blockedTimes } = await adminClient
+    .from("blocked_times")
+    .select("id, start_time, end_time")
+    .eq("tutor_id", params.tutorId)
+    .lt("start_time", end.toISOString())
+    .gt("end_time", start.toISOString());
+
+  const blockedConflict = (blockedTimes?.length ?? 0) > 0;
+
+  return { available: !(hasBookingConflict || blockedConflict) };
 }
 
 type CreateBookingInput = {
@@ -215,6 +272,7 @@ export async function createBookingAndCheckout(params: {
   amount: number;
   currency: string;
   packageId?: string; // Optional: Use package instead of payment
+  subscriptionId?: string; // Optional: Use subscription credit instead of payment
 }): Promise<
   | { error: string }
   | { success: true; bookingId: string; checkoutUrl?: string | null }
@@ -284,6 +342,15 @@ export async function createBookingAndCheckout(params: {
 
     const serviceCurrency = pricingValidation.currency;
     const normalizedPriceCents = pricingValidation.priceCents;
+    const serviceDurationMinutes =
+      serviceRecord.duration_minutes || params.durationMinutes || 60;
+    const serviceName = serviceRecord.name ?? "Lesson";
+    let packageCalendarContext: {
+      remainingMinutes: number | null;
+      totalMinutes: number | null;
+      sessionCount: number | null;
+      packageName: string | null;
+    } | null = null;
 
     const { data: tutorSettings } = await adminClient
       .from("profiles")
@@ -309,11 +376,27 @@ export async function createBookingAndCheckout(params: {
       .in("status", ["pending", "confirmed"])
       .gte("scheduled_at", new Date().toISOString());
 
-    const busyWindows = await getCalendarBusyWindows({
+    const busyResult = await getCalendarBusyWindowsWithStatus({
       tutorId: params.tutorId,
       start: new Date(params.scheduledAt),
       days: 60,
     });
+
+    if (busyResult.unverifiedProviders.length) {
+      return {
+        error:
+          "We couldn't verify your external calendar. Please refresh the page or reconnect your calendar and try again.",
+      };
+    }
+
+    if (busyResult.staleProviders.length) {
+      return {
+        error:
+          "External calendar sync looks stale. Please open Calendar settings to refresh the connection before booking.",
+      };
+    }
+
+    const busyWindows = busyResult.windows;
 
     // 3. Validate the booking
     const validation = validateBooking({
@@ -408,31 +491,52 @@ export async function createBookingAndCheckout(params: {
 
       // Sync access + connection for logged-in students so portal flows work
       if (user?.id) {
-        // Ensure connection is approved
-        const { data: existingConnection } = await adminClient
+        let connectionTableAvailable = true;
+        const { data: existingConnection, error: existingConnectionError } = await adminClient
           .from("student_tutor_connections")
           .select("id, status")
           .eq("student_user_id", user.id)
           .eq("tutor_id", params.tutorId)
           .maybeSingle();
 
-        if (!existingConnection) {
-          await adminClient.from("student_tutor_connections").insert({
-            student_user_id: user.id,
-            tutor_id: params.tutorId,
-            status: "approved",
-            requested_at: new Date().toISOString(),
-            resolved_at: new Date().toISOString(),
-            initial_message: "Auto-approved from booking",
-          });
-        } else if (existingConnection.status !== "approved") {
-          await adminClient
-            .from("student_tutor_connections")
-            .update({
-              status: "approved",
-              resolved_at: new Date().toISOString(),
-            })
-            .eq("id", existingConnection.id);
+        if (existingConnectionError) {
+          if (isTableMissing(existingConnectionError, "student_tutor_connections")) {
+            connectionTableAvailable = false;
+            console.warn("[Bookings] Connection table missing, skipping connection sync");
+          } else if (existingConnectionError.code !== "PGRST116") {
+            console.error("Failed to look up connection:", existingConnectionError);
+          }
+        }
+
+        if (connectionTableAvailable) {
+          if (!existingConnection) {
+            const { error: insertConnectionError } = await adminClient
+              .from("student_tutor_connections")
+              .insert({
+                student_user_id: user.id,
+                tutor_id: params.tutorId,
+                status: "approved",
+                requested_at: new Date().toISOString(),
+                resolved_at: new Date().toISOString(),
+                initial_message: "Auto-approved from booking",
+              });
+
+            if (insertConnectionError && !isTableMissing(insertConnectionError, "student_tutor_connections")) {
+              console.error("Failed to create connection:", insertConnectionError);
+            }
+          } else if (existingConnection.status !== "approved") {
+            const { error: updateConnectionError } = await adminClient
+              .from("student_tutor_connections")
+              .update({
+                status: "approved",
+                resolved_at: new Date().toISOString(),
+              })
+              .eq("id", existingConnection.id);
+
+            if (updateConnectionError && !isTableMissing(updateConnectionError, "student_tutor_connections")) {
+              console.error("Failed to update connection:", updateConnectionError);
+            }
+          }
         }
 
         // Ensure calendar access flag is aligned for legacy checks
@@ -448,27 +552,49 @@ export async function createBookingAndCheckout(params: {
       }
     }
 
-    // 5. Create booking record as pending (payment happens outside platform)
-    // If packageId provided, booking will be confirmed immediately after redemption
-    const { data: booking, error: bookingError } = await adminClient
-      .from("bookings")
-      .insert({
-        tutor_id: params.tutorId,
-        student_id: studentId,
-        service_id: params.serviceId,
-        scheduled_at: params.scheduledAt,
-        duration_minutes: serviceRecord.duration_minutes,
-        timezone: tutorTimezone,
-        status: params.packageId ? "confirmed" : "pending", // Confirmed if using package
-        payment_status: params.packageId ? "paid" : "unpaid", // Paid if using package
-        payment_amount: normalizedPriceCents,
-        currency: serviceCurrency,
-        student_notes: params.notes,
-      })
-      .select("id, created_at")
-      .single();
+    // 5. Create booking record atomically to avoid race conditions
+    // If packageId or subscriptionId provided, booking will be confirmed immediately
+    const usingCredit = !!(params.packageId || params.subscriptionId);
+    const { data: bookingResult, error: bookingError } = await adminClient.rpc(
+      "create_booking_atomic",
+      {
+        p_tutor_id: params.tutorId,
+        p_student_id: studentId,
+        p_service_id: params.serviceId,
+        p_scheduled_at: params.scheduledAt,
+        p_duration_minutes: serviceRecord.duration_minutes,
+        p_timezone: tutorTimezone,
+        p_status: usingCredit ? "confirmed" : "pending",
+        p_payment_status: usingCredit ? "paid" : "unpaid",
+        p_payment_amount: normalizedPriceCents,
+        p_currency: serviceCurrency,
+        p_student_notes: params.notes,
+      }
+    );
+
+    const booking = Array.isArray(bookingResult)
+      ? bookingResult[0]
+      : (bookingResult as { id: string; created_at: string } | null);
 
     if (bookingError || !booking) {
+      if (bookingError?.code === "P0001") {
+        return {
+          error: "This time slot was just booked. Please select a different time.",
+        };
+      }
+
+      if (bookingError?.code === "P0002") {
+        return {
+          error: "This time window is blocked by the tutor.",
+        };
+      }
+
+      if (bookingError?.code === "55P03") {
+        return {
+          error: "Please retry booking; the tutor calendar is busy right now.",
+        };
+      }
+
       console.error("Failed to create booking:", bookingError);
       return { error: "Failed to create booking. Please try again." };
     }
@@ -520,8 +646,9 @@ export async function createBookingAndCheckout(params: {
       const redemptionResult = await redeemPackageMinutes({
         packageId: params.packageId,
         bookingId: booking.id,
-        minutesToRedeem: serviceRecord.duration_minutes,
+        minutesToRedeem: serviceDurationMinutes,
         tutorId: params.tutorId,
+        studentId,
       });
 
       if (!redemptionResult.success) {
@@ -535,18 +662,45 @@ export async function createBookingAndCheckout(params: {
           error: redemptionResult.error || "Failed to redeem package minutes"
         };
       }
+
+      packageCalendarContext = {
+        remainingMinutes: redemptionResult.remainingMinutes ?? null,
+        totalMinutes: redemptionResult.packageTotalMinutes ?? null,
+        sessionCount: redemptionResult.packageSessionCount ?? null,
+        packageName: redemptionResult.packageName ?? null,
+      };
+    }
+
+    // 5b. If subscription redemption requested, process it
+    if (params.subscriptionId) {
+      const { redeemSubscriptionLesson } = await import("@/lib/actions/lesson-subscriptions");
+
+      const redemptionResult = await redeemSubscriptionLesson(
+        params.subscriptionId,
+        booking.id
+      );
+
+      if (redemptionResult.error) {
+        // Failed to redeem - delete booking and return error
+        await adminClient
+          .from("bookings")
+          .delete()
+          .eq("id", booking.id)
+          .eq("tutor_id", params.tutorId);
+        return {
+          error: redemptionResult.error
+        };
+      }
     }
 
     // 6. Fetch tutor profile and service info for emails + Stripe Connect status
     const { data: tutorProfile } = await adminClient
       .from("profiles")
       .select(
-        "full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone, stripe_payment_link, custom_payment_url, video_provider, zoom_personal_link, google_meet_link, calendly_link, custom_video_url, custom_video_name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status"
+        "full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone, stripe_payment_link, custom_payment_url, video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link, calendly_link, custom_video_url, custom_video_name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status"
       )
       .eq("id", params.tutorId)
       .single();
-
-    const serviceName = serviceRecord.name ?? "Lesson";
 
     // 7. Get meeting URL based on tutor's video provider
     let meetingUrl: string | null = null;
@@ -561,6 +715,10 @@ export async function createBookingAndCheckout(params: {
         case "google_meet":
           meetingUrl = tutorProfile.google_meet_link;
           meetingProvider = "google_meet";
+          break;
+        case "microsoft_teams":
+          meetingUrl = tutorProfile.microsoft_teams_link;
+          meetingProvider = "microsoft_teams";
           break;
         case "calendly":
           meetingUrl = tutorProfile.calendly_link;
@@ -637,6 +795,83 @@ export async function createBookingAndCheckout(params: {
       }).catch((error) => {
         console.error("Failed to send tutor notification email:", error);
       });
+
+      // Send in-app notification to tutor
+      try {
+        const { notifyNewBooking } = await import("@/lib/actions/notifications");
+        await notifyNewBooking({
+          tutorId: params.tutorId,
+          studentName: params.student.fullName,
+          serviceName,
+          scheduledAt: params.scheduledAt,
+          bookingId: booking.id,
+        });
+      } catch (notificationError) {
+        console.error("[createBookingAndCheckout] notification error:", notificationError);
+      }
+    }
+
+    // 8.5. Create calendar event immediately for confirmed bookings (packages/subscriptions)
+    if (usingCredit) {
+      const startDate = new Date(params.scheduledAt);
+      const endDate = new Date(
+        startDate.getTime() + (serviceDurationMinutes > 0 ? serviceDurationMinutes : 60) * 60000
+      );
+
+      if (!Number.isNaN(startDate.getTime())) {
+        const lessonsTotal =
+          packageCalendarContext?.sessionCount ??
+          (serviceDurationMinutes > 0 && packageCalendarContext?.totalMinutes
+            ? Math.floor(packageCalendarContext.totalMinutes / serviceDurationMinutes)
+            : null);
+        const lessonsRemaining =
+          serviceDurationMinutes > 0 && packageCalendarContext?.remainingMinutes != null
+            ? Math.max(
+                0,
+                Math.floor(packageCalendarContext.remainingMinutes / serviceDurationMinutes)
+              )
+            : null;
+
+        const descriptionLines = [
+          `TutorLingua booking - ${serviceName}`,
+          `Student: ${params.student.fullName}`,
+          `Booking ID: ${booking.id}`,
+        ];
+
+        if (packageCalendarContext) {
+          descriptionLines.push(
+            `Package: ${packageCalendarContext.packageName || "Lesson package"}`
+          );
+
+          if (lessonsRemaining !== null) {
+            const totalLabel = lessonsTotal !== null ? `/${lessonsTotal}` : "";
+            descriptionLines.push(`Remaining lessons: ${lessonsRemaining}${totalLabel}`);
+          } else if (packageCalendarContext.remainingMinutes !== null) {
+            descriptionLines.push(
+              `Remaining minutes: ${packageCalendarContext.remainingMinutes}`
+            );
+          }
+        }
+
+        const eventTitle =
+          lessonsRemaining !== null
+            ? `${serviceName} with ${params.student.fullName} (${lessonsRemaining}${
+                lessonsTotal !== null ? `/${lessonsTotal}` : ""
+              } left)`
+            : `${serviceName} with ${params.student.fullName}`;
+
+        createCalendarEventForBooking({
+          tutorId: params.tutorId,
+          title: eventTitle,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          description: descriptionLines.join("\n"),
+          studentEmail: params.student.email,
+          timezone: tutorTimezone,
+        }).catch((error) => {
+          console.error("[createBookingAndCheckout] Failed to create calendar event", error);
+        });
+      }
     }
 
     // 9. Check if tutor has Stripe Connect enabled and account is healthy
@@ -771,7 +1006,8 @@ export async function markBookingAsPaid(bookingId: string) {
           email
         ),
         tutor:profiles!bookings_tutor_id_fkey (
-          full_name
+          full_name,
+          email
         )
       `
     )
@@ -909,7 +1145,7 @@ export async function rescheduleBooking(params: {
 
   const { data: tutorProfile } = await adminClient
     .from("profiles")
-    .select("buffer_time_minutes, timezone")
+    .select("buffer_time_minutes, timezone, full_name, email")
     .eq("id", booking.tutor_id)
     .single();
 
@@ -930,11 +1166,27 @@ export async function rescheduleBooking(params: {
     .neq("id", params.bookingId)
     .gte("scheduled_at", new Date().toISOString());
 
-  const busyWindows = await getCalendarBusyWindows({
+  const busyResult = await getCalendarBusyWindowsWithStatus({
     tutorId: booking.tutor_id,
     start: new Date(params.newStart),
     days: 60,
   });
+
+  if (busyResult.unverifiedProviders.length) {
+    return {
+      error:
+        "We couldn't verify your external calendar. Please refresh and try again, or reconnect your calendar.",
+    };
+  }
+
+  if (busyResult.staleProviders.length) {
+    return {
+      error:
+        "External calendar sync looks stale. Please refresh your calendar connection before rescheduling.",
+    };
+  }
+
+  const busyWindows = busyResult.windows;
 
   const durationMinutes =
     params.durationMinutes ??
@@ -943,6 +1195,19 @@ export async function rescheduleBooking(params: {
       ? bookingRecord.services[0]?.duration_minutes
       : bookingRecord.services?.duration_minutes) ??
     60;
+  const previousSchedule = {
+    scheduledAt: booking.scheduled_at,
+    timezone: booking.timezone || tutorTimezone,
+    durationMinutes:
+      bookingRecord.duration_minutes ||
+      (Array.isArray(bookingRecord.services)
+        ? bookingRecord.services[0]?.duration_minutes
+        : bookingRecord.services?.duration_minutes) ||
+      durationMinutes,
+    meetingUrl: booking.meeting_url ?? null,
+    meetingProvider: booking.meeting_provider ?? null,
+  };
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
 
   const validation = validateBooking({
     scheduledAt: params.newStart,
@@ -972,6 +1237,25 @@ export async function rescheduleBooking(params: {
   if (updateError || !updated) {
     console.error("Failed to reschedule booking:", updateError);
     return { error: "Could not reschedule this booking. Please try again." };
+  }
+
+  try {
+    await sendBookingRescheduledEmails({
+      studentEmail: updated.students?.email,
+      tutorEmail: tutorProfile?.email,
+      studentName: updated.students?.full_name ?? "Student",
+      tutorName: tutorProfile?.full_name ?? "Your tutor",
+      serviceName: updated.services?.name ?? "Lesson",
+      oldScheduledAt: previousSchedule.scheduledAt,
+      newScheduledAt: updated.scheduled_at,
+      timezone: updated.timezone ?? tutorTimezone,
+      durationMinutes: updated.duration_minutes ?? durationMinutes,
+      meetingUrl: updated.meeting_url ?? previousSchedule.meetingUrl ?? undefined,
+      meetingProvider: updated.meeting_provider ?? previousSchedule.meetingProvider ?? undefined,
+      rescheduleUrl: `${appUrl.replace(/\/$/, "")}/bookings`,
+    });
+  } catch (emailError) {
+    console.error("[rescheduleBooking] Failed to send reschedule emails", emailError);
   }
 
   return { success: true, booking: updated };
@@ -1064,6 +1348,64 @@ export async function checkStudentPackages(params: {
 }
 
 /**
+ * Get the next upcoming booking for a student
+ * Used to auto-populate homework due dates
+ */
+export async function getStudentNextBooking(studentId: string): Promise<{
+  data:
+    | {
+        id: string;
+        scheduled_at: string;
+        duration_minutes: number | null;
+        services?: { name: string | null } | null;
+      }
+    | null;
+  error: string | null;
+}> {
+  const { supabase, user } = await requireTutor();
+
+  if (!user) {
+    return { data: null, error: "You need to be signed in." };
+  }
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id, scheduled_at, duration_minutes, services(name)")
+    .eq("tutor_id", user.id)
+    .eq("student_id", studentId)
+    .in("status", ["pending", "confirmed"])
+    .gt("scheduled_at", new Date().toISOString())
+    .order("scheduled_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to get next booking:", error);
+    return { data: null, error: "Failed to fetch next booking" };
+  }
+
+  const rawService = data
+    ? Array.isArray((data as { services?: unknown }).services)
+      ? ((data as { services?: { name?: string | null }[] }).services?.[0] ?? null)
+      : ((data as { services?: { name?: string | null } }).services ?? null)
+    : null;
+
+  const normalized = data
+    ? {
+        id: String(data.id),
+        scheduled_at: String(data.scheduled_at),
+        duration_minutes: (data as { duration_minutes?: number | null }).duration_minutes ?? null,
+        services:
+          rawService && typeof rawService === "object"
+            ? { name: (rawService as { name?: string | null }).name ?? null }
+            : null,
+      }
+    : null;
+
+  return { data: normalized, error: null };
+}
+
+/**
  * Cancel a booking and refund package minutes if applicable
  */
 export async function cancelBooking(bookingId: string) {
@@ -1091,7 +1433,8 @@ export async function cancelBooking(bookingId: string) {
           email
         ),
         tutor:profiles!bookings_tutor_id_fkey (
-          full_name
+          full_name,
+          email
         )
       `
     )
@@ -1147,6 +1490,48 @@ export async function cancelBooking(bookingId: string) {
       scheduledAt: booking.scheduled_at,
       timezone: booking.timezone ?? "UTC",
     });
+  }
+
+  try {
+    await sendTutorCancellationEmail({
+      tutorEmail: tutorProfile?.email ?? null,
+      tutorName: tutorProfile?.full_name ?? "Tutor",
+      studentName: student?.full_name ?? "Student",
+      serviceName: service?.name ?? "Lesson",
+      scheduledAt: booking.scheduled_at,
+      timezone: booking.timezone ?? "UTC",
+      rescheduleUrl: `${(process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "")}/bookings`,
+    });
+  } catch (emailError) {
+    console.error("[cancelBooking] Failed to send tutor cancellation email", emailError);
+  }
+
+  // Send in-app notification to student about cancellation
+  // Need to get student's user_id if they have an account
+  const adminClient = createServiceRoleClient();
+  if (adminClient && student) {
+    try {
+      const { data: studentRecord } = await adminClient
+        .from("students")
+        .select("user_id")
+        .eq("email", student.email)
+        .eq("tutor_id", user.id)
+        .single();
+
+      if (studentRecord?.user_id) {
+        const { notifyBookingCancelled } = await import("@/lib/actions/notifications");
+        await notifyBookingCancelled({
+          userId: studentRecord.user_id,
+          userRole: "student",
+          otherPartyName: tutorProfile?.full_name ?? "Your tutor",
+          serviceName: service?.name ?? "Lesson",
+          scheduledAt: booking.scheduled_at,
+          bookingId,
+        });
+      }
+    } catch (notificationError) {
+      console.error("[cancelBooking] notification error:", notificationError);
+    }
   }
 
   return { success: true };

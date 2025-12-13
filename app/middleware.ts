@@ -1,75 +1,177 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { updateSession } from "@/lib/supabase/middleware";
+import { defaultLocale, locales, type Locale } from "@/lib/i18n/config";
 
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
+const GATE_SESSION_COOKIE = "tl_site_gate";
 const ADMIN_PUBLIC_ROUTES = ["/admin/login"];
+const SUPPORTED_LOCALES = new Set<Locale>(locales);
 
+// Country code to locale mapping for geolocation-based detection
+const COUNTRY_TO_LOCALE: Partial<Record<string, Locale>> = {
+  // Spanish-speaking countries
+  ES: "es", MX: "es", AR: "es", CO: "es", PE: "es", CL: "es", VE: "es", EC: "es",
+  GT: "es", CU: "es", BO: "es", DO: "es", HN: "es", PY: "es", SV: "es", NI: "es",
+  CR: "es", PA: "es", UY: "es", PR: "es",
+  // Portuguese-speaking countries
+  BR: "pt", PT: "pt", AO: "pt", MZ: "pt",
+  // French-speaking countries
+  FR: "fr", BE: "fr", CH: "fr", CA: "fr", SN: "fr", CI: "fr", ML: "fr",
+  // German-speaking countries
+  DE: "de", AT: "de",
+  // Italian
+  IT: "it",
+  // Dutch
+  NL: "nl",
+  // Japanese
+  JP: "ja",
+  // Korean
+  KR: "ko",
+  // Chinese-speaking countries/regions
+  CN: "zh", TW: "zh", HK: "zh", SG: "zh",
+};
 
-const PROTECTED_ROUTES = [
-  "/dashboard",
-  "/availability",
-  "/bookings",
-  "/students",
-  "/services",
-  "/pages",
-  "/settings",
-  "/analytics",
-  "/marketing",
-  "/onboarding",
-];
-
-// Routes that require completed onboarding
-const ONBOARDING_REQUIRED_ROUTES = [
-  "/dashboard",
-  "/availability",
-  "/bookings",
-  "/students",
-  "/services",
-  "/pages",
-  "/settings",
-  "/analytics",
-  "/marketing",
-];
-
-function routeMatches(pathname: string, routes: string[]) {
-  return routes.some((route) => pathname.startsWith(route));
+function getLocaleFromCountry(countryCode: string): Locale | null {
+  const locale = COUNTRY_TO_LOCALE[countryCode.toUpperCase()];
+  return locale && SUPPORTED_LOCALES.has(locale) ? locale : null;
 }
 
-function createSupabaseClient(request: NextRequest, response: NextResponse) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const LOCALE_SPECIFIC_PATHS = ["/blog", "/help"];
 
-  if (!url || !anonKey) {
-    throw new Error("Supabase environment variables are not configured.");
+function getPathLocale(pathname: string): Locale | null {
+  const firstSegment = pathname.split("/").filter(Boolean)[0];
+  return SUPPORTED_LOCALES.has(firstSegment as Locale) ? (firstSegment as Locale) : null;
+}
+
+function getPreferredLocale(request: NextRequest): Locale {
+  // 1. Check stored cookie preference (user's explicit choice)
+  const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  if (cookieLocale && SUPPORTED_LOCALES.has(cookieLocale as Locale)) {
+    return cookieLocale as Locale;
   }
 
-  return createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          request.cookies.set(name, value);
-          response.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
+  // 2. Check Vercel geolocation header (country-based detection)
+  const country = request.headers.get("x-vercel-ip-country");
+  if (country) {
+    const geoLocale = getLocaleFromCountry(country);
+    if (geoLocale) {
+      return geoLocale;
+    }
+  }
+
+  // 3. Check Accept-Language header (browser preference)
+  const acceptLanguage = request.headers.get("accept-language");
+  if (acceptLanguage) {
+    const preferred = acceptLanguage
+      .split(",")
+      .map((entry) => entry.split(";")[0]?.trim().toLowerCase())
+      .find((lang) => SUPPORTED_LOCALES.has(lang as Locale) || SUPPORTED_LOCALES.has(lang?.split("-")[0] as Locale));
+
+    if (preferred) {
+      const normalized = SUPPORTED_LOCALES.has(preferred as Locale)
+        ? (preferred as Locale)
+        : (preferred.split("-")[0] as Locale);
+      if (SUPPORTED_LOCALES.has(normalized)) {
+        return normalized;
+      }
+    }
+  }
+
+  // 4. Fall back to default locale (English)
+  return defaultLocale;
+}
+
+function setLocaleCookie(response: NextResponse, locale: Locale) {
+  response.cookies.set("NEXT_LOCALE", locale, { path: "/", sameSite: "lax" });
+}
+
+function withLocalePath(pathname: string, locale: Locale) {
+  return pathname === "/"
+    ? `/${locale}`
+    : `/${locale}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const pathLocale = getPathLocale(pathname);
+  const preferredLocale = pathLocale ?? getPreferredLocale(request);
+  const normalizedPathname = pathLocale ? pathname.replace(`/${pathLocale}`, "") || "/" : pathname;
+  const localePrefixEnabled = Boolean(pathLocale);
 
-  if (pathname.startsWith("/api") || pathname.startsWith("/app/api")) {
+  // Backwards-compatible redirect: `/student-auth/*` → `/student/*`
+  if (normalizedPathname === "/student-auth" || normalizedPathname.startsWith("/student-auth/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = normalizedPathname.replace(/^\/student-auth(?=\/|$)/, "/student");
+    return NextResponse.redirect(url);
+  }
+
+  // Password gate check - blocks entire site until password is entered
+  const gateEnabled = process.env.SITE_GATE_ENABLED === "true";
+  if (gateEnabled) {
+    const isGateWhitelisted =
+      normalizedPathname === "/password-gate" ||
+      normalizedPathname.startsWith("/api/password-gate") ||
+      normalizedPathname.startsWith("/api") ||
+      normalizedPathname.startsWith("/_next") ||
+      normalizedPathname.startsWith("/brand");
+
+    if (!isGateWhitelisted) {
+      const gateSession = request.cookies.get(GATE_SESSION_COOKIE)?.value;
+      if (!gateSession) {
+        return NextResponse.redirect(new URL("/password-gate", request.url));
+      }
+    }
+  }
+
+  if (pathname === "/") {
+    // For default locale (English), stay at "/" instead of redirecting to "/en/"
+    if (preferredLocale === defaultLocale) {
+      const response = NextResponse.next();
+      setLocaleCookie(response, preferredLocale);
+      return response;
+    }
+    // For other locales, redirect to /{locale}/
+    const redirectUrl = new URL(withLocalePath("/", preferredLocale), request.url);
+    const response = NextResponse.redirect(redirectUrl);
+    setLocaleCookie(response, preferredLocale);
+    return response;
+  }
+
+  // Allow locale-prefixed landing pages while serving the root content (avoids FOUC)
+  if (pathLocale && (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    const response = NextResponse.rewrite(url);
+    setLocaleCookie(response, pathLocale);
+    return response;
+  }
+
+  if (pathLocale === defaultLocale && normalizedPathname !== "/") {
+    const redirectUrl = new URL(normalizedPathname || "/", request.url);
+    const response = NextResponse.redirect(redirectUrl);
+    setLocaleCookie(response, pathLocale);
+    return response;
+  }
+
+  if (
+    pathLocale &&
+    pathLocale !== defaultLocale &&
+    normalizedPathname !== "/" &&
+    !LOCALE_SPECIFIC_PATHS.some((prefix) => normalizedPathname.startsWith(prefix))
+  ) {
+    const redirectUrl = new URL(normalizedPathname || "/", request.url);
+    const response = NextResponse.redirect(redirectUrl);
+    setLocaleCookie(response, pathLocale);
+    return response;
+  }
+
+  if (normalizedPathname.startsWith("/api") || normalizedPathname.startsWith("/app/api")) {
     return NextResponse.next();
   }
 
   // Handle admin routes separately
-  if (pathname.startsWith("/admin")) {
+  if (normalizedPathname.startsWith("/admin")) {
     // Allow public admin routes (login page)
-    if (ADMIN_PUBLIC_ROUTES.some((route) => pathname === route)) {
+    if (ADMIN_PUBLIC_ROUTES.some((route) => normalizedPathname === route)) {
       return NextResponse.next();
     }
 
@@ -83,56 +185,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle Supabase session
-  const response = await updateSession(request);
-
-  if (!routeMatches(pathname, PROTECTED_ROUTES)) {
-    return response;
-  }
-
-  const supabase = createSupabaseClient(request, response);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    const redirectTarget = `${pathname}${request.nextUrl.search}`;
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", redirectTarget);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Check onboarding status for protected routes (except /onboarding itself)
-  const requiresOnboarding = routeMatches(pathname, ONBOARDING_REQUIRED_ROUTES);
-  // Load plan + onboarding once for gating below
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_completed, plan")
-    .eq("id", user.id)
-    .single();
-
-  if (requiresOnboarding) {
-    // Redirect to onboarding if not completed
-    // onboarding_completed will be false or null for new users
-    if (profile && profile.onboarding_completed !== true) {
-      return NextResponse.redirect(new URL("/onboarding", request.url));
-    }
-  }
-
-  // Require paid access (growth or founder_lifetime) for protected routes,
-  // but allow navigation to onboarding and billing so users can activate.
-  const SUBSCRIPTION_ALLOWED_ROUTES = ["/settings/billing", "/onboarding"];
-  const isAllowedForUnpaid = routeMatches(pathname, SUBSCRIPTION_ALLOWED_ROUTES);
-
-  if (
-    !isAllowedForUnpaid &&
-    (!profile || (profile.plan !== "growth" && profile.plan !== "founder_lifetime"))
-  ) {
-    const billingUrl = new URL("/settings/billing", request.url);
-    billingUrl.searchParams.set("subscribe", "1");
-    return NextResponse.redirect(billingUrl);
-  }
-
+  const response = NextResponse.next();
+  setLocaleCookie(response, preferredLocale);
   return response;
 }
 

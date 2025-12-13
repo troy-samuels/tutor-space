@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { studentSignup } from "@/lib/actions/student-auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { detectUserTimezone } from "@/lib/utils/timezones";
 
 export function StudentSignupForm() {
   const router = useRouter();
@@ -15,11 +17,15 @@ export function StudentSignupForm() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [timezone, setTimezone] = useState(detectUserTimezone());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const meetsLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasLetter = /[A-Za-z]/.test(password);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +43,7 @@ export function StudentSignupForm() {
         email,
         password,
         fullName,
+        timezone,
       });
 
       if (result.error) {
@@ -47,8 +54,8 @@ export function StudentSignupForm() {
 
       // Send students to the search page with the tutor prefilled (if provided)
       const redirectUrl = tutorParam
-        ? `/student-auth/search?prefill=${encodeURIComponent(tutorParam)}`
-        : "/student-auth/search";
+        ? `/student/search?prefill=${encodeURIComponent(tutorParam)}`
+        : "/student/search";
       router.push(redirectUrl);
       router.refresh();
     } catch {
@@ -61,7 +68,7 @@ export function StudentSignupForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}
@@ -70,7 +77,7 @@ export function StudentSignupForm() {
       <div>
         <label
           htmlFor="fullName"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           {t("fullName")}
         </label>
@@ -82,7 +89,7 @@ export function StudentSignupForm() {
           required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder={t("fullNamePlaceholder")}
         />
       </div>
@@ -91,7 +98,7 @@ export function StudentSignupForm() {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           {t("email")}
         </label>
@@ -103,16 +110,36 @@ export function StudentSignupForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder={t("emailPlaceholder")}
         />
+      </div>
+
+      {/* Timezone Field */}
+      <div>
+        <label
+          htmlFor="timezone"
+          className="block text-sm font-medium text-foreground mb-2"
+        >
+          Timezone
+        </label>
+        <TimezoneSelect
+          id="timezone"
+          value={timezone}
+          onChange={setTimezone}
+          autoDetect
+          showCurrentTime={false}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          We auto-detected your timezone. Switch if you&apos;re booking from elsewhere.
+        </p>
       </div>
 
       {/* Password Field */}
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           {t("password")}
         </label>
@@ -126,13 +153,13 @@ export function StudentSignupForm() {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
+            className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
             placeholder={t("passwordNewPlaceholder")}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
             tabIndex={-1}
           >
             {showPassword ? (
@@ -142,9 +169,11 @@ export function StudentSignupForm() {
             )}
           </button>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
-          {t("mustBe8")}
-        </p>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+          <PasswordHint label="8+ chars" ok={meetsLength} />
+          <PasswordHint label="Letter" ok={hasLetter} />
+          <PasswordHint label="Number" ok={hasNumber} />
+        </div>
       </div>
 
       {/* Terms Acceptance */}
@@ -154,9 +183,9 @@ export function StudentSignupForm() {
             id="terms"
             checked={acceptTerms}
             onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+            className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
           />
-        <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
+        <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
           {t("termsPrefix")}{" "}
           <Link
             href="/terms"
@@ -174,7 +203,7 @@ export function StudentSignupForm() {
             {t("privacy")}
           </Link>
           .
-          <span className="mt-1 block text-xs text-gray-500">
+          <span className="mt-1 block text-xs text-muted-foreground">
             {t("termsNote")}
           </span>
         </label>
@@ -197,15 +226,28 @@ export function StudentSignupForm() {
       </button>
 
       {/* Login Link */}
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-sm text-muted-foreground">
         {t("alreadyHave")}{" "}
         <Link
-          href={tutorParam ? `/student-auth/login?tutor=${tutorParam}` : "/student-auth/login"}
+          href={tutorParam ? `/student/login?tutor=${tutorParam}` : "/student/login"}
           className="text-primary font-medium hover:underline"
         >
-          t("signIn")
+          {t("signIn")}
         </Link>
       </p>
     </form>
+  );
+}
+
+function PasswordHint({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center justify-center rounded-full border px-2 py-1 font-semibold uppercase tracking-wide",
+        ok ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-border bg-muted text-muted-foreground",
+      ].join(" ")}
+    >
+      {label}
+    </span>
   );
 }

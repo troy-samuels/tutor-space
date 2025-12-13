@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useRouter } from "next/navigation";
 import type { BookableSlot } from "@/lib/utils/slots";
 import { createBookingAndCheckout } from "@/lib/actions/bookings";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { detectUserTimezone } from "@/lib/utils/timezones";
+import { formatCurrency } from "@/lib/utils";
+import { SubscriptionCreditSelector, type SubscriptionCredit } from "./SubscriptionCreditSelector";
 
 interface Service {
   id: string;
@@ -29,6 +33,7 @@ interface StudentInfoFormProps {
   service: Service;
   selectedSlot: BookableSlot;
   onBack: () => void;
+  activeSubscription?: SubscriptionCredit | null;
 }
 
 export default function StudentInfoForm({
@@ -36,16 +41,23 @@ export default function StudentInfoForm({
   service,
   selectedSlot,
   onBack,
+  activeSubscription,
 }: StudentInfoFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string | null>(
+    activeSubscription ? activeSubscription.id : null
+  );
+  const [availabilityStatus, setAvailabilityStatus] = useState<
+    "checking" | "available" | "unavailable" | "error"
+  >("checking");
 
   const [formData, setFormData] = useState({
     studentName: "",
     studentEmail: "",
     studentPhone: "",
-    studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    studentTimezone: detectUserTimezone(),
     isMinor: false,
     parentName: "",
     parentEmail: "",
@@ -53,23 +65,78 @@ export default function StudentInfoForm({
     notes: "",
   });
 
-  const timezones = Intl.supportedValuesOf("timeZone");
-
   const zonedStart = toZonedTime(selectedSlot.start, tutor.timezone);
   const zonedEnd = toZonedTime(selectedSlot.end, tutor.timezone);
+  const priceCurrency = service.price_currency?.toUpperCase?.() || service.price_currency;
+  const priceDisplay = formatCurrency(service.price_amount, priceCurrency);
+  const hasAvailableCredits = !!(activeSubscription && activeSubscription.lessonsAvailable > 0);
+  const usingCredits = hasAvailableCredits && selectedSubscriptionId === activeSubscription?.id;
+  const paymentLabel = usingCredits
+    ? `Subscription credits (${activeSubscription?.lessonsAvailable ?? 0} left)`
+    : hasAvailableCredits
+    ? "Use credits or pay after confirm"
+    : "Secure checkout after confirm";
+  const paymentDescription = usingCredits
+    ? "This booking will use your subscription credits. No charge today."
+    : "You will complete payment via secure checkout after confirming your details.";
+  const availabilityLabel = {
+    checking: "Checking availability…",
+    available: "Still available",
+    unavailable: "Recently booked",
+    error: "Unable to confirm availability",
+  }[availabilityStatus];
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkAvailability = async () => {
+      setAvailabilityStatus("checking");
+      try {
+        const res = await fetch("/api/booking/check-slot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tutorId: tutor.id,
+            startISO: selectedSlot.startISO,
+            durationMinutes: service.duration_minutes,
+          }),
+        });
+        if (!res.ok) throw new Error("Request failed");
+        const body = (await res.json()) as { available?: boolean };
+        if (cancelled) return;
+        setAvailabilityStatus(body.available ? "available" : "unavailable");
+      } catch {
+        if (!cancelled) {
+          setAvailabilityStatus("error");
+        }
+      }
+    };
+    checkAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSlot.startISO, service.duration_minutes, tutor.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    if (availabilityStatus === "unavailable") {
+      setError("This time was just booked. Please pick another slot.");
+      return;
+    }
+
     // Validation
     if (!formData.studentName || !formData.studentEmail) {
       setError("Please provide student name and email");
+      const el = document.getElementById(!formData.studentName ? "studentName" : "studentEmail");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
     if (formData.isMinor && (!formData.parentName || !formData.parentEmail)) {
       setError("Please provide parent/guardian information for minor students");
+      const el = document.getElementById(!formData.parentName ? "parentName" : "parentEmail");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -93,6 +160,7 @@ export default function StudentInfoForm({
           notes: formData.notes || null,
           amount: service.price_amount,
           currency: service.price_currency,
+          subscriptionId: selectedSubscriptionId || undefined,
         });
 
         if ("error" in result) {
@@ -153,9 +221,46 @@ export default function StudentInfoForm({
           <p className="text-gray-700">
             {format(zonedStart, "h:mm a")} - {format(zonedEnd, "h:mm a")} ({tutor.timezone})
           </p>
-          <p className="text-sm text-gray-600 mt-2">
-            Price: {service.price_currency.toUpperCase()} {service.price_amount}
-          </p>
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+            <span
+              className={
+                availabilityStatus === "available"
+                  ? "h-2 w-2 rounded-full bg-emerald-500"
+                  : availabilityStatus === "checking"
+                  ? "h-2 w-2 rounded-full bg-amber-400"
+                  : "h-2 w-2 rounded-full bg-red-500"
+              }
+            />
+            {availabilityLabel}
+          </div>
+          <div className="mt-3 space-y-1 text-sm text-gray-700">
+            <div className="flex items-center justify-between">
+              <span>Lesson</span>
+              <span>{priceDisplay}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Fees</span>
+              <span>$0</span>
+            </div>
+            <div className="flex items-center justify-between font-semibold">
+              <span>Total</span>
+              <span>{priceDisplay}</span>
+            </div>
+            <p className="pt-1 text-xs text-gray-600">Payment: {paymentLabel}</p>
+          </div>
+        </div>
+
+        {/* Payment summary */}
+        <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-blue-900">Payment method</p>
+              <p className="text-xs text-blue-800">{paymentDescription}</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+              {usingCredits ? "Credits" : "Checkout"}
+            </span>
+          </div>
         </div>
 
         {/* Student Information Form */}
@@ -164,6 +269,19 @@ export default function StudentInfoForm({
             <h2 className="text-lg font-semibold mb-4">Student Information</h2>
 
             <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isMinor"
+                  checked={formData.isMinor}
+                  onChange={(e) => setFormData({ ...formData, isMinor: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                />
+                <label htmlFor="isMinor" className="text-sm text-gray-700">
+                  Student is under 18 years old
+                </label>
+              </div>
+
               <div>
                 <label htmlFor="studentName" className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name *
@@ -212,34 +330,14 @@ export default function StudentInfoForm({
                 <label htmlFor="studentTimezone" className="block text-sm font-medium text-gray-700 mb-1">
                   Your Timezone
                 </label>
-                <select
+                <TimezoneSelect
                   id="studentTimezone"
                   value={formData.studentTimezone}
-                  onChange={(e) => setFormData({ ...formData, studentTimezone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                >
-                  {timezones.map((tz) => (
-                    <option key={tz} value={tz}>
-                      {tz}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500">
-                  Auto-detected from your browser. Change if needed.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isMinor"
-                  checked={formData.isMinor}
-                  onChange={(e) => setFormData({ ...formData, isMinor: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  onChange={(timezone) => setFormData({ ...formData, studentTimezone: timezone })}
                 />
-                <label htmlFor="isMinor" className="text-sm text-gray-700">
-                  Student is under 18 years old
-                </label>
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto-detected from your device. Adjust if you&apos;re traveling.
+                </p>
               </div>
             </div>
           </div>
@@ -294,6 +392,19 @@ export default function StudentInfoForm({
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Subscription Credit Option */}
+          {activeSubscription && activeSubscription.lessonsAvailable > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Payment Option</h2>
+              <SubscriptionCreditSelector
+                subscription={activeSubscription}
+                selected={usingCredits}
+                onSelect={setSelectedSubscriptionId}
+                disabled={isPending}
+              />
             </div>
           )}
 

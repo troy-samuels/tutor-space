@@ -20,22 +20,25 @@ import {
   type TutorSiteResource,
 } from "@/lib/actions/tutor-sites";
 
-// Types - Premium Typography Pairings (8 font options)
+// Types - Premium Typography Pairings (11 font options)
 export type FontOption =
   | "system"        // Inter - Clean, Tech, Safe (body)
   | "rounded"       // Manrope - Friendly, Modern, Soft (body)
   | "luxury"        // DM Sans - High-end, Minimalist (body)
   | "grotesk"       // Space Grotesk - Trendy, Gen-Z, Bold (heading)
   | "serif"         // Playfair Display - Elegant, Magazine-style (heading)
-  | "dm-serif"      // DM Serif Display - Editorial headings (heading) NEW
-  | "plus-jakarta"  // Plus Jakarta Sans - Swiss headings (heading) NEW
-  | "source-sans";  // Source Sans 3 - Ivy League body (body) NEW
+  | "dm-serif"      // DM Serif Display - Editorial headings (heading)
+  | "plus-jakarta"  // Plus Jakarta Sans - Swiss headings (heading)
+  | "source-sans"   // Source Sans 3 - Ivy League body (body)
+  | "spline-sans"   // Spline Sans - UI-focused headings (heading)
+  | "amatic-sc"     // Amatic SC - Hand-drawn headings (heading)
+  | "andika";       // Andika - Readable body (body)
 
 export type BorderRadius = "lg" | "xl" | "2xl" | "3xl";
 
 export type ThemeState = {
   archetypeId: ArchetypeId;
-  fontPairingId: FontPairingId; // Independent font pairing selection
+  fontPairingId: FontPairingId | null; // Independent font pairing selection
   background: string;
   cardBg: string;
   primary: string;
@@ -119,6 +122,23 @@ export const ARCHETYPES = [
     headingFont: "grotesk" as FontOption,    // Space Grotesk (heading)
     borderRadius: "2xl" as BorderRadius,
   },
+  {
+    id: "artisan",
+    name: "The Artisan",
+    description: "Creative methods, Kids lessons, Art & Music",
+    vibe: "Handcrafted, Boutique, Personal",
+    bannerHint: "Warm textures, handwritten notes, craft materials",
+    // Warm & Artisanal - Inspired by Etsy, handmade brands
+    background: "#F4F1F0",    // Warm Blush Cream
+    cardBg: "#FFFFFF",        // White
+    primary: "#BF9056",       // Bronze/Caramel (warm, inviting)
+    textPrimary: "#3D3229",   // Warm Dark Brown (high contrast)
+    textSecondary: "#8C7F75", // Warm Taupe Gray
+    border: "#E8E2DE",        // Warm Stone Border
+    font: "andika" as FontOption,            // Andika (body)
+    headingFont: "amatic-sc" as FontOption,  // Amatic SC (heading)
+    borderRadius: "2xl" as BorderRadius,
+  },
 ] as const;
 
 export type ArchetypeId = typeof ARCHETYPES[number]["id"];
@@ -153,6 +173,20 @@ export const FONT_PAIRINGS = [
     headingFont: "grotesk" as FontOption,
     bodyFont: "luxury" as FontOption,
   },
+  {
+    id: "interface",
+    name: "Interface",
+    description: "UI-focused",
+    headingFont: "spline-sans" as FontOption,
+    bodyFont: "system" as FontOption,
+  },
+  {
+    id: "creative",
+    name: "Creative",
+    description: "Whimsical & fun",
+    headingFont: "amatic-sc" as FontOption,
+    bodyFont: "andika" as FontOption,
+  },
 ] as const;
 
 export type FontPairingId = typeof FONT_PAIRINGS[number]["id"];
@@ -163,6 +197,7 @@ const ARCHETYPE_TO_FONT_PAIRING: Record<ArchetypeId, FontPairingId> = {
   immersion: "literary",
   academic: "heritage",
   polyglot: "expressive",
+  artisan: "creative",
 };
 
 // Legacy alias for backwards compatibility during migration

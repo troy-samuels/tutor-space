@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type {
@@ -10,6 +10,7 @@ import type {
 } from "@/lib/validators/service";
 import { serviceFormSchema } from "@/lib/validators/service";
 import { FlowProgress } from "@/components/flows/FlowProgress";
+import { SubscriptionTierInput, type TierPricing } from "./SubscriptionTierInput";
 
 const OFFER_OPTIONS: Array<{
   value: ServiceOfferType;
@@ -38,27 +39,6 @@ const OFFER_OPTIONS: Array<{
   },
 ];
 
-const SERVICE_STAGES = [
-  {
-    id: "basics",
-    title: "Offer basics",
-    helper: "Name, description, and positioning",
-    fields: ["name", "description", "offer_type"] as const,
-  },
-  {
-    id: "pricing",
-    title: "Pricing & length",
-    helper: "Duration, price, and currency",
-    fields: ["duration_minutes", "price", "currency"] as const,
-  },
-  {
-    id: "publish",
-    title: "Policies & publish",
-    helper: "Capacity and approvals",
-    fields: ["max_students_per_session"] as const,
-  },
-] as const;
-
 type Props = {
   initialValues?: {
     id: string;
@@ -72,13 +52,23 @@ type Props = {
     max_students_per_session: number;
     offer_type: ServiceOfferType;
   };
+  initialSubscriptionTiers?: TierPricing[];
   defaultCurrency: string;
   loading?: boolean;
   onCancel: () => void;
-  onSubmit: (values: ServiceInput) => void;
+  onSubmit: (values: ServiceInput, subscriptionTiers?: TierPricing[]) => void;
+  existingNames?: string[];
 };
 
-export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel, onSubmit }: Props) {
+export function ServiceForm({
+  initialValues,
+  initialSubscriptionTiers,
+  defaultCurrency,
+  loading,
+  onCancel,
+  onSubmit,
+  existingNames = [],
+}: Props) {
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema) as unknown as Resolver<ServiceFormValues>,
     defaultValues: {
@@ -95,9 +85,52 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
   });
 
   const [stageIndex, setStageIndex] = useState(0);
-  const lastStage = stageIndex === SERVICE_STAGES.length - 1;
-  const currentStage = SERVICE_STAGES[stageIndex];
+  const [subscriptionTiers, setSubscriptionTiers] = useState<TierPricing[]>(
+    initialSubscriptionTiers ?? [
+      { tier_id: "2_lessons", price: null },
+      { tier_id: "4_lessons", price: null },
+      { tier_id: "8_lessons", price: null },
+    ]
+  );
   const selectedOfferType = form.watch("offer_type");
+  const stageConfig = useMemo(() => {
+    const publishStage = {
+      id: "publish",
+      title: "Policies & publish",
+      helper: "Capacity and approvals",
+      fields: ["max_students_per_session"] as const,
+    };
+
+    if (selectedOfferType === "subscription") {
+      return [
+        {
+          id: "basics",
+          title: "Offer basics",
+          helper: "Name, description, and positioning",
+          fields: ["name", "description", "offer_type"] as const,
+        },
+        {
+          id: "pricing",
+          title: "Pricing & length",
+          helper: "Duration, price, and currency",
+          fields: ["duration_minutes", "price", "currency"] as const,
+        },
+        publishStage,
+      ];
+    }
+
+    return [
+      {
+        id: "setup",
+        title: "Basics & pricing",
+        helper: "Name, duration, price, and currency",
+        fields: ["name", "description", "offer_type", "duration_minutes", "price", "currency"] as const,
+      },
+      publishStage,
+    ];
+  }, [selectedOfferType]);
+  const lastStage = stageIndex === stageConfig.length - 1;
+  const currentStage = stageConfig[stageIndex] ?? stageConfig[0];
 
   const submitForm = form.handleSubmit((values) => {
     // Convert price to cents using string manipulation to avoid floating-point precision issues
@@ -117,7 +150,10 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
       max_students_per_session: values.max_students_per_session,
       offer_type: values.offer_type,
     };
-    onSubmit(payload);
+
+    // Pass subscription tiers if this is a subscription offer type
+    const tiersToSave = values.offer_type === "subscription" ? subscriptionTiers : undefined;
+    onSubmit(payload, tiersToSave);
   });
 
   const handleFlowSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -126,7 +162,13 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
       const fields = currentStage.fields as unknown as (keyof ServiceFormValues)[];
       const valid = fields.length === 0 ? true : await form.trigger(fields);
       if (valid) {
-        setStageIndex((prev) => Math.min(prev + 1, SERVICE_STAGES.length - 1));
+        setStageIndex((prev) => Math.min(prev + 1, stageConfig.length - 1));
+      } else {
+        const firstErrorField = fields.find((field) => form.formState.errors[field]);
+        if (firstErrorField) {
+          const el = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement | null;
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }
       return;
     }
@@ -138,11 +180,40 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
     setStageIndex((prev) => Math.max(prev - 1, 0));
   };
 
+  // Reset stage index if offer type change reduces steps
+  useEffect(() => {
+    if (stageIndex > stageConfig.length - 1) {
+      setStageIndex(stageConfig.length - 1);
+    }
+  }, [stageConfig.length, stageIndex]);
+
+  // Duplicate name warning
+  const existingNameSet = useMemo(
+    () =>
+      new Set(
+        (existingNames || [])
+          .filter((name) => name && name.toLowerCase() !== initialValues?.name?.toLowerCase())
+          .map((name) => name.toLowerCase())
+      ),
+    [existingNames, initialValues?.name]
+  );
+
+  const nameValue = form.watch("name");
+  const isDuplicateName = nameValue ? existingNameSet.has(nameValue.trim().toLowerCase()) : false;
+
+  useEffect(() => {
+    if (isDuplicateName) {
+      form.setError("name", { type: "manual", message: "You already have a service with this name." });
+    } else if (form.formState.errors.name?.type === "manual") {
+      form.clearErrors("name");
+    }
+  }, [form, isDuplicateName]);
+
   return (
     <form onSubmit={handleFlowSubmit} className="space-y-6">
-      <FlowProgress steps={[...SERVICE_STAGES]} activeIndex={stageIndex} />
+      <FlowProgress steps={[...stageConfig]} activeIndex={stageIndex} />
 
-      {stageIndex === 0 ? (
+      {stageConfig[stageIndex]?.id === "basics" || stageConfig[stageIndex]?.id === "setup" ? (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Service name" error={form.formState.errors.name?.message}>
@@ -152,6 +223,13 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
                 className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="E.g. Conversational Spanish (60 min)"
               />
+              {isDuplicateName ? (
+                <p className="mt-1 text-xs font-semibold text-destructive">
+                  You already use this name. Try a different label to avoid confusion.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Avoid duplicate names so students can tell offers apart.</p>
+              )}
             </Field>
             <Field
               label="Description"
@@ -213,7 +291,7 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
         </div>
       ) : null}
 
-      {stageIndex === 1 ? (
+      {stageConfig[stageIndex]?.id === "pricing" && selectedOfferType === "subscription" ? (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Duration" error={form.formState.errors.duration_minutes?.message}>
@@ -231,34 +309,62 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
               </div>
             </Field>
 
-            <Field label="Price" error={form.formState.errors.price?.message}>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  {...form.register("price", { valueAsNumber: true })}
-                  className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
-                  {form.watch("currency")}
-                </span>
-              </div>
-            </Field>
+            {selectedOfferType !== "subscription" ? (
+              <>
+                <Field label="Price" error={form.formState.errors.price?.message}>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      {...form.register("price", { valueAsNumber: true })}
+                      className="w-full rounded-xl border border-input bg-background px-4 py-2 pr-12 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-muted-foreground">
+                      {form.watch("currency")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Typical conversation lessons: $25–40/hr. Adjust for your experience and prep time.
+                  </p>
+                </Field>
 
-            <Field label="Currency" error={form.formState.errors.currency?.message}>
-              <input
-                type="text"
-                maxLength={3}
-                {...form.register("currency")}
-                className="w-full uppercase rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
-              />
-            </Field>
+                <Field label="Currency" error={form.formState.errors.currency?.message}>
+                  <input
+                    type="text"
+                    maxLength={3}
+                    {...form.register("currency")}
+                    className="w-full uppercase rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                  />
+                </Field>
+              </>
+            ) : (
+              <Field label="Currency" error={form.formState.errors.currency?.message}>
+                <input
+                  type="text"
+                  maxLength={3}
+                  {...form.register("currency")}
+                  className="w-full uppercase rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                />
+              </Field>
+            )}
           </div>
+
+          {/* Subscription tier pricing */}
+          {selectedOfferType === "subscription" ? (
+            <div className="mt-4">
+              <SubscriptionTierInput
+                values={subscriptionTiers}
+                currency={form.watch("currency")}
+                onChange={setSubscriptionTiers}
+                disabled={loading}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {stageIndex === 2 ? (
+      {stageConfig[stageIndex]?.id === "publish" ? (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <Field
@@ -268,9 +374,13 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
               <input
                 type="number"
                 min={1}
+                max={50}
                 {...form.register("max_students_per_session", { valueAsNumber: true })}
                 className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Keep class sizes manageable to maintain quality.
+              </p>
             </Field>
             <div className="flex flex-col gap-2 text-sm">
               <span className="font-medium text-foreground">Approval</span>
@@ -284,7 +394,7 @@ export function ServiceForm({ initialValues, defaultCurrency, loading, onCancel,
                 Requires approval before confirming
               </label>
               <span className="text-xs text-muted-foreground">
-                Require manual confirmation for each booking.
+                Students submit requests; you approve before it&apos;s confirmed. Good for high-demand slots or new students.
               </span>
             </div>
             <div className="flex flex-col gap-2 text-sm">

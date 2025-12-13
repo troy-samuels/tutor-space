@@ -9,6 +9,8 @@ import {
   BLOCK_AUDIO_MINUTES,
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
 
 // Platform fees
 const PLATFORM_FIXED_FEE_CENTS = 300; // Target ~$3 platform fee
@@ -20,10 +22,32 @@ const APPLICATION_FEE_PERCENT = (PLATFORM_FIXED_FEE_CENTS / AI_PRACTICE_BASE_PRI
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
+    const supabaseAdmin = createServiceRoleClient();
+
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimitResult = await enforceCheckoutRateLimit({
+      supabaseAdmin,
+      userId: user.id,
+      req: request,
+      keyPrefix: "checkout:ai_practice",
+      limit: 5,
+      windowSeconds: 60,
+    });
+
+    if (!rateLimitResult.ok) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Too many requests" },
+        { status: rateLimitResult.status ?? 429 }
+      );
     }
 
     const { studentId, tutorId } = await request.json();
@@ -141,8 +165,8 @@ export async function POST(request: Request) {
           block_text_turns: String(BLOCK_TEXT_TURNS),
         },
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/student-auth/practice/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/student-auth/practice/subscribe`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/subscribe`,
       metadata: {
         studentId,
         tutorId: assignedTutorId,

@@ -2,9 +2,11 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let cachedAdminClient: SupabaseClient | null = null;
+export type ServiceRoleClient = SupabaseClient;
 
-export function createServiceRoleClient(): SupabaseClient | null {
+let cachedAdminClient: ServiceRoleClient | null = null;
+
+export function createServiceRoleClient(): ServiceRoleClient | null {
   if (cachedAdminClient) {
     return cachedAdminClient;
   }
@@ -14,7 +16,7 @@ export function createServiceRoleClient(): SupabaseClient | null {
 
   if (!url || !serviceRoleKey) {
     console.warn(
-      "[Supabase] Service role client requested but service credentials are missing. Skipping admin lookup."
+      "[Supabase] Service role client requested but NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing."
     );
     return null;
   }

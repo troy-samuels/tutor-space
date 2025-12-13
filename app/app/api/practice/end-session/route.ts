@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-// Dynamic import for OpenAI to avoid build errors if not installed
-const getOpenAI = async () => {
-  const OpenAI = (await import("openai")).default;
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-};
+import { createPracticeChatCompletion } from "@/lib/practice/openai";
 
 export async function POST(request: Request) {
   try {
@@ -207,8 +200,7 @@ async function generateSessionFeedback(
   }
 
   try {
-    const openai = await getOpenAI();
-    const completion = await openai.chat.completions.create({
+    const completion = await createPracticeChatCompletion({
       model: "gpt-4o-mini",
       messages: [
         {

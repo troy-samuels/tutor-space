@@ -95,12 +95,33 @@ export default function TermsOfServicePage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               You are responsible for:
             </p>
-            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
               <li>Maintaining the confidentiality of your account credentials</li>
               <li>All activities that occur under your account</li>
               <li>Notifying us immediately of any unauthorized access or security breach</li>
               <li>Providing accurate and current information during registration</li>
             </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">4.3 AI Feature Consent</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              By creating an account and using TutorLingua, you consent to the processing of your data by artificial intelligence and machine learning systems as described in our{" "}
+              <Link href="/privacy#ai-processing" className="text-primary font-semibold hover:underline">Privacy Policy</Link>. This consent is integral to using our Services and covers:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Text Analysis:</strong> Your written content may be analyzed by AI for grammar correction, vocabulary suggestions, and learning pattern identification</li>
+              <li><strong>Audio Processing:</strong> Voice recordings may be processed for pronunciation assessment, transcription, and fluency analysis</li>
+              <li><strong>AI-Generated Feedback:</strong> You will receive AI-generated corrections, explanations, and learning recommendations</li>
+              <li><strong>Lesson Transcription and Analysis:</strong> If using Studio tier features, lesson recordings may be transcribed and analyzed to generate summaries, key moments, and practice materials</li>
+              <li><strong>Learning Analytics:</strong> Your learning data will be aggregated and analyzed to track progress and personalize instruction</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              If you do not consent to AI processing, you may not be able to use certain features of the Service. You may contact us at{" "}
+              <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">privacy@tutorlingua.co</a>{" "}
+              to discuss alternative arrangements, though some core functionality requires AI processing to operate.
+            </p>
+            <p className="text-gray-700 leading-relaxed">
+              <strong>For Users Under 18:</strong> If you are under 18 years of age, your parent or legal guardian must consent to AI processing on your behalf. By allowing a minor to use TutorLingua, parents and guardians consent to the AI processing of that minor&apos;s data as described herein.
+            </p>
           </section>
 
           {/* Payments and Bookings */}
@@ -254,6 +275,36 @@ export default function TermsOfServicePage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               You retain ownership of content you submit (profiles, lesson materials, messages). By submitting content, you grant TutorLingua a worldwide, non-exclusive, royalty-free license to use, display, and distribute your content to operate the Services.
             </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">9.3 AI-Generated Content</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>TutorLingua owns all AI-generated content</strong> produced through our Services, including but not limited to:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Grammar corrections, explanations, and suggestions</li>
+              <li>Pronunciation feedback and fluency assessments</li>
+              <li>Lesson summaries and key moment identification</li>
+              <li>Auto-generated vocabulary drills and grammar exercises</li>
+              <li>AI Practice Companion conversation responses</li>
+              <li>Learning analytics insights and progress reports</li>
+              <li>Transcripts generated from lesson recordings</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>License Grant:</strong> We grant you a limited, non-exclusive, non-transferable, revocable license to use AI-generated content for your personal educational purposes only. This license terminates upon closure of your account.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Restrictions:</strong> You may not:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Commercially redistribute, sell, or license AI-generated content</li>
+              <li>Use AI-generated content to develop competing products or services</li>
+              <li>Claim authorship or ownership of AI-generated content</li>
+              <li>Remove any proprietary notices from AI-generated content</li>
+              <li>Use AI outputs to train other AI or machine learning models without written consent</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed">
+              <strong>Your Input:</strong> While we own AI outputs, content you submit as input (your messages, homework, recordings) remains your property, subject to the license you grant us to process and deliver our Services.
+            </p>
           </section>
 
           {/* Data and Privacy */}
@@ -268,29 +319,138 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
+          {/* Studio Features & AI Services */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Studio Features & AI Services</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua offers AI-powered learning features as part of its Services. This section describes these features and their terms of use.
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">11.1 AI Practice Companion</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              The AI Practice Companion provides conversational language practice with real-time grammar correction and pronunciation assessment.
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Service Description:</strong> Students may engage in text-based conversations with our AI, which provides grammar feedback, vocabulary suggestions, and conversational practice adapted to the student&apos;s proficiency level.</li>
+              <li><strong>Audio Features:</strong> Students may submit audio recordings for pronunciation assessment, receiving detailed feedback on accuracy, fluency, and specific sounds.</li>
+              <li><strong>Limitations:</strong> AI Practice is a supplementary learning tool and is not a substitute for human instruction. AI responses may occasionally contain errors or provide imperfect corrections.</li>
+              <li><strong>Usage Limits:</strong> AI Practice is available via subscription with metered usage for text turns and audio minutes. Additional usage blocks may be purchased as needed.</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">11.2 Lesson Recording and Transcription (Studio Tier)</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Studio tier subscribers have access to lesson recording and AI-powered transcription and analysis features.
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Recording:</strong> Lessons conducted through our native video platform may be recorded with participant consent. Recordings are stored securely and retained for 90 days by default.</li>
+              <li><strong>Transcription:</strong> Lesson recordings are automatically transcribed using AI speech recognition technology.</li>
+              <li><strong>AI Analysis:</strong> Transcripts may be analyzed by AI to generate lesson summaries, identify key learning moments, and create personalized practice materials.</li>
+              <li><strong>Data Handling:</strong> See our Privacy Policy for details on how recording and transcription data is processed and retained.</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">11.3 Homework System</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Tutors may assign homework to students, who can submit text, audio, and file responses.
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+              <li><strong>Content Ownership:</strong> Homework assignments created by tutors remain the tutor&apos;s intellectual property. Student submissions remain student property.</li>
+              <li><strong>AI Feedback:</strong> AI may analyze homework submissions to provide automated feedback. Such AI-generated feedback is owned by TutorLingua.</li>
+              <li><strong>Storage:</strong> Homework submissions are stored securely. Audio and file attachments are retained for 1 year after submission.</li>
+            </ul>
+          </section>
+
+          {/* Lesson Recording Consent */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Lesson Recording Consent</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              When using TutorLingua&apos;s native video classroom (Studio tier), lessons may be recorded with participant consent.
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">12.1 Recording Requirements</h3>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>All participants must consent to recording before a recording begins</li>
+              <li>A visible recording indicator will be displayed throughout the recorded session</li>
+              <li>Any participant may decline to be recorded or request that recording stop</li>
+              <li>Recording consent is requested at the start of each lesson; previous consent does not carry over</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">12.2 Use of Recordings</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Permitted Uses:</strong>
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Student review and study of their own lessons</li>
+              <li>Tutor reference and lesson planning</li>
+              <li>AI transcription and analysis to generate learning materials</li>
+              <li>Generation of practice content based on lesson content</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Prohibited Uses:</strong>
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Public distribution or sharing without consent of all participants</li>
+              <li>Use for marketing purposes without explicit written consent</li>
+              <li>Use to train general-purpose AI models outside of TutorLingua</li>
+              <li>Sharing with third parties not involved in providing the Services</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">12.3 Student Rights</h3>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+              <li><strong>Access:</strong> Students may view and download recordings of lessons in which they participated</li>
+              <li><strong>Deletion:</strong> Students may request permanent deletion of their lesson recordings at any time by contacting their tutor or{" "}
+                <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">privacy@tutorlingua.co</a>
+              </li>
+              <li><strong>Objection:</strong> Students may decline recording for any lesson without penalty</li>
+              <li><strong>Transcript Access:</strong> Students may view AI-generated transcripts and summaries of their lessons</li>
+            </ul>
+          </section>
+
           {/* Disclaimers */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Disclaimers and Limitations</h2>
-            
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">11.1 Service &quot;As Is&quot;</h3>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Disclaimers and Limitations</h2>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">13.1 Service &quot;As Is&quot;</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
               THE SERVICES ARE PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
             </p>
 
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">11.2 Tutor Services</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">13.2 Tutor Services</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
               TutorLingua does not guarantee the quality, accuracy, or reliability of tutoring services provided by independent tutors. We do not verify tutor credentials, qualifications, or backgrounds unless explicitly stated.
             </p>
 
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">11.3 Limitation of Liability</h3>
-            <p className="text-gray-700 leading-relaxed">
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">13.3 Limitation of Liability</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, TUTORLINGUA SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES ARISING FROM YOUR USE OF THE SERVICES.
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">13.4 AI Service Disclaimers</h3>
+            <p className="text-gray-700 leading-relaxed mb-4 uppercase font-semibold">
+              AI-GENERATED CONTENT IS PROVIDED &quot;AS IS&quot; WITHOUT WARRANTY OF ANY KIND. YOU ACKNOWLEDGE AND AGREE THAT:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>GRAMMAR CORRECTIONS MAY MISS ERRORS, INCORRECTLY FLAG CORRECT USAGE, OR PROVIDE IMPERFECT EXPLANATIONS</li>
+              <li>PRONUNCIATION SCORES ARE ALGORITHMIC APPROXIMATIONS AND NOT EXPERT LINGUISTIC ASSESSMENTS</li>
+              <li>LESSON SUMMARIES AND KEY MOMENTS MAY OMIT IMPORTANT DETAILS OR MISCHARACTERIZE CONTENT</li>
+              <li>AUTO-GENERATED DRILLS AND EXERCISES MAY CONTAIN ERRORS OR BE INAPPROPRIATE FOR YOUR LEVEL</li>
+              <li>AI PRACTICE COMPANION RESPONSES MAY OCCASIONALLY BE INACCURATE, IRRELEVANT, OR MISLEADING</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>AI IS A SUPPLEMENTARY TOOL.</strong> AI-powered features are designed to supplement, not replace, human language instruction. You should:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Verify important corrections and feedback with your human tutor</li>
+              <li>Use AI assessments as guidance, not definitive evaluation</li>
+              <li>Not rely solely on AI for language certification or high-stakes assessments</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed">
+              TUTORLINGUA DISCLAIMS ALL LIABILITY FOR ANY LEARNING OUTCOMES, LANGUAGE PROFICIENCY CLAIMS, OR DECISIONS MADE IN RELIANCE ON AI-GENERATED CONTENT. YOUR USE OF AI FEATURES IS AT YOUR OWN RISK.
             </p>
           </section>
 
           {/* Termination */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Account Termination</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">14. Account Termination</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               We reserve the right to suspend or terminate your account if you violate these Terms or engage in conduct that we deem harmful to the Platform, other users, or our business interests. You may close your account at any time through account settings.
             </p>
@@ -301,7 +461,7 @@ export default function TermsOfServicePage() {
 
           {/* Dispute Resolution */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Dispute Resolution</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Dispute Resolution</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               Any disputes between students and tutors should first be resolved directly between the parties. TutorLingua may provide communication tools to assist but is not obligated to mediate disputes.
             </p>
@@ -315,7 +475,7 @@ export default function TermsOfServicePage() {
 
           {/* Governing Law */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">14. Governing Law</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Governing Law</h2>
             <p className="text-gray-700 leading-relaxed">
               These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which TutorLingua operates, without regard to conflict of law principles.
             </p>
@@ -323,7 +483,7 @@ export default function TermsOfServicePage() {
 
           {/* Changes to Terms */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Changes to These Terms</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">17. Changes to These Terms</h2>
             <p className="text-gray-700 leading-relaxed">
               We reserve the right to modify these Terms at any time. We will notify you of material changes by email or through the Platform. Your continued use of the Services after such notification constitutes acceptance of the modified Terms.
             </p>
@@ -331,7 +491,7 @@ export default function TermsOfServicePage() {
 
           {/* Contact */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Contact Information</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">18. Contact Information</h2>
             <p className="text-gray-700 leading-relaxed">
               For questions about these Terms, please contact us at:
             </p>

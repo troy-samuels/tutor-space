@@ -2,27 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, CalendarDays, MessageSquare } from "lucide-react";
+import { Search, CalendarPlus, CalendarDays, MessageSquare, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/student-auth/search", label: "Search", icon: Search },
-  { href: "/student-auth/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/student-auth/messages", label: "Messages", icon: MessageSquare },
+  { href: "/student/search", label: "Search", icon: Search },
+  { href: "/student/book", label: "Book", icon: CalendarPlus },
+  { href: "/student/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/student/messages", label: "Messages", icon: MessageSquare },
+  { href: "/student/homework", label: "Homework", icon: ClipboardList },
 ];
 
 type StudentBottomNavProps = {
   unreadCount?: number;
+  homeworkCount?: number;
 };
 
-export function StudentBottomNav({ unreadCount }: StudentBottomNavProps) {
+export function StudentBottomNav({ unreadCount, homeworkCount }: StudentBottomNavProps) {
   const pathname = usePathname();
   const hasUnread = Boolean(unreadCount && unreadCount > 0);
+  const hasHomework = Boolean(homeworkCount && homeworkCount > 0);
 
   return (
     <nav
       aria-label="Student navigation"
-      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-background/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-center justify-around border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur"
     >
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
@@ -41,13 +45,18 @@ export function StudentBottomNav({ unreadCount }: StudentBottomNavProps) {
           >
             <Icon
               className={cn(
-                "h-5 w-5 mb-1",
+                "h-[18px] w-[18px] mb-0.5",
                 isActive && "stroke-[2.5]"
               )}
             />
-            <span>{item.label}</span>
-            {item.href === "/student-auth/messages" && hasUnread && (
+            <span className="text-[10px]">{item.label}</span>
+            {item.href === "/student/messages" && hasUnread && (
               <span className="absolute right-6 top-2 h-2.5 w-2.5 rounded-full bg-primary" />
+            )}
+            {item.href === "/student/homework" && hasHomework && (
+              <span className="absolute right-6 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                {homeworkCount! > 9 ? "9+" : homeworkCount}
+              </span>
             )}
           </Link>
         );

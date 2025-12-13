@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Manrope, Geist_Mono, Merriweather } from "next/font/google";
+import {
+  Geist_Mono,
+  Manrope,
+} from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import "./globals.css";
-import { AuthProvider } from "@/components/providers/auth-provider";
 import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { defaultLocale, locales } from "@/lib/i18n/config";
+import { CampaignBannerSlot } from "@/components/marketing/CampaignBannerSlot";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -15,12 +18,6 @@ const manrope = Manrope({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const merriweather = Merriweather({
-  variable: "--font-merriweather",
-  subsets: ["latin"],
-  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -113,13 +110,16 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body
-        className={`${manrope.variable} ${geistMono.variable} ${merriweather.variable} antialiased`}
+        className={[
+          manrope.variable,
+          geistMono.variable,
+          "antialiased",
+        ].join(" ")}
       >
+        <CampaignBannerSlot />
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <AuthProvider>
-            <PageViewTracker />
-            {children}
-          </AuthProvider>
+          <PageViewTracker />
+          {children}
         </NextIntlClientProvider>
       </body>
     </html>

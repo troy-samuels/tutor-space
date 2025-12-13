@@ -3,7 +3,6 @@
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePageBuilderWizard } from "../wizard-context";
-import { Button } from "@/components/ui/button";
 
 type StepPagesProps = {
   services: Array<{ id: string; name: string; description: string | null }>;
@@ -11,8 +10,8 @@ type StepPagesProps = {
 };
 
 export function StepPages({ services, reviews }: StepPagesProps) {
-  const { state, updatePages, prevStep, saveDraft, publish } = usePageBuilderWizard();
-  const { pages, isPublishing, status } = state;
+  const { state, updatePages } = usePageBuilderWizard();
+  const { pages } = state;
 
   const handleServiceToggle = (serviceId: string) => {
     const newIds = pages.selectedServiceIds.includes(serviceId)
@@ -23,14 +22,6 @@ export function StepPages({ services, reviews }: StepPagesProps) {
 
   const handlePinReview = (reviewId: string | null) => {
     updatePages({ pinnedReviewId: reviewId });
-  };
-
-  const handlePublish = async () => {
-    await publish();
-  };
-
-  const handleSaveDraft = async () => {
-    await saveDraft();
   };
 
   return (
@@ -243,30 +234,6 @@ export function StepPages({ services, reviews }: StepPagesProps) {
         </div>
       </div>
 
-      {/* Navigation buttons */}
-      <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-6">
-        <Button onClick={prevStep} variant="outline" size="lg" className="rounded-full px-6">
-          Back
-        </Button>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleSaveDraft}
-            variant="outline"
-            size="lg"
-            className="rounded-full px-6"
-          >
-            Save Draft
-          </Button>
-          <Button
-            onClick={handlePublish}
-            size="lg"
-            className="rounded-full px-8"
-            disabled={isPublishing}
-          >
-            {isPublishing ? "Publishing..." : status === "published" ? "Update Site" : "Publish Site"}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

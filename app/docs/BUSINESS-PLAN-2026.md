@@ -19,7 +19,7 @@
 **Core Value Proposition:** "Use marketplaces for discovery. Use TutorLingua for repeat bookings. Keep 100% of your revenue."
 
 **Revenue Model:**
-- Tutor subscriptions: $29/month or $199/year
+- Tutor subscriptions: $39/month or $299/year
 - AI Practice (students): $8/month + usage blocks
 - Digital product marketplace: 10-15% commission
 
@@ -58,8 +58,8 @@ Language tutors on marketplaces face a brutal commission structure:
 **The Math That Sells:**
 - Tutor earning $2,000/month on Preply (at 33% commission)
 - Commission cost: $660/month ($7,920/year)
-- TutorLingua cost: $29/month ($348/year)
-- **Annual savings: $7,572**
+- TutorLingua cost: $39/month ($468/year)
+- **Annual savings: $7,452**
 
 ### Positioning: Complementary, Not Competitive
 
@@ -83,9 +83,17 @@ This positioning removes the "scary" decision of leaving marketplaces entirely.
 ### Revenue Streams
 
 **Primary: Tutor Subscriptions**
-- Monthly: $29/month
-- Annual: $199/year (~$16.58/month effective)
+
+| Plan | Price | Description |
+|------|-------|-------------|
+| `professional` | Free | Default for new signups (before trial) |
+| `all_access` | $39/month or $299/year | Paid subscription with all features |
+| `founder_lifetime` | $49 one-time | Lifetime deal (limited time) |
+
+- Monthly: $39/month
+- Annual: $299/year (~$24.92/month effective)
 - Target mix: 60% monthly, 40% annual
+- **Auto-trial:** 14-day free trial on signup (no credit card required)
 
 **Secondary: AI Practice (Students)**
 - Base tier: $8/month (100 audio minutes + 300 text turns)
@@ -99,30 +107,30 @@ This positioning removes the "scary" decision of leaving marketplaces entirely.
 ### Unit Economics
 
 **Customer Acquisition Cost (CAC) Target:** <$50
-- At $29/month, payback in <2 months
-- At $199/year, immediate payback
+- At $39/month, payback in <2 months
+- At $299/year, immediate payback
 
 **Lifetime Value (LTV) Assumptions:**
 - Average retention: 12 months (conservative)
-- Monthly subscriber LTV: $29 × 12 = $348
-- Annual subscriber LTV: $199 × 2 renewals = $398
-- Blended LTV: ~$370
+- Monthly subscriber LTV: $39 × 12 = $468
+- Annual subscriber LTV: $299 × 2 renewals = $598
+- Blended LTV: ~$533
 
 **LTV:CAC Ratio Target:** 7:1 or better
 
 ### Path to $10K MRR
 
 **Scenario A: Tutors Only**
-- 345 tutors at $29/month = $10,005 MRR
+- 257 tutors at $39/month = $10,023 MRR
 
 **Scenario B: Mixed Revenue (More Realistic)**
 | Stream | Count | Price | MRR |
 |--------|-------|-------|-----|
-| Tutor Monthly | 150 | $29 | $4,350 |
-| Tutor Annual | 100 | $16.58 | $1,658 |
+| Tutor Monthly | 120 | $39 | $4,680 |
+| Tutor Annual | 80 | $24.92 | $1,994 |
 | AI Practice Students | 300 | $8 | $2,400 |
-| Digital Product Sales | - | - | $1,500 |
-| **Total** | | | **$9,908** |
+| Digital Product Sales | - | - | $1,000 |
+| **Total** | | | **$10,074** |
 
 ---
 

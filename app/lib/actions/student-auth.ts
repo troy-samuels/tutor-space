@@ -17,8 +17,7 @@ export type StudentAccessInfo = {
 
 type StudentAccessRecord = {
   id: string;
-  calendar_access_status: AccessStatus | null;
-  access_requested_at: string | null;
+  status: string | null; // "active", "trial", "paused", "alumni", etc.
   tutor_id: string;
   profiles: {
     full_name: string | null;
@@ -42,13 +41,14 @@ export async function checkStudentAccess(
   }
 
   // Find student record linked to this auth user
+  // Note: Query only columns that exist in current schema
+  // (calendar_access_status may not exist in all environments)
   const { data: student, error } = await supabase
     .from("students")
     .select(
       `
       id,
-      calendar_access_status,
-      access_requested_at,
+      status,
       tutor_id,
       profiles!students_tutor_id_fkey (
         full_name
@@ -74,7 +74,12 @@ export async function checkStudentAccess(
   const { hasActivePackage } = await import("@/lib/actions/session-packages");
   const packages = await hasActivePackage(studentRecord.id, tutorId);
 
-  if (packages && studentRecord.calendar_access_status !== "approved") {
+  // Derive access status from student record status
+  // "active" and "trial" students are approved to book
+  // "paused", "alumni", "pending" need tutor approval
+  const isApproved = studentRecord.status === "active" || studentRecord.status === "trial" || !!packages;
+
+  if (packages && !isApproved) {
     // Auto-approve students with active packages
     await autoApproveStudentAccess(studentRecord.id, tutorId);
     return {
@@ -86,10 +91,9 @@ export async function checkStudentAccess(
   }
 
   return {
-    status: studentRecord.calendar_access_status ?? "pending",
+    status: isApproved ? "approved" : "pending",
     student_id: studentRecord.id,
     tutor_name: studentRecord.profiles?.full_name ?? undefined,
-    requested_at: studentRecord.access_requested_at || undefined,
     has_active_package: !!packages,
   };
 }
@@ -327,11 +331,15 @@ export async function studentSignup(params: {
   email: string;
   password: string;
   fullName: string;
+  timezone?: string;
 }): Promise<{ success?: boolean; error?: string }> {
   const supabase = await createClient();
+  const email = params.email?.trim().toLowerCase();
+  const fullName = params.fullName?.trim();
+  const timezone = params.timezone || "UTC";
 
   // Validate inputs
-  if (!params.email || !params.password || !params.fullName) {
+  if (!email || !params.password || !fullName) {
     return { error: "All fields are required" };
   }
 
@@ -340,21 +348,382 @@ export async function studentSignup(params: {
   }
 
   const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: params.email,
+    email,
     password: params.password,
     options: {
       data: {
         role: "student",
-        full_name: params.fullName,
+        full_name: fullName,
+        timezone,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/student-auth/search`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/student/search`,
     },
   });
 
   if (authError || !authData.user) {
+    const message = authError?.message || "";
+    const normalizedMessage = message.toLowerCase();
+
+    // Supabase occasionally returns this when the mail provider is misconfigured.
+    // Attempt to recover by confirming the user via the admin API and signing them in.
+    if (normalizedMessage.includes("confirmation email")) {
+      // First try to sign in in case the user was actually created
+      const { error: signInAfterFailure } = await supabase.auth.signInWithPassword({
+        email,
+        password: params.password,
+      });
+
+      if (!signInAfterFailure) {
+        return { success: true };
+      }
+
+      const adminClient = createServiceRoleClient();
+      if (!adminClient) {
+        return {
+          error:
+            "We created your account but couldn't finalize signup. Please try logging in again.",
+        };
+      }
+
+      const metadata = {
+        role: "student",
+        full_name: fullName,
+        timezone,
+      };
+
+      const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin.createUser({
+        email,
+        password: params.password,
+        email_confirm: true,
+        user_metadata: metadata,
+      });
+
+      if (adminCreateError) {
+        const alreadyRegistered = adminCreateError.message
+          ?.toLowerCase()
+          .includes("already registered");
+
+        if (!alreadyRegistered) {
+          console.error("Student signup admin create error:", adminCreateError);
+          return { error: "We couldn't finish creating your account. Please try again." };
+        }
+
+        // User exists but wasn't confirmed—find and update
+        const { data: userList, error: listError } = await adminClient.auth.admin.listUsers({
+          perPage: 200,
+        });
+
+        if (listError) {
+          console.error("Student signup admin list error:", listError);
+          return {
+            error:
+              "Your account exists but we couldn't activate it automatically. Please try logging in again.",
+          };
+        }
+
+        const existing = userList?.users?.find(
+          user => user.email?.toLowerCase() === email
+        );
+
+        if (existing) {
+          await adminClient.auth.admin.updateUserById(existing.id, {
+            email_confirm: true,
+            user_metadata: { ...existing.user_metadata, ...metadata },
+          });
+        }
+      } else if (adminCreated?.user?.id) {
+        await adminClient.auth.admin.updateUserById(adminCreated.user.id, {
+          email_confirm: true,
+          user_metadata: metadata,
+        });
+      }
+
+      const { error: finalSignInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: params.password,
+      });
+
+      if (finalSignInError) {
+        console.error("Student signup fallback sign-in error:", finalSignInError);
+        return {
+          error:
+            "Account created but we couldn't sign you in. Please try logging in again.",
+        };
+      }
+
+      return { success: true };
+    }
+
     console.error("Student signup error:", authError);
-    return { error: authError?.message || "Failed to create account" };
+    return { error: message || "Failed to create account" };
   }
 
   return { success: true };
+}
+
+async function getStudentForTutor(tutorId: string) {
+  const supabase = await createClient();
+  const adminClient = createServiceRoleClient();
+
+  if (!adminClient) {
+    return { error: "Service unavailable. Please try again later." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You need to be signed in to manage this request." };
+  }
+
+  const { data: student, error } = await adminClient
+    .from("students")
+    .select("id, full_name, email, phone, tutor_id")
+    .eq("user_id", user.id)
+    .eq("tutor_id", tutorId)
+    .single();
+
+  if (error || !student) {
+    return { error: "No access request found for this tutor." };
+  }
+
+  return { student, adminClient };
+}
+
+export async function cancelAccessRequest(tutorId: string) {
+  const result = await getStudentForTutor(tutorId);
+  if ("error" in result) return result;
+  const { student, adminClient } = result;
+
+  await adminClient
+    .from("student_access_requests")
+    .delete()
+    .eq("student_id", student.id)
+    .eq("tutor_id", tutorId)
+    .eq("status", "pending");
+
+  await adminClient
+    .from("students")
+    .update({
+      calendar_access_status: null,
+      access_requested_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", student.id)
+    .eq("tutor_id", tutorId);
+
+  revalidatePath("/book");
+  return { success: true };
+}
+
+export async function resendAccessRequest(tutorId: string) {
+  const result = await getStudentForTutor(tutorId);
+  if ("error" in result) return result;
+  const { student, adminClient } = result;
+
+  const now = new Date().toISOString();
+
+  await adminClient
+    .from("students")
+    .update({
+      calendar_access_status: "pending",
+      access_requested_at: now,
+      updated_at: now,
+    })
+    .eq("id", student.id)
+    .eq("tutor_id", tutorId);
+
+  await adminClient
+    .from("student_access_requests")
+    .delete()
+    .eq("student_id", student.id)
+    .eq("tutor_id", tutorId)
+    .eq("status", "pending");
+
+  await adminClient.from("student_access_requests").insert({
+    student_id: student.id,
+    tutor_id: tutorId,
+    status: "pending",
+    student_message: null,
+  });
+
+  const { data: tutorProfile } = await adminClient
+    .from("profiles")
+    .select("full_name, email, username")
+    .eq("id", tutorId)
+    .single();
+
+  if (tutorProfile) {
+    const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL}/students/access-requests`;
+      await sendAccessRequestNotification({
+        tutorName: tutorProfile.full_name || "Tutor",
+        tutorEmail: tutorProfile.email,
+        studentName: student.full_name || "Student",
+        studentEmail: student.email,
+        studentPhone: student.phone ?? undefined,
+        studentMessage: undefined,
+        reviewUrl,
+      });
+    }
+
+  revalidatePath("/book");
+  return { success: true };
+}
+
+/**
+ * Sign up a student via an invite link (auto-approved, bypasses access request)
+ */
+export async function signupWithInviteLink(params: {
+  inviteToken: string;
+  email: string;
+  password: string;
+  fullName: string;
+  phone?: string;
+}): Promise<{
+  success?: boolean;
+  error?: string;
+  tutorUsername?: string;
+  serviceIds?: string[];
+}> {
+  const adminClient = createServiceRoleClient();
+
+  if (!adminClient) {
+    return { error: "Service unavailable. Please try again later." };
+  }
+
+  try {
+    // Validate the invite token
+    const { data: tokenData, error: tokenError } = await adminClient.rpc(
+      "validate_invite_token",
+      { p_token: params.inviteToken }
+    );
+
+    if (tokenError || !tokenData || tokenData.length === 0) {
+      return { error: "Invalid invite link" };
+    }
+
+    const inviteLink = tokenData[0];
+
+    if (!inviteLink.is_valid) {
+      return { error: "This invite link has expired or been deactivated" };
+    }
+
+    const tutorId = inviteLink.tutor_id;
+    const tutorUsername = inviteLink.tutor_username;
+    const serviceIds = inviteLink.service_ids ?? [];
+
+    // Check if student email already exists for this tutor
+    const { data: existingStudent } = await adminClient
+      .from("students")
+      .select("id, user_id, email")
+      .eq("tutor_id", tutorId)
+      .eq("email", params.email)
+      .single();
+
+    if (existingStudent?.user_id) {
+      return {
+        error: "An account with this email already exists. Please log in instead.",
+      };
+    }
+
+    // Create auth user
+    const supabase = await createClient();
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: params.email,
+      password: params.password,
+      options: {
+        data: {
+          role: "student",
+          full_name: params.fullName,
+        },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/book/${tutorUsername}`,
+      },
+    });
+
+    if (authError || !authData.user) {
+      console.error("Auth signup error:", authError);
+      return { error: authError?.message || "Failed to create account" };
+    }
+
+    // Create or update student record - AUTO APPROVED via invite link
+    let studentId: string;
+
+    if (existingStudent) {
+      // Link existing student to auth user and auto-approve
+      const { error: updateError } = await adminClient
+        .from("students")
+        .update({
+          user_id: authData.user.id,
+          full_name: params.fullName,
+          phone: params.phone || null,
+          status: "active", // Auto-approved
+          calendar_access_status: "approved", // Auto-approved
+          access_approved_at: new Date().toISOString(),
+          source: "invite_link",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingStudent.id);
+
+      if (updateError) {
+        console.error("Failed to link student:", updateError);
+        return { error: "Failed to link account" };
+      }
+
+      studentId = existingStudent.id;
+    } else {
+      // Create new student record - AUTO APPROVED
+      const { data: newStudent, error: studentError } = await adminClient
+        .from("students")
+        .insert({
+          tutor_id: tutorId,
+          user_id: authData.user.id,
+          full_name: params.fullName,
+          email: params.email,
+          phone: params.phone || null,
+          status: "active", // Auto-approved
+          calendar_access_status: "approved", // Auto-approved
+          access_approved_at: new Date().toISOString(),
+          source: "invite_link",
+        })
+        .select("id")
+        .single();
+
+      if (studentError || !newStudent) {
+        console.error("Failed to create student:", studentError);
+        return { error: "Failed to create student record" };
+      }
+
+      studentId = newStudent.id;
+    }
+
+    // Record invite link usage
+    await adminClient.rpc("increment_invite_link_usage", {
+      p_link_id: inviteLink.id,
+      p_student_id: studentId,
+    });
+
+    // Create conversation thread for messaging (auto-create like approval flow)
+    await adminClient.from("conversation_threads").upsert(
+      {
+        tutor_id: tutorId,
+        student_id: studentId,
+      },
+      {
+        onConflict: "tutor_id,student_id",
+        ignoreDuplicates: true,
+      }
+    );
+
+    revalidatePath(`/book/${tutorUsername}`);
+
+    return {
+      success: true,
+      tutorUsername,
+      serviceIds,
+    };
+  } catch (error) {
+    console.error("Error in signupWithInviteLink:", error);
+    return { error: "An unexpected error occurred. Please try again." };
+  }
 }

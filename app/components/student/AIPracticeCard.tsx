@@ -136,14 +136,14 @@ export function AIPracticeCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
-            AI Practice Companion
+            Conversation Practice
             <Badge variant="secondary" className="text-xs">
               <Sparkles className="h-3 w-3 mr-1" />
               New
             </Badge>
           </CardTitle>
           <CardDescription>
-            Practice conversations with AI between lessons
+            Chat practice between your lessons
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -154,7 +154,7 @@ export function AIPracticeCard({
               </div>
               <div className="space-y-1">
                 <p className="font-medium text-foreground">
-                  Unlock AI conversation practice
+                  Unlock conversation practice
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {tutorName
@@ -187,7 +187,7 @@ export function AIPracticeCard({
           </div>
 
           <Link
-            href={`/student-auth/practice/subscribe?student=${studentId}`}
+            href={`/student/practice/subscribe?student=${studentId}`}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
             Subscribe for ${basePriceDollars}/month
@@ -205,10 +205,10 @@ export function AIPracticeCard({
         <div>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
-            AI Practice
+            Conversation Practice
           </CardTitle>
           <CardDescription>
-            Practice conversations assigned by your tutor
+            Topics assigned by your tutor
           </CardDescription>
         </div>
         <Badge variant="outline" className="text-xs">
@@ -325,7 +325,7 @@ export function AIPracticeCard({
               return (
                 <Link
                   key={assignment.id}
-                  href={`/student-auth/practice/${assignment.id}`}
+                  href={`/student/practice/${assignment.id}`}
                   className="block rounded-xl border border-border/70 bg-background/80 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -384,7 +384,7 @@ export function AIPracticeCard({
               <span>{completedCount} completed</span>
             </div>
             <Link
-              href="/student-auth/practice/history"
+              href="/student/practice/history"
               className="text-xs font-medium text-primary hover:underline"
             >
               View history
@@ -395,7 +395,7 @@ export function AIPracticeCard({
         {/* Quick start button */}
         {openAssignments.length > 0 && (
           <Link
-            href={`/student-auth/practice/${openAssignments[0].id}`}
+            href={`/student/practice/${openAssignments[0].id}`}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
             <MessageSquare className="h-4 w-4" />

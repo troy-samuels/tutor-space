@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import Stripe from "stripe";
 
-const LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID;
+const LIFETIME_PRICE_ID = process.env.STRIPE_PRO_LIFETIME_PRICE_ID ?? process.env.STRIPE_LIFETIME_PRICE_ID;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 /**
  * POST /api/stripe/lifetime
- * Creates a Stripe checkout session for the $49 lifetime deal.
+ * Creates a Stripe checkout session for the lifetime deal.
  * No authentication required - users can pay before creating an account.
  */
 export async function POST(req: NextRequest) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       success_url: `${APP_URL}/lifetime/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${APP_URL}/lifetime`,
       metadata: {
-        plan: "founder_lifetime",
+        plan: "tutor_life",
         source: "lifetime_landing_page",
       },
       allow_promotion_codes: true,

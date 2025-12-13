@@ -92,6 +92,35 @@ type PhoneMockupSection = {
   cta: string;
 };
 
+type StudioTranscript = {
+  recordingLabel: string;
+  timer: string;
+  tutorLabel: string;
+  studentLabel: string;
+  lines: string[];
+  mispronouncedPrefix: string;
+  mispronouncedWord: string;
+  mispronouncedSuffix: string;
+  mispronouncedHint: string;
+  correction: string;
+  correctedWord: string;
+  correctionHint: string;
+};
+
+type StudioIntelligenceSection = {
+  badge: string;
+  headline: string;
+  subheadline: string;
+  transcript: StudioTranscript;
+  connector: string;
+  detectedTitle: string;
+  detected: Array<{ word: string; description: string }>;
+  vocab: { title: string; description: string };
+  practiceTitle: string;
+  practice: Array<{ title: string; description: string }>;
+  saveNote: string;
+};
+
 export type LandingCopy = {
   hero: {
     headline: string;
@@ -147,9 +176,11 @@ export type LandingCopy = {
   };
   testimonials: {
     headline: string;
+    subheadline: string;
     featured: TestimonialCard & { image?: string };
     list: TestimonialCard[];
   };
+  studioIntelligence: StudioIntelligenceSection;
   faq: {
     headline: string;
     items: FAQItem[];
@@ -364,37 +395,63 @@ const landingCopyEn: LandingCopy = {
           "Full data export",
         ],
       },
+      {
+        name: "The Classroom That Takes Notes",
+        items: [
+          "Perfect Recall — Every lesson transcribed automatically. Students search for that word they forgot three weeks later.",
+          "Invisible Insights — Speaking time, vocabulary patterns, common mistakes tracked silently in the background.",
+          "Homework That Writes Itself — Review exercises generated from the lesson itself. Based on real errors, not templates.",
+        ],
+      },
     ],
   },
 
   pricing: {
     headline: "14-day free trial",
-    subheadline: "Billed $39/mo or $299/yr after the trial. One flat price for every tutor.",
+    subheadline: "Pick Pro or Studio. Billed after the trial.",
     comparisonNote: "All features included. Cancel anytime before billing begins.",
     toggle: {
       label: "Billing",
       monthlyLabel: "Monthly",
       annualLabel: "Annual (save 36%)",
-      helper: "Switch anytime—your plan stays all-access.",
+      helper: "Switch anytime.",
     },
     tiers: [
       {
-        name: "Full access",
+        name: "Pro",
         monthlyPrice: "$39",
         annualPrice: "$299",
         monthlyPeriod: "per month",
         annualPeriod: "per year",
-        badge: "All features",
-        description: "14-day free trial. One plan. Full platform.",
+        badge: "Most tutors",
+        description: "14-day free trial.",
         features: [
           "Site, links, and bookings in one place",
-          "Secure Stripe checkout—billed after the trial",
+          "Secure Stripe checkout",
           "Notes and tasks for each student",
           "Email and WhatsApp nudges built in",
-          "Full access included. Cancel anytime.",
+          "Cancel anytime.",
         ],
         cta: "Start for free",
         highlighted: true,
+      },
+      {
+        name: "Studio",
+        monthlyPrice: "$69",
+        annualPrice: "$499",
+        monthlyPeriod: "per month",
+        annualPeriod: "per year",
+        badge: "Video + AI",
+        description: "14-day free trial.",
+        features: [
+          "Everything in Pro",
+          "Native classroom",
+          "Recording + transcription",
+          "AI drills from lessons",
+          "Cancel anytime.",
+        ],
+        cta: "Start for free",
+        highlighted: false,
       },
     ],
   },
@@ -420,6 +477,7 @@ const landingCopyEn: LandingCopy = {
 
   testimonials: {
     headline: "Real tutors, real results",
+    subheadline: "Join thousands of tutors earning more and working less with TutorLingua",
     featured: {
       quote:
         "I stay on Preply for new students. But repeat lessons go through TutorLingua. Saved me $7,500 in commissions this year.",
@@ -590,6 +648,44 @@ const landingCopyEn: LandingCopy = {
       },
     ],
     copyright: `© ${new Date().getFullYear()} TutorLingua. All rights reserved.`,
+  },
+
+  studioIntelligence: {
+    badge: "Studio Intelligence",
+    headline: "Your AI Teaching Assistant",
+    subheadline:
+      "While you teach, TutorLingua listens. It detects pronunciation struggles and creates targeted practice automatically.",
+    transcript: {
+      recordingLabel: "Recording",
+      timer: "4:32",
+      tutorLabel: "Tutor",
+      studentLabel: "Student",
+      lines: ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      mispronouncedPrefix: "\"Muchas ",
+      mispronouncedWord: "grassy-as",
+      mispronouncedSuffix: "\"",
+      mispronouncedHint: "Sounds too English",
+      correction: "\"Almost! Try 'grah-see-ahs' — roll it a bit\"",
+      correctedWord: "¡Gracias!",
+      correctionHint: "Much better!",
+    },
+    connector: "AI analyzes lesson",
+    detectedTitle: "Detected This Lesson",
+    detected: [
+      { word: "\"gracias\"", description: "Pronunciation sounds too English" },
+      { word: "\"por favor\"", description: "Missing soft 'v' sound" },
+    ],
+    vocab: {
+      title: "5 new terms",
+      description: "Vocabulary expansion",
+    },
+    practiceTitle: "Auto-Generated Practice",
+    practice: [
+      { title: "Greetings Drill", description: "gracias, hola, adiós, buenos días" },
+      { title: "Soft Sounds Practice", description: "favor, vamos, nuevo, llave" },
+      { title: "Flashcard Deck", description: "5 new words from today's lesson" },
+    ],
+    saveNote: "Saved to student's profile automatically",
   },
 } as const;
 
@@ -776,6 +872,14 @@ const landingCopyEs: LandingCopy = {
           "Exportación completa datos",
         ],
       },
+      {
+        name: "El Aula Que Toma Notas",
+        items: [
+          "Memoria Perfecta — Cada clase se transcribe automáticamente. Los estudiantes buscan esa palabra que olvidaron hace tres semanas.",
+          "Información Invisible — Tiempo de habla, patrones de vocabulario, errores comunes registrados silenciosamente en segundo plano.",
+          "Tareas Que Se Escriben Solas — Ejercicios de repaso generados desde la propia clase. Basados en errores reales, no plantillas.",
+        ],
+      },
     ],
   },
 
@@ -832,6 +936,7 @@ const landingCopyEs: LandingCopy = {
 
   testimonials: {
     headline: "Tutores reales, resultados reales",
+    subheadline: "Únete a miles de tutores que ganan más y trabajan menos con TutorLingua",
     featured: {
       quote:
         "Me quedo en Preply para nuevos estudiantes. Pero lecciones repetidas van por TutorLingua. Me ahorró $7.500 en comisiones este año.",
@@ -1004,7 +1109,45 @@ const landingCopyEs: LandingCopy = {
     ],
     copyright: `© ${new Date().getFullYear()} TutorLingua. Todos los derechos reservados.`,
   },
-};
+
+  studioIntelligence: {
+    badge: "Inteligencia del Estudio",
+    headline: "Tu asistente de enseñanza IA",
+    subheadline:
+      "Mientras enseñas, TutorLingua escucha. Detecta problemas de pronunciación y crea práctica dirigida automáticamente.",
+    transcript: {
+      recordingLabel: "Grabando",
+      timer: "4:32",
+      tutorLabel: "Tutor",
+      studentLabel: "Estudiante",
+      lines: ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      mispronouncedPrefix: "\"Muchas ",
+      mispronouncedWord: "grassy-as",
+      mispronouncedSuffix: "\"",
+      mispronouncedHint: "Suena demasiado inglés",
+      correction: "\"¡Casi! Prueba 'grah-see-ahs' — enróllalo un poco\"",
+      correctedWord: "¡Gracias!",
+      correctionHint: "¡Mucho mejor!",
+    },
+    connector: "La IA analiza la lección",
+    detectedTitle: "Detectado en esta lección",
+    detected: [
+      { word: "\"gracias\"", description: "Pronunciación suena demasiado inglés" },
+      { word: "\"por favor\"", description: "Falta el sonido suave de la 'v'" },
+    ],
+    vocab: {
+      title: "5 nuevos términos",
+      description: "Expansión de vocabulario",
+    },
+    practiceTitle: "Práctica generada automáticamente",
+    practice: [
+      { title: "Ejercicio de saludos", description: "gracias, hola, adiós, buenos días" },
+      { title: "Práctica de sonidos suaves", description: "favor, vamos, nuevo, llave" },
+      { title: "Baraja de tarjetas", description: "5 palabras nuevas de la clase" },
+    ],
+    saveNote: "Guardado en el perfil del estudiante automáticamente",
+  },
+}; 
 
 const landingCopyFr: LandingCopy = {
   hero: {
@@ -1189,6 +1332,14 @@ const landingCopyFr: LandingCopy = {
           "Export complet des données",
         ],
       },
+      {
+        name: "La Salle de Classe Qui Prend des Notes",
+        items: [
+          "Mémoire Parfaite — Chaque cours est transcrit automatiquement. Les élèves retrouvent ce mot oublié il y a trois semaines.",
+          "Analyses Invisibles — Temps de parole, tendances de vocabulaire, erreurs fréquentes suivis silencieusement en arrière-plan.",
+          "Devoirs Automatiques — Exercices de révision générés à partir du cours. Basés sur les vraies erreurs, pas des modèles.",
+        ],
+      },
     ],
   },
 
@@ -1245,6 +1396,7 @@ const landingCopyFr: LandingCopy = {
 
   testimonials: {
     headline: "Vrais tuteurs, vrais résultats",
+    subheadline: "Rejoignez des milliers de tuteurs qui gagnent plus et travaillent moins avec TutorLingua",
     featured: {
       quote:
         "Je reste sur Preply pour les nouveaux étudiants. Mais les leçons récurrentes passent par TutorLingua. J'ai économisé 7 500 $ en commissions cette année.",
@@ -1417,6 +1569,44 @@ const landingCopyFr: LandingCopy = {
     ],
     copyright: `© ${new Date().getFullYear()} TutorLingua. Tous droits réservés.`,
   },
+
+  studioIntelligence: {
+    badge: "Studio Intelligence",
+    headline: "Votre assistant pédagogique IA",
+    subheadline:
+      "Pendant que vous enseignez, TutorLingua écoute. Il détecte les difficultés de prononciation et crée automatiquement des exercices ciblés.",
+    transcript: {
+      recordingLabel: "Enregistrement",
+      timer: "4:32",
+      tutorLabel: "Tuteur",
+      studentLabel: "Étudiant",
+      lines: ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      mispronouncedPrefix: "\"Muchas ",
+      mispronouncedWord: "grassy-as",
+      mispronouncedSuffix: "\"",
+      mispronouncedHint: "Ça sonne trop anglais",
+      correction: "\"Presque ! Essaie 'grah-see-ahs' — roule-le un peu\"",
+      correctedWord: "¡Gracias!",
+      correctionHint: "Bien mieux !",
+    },
+    connector: "L'IA analyse la leçon",
+    detectedTitle: "Détecté pendant la leçon",
+    detected: [
+      { word: "\"gracias\"", description: "Prononciation trop anglaise" },
+      { word: "\"por favor\"", description: "Son doux du 'v' manquant" },
+    ],
+    vocab: {
+      title: "5 nouveaux termes",
+      description: "Extension du vocabulaire",
+    },
+    practiceTitle: "Exercices générés automatiquement",
+    practice: [
+      { title: "Exercice de salutations", description: "gracias, hola, adiós, buenos días" },
+      { title: "Pratique des sons doux", description: "favor, vamos, nuevo, llave" },
+      { title: "Jeu de flashcards", description: "5 nouveaux mots de la leçon" },
+    ],
+    saveNote: "Enregistré automatiquement dans le profil de l'étudiant",
+  },
 };
 
 const landingCopyPt: LandingCopy = landingCopyPtJson as LandingCopy;
@@ -1426,6 +1616,12 @@ const landingCopyByLocale: Record<Locale, LandingCopy> = {
   es: landingCopyEs,
   fr: landingCopyFr,
   pt: landingCopyPt,
+  de: landingCopyEn, // Falls back to English - full German translation can be added later
+  it: landingCopyEn, // Falls back to English - full Italian translation can be added later
+  nl: landingCopyEn, // Falls back to English - full Dutch translation can be added later
+  ja: landingCopyEn, // Falls back to English - full Japanese translation can be added later
+  zh: landingCopyEn, // Falls back to English - full Chinese translation can be added later
+  ko: landingCopyEn, // Falls back to English - full Korean translation can be added later
 };
 
 export function getLandingCopy(locale: string | Locale): LandingCopy {

@@ -11,7 +11,7 @@ export function AuthButton() {
 
   if (loading) {
     return (
-      <span className="inline-flex h-9 min-w-[80px] items-center justify-center rounded-md bg-muted text-sm">
+      <span className="inline-flex h-9 min-w-[80px] items-center justify-center rounded-full bg-muted text-sm">
         Loading...
       </span>
     );
@@ -22,13 +22,13 @@ export function AuthButton() {
       <div className="flex items-center gap-3">
         <Link
           href="/login"
-          className="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-muted"
+          className="inline-flex h-9 items-center rounded-full px-4 text-sm font-medium text-foreground transition hover:bg-stone-100"
         >
           Log in
         </Link>
         <Link
           href="/signup"
-          className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
         >
           Sign up
         </Link>
@@ -45,10 +45,10 @@ export function AuthButton() {
           const channel = new BroadcastChannel("auth");
           channel.postMessage("auth:update");
           channel.close();
-          await signOut();
-        })
+      await signOut();
+    })
       }
-      className="inline-flex h-9 items-center justify-center rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-60"
+      className="inline-flex h-9 items-center justify-center rounded-full border border-input bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-60"
     >
       Sign out
     </button>

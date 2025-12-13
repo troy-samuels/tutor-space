@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductPurchaseForm } from "@/components/digital-products/purchase-form";
+import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 
 type PageProps = {
   params: Promise<{ username: string }>;
@@ -9,14 +10,31 @@ type PageProps = {
 export default async function TutorProductsPage({ params }: PageProps) {
   const resolvedParams = await params;
   const supabase = await createClient();
-  const { data: profile } = await supabase
+  const rawLower = resolvedParams.username.trim().toLowerCase();
+  const normalized = normalizeUsernameSlug(resolvedParams.username) || rawLower;
+
+  let profileResult = await supabase
     .from("public_profiles")
     .select("id, full_name, bio, username")
-    .eq("username", resolvedParams.username)
-    .single();
+    .eq("username", normalized)
+    .maybeSingle();
+
+  if (!profileResult.data && rawLower && rawLower !== normalized) {
+    profileResult = await supabase
+      .from("public_profiles")
+      .select("id, full_name, bio, username")
+      .eq("username", rawLower)
+      .maybeSingle();
+  }
+
+  const profile = profileResult.data;
 
   if (!profile) {
     notFound();
+  }
+
+  if (profile.username && profile.username !== resolvedParams.username) {
+    redirect(`/products/${profile.username}`);
   }
 
   const { data: products } = await supabase

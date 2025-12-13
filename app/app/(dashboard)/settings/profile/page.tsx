@@ -34,7 +34,7 @@ export default async function ProfileSettingsPage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold text-foreground">TutorLingua profile</h1>
         <p className="text-sm text-muted-foreground">
-          Stand out to parents and students with a polished public presence and up-to-date information.
+          Make a great first impression with a polished profile.
         </p>
       </div>
       <ProfileSettingsForm initialValues={initialValues} />

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
+import {
+  getPlanTier,
+  hasProAccess,
+  hasStudioAccess,
+} from "@/lib/payments/subscriptions";
 
 // Force dynamic rendering and disable caching to prevent stale auth data
 export const dynamic = 'force-dynamic';
@@ -24,21 +29,15 @@ export async function GET() {
     .eq("id", user.id)
     .single();
 
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("plan_name, status")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  const planName =
-    (subscriptions?.[0]?.plan_name as PlatformBillingPlan | undefined) ??
-    (profile?.plan as PlatformBillingPlan | null) ??
-    "professional";
+  const profilePlan = (profile?.plan as PlatformBillingPlan | null) ?? "professional";
+  const resolvedPlan =
+    profile?.subscription_status === "paused" ? ("professional" as const) : profilePlan;
   const entitlements = {
-    plan: planName,
-    growth: planName === "growth" || planName === "studio" || planName === "founder_lifetime",
-    studio: planName === "studio",
+    plan: resolvedPlan,
+    tier: getPlanTier(resolvedPlan),
+    isPaid: hasProAccess(resolvedPlan),
+    hasProAccess: hasProAccess(resolvedPlan),
+    hasStudioAccess: hasStudioAccess(resolvedPlan),
   };
 
   return NextResponse.json({ user, profile, entitlements });

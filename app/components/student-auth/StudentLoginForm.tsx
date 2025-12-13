@@ -36,7 +36,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
       // Get redirect parameters
       const params = await searchParams;
       const redirectUrl =
-        params.redirect || (params.tutor ? `/book/${params.tutor}` : "/student-auth/search");
+        params.redirect || (params.tutor ? `/book/${params.tutor}` : "/student/search");
 
       router.push(redirectUrl);
       router.refresh();
@@ -50,7 +50,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}
@@ -59,7 +59,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           {t("email")}
         </label>
@@ -71,7 +71,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+          className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition"
           placeholder={t("emailPlaceholder")}
         />
       </div>
@@ -80,7 +80,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           {t("password")}
         </label>
@@ -93,13 +93,13 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
+            className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition pr-12"
           placeholder={t("passwordExistingPlaceholder")}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
             tabIndex={-1}
           >
             {showPassword ? (
@@ -116,9 +116,9 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
         <label className="flex items-center">
           <input
             type="checkbox"
-            className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+            className="h-4 w-4 text-primary border-border rounded focus:ring-primary"
           />
-          <span className="ml-2 text-gray-600">{t("rememberMe")}</span>
+          <span className="ml-2 text-muted-foreground">{t("rememberMe")}</span>
         </label>
         <a href="#" className="text-primary hover:underline">
           {t("forgotPassword")}

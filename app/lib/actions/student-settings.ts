@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isTableMissing } from "@/lib/utils/supabase-errors";
 
 const preferencesSchema = z.object({
   timezone: z.string().min(1),
@@ -161,7 +162,7 @@ export async function updateStudentPreferences(
     return { success: false, error: "Failed to update preferences" };
   }
 
-  revalidatePath("/student-auth/settings");
+  revalidatePath("/student/settings");
   return { success: true };
 }
 
@@ -200,7 +201,7 @@ export async function updateStudentEmailPreferences(
     return { success: false, error: "Failed to update email preferences" };
   }
 
-  revalidatePath("/student-auth/settings");
+  revalidatePath("/student/settings");
   return { success: true };
 }
 
@@ -263,11 +264,15 @@ export async function getStudentAccountInfo(): Promise<{
   if (!serviceClient) return null;
 
   // Count connected tutors
-  const { count } = await serviceClient
+  const { count, error: connectionsError } = await serviceClient
     .from("student_tutor_connections")
     .select("*", { count: "exact", head: true })
     .eq("student_user_id", user.id)
     .eq("status", "approved");
+
+  if (connectionsError && !isTableMissing(connectionsError, "student_tutor_connections")) {
+    console.error("Failed to count connections:", connectionsError);
+  }
 
   return {
     email: user.email || "",

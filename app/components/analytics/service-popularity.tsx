@@ -1,14 +1,16 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { ServicePopularity } from "@/lib/data/analytics-metrics";
 
 interface ServicePopularityChartProps {
   data: ServicePopularity[];
   isLoading?: boolean;
+  dimmed?: boolean;
 }
 
-export function ServicePopularityChart({ data, isLoading }: ServicePopularityChartProps) {
+export function ServicePopularityChart({ data, isLoading, dimmed }: ServicePopularityChartProps) {
   if (isLoading) {
     return (
       <Card className="rounded-3xl border border-border/60 bg-white/90 shadow-sm">
@@ -27,7 +29,12 @@ export function ServicePopularityChart({ data, isLoading }: ServicePopularityCha
   }
 
   return (
-    <Card className="rounded-3xl border border-border/60 bg-white/90 shadow-sm">
+    <Card
+      className={cn(
+        "rounded-3xl border border-border/60 bg-white/90 shadow-sm transition-opacity duration-200",
+        dimmed && "opacity-80"
+      )}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-foreground">
           Popular Services

@@ -26,5 +26,61 @@ export default async function StudentsPage() {
     status: s.status ?? "active",
   }));
 
-  return <StudentsPageClient initialStudents={formattedStudents} />;
+  // Fetch invite links
+  const { data: inviteLinks } = await supabase
+    .from("tutor_invite_links")
+    .select("*")
+    .eq("tutor_id", user.id)
+    .order("created_at", { ascending: false });
+
+  // Fetch active services for link creation
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, name")
+    .eq("tutor_id", user.id)
+    .eq("is_active", true)
+    .order("name");
+
+  // Get service names for links that have service scope
+  const allServiceIds = [
+    ...new Set((inviteLinks ?? []).flatMap((link) => link.service_ids ?? [])),
+  ];
+
+  let serviceMap: Record<string, string> = {};
+  if (allServiceIds.length > 0) {
+    const { data: scopedServices } = await supabase
+      .from("services")
+      .select("id, name")
+      .in("id", allServiceIds);
+    serviceMap = Object.fromEntries(
+      (scopedServices ?? []).map((s) => [s.id, s.name])
+    );
+  }
+
+  const formattedInviteLinks = (inviteLinks ?? []).map((link) => ({
+    id: link.id,
+    token: link.token,
+    name: link.name,
+    expiresAt: link.expires_at,
+    isActive: link.is_active,
+    serviceIds: link.service_ids ?? [],
+    usageCount: link.usage_count,
+    createdAt: link.created_at,
+    services: (link.service_ids ?? [])
+      .filter((id: string) => serviceMap[id])
+      .map((id: string) => ({ id, name: serviceMap[id] })),
+  }));
+
+  const formattedServices = (services ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+  }));
+
+  return (
+    <StudentsPageClient
+      initialStudents={formattedStudents}
+      initialInviteLinks={formattedInviteLinks}
+      services={formattedServices}
+    />
+  );
 }

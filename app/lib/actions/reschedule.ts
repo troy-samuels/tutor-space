@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { checkBookingConflict } from "@/lib/utils/booking-conflicts";
+import { sendBookingRescheduledEmails } from "@/lib/emails/ops-emails";
 
 const rescheduleSchema = z.object({
   bookingId: z.string().uuid(),
@@ -101,6 +102,14 @@ export async function rescheduleBooking(
     return { success: false, error: conflictCheck.message || "The new time conflicts with existing bookings" };
   }
 
+  const previousSchedule = {
+    scheduledAt: booking.scheduled_at,
+    timezone: booking.timezone || "UTC",
+    durationMinutes: booking.duration_minutes,
+    meetingUrl: (booking as any).meeting_url ?? null,
+    meetingProvider: (booking as any).meeting_provider ?? null,
+  };
+
   // Update the booking
   const { error: updateError } = await serviceClient
     .from("bookings")
@@ -117,12 +126,59 @@ export async function rescheduleBooking(
     return { success: false, error: "Failed to reschedule booking" };
   }
 
-  // Send notification emails (could be expanded)
-  // For now, we'll let the caller handle notifications
+  try {
+    const { data: updated } = await serviceClient
+      .from("bookings")
+      .select(
+        `
+        scheduled_at,
+        duration_minutes,
+        timezone,
+        meeting_url,
+        meeting_provider,
+        students(full_name, email),
+        services(name),
+        tutor:profiles!bookings_tutor_id_fkey(full_name, email)
+      `
+      )
+      .eq("id", bookingId)
+      .single<{
+        scheduled_at: string;
+        duration_minutes: number | null;
+        timezone: string | null;
+        meeting_url: string | null;
+        meeting_provider: string | null;
+        students: { full_name: string | null; email: string | null } | Array<{ full_name: string | null; email: string | null }>;
+        services: { name: string | null } | Array<{ name: string | null }>;
+        tutor: { full_name: string | null; email: string | null } | Array<{ full_name: string | null; email: string | null }>;
+      }>();
+
+    if (updated) {
+      const student = Array.isArray(updated.students) ? updated.students[0] : updated.students;
+      const tutor = Array.isArray(updated.tutor) ? updated.tutor[0] : updated.tutor;
+
+      await sendBookingRescheduledEmails({
+        studentEmail: student?.email,
+        tutorEmail: tutor?.email,
+        studentName: student?.full_name || "Student",
+        tutorName: tutor?.full_name || "Your tutor",
+        serviceName: (Array.isArray(updated.services) ? updated.services[0]?.name : updated.services?.name) || "Lesson",
+        oldScheduledAt: previousSchedule.scheduledAt,
+        newScheduledAt: updated.scheduled_at,
+        timezone: updated.timezone || previousSchedule.timezone,
+        durationMinutes: updated.duration_minutes || previousSchedule.durationMinutes,
+        meetingUrl: updated.meeting_url || previousSchedule.meetingUrl || undefined,
+        meetingProvider: updated.meeting_provider || previousSchedule.meetingProvider || undefined,
+        rescheduleUrl: `${(process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/+$/, "")}/bookings`,
+      });
+    }
+  } catch (emailError) {
+    console.error("[rescheduleBooking] Failed to send emails", emailError);
+  }
 
   revalidatePath("/bookings");
   revalidatePath("/calendar");
-  revalidatePath("/student-auth/bookings");
+  revalidatePath("/student/bookings");
 
   return { success: true };
 }

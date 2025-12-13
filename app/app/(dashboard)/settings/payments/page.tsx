@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Sparkles, Check } from "lucide-react";
 import PaymentSettingsForm from "@/components/settings/PaymentSettingsForm";
 import StripeConnectPanel from "@/components/settings/StripeConnectPanel";
+import { getPlanDisplayName } from "@/lib/payments/subscriptions";
 
 export default async function PaymentSettingsPage() {
   const supabase = await createClient();
@@ -19,20 +20,20 @@ export default async function PaymentSettingsPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "payment_instructions, venmo_handle, paypal_email, zelle_phone, stripe_payment_link, custom_payment_url, booking_currency, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status, plan"
+      "payment_instructions, booking_currency, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status, plan"
     )
     .eq("id", user.id)
     .single();
 
   const currentPlan = profile?.plan || "professional";
-  const displayPlan = currentPlan === "founder_lifetime" ? "Founder lifetime" : "All-access";
+  const displayPlan = getPlanDisplayName(currentPlan as any);
 
   return (
     <div className="max-w-4xl space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Payment Settings</h1>
         <p className="text-gray-600 mt-2">
-          Configure how students will pay you for lessons
+          Set up how you get paid
         </p>
       </div>
 
@@ -64,7 +65,7 @@ export default async function PaymentSettingsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
-                14-day free trial, then $39/mo or $299/yr all-access
+                14-day free trial, then Pro or Studio
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 TutorLingua complements marketplaces like Preply with calendar sync and direct booking tools so you keep
@@ -95,10 +96,7 @@ export default async function PaymentSettingsPage() {
               About Payment Collection
             </h3>
             <p className="text-sm text-blue-800 mt-1">
-              Students pay you directly using your preferred payment method.
-              The information you provide here will be shown to students after
-              they book a lesson. You&apos;ll receive booking requests and can
-              confirm them once payment is received.
+              Students see these payment options after booking. Confirm bookings once you receive payment.
             </p>
           </div>
         </div>
@@ -115,11 +113,6 @@ export default async function PaymentSettingsPage() {
       <PaymentSettingsForm
         initialData={{
           payment_instructions: profile?.payment_instructions || "",
-          venmo_handle: profile?.venmo_handle || "",
-          paypal_email: profile?.paypal_email || "",
-          zelle_phone: profile?.zelle_phone || "",
-          stripe_payment_link: profile?.stripe_payment_link || "",
-          custom_payment_url: profile?.custom_payment_url || "",
           booking_currency: profile?.booking_currency || "USD",
         }}
       />

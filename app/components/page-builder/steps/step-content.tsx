@@ -1,20 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, Upload, ImageIcon } from "lucide-react";
+import { X, Upload, ImageIcon, Move } from "lucide-react";
 import { usePageBuilderWizard } from "../wizard-context";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { uploadHeroImage } from "@/lib/actions/tutor-sites";
+import { cn } from "@/lib/utils";
 
 export function StepContent() {
-  const { state, updateContent, nextStep, prevStep } = usePageBuilderWizard();
+  const { state, updateContent } = usePageBuilderWizard();
   const { content } = state;
 
   const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
   const [isHeroUploading, startHeroUpload] = useTransition();
   const [galleryUploadError, setGalleryUploadError] = useState<string | null>(null);
   const [isGalleryUploading, startGalleryUpload] = useTransition();
+  const [reorderMode, setReorderMode] = useState(false);
 
   const handleHeroFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,6 +94,14 @@ export function StepContent() {
     updateContent({ galleryImages: newImages });
   };
 
+  const moveGalleryImage = (from: number, to: number) => {
+    if (to < 0 || to >= content.galleryImages.length) return;
+    const next = [...content.galleryImages];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    updateContent({ galleryImages: next });
+  };
+
   const handleRemoveHeroImage = () => {
     updateContent({ heroImageUrl: null });
   };
@@ -154,43 +163,40 @@ export function StepContent() {
         </div>
       </div>
 
-      {/* Hero Image */}
+      {/* Background Image */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground">Hero Image</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          A main photo that represents you or your teaching
+        <h3 className="text-sm font-semibold text-foreground">Background Image</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Banner image for your site header. Recommended: 1600×400px (4:1 ratio)
         </p>
 
-        <div className="mt-4">
+        <div className="mt-3">
           {content.heroImageUrl ? (
-            <div className="relative inline-block">
+            <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={content.heroImageUrl}
-                alt="Hero"
-                className="h-32 w-32 rounded-2xl object-cover border border-border"
+                alt="Background"
+                className="h-20 w-full rounded-xl object-cover border border-border"
               />
               <button
                 type="button"
                 onClick={handleRemoveHeroImage}
-                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white shadow-sm hover:bg-destructive/90"
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm hover:bg-destructive/90"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </button>
               {isHeroUploading && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 </div>
               )}
             </div>
           ) : (
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/60 bg-muted/30 p-8 transition hover:border-primary/50 hover:bg-muted/50">
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="mt-2 text-sm font-medium text-muted-foreground">
-                {isHeroUploading ? "Uploading..." : "Click to upload hero image"}
-              </span>
-              <span className="mt-1 text-xs text-muted-foreground">
-                JPG, PNG or WebP (max 5MB)
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/50 bg-muted/20 h-16 transition hover:border-primary/50 hover:bg-muted/40">
+              <Upload className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {isHeroUploading ? "Uploading..." : "Upload background"}
               </span>
               <input
                 type="file"
@@ -202,81 +208,93 @@ export function StepContent() {
             </label>
           )}
           {heroUploadError && (
-            <p className="mt-2 text-sm text-destructive">{heroUploadError}</p>
+            <p className="mt-1.5 text-xs text-destructive">{heroUploadError}</p>
           )}
         </div>
       </div>
 
       {/* Photo Gallery */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground">Photo Gallery</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Add up to 5 photos to showcase your teaching environment or materials
-        </p>
-
-        <div className="mt-4">
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-            {/* Existing gallery images */}
-            {content.galleryImages.map((url, index) => (
-              <div key={`${url}-${index}`} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt={`Gallery ${index + 1}`}
-                  className="h-24 w-full rounded-xl object-cover border border-border"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveGalleryImage(index)}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm hover:bg-destructive/90"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-
-            {/* Upload button (if less than 5 images) */}
-            {content.galleryImages.length < 5 && (
-              <label className="flex h-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/60 bg-muted/30 transition hover:border-primary/50 hover:bg-muted/50">
-                {isGalleryUploading ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                ) : (
-                  <>
-                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                    <span className="mt-1 text-xs text-muted-foreground">Add</span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  onChange={handleGalleryFileChange}
-                  disabled={isGalleryUploading}
-                  className="hidden"
-                />
-              </label>
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="text-sm font-semibold text-foreground">Photo Gallery</h3>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span>{content.galleryImages.length}/5</span>
+            {content.galleryImages.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setReorderMode((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 font-semibold text-primary transition hover:bg-primary/10"
+              >
+                <Move className="h-3 w-3" />
+                {reorderMode ? "Done" : "Reorder"}
+              </button>
             )}
           </div>
-
-          {galleryUploadError && (
-            <p className="mt-2 text-sm text-destructive">{galleryUploadError}</p>
-          )}
-
-          <p className="mt-2 text-xs text-muted-foreground">
-            {content.galleryImages.length} of 5 photos added
-          </p>
         </div>
+
+        <div className="grid grid-cols-5 gap-2">
+          {content.galleryImages.map((url, index) => (
+            <div key={`${url}-${index}`} className="relative aspect-square">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`Gallery ${index + 1}`}
+                className={cn(
+                  "h-full w-full rounded-lg object-cover border border-border",
+                  reorderMode ? "ring-2 ring-primary/60" : ""
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveGalleryImage(index)}
+                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-white"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+              {reorderMode && (
+                <div className="absolute inset-0 flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    onClick={() => moveGalleryImage(index, index - 1)}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-white/85 text-xs font-semibold text-muted-foreground shadow-sm hover:bg-white"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveGalleryImage(index, index + 1)}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-white/85 text-xs font-semibold text-muted-foreground shadow-sm hover:bg-white"
+                  >
+                    ↓
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {content.galleryImages.length < 5 && (
+            <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-border/50 bg-muted/20 hover:border-primary/50 hover:bg-muted/40 transition">
+              {isGalleryUploading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+              )}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                onChange={handleGalleryFileChange}
+                disabled={isGalleryUploading}
+                className="hidden"
+              />
+            </label>
+          )}
+        </div>
+        {galleryUploadError && (
+          <p className="mt-1.5 text-xs text-destructive">{galleryUploadError}</p>
+        )}
       </div>
 
-      {/* Navigation buttons */}
-      <div className="flex items-center justify-between pt-4">
-        <Button onClick={prevStep} variant="outline" size="lg" className="rounded-full px-6">
-          Back
-        </Button>
-        <Button onClick={nextStep} size="lg" className="rounded-full px-8">
-          Continue
-        </Button>
-      </div>
     </div>
   );
 }

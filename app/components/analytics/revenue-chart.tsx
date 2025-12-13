@@ -9,14 +9,17 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { RevenueDataPoint } from "@/lib/data/analytics-metrics";
 
 interface RevenueChartProps {
   data: RevenueDataPoint[];
   isLoading?: boolean;
+  onHoverChange?: (hovering: boolean) => void;
+  dimmed?: boolean;
 }
 
-export function RevenueChart({ data, isLoading }: RevenueChartProps) {
+export function RevenueChart({ data, isLoading, onHoverChange, dimmed }: RevenueChartProps) {
   const totalRevenue = data.reduce((sum, d) => sum + d.revenue, 0);
   const formattedTotal = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -50,7 +53,15 @@ export function RevenueChart({ data, isLoading }: RevenueChartProps) {
   }
 
   return (
-    <Card data-testid="revenue-chart" className="rounded-3xl border border-border/60 bg-white/90 shadow-sm">
+    <Card
+      data-testid="revenue-chart"
+      className={cn(
+        "rounded-3xl border border-border/60 bg-white/90 shadow-sm transition-opacity duration-200",
+        dimmed && "opacity-80"
+      )}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-semibold text-foreground">
           Revenue Over Time

@@ -51,7 +51,7 @@ export function PracticeReminderEmail({
 
               <p style="margin: 0 0 30px 0; color: #333; font-size: 16px; line-height: 1.6;">
                 Your homework "<strong>${homeworkTitle}</strong>" is due on <strong>${formattedDate}</strong>.
-                ${tutorName} has made AI practice available to help you reinforce the topic.
+                ${tutorName} has added conversation practice to help you reinforce the topic.
               </p>
 
               <!-- Practice Card -->
@@ -121,7 +121,7 @@ export function PracticeReminderEmailText({
 
 Hi ${studentName},
 
-Your homework "${homeworkTitle}" is due on ${formattedDate}. ${tutorName} has made AI practice available to help you reinforce the topic.
+Your homework "${homeworkTitle}" is due on ${formattedDate}. ${tutorName} has added conversation practice to help you reinforce the topic.
 
 TRY A PRACTICE SESSION:
 ${practiceUrl}

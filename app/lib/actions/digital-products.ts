@@ -5,6 +5,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { slugifyKebab } from "@/lib/utils/slug";
 
 const BUCKET = "digital-products";
 
@@ -28,14 +29,6 @@ export type ProductFormState = {
   error?: string;
   success?: string;
 };
-
-function slugify(input: string) {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
 
 async function uploadDigitalFile(userId: string, file: File) {
   const supabase = await createClient();
@@ -86,7 +79,7 @@ export async function createDigitalProduct(
     return { error: "You must be signed in." };
   }
 
-  const slugBase = slugify(parsed.data.title);
+  const slugBase = slugifyKebab(parsed.data.title, { maxLength: 60, fallback: "product" });
   let slug = slugBase;
   let slugAttempt = 1;
 
@@ -168,6 +161,7 @@ export async function createDigitalProduct(
   }
 
   revalidatePath("/digital-products");
+  revalidatePath("/services");
   return { success: "Digital product saved" };
 }
 
@@ -208,6 +202,7 @@ export async function toggleDigitalProductPublish(productId: string, publish: bo
   }
 
   revalidatePath("/digital-products");
+  revalidatePath("/services");
   return { success: "Product updated" };
 }
 
@@ -229,5 +224,6 @@ export async function deleteDigitalProduct(productId: string) {
   }
 
   revalidatePath("/digital-products");
+  revalidatePath("/services");
   return { success: "Deleted" };
 }

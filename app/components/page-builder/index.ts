@@ -14,11 +14,10 @@ export {
 } from "./wizard-context";
 export { WizardProgress } from "./wizard-progress";
 
-// Steps
-export { StepBrand } from "./steps/step-brand";
-export { StepLayout } from "./steps/step-layout";
-export { StepContent } from "./steps/step-content";
-export { StepPages } from "./steps/step-pages";
+// Steps (Unified 3-section design)
+export { StepProfile } from "./steps/step-profile";
+export { StepContentUnified } from "./steps/step-content-unified";
+export { StepStyle } from "./steps/step-style";
 
 // Preview
 export { SimplifiedPreview } from "./preview/simplified-preview";

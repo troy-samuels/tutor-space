@@ -29,6 +29,9 @@ import {
   UserCog,
   Check,
   Loader2,
+  BookOpen,
+  ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import {
   getNotifications,
@@ -56,6 +59,11 @@ const iconMap: Record<NotificationType, React.ComponentType<{ className?: string
   review_approved: CheckCircle,
   system_announcement: Megaphone,
   account_update: UserCog,
+  homework_assigned: BookOpen,
+  homework_due_reminder: Clock,
+  homework_submission_received: ClipboardCheck,
+  drill_assigned: Sparkles,
+  drill_due_reminder: Sparkles,
 };
 
 interface NotificationBellProps {
@@ -124,8 +132,7 @@ export function NotificationBell({ userRole = "tutor" }: NotificationBellProps) 
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="relative"
+          className="relative h-9 w-9 rounded-full p-0"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
         >
           <Bell className="h-5 w-5" />
@@ -220,7 +227,7 @@ export function NotificationBell({ userRole = "tutor" }: NotificationBellProps) 
 
         <div className="border-t p-2">
           <Link
-            href={userRole === "student" ? "/student-auth/notifications" : "/notifications"}
+            href={userRole === "student" ? "/student/notifications" : "/notifications"}
             className="block w-full"
             onClick={() => setOpen(false)}
           >

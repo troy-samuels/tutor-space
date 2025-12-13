@@ -1,0 +1,237 @@
+"use client";
+
+import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, CalendarPlus, Loader2, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StudentProfileCard } from "./StudentProfileCard";
+import { StudentUpcomingLessons } from "./StudentUpcomingLessons";
+import { StudentDetailTabs } from "./StudentDetailTabs";
+import { StudentLessonsCalendar } from "./StudentLessonsCalendar";
+import { StudentPaymentsTab } from "./StudentPaymentsTab";
+import { StudentMessagesTab } from "./StudentMessagesTab";
+import { StudentOverview } from "./StudentOverview";
+import { getOrCreateThreadByStudentId } from "@/lib/actions/messaging";
+import type { StudentDetailData } from "@/lib/data/student-detail";
+
+type StudentDetailViewProps = {
+  studentId: string;
+  initialData?: StudentDetailData | null;
+  onClose?: () => void;
+};
+
+type FetchState = {
+  data: StudentDetailData | null;
+  loading: boolean;
+  error: string | null;
+};
+
+export function StudentDetailView({ studentId, initialData, onClose }: StudentDetailViewProps) {
+  const [state, setState] = useState<FetchState>({
+    data: initialData ?? null,
+    loading: !initialData,
+    error: null,
+  });
+  const searchParams = useSearchParams();
+  const [isCreatingThread, startThreadTransition] = useTransition();
+
+  useEffect(() => {
+    let isMounted = true;
+    if (initialData) return;
+
+    setState({ data: null, loading: true, error: null });
+    fetch(`/api/student-detail?studentId=${studentId}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(res.status === 404 ? "Student not found" : "Failed to load student");
+        }
+        const json = await res.json();
+        if (isMounted) {
+          setState({ data: json, loading: false, error: null });
+        }
+      })
+      .catch((error: Error) => {
+        if (isMounted) {
+          setState({ data: null, loading: false, error: error.message });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [studentId, initialData]);
+
+  const detail = state.data;
+
+  const initialTab = useMemo(() => {
+    const tabParam = searchParams.get("tab");
+    const validTabs = ["overview", "lessons", "messages", "payments"];
+    return tabParam && validTabs.includes(tabParam) ? tabParam : "overview";
+  }, [searchParams]);
+
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [threadId, setThreadId] = useState<string | null>(detail?.threadId ?? null);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    setThreadId(detail?.threadId ?? null);
+  }, [detail?.threadId]);
+
+  const overviewTab = useMemo(() => {
+    if (!detail) return null;
+    return (
+      <StudentOverview
+        student={detail.student}
+        nextBooking={detail.nextBooking}
+        stats={detail.stats}
+        recentHomework={detail.homework}
+        practiceScenarios={detail.practiceScenarios}
+      />
+    );
+  }, [detail]);
+
+  const lessonsTab = detail ? (
+    <StudentLessonsCalendar studentId={detail.student.id} bookings={detail.bookings} />
+  ) : null;
+
+  const messagesTab = detail ? (
+    <StudentMessagesTab
+      threadId={threadId}
+      messages={detail.conversationMessages}
+      studentName={detail.student.full_name ?? "Student"}
+      tutorId={detail.tutorId}
+    />
+  ) : null;
+
+  const paymentsTab = detail ? (
+    detail.stripePayments ? (
+      <StudentPaymentsTab
+        totalPaidCents={detail.stripePayments.totalPaidCents}
+        totalRefundedCents={detail.stripePayments.totalRefundedCents}
+        currency={detail.stripePayments.currency}
+        payments={detail.stripePayments.payments}
+        source={detail.stripePayments.source}
+      />
+    ) : (
+      <StudentPaymentsTab
+        totalPaidCents={0}
+        totalRefundedCents={0}
+        currency="USD"
+        payments={[]}
+        source="audit"
+      />
+    )
+  ) : null;
+
+  if (state.loading) {
+    return (
+      <div className="space-y-4 p-4">
+        <div className="h-5 w-32 animate-pulse rounded bg-muted/50" />
+        <div className="space-y-3">
+          <div className="h-24 animate-pulse rounded-xl bg-muted/40" />
+          <div className="h-24 animate-pulse rounded-xl bg-muted/40" />
+          <div className="h-64 animate-pulse rounded-xl bg-muted/40" />
+        </div>
+      </div>
+    );
+  }
+
+  if (state.error || !detail) {
+    return (
+      <div className="space-y-4 p-4">
+        <p className="text-sm font-semibold text-destructive">{state.error ?? "Student not found."}</p>
+        <Button variant="outline" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            {onClose ? (
+              <button
+                onClick={onClose}
+                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to students
+              </button>
+            ) : (
+              <Link
+                href="/students"
+                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to students
+              </Link>
+            )}
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground">{detail.student.full_name}</h1>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 rounded-full"
+            onClick={() => {
+              setActiveTab("messages");
+              if (!threadId && !isCreatingThread) {
+                startThreadTransition(async () => {
+                  const result = await getOrCreateThreadByStudentId(detail.student.id);
+                  if (result.threadId) {
+                    setThreadId(result.threadId);
+                  }
+                });
+              }
+            }}
+            aria-label="Message student"
+            title="Message student"
+          >
+            {isCreatingThread ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MessageSquare className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 rounded-full"
+            asChild
+            aria-label="Book with this student"
+            title="Book with this student"
+          >
+            <Link href={`/bookings?student=${detail.student.id}`}>
+              <CalendarPlus className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/lesson-notes/new?student=${detail.student.id}`}>Add lesson note</Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <StudentProfileCard student={detail.student} />
+        <StudentUpcomingLessons studentId={detail.student.id} bookings={detail.bookings} />
+      </div>
+
+      <StudentDetailTabs
+        overviewTab={overviewTab}
+        lessonsTab={lessonsTab}
+        messagesTab={messagesTab}
+        paymentsTab={paymentsTab}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+    </div>
+  );
+}

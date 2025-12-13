@@ -1,45 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Loader2, ShoppingCart } from "lucide-react";
+import { buyDigitalProduct } from "@/lib/actions/digital-product-checkout";
 
 export function ProductPurchaseForm({
   productId,
-  tutorUsername,
+  buttonLabel = "Buy now",
+  fullWidth = false,
+  tutorUsername, // optional passthrough for future tracking/use
 }: {
   productId: string;
-  tutorUsername: string;
+  buttonLabel?: string;
+  fullWidth?: boolean;
+  tutorUsername?: string;
 }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const startCheckout = async () => {
     setError(null);
-    setIsPending(true);
-    try {
-      const response = await fetch("/api/digital-products/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          buyerEmail: email,
-          buyerName: name,
-          tutorUsername,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.url) {
-        throw new Error(data.error || "Unable to start checkout");
+    startTransition(async () => {
+      const result = await buyDigitalProduct(productId);
+      if (result.error || !result.url) {
+        setError(result.error || "Unable to start checkout");
+        return;
       }
-
-      window.location.href = data.url;
-    } catch (err) {
-      setError((err as Error).message);
-      setIsPending(false);
-    }
+      window.location.href = result.url;
+    });
   };
 
   return (
@@ -66,10 +56,10 @@ export function ProductPurchaseForm({
         type="button"
         onClick={startCheckout}
         disabled={isPending || !email}
-        className="inline-flex h-11 min-w-[180px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`inline-flex h-11 min-w-[180px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 ${fullWidth ? "w-full" : ""}`}
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-        {isPending ? "Redirecting..." : "Buy now"}
+        {isPending ? "Securing connection..." : buttonLabel}
       </button>
     </div>
   );

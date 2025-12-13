@@ -129,7 +129,16 @@ export async function redeemPackageMinutes({
   tutorId: string;
   studentId?: string;
   purchaseId?: string;
-}): Promise<{ success: boolean; error?: string; redemptionId?: string }> {
+}): Promise<{
+  success: boolean;
+  error?: string;
+  redemptionId?: string;
+  purchaseId?: string;
+  remainingMinutes?: number;
+  packageName?: string | null;
+  packageTotalMinutes?: number;
+  packageSessionCount?: number | null;
+}> {
   const supabase = createServiceRoleClient();
 
   if (!supabase) {
@@ -173,7 +182,9 @@ export async function redeemPackageMinutes({
         expires_at,
         package:session_package_templates (
           id,
+          name,
           total_minutes,
+          session_count,
           tutor_id
         )
       `)
@@ -188,7 +199,9 @@ export async function redeemPackageMinutes({
     const pkgData = purchase.package;
     const pkg = Array.isArray(pkgData) ? pkgData[0] : pkgData as {
       id: string;
+      name?: string | null;
       total_minutes: number;
+      session_count?: number | null;
       tutor_id: string;
     } | null;
 
@@ -269,7 +282,15 @@ export async function redeemPackageMinutes({
       `✅ Redeemed ${minutesToRedeem} minutes from purchase ${targetPurchaseId} for booking ${bookingId}`
     );
 
-    return { success: true, redemptionId: redemption.id };
+    return {
+      success: true,
+      redemptionId: redemption.id,
+      purchaseId: targetPurchaseId,
+      remainingMinutes: remainingMinutes - minutesToRedeem,
+      packageName: pkg.name ?? null,
+      packageTotalMinutes: pkg.total_minutes,
+      packageSessionCount: pkg.session_count ?? null,
+    };
   } catch (err) {
     console.error("[packages] Unexpected error in redeemPackageMinutes:", err);
     return { success: false, error: "An unexpected error occurred" };

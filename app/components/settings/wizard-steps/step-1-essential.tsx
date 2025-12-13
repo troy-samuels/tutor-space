@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Check, X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfileWizard } from "@/lib/contexts/profile-wizard-context";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { detectUserTimezone } from "@/lib/utils/timezones";
 
 type EssentialInfoData = {
   full_name: string;
@@ -43,7 +45,7 @@ export function Step1Essential({
   const [formData, setFormData] = useState<EssentialInfoData>({
     full_name: initialValues?.full_name || wizard.state.step1.full_name || "",
     username: initialValues?.username || wizard.state.step1.username || "",
-    timezone: initialValues?.timezone || wizard.state.step1.timezone || "",
+    timezone: initialValues?.timezone || wizard.state.step1.timezone || detectUserTimezone(),
     primary_language: initialValues?.primary_language || wizard.state.step1.primary_language || "",
   });
 
@@ -57,8 +59,7 @@ export function Step1Essential({
   // Auto-detect timezone on mount
   useEffect(() => {
     if (!formData.timezone) {
-      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      setFormData((prev) => ({ ...prev, timezone: detected }));
+      setFormData((prev) => ({ ...prev, timezone: detectUserTimezone() }));
     }
   }, [formData.timezone]);
 
@@ -290,23 +291,11 @@ export function Step1Essential({
         >
           Timezone <span className="text-red-500">*</span>
         </label>
-        <select
+        <TimezoneSelect
           id="timezone"
           value={formData.timezone}
-          onChange={(e) => handleChange("timezone", e.target.value)}
-          className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
-            errors.timezone
-              ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-primary focus:ring-primary/20"
-          }`}
-        >
-          <option value="">Select your timezone</option>
-          {Intl.supportedValuesOf("timeZone").map((tz) => (
-            <option key={tz} value={tz}>
-              {tz.replace(/_/g, " ")}
-            </option>
-          ))}
-        </select>
+          onChange={(tz) => handleChange("timezone", tz)}
+        />
         {errors.timezone && (
           <p className="text-xs text-red-600">{errors.timezone}</p>
         )}

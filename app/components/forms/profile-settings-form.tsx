@@ -4,11 +4,13 @@ import Image from "next/image";
 import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Instagram, Mail, Upload, CalendarClock, Minus, Plus, Music4, Facebook, Twitter, Globe } from "lucide-react";
+import { Instagram, Mail, Upload, CalendarClock, Music4, Facebook, Twitter, Globe, Sparkles, ShieldCheck, Link2 } from "lucide-react";
 import type { ProfileFormValues } from "@/lib/validators/profile";
 import { updateProfile, type ProfileActionState } from "@/lib/actions/profile";
 import { setLocale } from "@/lib/i18n/actions";
 import { locales } from "@/lib/i18n/config";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { detectUserTimezone } from "@/lib/utils/timezones";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
@@ -18,8 +20,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
 };
 
 const initialState: ProfileActionState = {};
-
-const timezones = Intl.supportedValuesOf("timeZone");
 
 export function ProfileSettingsForm({
   initialValues,
@@ -52,7 +52,7 @@ export function ProfileSettingsForm({
       tagline: "",
       bio: "",
       languages_taught: "",
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: detectUserTimezone(),
       website_url: "",
       avatar_url: "",
       instagram_handle: "",
@@ -67,6 +67,14 @@ export function ProfileSettingsForm({
       ...(state.fields ?? {}),
     } satisfies ProfileFormValues;
   }, [initialValues, state.fields]);
+
+  const [timezone, setTimezone] = useState(mergedValues.timezone);
+
+  useEffect(() => {
+    if (mergedValues.timezone && mergedValues.timezone !== timezone) {
+      setTimezone(mergedValues.timezone);
+    }
+  }, [mergedValues.timezone, timezone]);
 
   useEffect(() => {
     if (state?.fields?.avatar_url) {
@@ -89,13 +97,6 @@ export function ProfileSettingsForm({
     setAvatarPreview(url);
   };
 
-  const changeBuffer = (delta: number) => {
-    setBufferMinutes((prev) => {
-      const next = Math.min(480, Math.max(0, prev + delta));
-      return Number.isNaN(next) ? 0 : next;
-    });
-  };
-
   const presetBufferTimes = [0, 5, 10, 15, 30, 45, 60];
 
   return (
@@ -103,13 +104,11 @@ export function ProfileSettingsForm({
       <input type="hidden" name="existing_avatar_url" value={mergedValues.avatar_url ?? ""} />
 
       <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Brand identity</h2>
-          <p className="text-sm text-muted-foreground">
-            Upload your tutor photo so families recognise you across booking confirmations and the parent
-            credibility page.
-          </p>
-        </div>
+        <SectionTitle
+          icon={<Sparkles className="h-4 w-4 text-primary" />}
+          title="Brand identity"
+          helper="Upload a photo so people recognize you in emails and on your profile."
+        />
 
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
           <div className="relative h-28 w-28 overflow-hidden rounded-3xl shadow-sm bg-muted">
@@ -133,8 +132,7 @@ export function ProfileSettingsForm({
 
           <div className="flex-1 space-y-3">
             <p className="text-sm text-muted-foreground">
-            Use a bright, welcoming headshot. Square images (min 400×400px) look best on your TutorLingua
-              site and marketing graphics.
+              Use a friendly headshot. Square images (400×400px or larger) work best.
             </p>
             <label className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90">
               <Upload className="h-4 w-4" />
@@ -152,12 +150,11 @@ export function ProfileSettingsForm({
       </section>
 
       <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Public profile</h2>
-          <p className="text-sm text-muted-foreground">
-            These details appear on your TutorLingua site and parent credibility page.
-          </p>
-        </div>
+        <SectionTitle
+          icon={<ShieldCheck className="h-4 w-4 text-primary" />}
+          title="Public profile"
+          helper="This shows on your public profile."
+        />
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <Field label="Full name" htmlFor="full_name">
@@ -184,7 +181,7 @@ export function ProfileSettingsForm({
           <Field
             label="One-line positioning"
             htmlFor="tagline"
-            helper="E.g. Spanish tutor helping teens ace DELE B2 in 6 months"
+            helper="e.g. Spanish tutor helping students pass DELE B2"
           >
             <input
               id="tagline"
@@ -206,7 +203,7 @@ export function ProfileSettingsForm({
           </Field>
         </div>
 
-        <Field label="About you" htmlFor="bio" helper="Parents see this on your credibility page.">
+        <Field label="About you" htmlFor="bio" helper="Visitors see this on your profile.">
           <textarea
             id="bio"
             name="bio"
@@ -222,27 +219,20 @@ export function ProfileSettingsForm({
       </section>
 
       <section id="availability" className="rounded-3xl shadow-sm bg-white/90 p-6 shadow-sm backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Availability & timezone</h2>
-          <p className="text-sm text-muted-foreground">
-            Students always see your availability in their local time.
-          </p>
-        </div>
+        <SectionTitle
+          icon={<CalendarClock className="h-4 w-4 text-primary" />}
+          title="Availability & timezone"
+          helper="Students always see your availability in their local time."
+        />
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <Field label="Timezone" htmlFor="timezone">
-            <select
+            <TimezoneSelect
               id="timezone"
               name="timezone"
-              defaultValue={mergedValues.timezone}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {timezones.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
+              value={timezone}
+              onChange={setTimezone}
+            />
           </Field>
 
           <Field label="Website" htmlFor="website_url" helper="Optional">
@@ -258,12 +248,11 @@ export function ProfileSettingsForm({
       </section>
 
       <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Bookings & sessions</h2>
-          <p className="text-sm text-muted-foreground">
-            Control how new lessons are confirmed once your TutorLingua booking flow is live.
-          </p>
-        </div>
+        <SectionTitle
+          icon={<ShieldCheck className="h-4 w-4 text-primary" />}
+          title="Bookings & sessions"
+          helper="Control how new bookings are confirmed."
+        />
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground">
@@ -276,7 +265,7 @@ export function ProfileSettingsForm({
             <span>
               <span className="font-semibold">Accept new bookings</span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                Turning this off hides your booking link. Students can still see your profile.
+                Turn off to pause bookings. Your profile stays visible.
               </span>
             </span>
           </label>
@@ -291,81 +280,53 @@ export function ProfileSettingsForm({
             <span>
               <span className="font-semibold">Auto-confirm paid sessions</span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                New bookings go straight onto your calendar when payment succeeds.
+                Bookings confirm automatically when paid.
               </span>
             </span>
           </label>
         </div>
 
-        <div>
+        <div className="mt-4 space-y-3">
           <label
             htmlFor="buffer_time_minutes"
-            className="flex flex-col gap-2 text-sm text-foreground"
+            className="flex flex-col gap-1 text-sm text-foreground"
           >
             <span className="font-medium">Buffer time between lessons</span>
             <span className="text-xs text-muted-foreground">
-              Give yourself breathing room for notes, prep, and overrun.
+              Add time between lessons for prep.
             </span>
           </label>
-          <div className="mt-4 space-y-3 rounded-3xl border border-foreground/25 bg-primary/5 p-5">
-            <input type="hidden" id="buffer_time_minutes" name="buffer_time_minutes" value={bufferMinutes} />
-            <div className="flex items-center justify-between gap-4">
+          <input type="hidden" id="buffer_time_minutes" name="buffer_time_minutes" value={bufferMinutes} />
+          <div className="flex flex-wrap gap-2">
+            {presetBufferTimes.map((minutes) => (
               <button
+                key={minutes}
                 type="button"
-                onClick={() => changeBuffer(-5)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/40 bg-white text-primary shadow-sm transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                aria-label="Decrease buffer time"
+                onClick={() => setBufferMinutes(minutes)}
+                className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                  bufferMinutes === minutes
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "border border-foreground/20 bg-white text-foreground/70 hover:border-foreground/40 hover:text-foreground"
+                }`}
               >
-                <Minus className="h-4 w-4" />
+                {minutes === 0 ? "No buffer" : `${minutes} min`}
               </button>
-              <div className="flex flex-col items-center gap-1 text-primary" aria-live="polite">
-                <span className="text-3xl font-semibold">{bufferMinutes}</span>
-                <span className="text-xs font-semibold uppercase tracking-wide text-primary/80">
-                  minutes
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => changeBuffer(5)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/40 bg-white text-primary shadow-sm transition hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                aria-label="Increase buffer time"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              {presetBufferTimes.map((minutes) => (
-                <button
-                  key={minutes}
-                  type="button"
-                  onClick={() => setBufferMinutes(minutes)}
-                  className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary/40 ${
-                    bufferMinutes === minutes
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "border border-foreground/30 bg-white text-primary hover:bg-primary/10"
-                  }`}
-                >
-                  {minutes === 0 ? "No buffer" : `${minutes} min`}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
 
         <p className="mt-4 flex items-center gap-2 rounded-2xl border border-dashed border-foreground/30 bg-primary/5 px-4 py-3 text-xs text-muted-foreground">
           <CalendarClock className="h-4 w-4 text-primary" />
-          Calendar sync is configured from <strong className="font-semibold">Settings → Calendar sync</strong>.
-          Once connected, bookings respect your external events automatically.
+          Connect your calendar in <strong className="font-semibold">Calendar sync</strong> settings.
         </p>
       </section>
 
       <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Interface language</h2>
-          <p className="text-sm text-muted-foreground">
-            Choose your preferred language for the TutorLingua dashboard.
-          </p>
-        </div>
+        <SectionTitle
+          icon={<Globe className="h-4 w-4 text-primary" />}
+          title="Interface language"
+          helper="Choose your dashboard language."
+        />
 
         <div className="mt-6">
           <div className="flex flex-col gap-2 text-sm text-foreground">
@@ -386,19 +347,18 @@ export function ProfileSettingsForm({
               ))}
             </select>
             <p className="text-xs text-muted-foreground">
-              This changes the language of menus and interface elements throughout the app.
+              Changes menus and labels in the app.
             </p>
           </div>
         </div>
       </section>
 
       <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Contact & Social</h2>
-          <p className="text-sm text-muted-foreground">
-            Connect your social media profiles so students can follow you and stay updated.
-          </p>
-        </div>
+        <SectionTitle
+          icon={<Link2 className="h-4 w-4 text-primary" />}
+          title="Contact & Social"
+          helper="Add your social profiles."
+        />
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <SocialInput
@@ -439,7 +399,7 @@ export function ProfileSettingsForm({
               <span className="font-medium text-foreground">{mergedValues.email || 'Email not available'}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Your contact email is set during signup. Students can reach you through your public profile.
+              Students contact you through your profile.
             </p>
           </div>
         </div>
@@ -511,8 +471,32 @@ function SocialInput({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder || "handle"}
-        className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      />
-    </label>
+    className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+  />
+</label>
+  );
+}
+
+function SectionTitle({
+  icon,
+  title,
+  helper,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  helper: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+            {icon}
+          </span>
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">{helper}</p>
+      </div>
+    </div>
   );
 }

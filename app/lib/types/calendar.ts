@@ -221,3 +221,22 @@ export function groupOverlappingEvents(events: CalendarEvent[]): CalendarEvent[]
   groups.push(currentGroup);
   return groups;
 }
+
+// Identify external events that overlap with TutorLingua or blocked time
+export function findExternalConflictIds(events: CalendarEvent[]): Set<string> {
+  const protectedEvents = events.filter(
+    (event) => event.type === "tutorlingua" || event.type === "blocked"
+  );
+  const conflicts = new Set<string>();
+
+  events.forEach((event) => {
+    if (event.type === "google" || event.type === "outlook") {
+      const overlaps = protectedEvents.some((protectedEvent) => eventsOverlap(event, protectedEvent));
+      if (overlaps) {
+        conflicts.add(event.id);
+      }
+    }
+  });
+
+  return conflicts;
+}

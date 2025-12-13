@@ -11,39 +11,20 @@ import {
   BASE_AUDIO_SECONDS,
   BLOCK_AUDIO_SECONDS,
 } from "@/lib/practice/constants";
-
-// Dynamic import for OpenAI to avoid build errors if not installed
-const getOpenAI = async () => {
-  const OpenAI = (await import("openai")).default;
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-};
+import { createPracticeChatCompletion } from "@/lib/practice/openai";
+import {
+  GRAMMAR_CATEGORY_SLUGS,
+  type GrammarCategorySlug,
+  normalizeGrammarCategorySlug,
+} from "@/lib/practice/grammar-categories";
 
 // Usage allowance constants (in seconds for audio)
 const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 
-// Valid grammar error categories (must match database)
-const GRAMMAR_CATEGORIES = [
-  "verb_tense",
-  "subject_verb_agreement",
-  "preposition",
-  "article",
-  "word_order",
-  "gender_agreement",
-  "conjugation",
-  "pronoun",
-  "plural_singular",
-  "spelling",
-  "vocabulary",
-] as const;
-
-type GrammarCategory = typeof GRAMMAR_CATEGORIES[number];
-
 interface StructuredCorrection {
   original: string;
   corrected: string;
-  category: GrammarCategory;
+  category: GrammarCategorySlug;
   explanation: string;
 }
 
@@ -243,9 +224,8 @@ export async function POST(request: Request) {
       content: message,
     });
 
-    // Call OpenAI
-    const openai = await getOpenAI();
-    const completion = await openai.chat.completions.create({
+    // Call OpenAI with retry/backoff
+    const completion = await createPracticeChatCompletion({
       model: "gpt-4o-mini",
       messages: openAIMessages,
       temperature: 0.8,
@@ -502,7 +482,7 @@ For grammar/spelling errors, add at the very end:
 [{"original": "exact text with error", "corrected": "corrected text", "category": "category_slug", "explanation": "brief explanation"}]
 </corrections>
 
-Valid categories: verb_tense, subject_verb_agreement, preposition, article, word_order, gender_agreement, conjugation, pronoun, plural_singular, spelling, vocabulary
+Valid categories: ${GRAMMAR_CATEGORY_SLUGS.join(", ")}
 
 For spelling errors that suggest pronunciation confusion (e.g., phonetic misspellings), also add:
 <phonetic_errors>
@@ -531,10 +511,7 @@ function parseStructuredResponse(content: string): {
       const parsed = JSON.parse(correctionsMatch[1].trim());
       if (Array.isArray(parsed)) {
         for (const c of parsed) {
-          // Validate category
-          const category = GRAMMAR_CATEGORIES.includes(c.category as GrammarCategory)
-            ? (c.category as GrammarCategory)
-            : "vocabulary";
+          const category = normalizeGrammarCategorySlug(c.category);
           corrections.push({
             original: String(c.original || "").trim(),
             corrected: String(c.corrected || "").trim(),

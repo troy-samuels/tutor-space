@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useState, useTransition, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { signIn, signInWithOAuth, type AuthActionState } from "@/lib/actions/auth";
@@ -17,9 +18,21 @@ export function LoginForm() {
   const [isOauthPending, startOauthTransition] = useTransition();
   const t = useTranslations("auth");
   const common = useTranslations("common");
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") ?? "";
+  const router = useRouter();
+
+  // Handle client-side redirect after successful login
+  useEffect(() => {
+    if (state?.redirectTo) {
+      router.push(state.redirectTo);
+      router.refresh();
+    }
+  }, [state?.redirectTo, router]);
 
   return (
     <form action={formAction} className="space-y-6">
+      <input type="hidden" name="redirect" value={redirect} />
       <div className="space-y-2">
         <label htmlFor="email" className="block text-sm font-medium text-foreground">
           {t("emailLabel")}
@@ -100,7 +113,7 @@ export function LoginForm() {
           type="button"
           onClick={() => {
             startOauthTransition(async () => {
-              await signInWithOAuth("google");
+              await signInWithOAuth("google", redirect);
             });
           }}
           aria-label={t("signInWith", { provider: "Google" })}

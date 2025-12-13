@@ -84,7 +84,7 @@ type ThemeSettings = {
   spacing: "cozy" | "comfortable" | "compact";
 };
 
-type HeroStyle = "minimal" | "portrait" | "banner";
+type HeroStyle = "minimal" | "portrait"; // Centered or Photo Focus
 type LessonsStyle = "cards" | "list";
 type ReviewsStyle = "cards" | "highlight";
 
@@ -165,7 +165,7 @@ const TEMPLATES: Template[] = [
       primary: "#F59E0B",
       font: "tech",
       spacing: "compact",
-      heroStyle: "banner",
+      heroStyle: "minimal",
       lessonsStyle: "cards",
       reviewsStyle: "cards",
     },
@@ -276,15 +276,23 @@ export function SiteEditor({
 
   // Consolidated visibility toggles
   const [visibility, setVisibility] = useState({
+    hero: (initialSiteData?.site as any)?.show_hero ?? true,
+    gallery: (initialSiteData?.site as any)?.show_gallery ?? true,
     about: initialSiteData?.site?.show_about ?? true,
     lessons: initialSiteData?.site?.show_lessons ?? true,
     reviews: initialSiteData?.site?.show_reviews ?? (reviews.length > 0),
     booking: initialSiteData?.site?.show_booking ?? true,
     social: (initialSiteData?.site as any)?.show_social_page ?? true,
+    faq: initialSiteData?.site?.show_faq ?? false,
+    contact: initialSiteData?.site?.show_contact ?? false,
+    resources: initialSiteData?.site?.show_resources ?? false,
   });
 
   // Customization unlock
   const [showCustomization, setShowCustomization] = useState(false);
+
+  // Section visibility panel toggle
+  const [showSectionSettings, setShowSectionSettings] = useState(false);
 
   // Social links from resources
   const resourceLinks = initialSiteData?.resources?.map((r) => ({
@@ -444,11 +452,16 @@ export function SiteEditor({
       about_subtitle: aboutSubtitle,
       about_body: aboutBody,
       hero_image_url: heroImageUrl,
+      show_hero: visibility.hero,
+      show_gallery: visibility.gallery,
       show_about: visibility.about,
       show_lessons: visibility.lessons,
       show_reviews: visibility.reviews,
       show_booking: visibility.booking,
       show_social_page: visibility.social,
+      show_faq: visibility.faq,
+      show_contact: visibility.contact,
+      show_resources: visibility.resources,
       theme_background: theme.background,
       theme_background_style: theme.backgroundStyle,
       theme_gradient_from: theme.gradientFrom,
@@ -463,7 +476,6 @@ export function SiteEditor({
       booking_cta_url: profile.stripe_payment_link || (profile.username ? `/book/${profile.username}` : ""),
       booking_headline: "Ready to start?",
       booking_subcopy: "Pick a time that works for you",
-      show_contact: false,
       show_digital: false,
       contact_cta_label: "Email me",
       contact_cta_url: profile.email ? `mailto:${profile.email}` : "",
@@ -788,97 +800,172 @@ export function SiteEditor({
             </div>
           </section>
 
-          {/* Section 3: What to Show */}
+          {/* Section 3: Section Visibility (Collapsible) */}
           <section className="rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
-            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              What to Show on Your Page
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Toggle sections on or off. Sections with content show automatically.
-            </p>
+            <button
+              type="button"
+              onClick={() => setShowSectionSettings(!showSectionSettings)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <div>
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Section Visibility
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose which sections appear on your page
+                </p>
+              </div>
+              {showSectionSettings ? (
+                <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              )}
+            </button>
 
-            <div className="mt-4 space-y-3">
-              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
-                <span className="text-sm font-medium text-foreground">About section</span>
-                <input
-                  type="checkbox"
-                  checked={visibility.about}
-                  onChange={(e) => setVisibility({ ...visibility, about: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-              </label>
+            {showSectionSettings && (
+              <div className="mt-4 space-y-2">
+                {/* Hero */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">Hero section</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.hero}
+                    onChange={(e) => setVisibility({ ...visibility, hero: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
 
-              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
-                <span className="text-sm font-medium text-foreground">
-                  Lessons ({selectedServices.length} selected)
-                </span>
-                <input
-                  type="checkbox"
-                  checked={visibility.lessons}
-                  onChange={(e) => setVisibility({ ...visibility, lessons: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-              </label>
+                {/* Gallery */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">Gallery</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.gallery}
+                    onChange={(e) => setVisibility({ ...visibility, gallery: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
 
-              {visibility.lessons ? (
-                <div className="ml-4 space-y-2 pl-4 border-l-2 border-primary/20">
-                  {services.map((service) => (
-                    <label key={service.id} className="flex items-start gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedServiceIds.includes(service.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedServiceIds([...selectedServiceIds, service.id]);
-                          } else {
-                            setSelectedServiceIds(
-                              selectedServiceIds.filter((id) => id !== service.id)
-                            );
-                          }
-                        }}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                      />
-                      <span className="text-foreground">{service.name}</span>
-                    </label>
-                  ))}
-                </div>
-              ) : null}
+                {/* About */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">About section</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.about}
+                    onChange={(e) => setVisibility({ ...visibility, about: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
 
-              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
-                <span className="text-sm font-medium text-foreground">
-                  Testimonials ({reviews.length} reviews)
-                </span>
-                <input
-                  type="checkbox"
-                  checked={visibility.reviews}
-                  onChange={(e) => setVisibility({ ...visibility, reviews: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-              </label>
+                {/* Lessons */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">
+                    Lessons ({selectedServices.length} selected)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.lessons}
+                    onChange={(e) => setVisibility({ ...visibility, lessons: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
 
-              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
-                <span className="text-sm font-medium text-foreground">Booking page</span>
-                <input
-                  type="checkbox"
-                  checked={visibility.booking}
-                  onChange={(e) => setVisibility({ ...visibility, booking: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-              </label>
+                {visibility.lessons && (
+                  <div className="ml-4 space-y-2 pl-4 border-l-2 border-primary/20">
+                    {services.map((service) => (
+                      <label key={service.id} className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedServiceIds.includes(service.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedServiceIds([...selectedServiceIds, service.id]);
+                            } else {
+                              setSelectedServiceIds(
+                                selectedServiceIds.filter((id) => id !== service.id)
+                              );
+                            }
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                        />
+                        <span className="text-foreground">{service.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
 
-              <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
-                <span className="text-sm font-medium text-foreground">
-                  Social links (from profile)
-                </span>
-                <input
-                  type="checkbox"
-                  checked={visibility.social}
-                  onChange={(e) => setVisibility({ ...visibility, social: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-              </label>
-            </div>
+                {/* Testimonials */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">
+                    Testimonials ({reviews.length} reviews)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.reviews}
+                    onChange={(e) => setVisibility({ ...visibility, reviews: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
+
+                {/* Booking */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">Booking page</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.booking}
+                    onChange={(e) => setVisibility({ ...visibility, booking: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
+
+                {/* Social links */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">
+                    Social links (from profile)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.social}
+                    onChange={(e) => setVisibility({ ...visibility, social: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
+
+                {/* FAQ */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">FAQ page</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.faq}
+                    onChange={(e) => setVisibility({ ...visibility, faq: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
+
+                {/* Contact */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">Contact page</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.contact}
+                    onChange={(e) => setVisibility({ ...visibility, contact: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
+
+                {/* Resources */}
+                <label className="flex items-center justify-between rounded-lg border border-border/60 bg-background/50 px-4 py-3">
+                  <span className="text-sm font-medium text-foreground">Resources</span>
+                  <input
+                    type="checkbox"
+                    checked={visibility.resources}
+                    onChange={(e) => setVisibility({ ...visibility, resources: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </label>
+              </div>
+            )}
           </section>
         </div>
 
@@ -946,15 +1033,17 @@ export function SiteEditor({
                       : theme
                   }
                   pageVisibility={{
+                    hero: previewMode === "published" ? ((publishedPreview?.site as any)?.show_hero ?? true) : visibility.hero,
+                    gallery: previewMode === "published" ? ((publishedPreview?.site as any)?.show_gallery ?? true) : visibility.gallery,
                     about: previewMode === "published" ? !!publishedPreview?.site?.show_about : visibility.about,
                     lessons: previewMode === "published" ? !!publishedPreview?.site?.show_lessons : visibility.lessons,
                     booking: previewMode === "published" ? !!publishedPreview?.site?.show_booking : visibility.booking,
                     reviews: previewMode === "published" ? !!publishedPreview?.site?.show_reviews : visibility.reviews,
                     social: previewMode === "published" ? !!publishedPreview?.site?.show_social_page : visibility.social,
-                    contact: false,
+                    contact: previewMode === "published" ? !!publishedPreview?.site?.show_contact : visibility.contact,
                     digital: false,
-                    faq: false,
-                    resources: false,
+                    faq: previewMode === "published" ? !!publishedPreview?.site?.show_faq : visibility.faq,
+                    resources: previewMode === "published" ? !!publishedPreview?.site?.show_resources : visibility.resources,
                   }}
                   heroImageUrl={previewMode === "published" ? (publishedPreview?.site?.hero_image_url ?? heroImageUrl) : heroImageUrl}
                   galleryImages={[]}

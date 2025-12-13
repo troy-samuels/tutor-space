@@ -10,60 +10,56 @@ type HeroProps = {
 export function Hero({ hero, socialProof }: HeroProps) {
 
   return (
-    <section className="relative overflow-hidden bg-brand-white py-20 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section className="relative overflow-hidden bg-brand-white py-12 sm:py-20 lg:py-32">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Hero content */}
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl space-y-2">
-            <span className="block">
-              All-in-One Platform for
-            </span>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-6xl space-y-1 sm:space-y-2">
+            <span className="block">{hero.headline}</span>
             <span className="block text-primary">
               <LanguageRolodex />
             </span>
-            <span className="block">
-              Language Tutors
-            </span>
+            <span className="block">{hero.variants.aspirationalHeadline}</span>
           </h1>
-          <p className="mt-6 text-lg leading-8 text-gray-700 sm:text-xl">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-gray-700 lg:text-xl">
             {hero.subheadline}
           </p>
 
           {/* CTAs */}
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6">
+          <div className="mt-8 sm:mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6">
             <Link
               href="/signup"
-              className="w-full rounded-md bg-primary px-8 py-3.5 text-center text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
+              className="w-full rounded-md bg-primary px-6 sm:px-8 py-3 sm:py-3.5 text-center text-sm sm:text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
             >
               {hero.primaryCTA}
             </Link>
             <Link
               href="#calendar-demo"
-              className="w-full text-center text-base font-semibold leading-7 text-foreground transition-colors hover:text-primary sm:w-auto"
+              className="w-full text-center text-sm sm:text-base font-semibold leading-7 text-foreground transition-colors hover:text-primary sm:w-auto"
             >
               {hero.secondaryCTA} <span aria-hidden="true">→</span>
             </Link>
           </div>
 
           {/* Social proof */}
-          <div className="mt-12 sm:mt-16">
-            <p className="text-sm font-medium text-gray-600">
+          <div className="mt-10 sm:mt-16">
+            <p className="text-xs sm:text-sm font-medium text-gray-600">
               {socialProof.text}
             </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-8">
+            <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-8">
               {socialProof.tutors.map((tutor, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-x-2 text-sm text-gray-500"
                 >
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center font-semibold text-primary">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-muted flex items-center justify-center font-semibold text-primary text-sm sm:text-base">
                     {tutor.name.charAt(0)}
                   </div>
                   <div className="text-left">
-                    <div className="font-medium text-foreground">
+                    <div className="font-medium text-foreground text-xs sm:text-sm">
                       {tutor.name}
                     </div>
-                    <div className="text-xs">{tutor.language}</div>
+                    <div className="text-[10px] sm:text-xs">{tutor.language}</div>
                   </div>
                 </div>
               ))}

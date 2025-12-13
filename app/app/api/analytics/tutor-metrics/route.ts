@@ -7,6 +7,11 @@ import {
   getServicePopularity,
   getBookingsByPeriod,
   getTotalRevenue,
+  getEngagementOverTime,
+  getProfileViews,
+  getStripeBalance,
+  getRevenueSourceBreakdown,
+  getRecentActivity,
 } from "@/lib/data/analytics-metrics";
 
 export const dynamic = "force-dynamic";
@@ -30,15 +35,31 @@ export async function GET(req: NextRequest) {
     const tutorId = tutorIdParam === user.id ? tutorIdParam : user.id;
 
     // Fetch all metrics in parallel
-    const [revenue, studentMetrics, bookingMetrics, servicePopularity, bookingsByPeriod, totalRevenue] =
-      await Promise.all([
-        getRevenueOverTime(tutorId, days, supabase),
-        getStudentMetrics(tutorId, days, supabase),
-        getBookingMetrics(tutorId, days, supabase),
-        getServicePopularity(tutorId, days, supabase),
-        getBookingsByPeriod(tutorId, days, supabase),
-        getTotalRevenue(tutorId, days, supabase),
-      ]);
+    const [
+      revenue,
+      studentMetrics,
+      bookingMetrics,
+      servicePopularity,
+      bookingsByPeriod,
+      totalRevenue,
+      engagementTrend,
+      profileViews,
+      stripeBalance,
+      revenueBreakdown,
+      recentActivity,
+    ] = await Promise.all([
+      getRevenueOverTime(tutorId, days, supabase),
+      getStudentMetrics(tutorId, days, supabase),
+      getBookingMetrics(tutorId, days, supabase),
+      getServicePopularity(tutorId, days, supabase),
+      getBookingsByPeriod(tutorId, days, supabase),
+      getTotalRevenue(tutorId, days, supabase),
+      getEngagementOverTime(tutorId, days, supabase),
+      getProfileViews(tutorId, days, supabase),
+      getStripeBalance(tutorId, supabase),
+      getRevenueSourceBreakdown(tutorId, supabase),
+      getRecentActivity(tutorId, 10, supabase),
+    ]);
 
     return NextResponse.json({
       revenue,
@@ -47,6 +68,11 @@ export async function GET(req: NextRequest) {
       servicePopularity,
       bookingsByPeriod,
       totalRevenue,
+      engagementTrend,
+      profileViews,
+      stripeBalance,
+      revenueBreakdown,
+      recentActivity,
     });
   } catch (error) {
     console.error("Error fetching tutor metrics:", error);

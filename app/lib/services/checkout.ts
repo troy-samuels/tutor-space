@@ -29,8 +29,8 @@ export async function createBookingCheckout(
     hasPaymentLink: params.hasPaymentLink,
   });
 
-  if (decision.route === "payment_link") {
-    return { redirectUrl: "payment_link" as const };
+  if (decision.route === "no_payment_method") {
+    throw new Error("Tutor is not set up to accept payments yet (Stripe Connect required).");
   }
 
   const fee =
@@ -64,5 +64,4 @@ export async function createBookingCheckout(
 
   return { sessionId: session.id, url: session.url };
 }
-
 

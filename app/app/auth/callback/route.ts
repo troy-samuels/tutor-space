@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/calendar";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/auth/error`);
@@ -29,6 +29,33 @@ export async function GET(request: Request) {
         .update({ last_login_at: new Date().toISOString() })
         .eq("id", user.id)
         .eq("role", "tutor");
+
+      // Auto-create trial subscription for new tutors on professional (free) plan
+      const { data: profile } = await serviceClient
+        .from("profiles")
+        .select("role, plan")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role === "tutor" && profile.plan === "professional") {
+        const { createAutoTrial } = await import("@/lib/actions/trial");
+        const result = await createAutoTrial(
+          user.id,
+          user.email ?? "",
+          user.user_metadata?.full_name as string | undefined
+        );
+
+        if (result.success) {
+          if ("skipped" in result) {
+            console.log(`[Auth Callback] Auto-trial skipped for ${user.id}: ${result.reason}`);
+          } else {
+            console.log(`[Auth Callback] Auto-trial started for ${user.id}: ${result.subscriptionId}`);
+          }
+        } else {
+          console.error(`[Auth Callback] Auto-trial failed for ${user.id}:`, result.error);
+          // Don't block the callback - user can still start trial manually from billing page
+        }
+      }
     }
   }
 

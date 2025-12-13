@@ -31,7 +31,7 @@ export function MockupHero({ profile, social, theme }: MockupHeroProps) {
               src={profile.avatarUrl}
               alt={profile.name}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               sizes="80px"
               loading="lazy"
               fetchPriority="low"

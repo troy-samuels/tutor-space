@@ -54,9 +54,9 @@ export function LifetimeHero({ onCheckout, isLoading }: LifetimeHeroProps) {
 
           {/* Price */}
           <div className="mt-8 flex items-center justify-center gap-4">
-            <span className="text-2xl text-gray-500 line-through">$29/month</span>
+            <span className="text-2xl text-gray-500 line-through">$39/month</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-6xl font-bold text-foreground">$49</span>
+              <span className="text-6xl font-bold text-foreground">$99</span>
               <span className="text-xl text-gray-600">one-time</span>
             </div>
           </div>
@@ -109,7 +109,7 @@ export function LifetimeHero({ onCheckout, isLoading }: LifetimeHeroProps) {
                 ) : (
                   <>
                     <Zap className="mr-2 h-5 w-5" />
-                    Get Lifetime Access for $49
+                    Get Lifetime Access for $99
                   </>
                 )}
               </Button>

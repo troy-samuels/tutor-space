@@ -95,9 +95,9 @@
     }
   },
   "tutorSignupPage": {
-    "title": "Join TutorLingua",
-    "subtitle": "Start with a 14-day free trial. Then $39/month or $299/year. Change billing anytime.",
-    "ctaLoginPrefix": "Already have an account?",
+    "title": "Create your studio.",
+    "subtitle": "Start your 14-day free trial. No commitment.",
+    "ctaLoginPrefix": "Already have a studio?",
     "ctaLogin": "Log in"
   },
   "forgotPasswordPage": {
@@ -105,6 +105,14 @@
     "subtitle": "Enter the email you use for TutorLingua and we'll send a reset link.",
     "ctaLoginPrefix": "Remembered your password?",
     "ctaLogin": "Back to login"
+  },
+  "publicProfileNotFound": {
+    "title": "Tutor profile not found",
+    "description": "The tutor page you tried to visit is not live. The link may be misspelled, unpublished, or the tutor moved to a new URL.",
+    "ctaExplore": "Explore tutors",
+    "ctaHome": "Go to homepage",
+    "ctaPublish": "Publish my profile",
+    "hint": "Looking for a specific tutor? Double-check the spelling or ask them for their latest TutorLingua link."
   },
   "studentLoginPage": {
     "brand": "TutorLingua",
@@ -141,7 +149,7 @@
     "terms": "Terms & Conditions",
     "and": "and",
     "privacy": "Privacy Notice",
-    "termsNote": "I understand TutorLingua only facilitates connections and is not a party to, nor liable for, any agreements between tutors and students.",
+    "termsNote": "I understand TutorLingua only facilitates connections and is not a party to, nor liable for, any agreements between tutors and students. I consent to AI processing of my data and learning content as described in the Privacy Policy.",
     "createAccount": "Create account",
     "creatingAccount": "Creating account...",
     "signIn": "Sign in",
@@ -245,5 +253,20 @@
     "stepPaid4": "Join the meeting link at the scheduled time",
     "backHome": "Back to Home",
     "bookingId": "Booking ID: {bookingId}"
+  },
+  "studioTier": {
+    "headline": "The Classroom That Takes Notes",
+    "perfectRecall": {
+      "title": "Perfect Recall",
+      "description": "Every lesson is transcribed automatically. Students search for that one word they forgot three weeks later. Nothing slips through."
+    },
+    "invisibleInsights": {
+      "title": "Invisible Insights",
+      "description": "Speaking time, vocabulary patterns, common mistakes—tracked silently in the background. You teach. The system watches."
+    },
+    "homeworkThatWrites": {
+      "title": "Homework That Writes Itself",
+      "description": "Review exercises generated from the lesson itself. Based on real errors, not generic templates."
+    }
   }
 }

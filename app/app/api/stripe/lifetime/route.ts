@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
-import { computeFounderPrice, getFounderPlanName, getFounderOfferLimit } from "@/lib/pricing/founder";
+import { computeFounderPrice } from "@/lib/pricing/founder";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,61 +14,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Service unavailable" }, { status: 500 });
     }
 
+    // Parse request body for source attribution and guest email
+    const body = await request.json().catch(() => ({}));
+    const { source = "lifetime_landing_page" } = body as { source?: string };
+
+    // Validate source parameter
+    const validSources = ["campaign_banner", "lifetime_landing_page"];
+    const trackingSource = validSources.includes(source) ? source : "lifetime_landing_page";
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Rate limit by user ID if authenticated, or by IP if guest
+    const rateLimitKey = user?.id || request.headers.get("x-forwarded-for") || "anonymous";
+    const rateLimitResult = await enforceCheckoutRateLimit({
+      supabaseAdmin,
+      userId: rateLimitKey,
+      req: request,
+      keyPrefix: "checkout:lifetime",
+      limit: 5,
+      windowSeconds: 60,
+    });
 
-    // Founder lifetime is limited to the first N tutors
-    const limit = getFounderOfferLimit();
-
-    const { data: existingProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("plan")
-      .eq("id", user.id)
-      .single();
-
-    const { count: founderCount, error: countError } = await supabaseAdmin
-      .from("profiles")
-      .select("id", { head: true, count: "exact" })
-      .eq("plan", "founder_lifetime");
-
-    if (countError) {
-      console.error("[Stripe] Failed to count founder seats", countError);
-      return NextResponse.json({ error: "Unable to verify offer availability" }, { status: 500 });
-    }
-
-    const claimed = founderCount ?? 0;
-    const hasFounderAccess = existingProfile?.plan === "founder_lifetime";
-    if (!hasFounderAccess && claimed >= limit) {
+    if (!rateLimitResult.ok) {
       return NextResponse.json(
-        { error: "Founder lifetime offer is sold out. Join the waitlist to be notified of the next release." },
-        { status: 403 }
+        { error: rateLimitResult.error || "Too many requests" },
+        { status: rateLimitResult.status ?? 429 }
       );
     }
 
     const price = computeFounderPrice(request.headers.get("accept-language"));
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
-    const successUrl = `${appUrl.replace(/\/$/, "")}/dashboard?checkout=success`;
-    const cancelUrl = `${appUrl.replace(/\/$/, "")}/dashboard?checkout=cancel`;
+    // Guest checkout goes to /lifetime/success, authenticated users go to /dashboard
+    const successUrl = user
+      ? `${appUrl.replace(/\/$/, "")}/dashboard?checkout=success`
+      : `${appUrl.replace(/\/$/, "")}/lifetime/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = user
+      ? `${appUrl.replace(/\/$/, "")}/dashboard?checkout=cancel`
+      : `${appUrl.replace(/\/$/, "")}/lifetime`;
 
-    const customer = await getOrCreateStripeCustomer({
-      userId: user.id,
-      email: user.email ?? "",
-      name: (user.user_metadata?.full_name as string | undefined) ?? undefined,
-      metadata: {
-        profileId: user.id,
-      },
-    });
+    // For authenticated users, get/create Stripe customer
+    // For guests, Stripe will collect email during checkout
+    let customerId: string | undefined;
+    if (user) {
+      const customer = await getOrCreateStripeCustomer({
+        userId: user.id,
+        email: user.email ?? "",
+        name: (user.user_metadata?.full_name as string | undefined) ?? undefined,
+        metadata: {
+          profileId: user.id,
+        },
+      });
+      customerId = customer.id;
+    }
 
-    const priceId = process.env.STRIPE_LIFETIME_PRICE_ID;
+    // Prefer the Pro lifetime price ID; keep STRIPE_LIFETIME_PRICE_ID as a deprecated alias.
+    const priceId = process.env.STRIPE_PRO_LIFETIME_PRICE_ID ?? process.env.STRIPE_LIFETIME_PRICE_ID;
     const usePriceId = price.currency.toLowerCase() === "gbp" && !!priceId;
 
     const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
+      // Use customer ID for authenticated users, otherwise Stripe collects email
+      ...(customerId ? { customer: customerId } : {}),
       mode: "payment",
       allow_promotion_codes: false,
       success_url: successUrl,
@@ -85,7 +93,7 @@ export async function POST(request: NextRequest) {
                 currency: price.currency.toLowerCase(),
                 product_data: {
                   name: "TutorLingua lifetime access",
-                  description: "2 months free, then lifetime access for a one-time payment.",
+                  description: "One-time payment for lifetime platform access.",
                 },
                 unit_amount: price.amountCents,
               },
@@ -93,8 +101,9 @@ export async function POST(request: NextRequest) {
             },
           ],
       metadata: {
-        userId: user.id,
-        plan: getFounderPlanName(),
+        userId: user?.id ?? "",
+        plan: "tutor_life",
+        source: trackingSource,
       },
     });
 

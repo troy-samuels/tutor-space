@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ProtectedRoute } from "@/components/auth/protected-route";
 import { DashboardShell } from "@/components/dashboard/shell";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { getPlanTier, hasProAccess, hasStudioAccess } from "@/lib/payments/subscriptions";
 import { createClient } from "@/lib/supabase/server";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export const metadata: Metadata = {
   title: "TutorLingua | Dashboard",
@@ -19,27 +21,38 @@ export default async function DashboardGroupLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role && profile.role !== "tutor") {
-      redirect("/student-auth/login");
-    }
+  // Server-side redirect for unauthenticated users
+  if (!user) {
+    redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role, subscription_status, avatar_url, plan, username")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role && profile.role !== "tutor") {
+    redirect("/student/login");
+  }
+
+  const plan: PlatformBillingPlan =
+    (profile?.plan as PlatformBillingPlan | null) ?? "professional";
+  const entitlements = {
+    plan,
+    tier: getPlanTier(plan),
+    isPaid: hasProAccess(plan),
+    hasProAccess: hasProAccess(plan),
+    hasStudioAccess: hasStudioAccess(plan),
+  } as const;
+
   return (
-    <ProtectedRoute
-      loadingFallback={
-        <div className="p-8 text-center text-sm text-muted-foreground">
-          Loading dashboard...
-        </div>
-      }
+    <AuthProvider
+      initialUser={user}
+      initialProfile={profile ?? null}
+      initialEntitlements={entitlements}
     >
       <DashboardShell>{children}</DashboardShell>
-    </ProtectedRoute>
+    </AuthProvider>
   );
 }

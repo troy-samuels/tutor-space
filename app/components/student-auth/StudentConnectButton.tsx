@@ -50,7 +50,7 @@ export function StudentConnectButton({ tutor, isLoggedIn }: StudentConnectButton
   if (!isLoggedIn) {
     return (
       <a
-        href={`/student-auth/signup?tutor=${tutor.username}`}
+        href={`/student/signup?tutor=${tutor.username}`}
         className="inline-flex items-center justify-center gap-2 rounded-full border border-primary px-6 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
       >
         <UserPlus className="h-4 w-4" />

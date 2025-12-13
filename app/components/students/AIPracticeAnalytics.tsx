@@ -14,21 +14,10 @@ import {
   BookOpen,
   Activity,
 } from "lucide-react";
-
-// Grammar category labels for display
-const GRAMMAR_LABELS: Record<string, string> = {
-  verb_tense: "Verb Tense",
-  subject_verb_agreement: "Subject-Verb Agreement",
-  preposition: "Prepositions",
-  article: "Articles",
-  word_order: "Word Order",
-  gender_agreement: "Gender Agreement",
-  conjugation: "Conjugation",
-  pronoun: "Pronouns",
-  plural_singular: "Plural/Singular",
-  spelling: "Spelling",
-  vocabulary: "Vocabulary",
-};
+import {
+  GRAMMAR_CATEGORY_LABELS,
+  normalizeGrammarCategorySlug,
+} from "@/lib/practice/grammar-categories";
 
 interface GrammarIssue {
   category_slug: string;
@@ -192,7 +181,7 @@ export function AIPracticeAnalytics({
                       {idx + 1}
                     </span>
                     <span className="text-sm text-foreground">
-                      {GRAMMAR_LABELS[issue.category_slug] || issue.label}
+                      {GRAMMAR_CATEGORY_LABELS[normalizeGrammarCategorySlug(issue.category_slug)] || issue.label}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

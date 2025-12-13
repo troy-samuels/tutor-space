@@ -172,6 +172,14 @@
           "Painel de controle executivo",
           "Full data export"
         ]
+      },
+      {
+        "name": "A Sala de Aula Que Toma Notas",
+        "items": [
+          "Memória Perfeita — Cada aula é transcrita automaticamente. Alunos encontram aquela palavra esquecida há três semanas.",
+          "Insights Invisíveis — Tempo de fala, padrões de vocabulário, erros comuns rastreados silenciosamente em segundo plano.",
+          "Tarefas Que Se Escrevem Sozinhas — Exercícios de revisão gerados a partir da própria aula. Baseados em erros reais, não modelos."
+        ]
       }
     ]
   },
@@ -474,5 +482,41 @@
       }
     ],
     "copyright": "© 2025 TutorLingua. Todos os direitos reservados."
+  },
+  "studioIntelligence": {
+    "badge": "Studio Intelligence",
+    "headline": "Seu assistente de ensino com IA",
+    "subheadline": "Enquanto você ensina, o TutorLingua ouve. Ele detecta dificuldades de pronúncia e cria exercícios direcionados automaticamente.",
+    "transcript": {
+      "recordingLabel": "Gravando",
+      "timer": "4:32",
+      "tutorLabel": "Tutor",
+      "studentLabel": "Aluno",
+      "lines": ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      "mispronouncedPrefix": "\"Muchas ",
+      "mispronouncedWord": "grassy-as",
+      "mispronouncedSuffix": "\"",
+      "mispronouncedHint": "Soa muito inglês",
+      "correction": "\"Quase! Tente 'grah-see-ahs' — role um pouco\"",
+      "correctedWord": "¡Gracias!",
+      "correctionHint": "Muito melhor!"
+    },
+    "connector": "A IA analisa a aula",
+    "detectedTitle": "Detectado nesta aula",
+    "detected": [
+      { "word": "\"gracias\"", "description": "Pronúncia soa muito inglês" },
+      { "word": "\"por favor\"", "description": "Falta o som suave do 'v'" }
+    ],
+    "vocab": {
+      "title": "5 novos termos",
+      "description": "Expansão de vocabulário"
+    },
+    "practiceTitle": "Prática gerada automaticamente",
+    "practice": [
+      { "title": "Exercício de saudações", "description": "gracias, hola, adiós, buenos días" },
+      { "title": "Prática de sons suaves", "description": "favor, vamos, nuevo, llave" },
+      { "title": "Baralho de flashcards", "description": "5 novas palavras da aula" }
+    ],
+    "saveNote": "Salvo no perfil do aluno automaticamente"
   }
 }

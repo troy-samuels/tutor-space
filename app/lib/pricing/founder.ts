@@ -1,5 +1,5 @@
 const DEFAULT_LIMIT = 10;
-const BASE_PRICE_GBP = 99;
+const BASE_PRICE_GBP = 76; // Produces $99 USD (76 * 1.3 = $98.8 → rounds to $99)
 
 type FounderPrice = {
   amount: number; // whole currency units, e.g. 129
@@ -77,6 +77,6 @@ export function getFounderOfferLimit(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_LIMIT;
 }
 
-export function getFounderPlanName(): "founder_lifetime" {
-  return "founder_lifetime";
+export function getFounderPlanName(): "tutor_life" {
+  return "tutor_life";
 }

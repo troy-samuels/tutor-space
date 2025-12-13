@@ -1,13 +1,13 @@
 # TutorLingua Economics: A Bootstrapped Business Model
 
 **Internal Planning Document**
-*Last Updated: December 2024*
+*Last Updated: December 2025*
 
 ---
 
 ## Executive Summary
 
-TutorLingua operates as a SaaS platform serving independent language tutors. The business model centers on a simple value proposition: tutors pay $29/month (or $199/year) for an all-in-one platform instead of losing $200-500/month to marketplace commissions.
+TutorLingua operates as a SaaS platform serving independent language tutors. The business model centers on a simple value proposition: tutors pay $39/month (or $299/year) for an all-in-one platform instead of losing $200-500/month to marketplace commissions.
 
 This document outlines conservative 12-month projections for growing to 100-500 paying tutors through organic channels only, with no external funding required.
 
@@ -42,16 +42,16 @@ For a tutor earning $2,000/month on Preply (new tutor, 33% commission):
 | Scenario | Monthly Cost | Annual Cost |
 |----------|--------------|-------------|
 | Preply commission | $660 | $7,920 |
-| TutorLingua subscription | $29 | $348 |
-| **Annual Savings** | - | **$7,572** |
+| TutorLingua subscription | $39 | $468 |
+| **Annual Savings** | - | **$7,452** |
 
 Even for tutors with lower commission rates (18% after 400+ hours), the savings are substantial:
 
 | Scenario | Monthly Cost | Annual Cost |
 |----------|--------------|-------------|
 | Preply commission (18%) | $360 | $4,320 |
-| TutorLingua subscription | $29 | $348 |
-| **Annual Savings** | - | **$3,972** |
+| TutorLingua subscription | $39 | $468 |
+| **Annual Savings** | - | **$3,852** |
 
 ### Target Customer Profile
 
@@ -67,23 +67,30 @@ Even for tutors with lower commission rates (18% after 400+ hours), the savings 
 
 ## 2. Revenue Model
 
-### Single All-Access Plan
+### Platform Subscription Plans
+
+**Tutor Plans:**
+| Plan | Price | Description |
+|------|-------|-------------|
+| `professional` | Free | Default for new signups (before trial) |
+| `all_access` | $39/month or $299/year | Paid subscription with all features |
+| `founder_lifetime` | $49 one-time | Lifetime deal (limited time) |
 
 - **All current features included:** booking, payments, CRM, marketing, AI, site builder, calendar sync
-- **Price:** $29/month or $199/year (effective ~$16.58/month on annual)
+- **Auto-trial:** New tutors start 14-day free trial automatically (no credit card required)
 - **Positioning:** Complements Preply/iTalki/Verbling with calendar sync and direct booking so tutors own student relationships
 
 ### Unit Economics
 
 | Metric | Value |
 |--------|-------|
-| ARPU (monthly customers) | $29/month |
-| ARPU (annual customers) | $199/year (~$16.58/month effective) |
-| Blended ARPU (50/50 mix) | ~$22.79/month |
-| Annual Revenue Per User (50/50 mix) | ~$274 |
-| Target LTV (24-month avg tenure, blended) | ~$548 |
+| ARPU (monthly customers) | $39/month |
+| ARPU (annual customers) | $299/year (~$24.92/month effective) |
+| Blended ARPU (50/50 mix) | ~$31.96/month |
+| Annual Revenue Per User (50/50 mix) | ~$384 |
+| Target LTV (24-month avg tenure, blended) | ~$768 |
 | Target CAC (organic only) | $50-100 |
-| LTV:CAC Ratio | 5:1 to 11:1 |
+| LTV:CAC Ratio | 7:1 to 15:1 |
 
 ---
 
@@ -354,7 +361,7 @@ This model assumes:
 1. **No external funding required** - Growth funded entirely by revenue
 2. **Flexible founder compensation** - Ability to operate at $0 salary initially
 3. **Organic-only acquisition** - No paid advertising budget
-4. **$29 price point validated** - Clear value proposition vs. commission savings
+4. **$39 price point validated** - Clear value proposition vs. commission savings
 5. **5% monthly churn achievable** - With proper onboarding and product-market fit
 6. **AI costs stable or decreasing** - Industry trend toward cheaper inference
 7. **Market accessibility** - Tutors can be reached through content and community
@@ -375,7 +382,7 @@ This model assumes:
 
 ### TutorLingua's Position
 
-1. **Clear value proposition** - $29/month vs. $200-500/month in commissions
+1. **Clear value proposition** - $39/month vs. $200-500/month in commissions
 2. **High gross margins** - ~95% at scale
 3. **Low fixed costs** - <$100/month infrastructure
 4. **Existing content moat** - 80+ SEO articles

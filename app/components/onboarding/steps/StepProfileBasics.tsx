@@ -5,6 +5,8 @@ import { Check, X, Loader2, Upload, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 import Image from "next/image";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { detectUserTimezone } from "@/lib/utils/timezones";
 
 type StepProfileBasicsProps = {
   profileId: string;
@@ -14,23 +16,6 @@ type StepProfileBasicsProps = {
   };
   onComplete: () => void;
 };
-
-const COMMON_TIMEZONES = [
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Phoenix",
-  "America/Anchorage",
-  "Pacific/Honolulu",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Asia/Tokyo",
-  "Asia/Shanghai",
-  "Asia/Dubai",
-  "Australia/Sydney",
-];
 
 export function StepProfileBasics({
   profileId,
@@ -42,7 +27,7 @@ export function StepProfileBasics({
   const [formData, setFormData] = useState({
     full_name: initialValues.full_name,
     username: initialValues.username,
-    timezone: "",
+    timezone: detectUserTimezone(),
     avatar_url: "",
   });
 
@@ -52,12 +37,6 @@ export function StepProfileBasics({
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-
-  // Auto-detect timezone on mount
-  useEffect(() => {
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    setFormData((prev) => ({ ...prev, timezone: detected }));
-  }, []);
 
   // Username availability check with debounce
   useEffect(() => {
@@ -333,32 +312,14 @@ export function StepProfileBasics({
         <label htmlFor="timezone" className="block text-sm font-medium text-foreground">
           Timezone <span className="text-red-500">*</span>
         </label>
-        <select
+        <TimezoneSelect
           id="timezone"
           value={formData.timezone}
-          onChange={(e) => handleChange("timezone", e.target.value)}
-          className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
-            errors.timezone
-              ? "border-red-300 focus:ring-red-500"
-              : "border-gray-300 focus:border-primary focus:ring-primary/20"
-          }`}
-        >
-          <option value="">Select timezone</option>
-          <optgroup label="Common">
-            {COMMON_TIMEZONES.map((tz) => (
-              <option key={tz} value={tz}>
-                {tz.replace(/_/g, " ")}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="All Timezones">
-            {Intl.supportedValuesOf("timeZone").map((tz) => (
-              <option key={tz} value={tz}>
-                {tz.replace(/_/g, " ")}
-              </option>
-            ))}
-          </optgroup>
-        </select>
+          onChange={(value) => handleChange("timezone", value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Auto-detected from your device; choose another if you work across regions.
+        </p>
         {errors.timezone && (
           <p className="text-xs text-red-600">{errors.timezone}</p>
         )}

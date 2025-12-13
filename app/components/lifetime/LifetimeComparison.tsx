@@ -5,20 +5,20 @@ import { Check, X } from "lucide-react";
 const comparisonData = {
   monthly: {
     title: "Monthly Plan",
-    price: "$29/month",
+    price: "$39/month",
     features: [
       { text: "All platform features", included: true },
       { text: "Unlimited students", included: true },
       { text: "Calendar sync", included: true },
       { text: "Payment processing", included: true },
       { text: "Ongoing monthly cost", included: false, negative: true },
-      { text: "$348/year", included: false, negative: true },
-      { text: "$1,044 over 3 years", included: false, negative: true },
+      { text: "$468/year", included: false, negative: true },
+      { text: "$1,404 over 3 years", included: false, negative: true },
     ],
   },
   lifetime: {
     title: "Lifetime Deal",
-    price: "$49 one-time",
+    price: "$99 one-time",
     badge: "Best Value",
     features: [
       { text: "All platform features", included: true },
@@ -110,10 +110,10 @@ export function LifetimeComparison() {
         <div className="mt-12 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 p-8 text-center">
           <p className="text-lg text-gray-700">
             With the monthly plan, you&apos;d spend{" "}
-            <span className="font-bold text-foreground">$348 per year</span>.
+            <span className="font-bold text-foreground">$468 per year</span>.
           </p>
           <p className="mt-2 text-2xl font-bold text-primary">
-            Save $299+ in year one alone with the lifetime deal.
+            Save $369+ in year one alone with the lifetime deal.
           </p>
         </div>
       </div>

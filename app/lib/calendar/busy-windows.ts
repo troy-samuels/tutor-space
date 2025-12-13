@@ -20,6 +20,7 @@ type CalendarConnectionRecord = {
   token_expires_at?: string | null;
   sync_status: string | null;
   sync_enabled?: boolean | null;
+  last_synced_at?: string | null;
 };
 
 type BusyWindowParams = {
@@ -29,6 +30,48 @@ type BusyWindowParams = {
 };
 
 const SYNCABLE_STATUSES = new Set(["idle", "healthy", "syncing"]);
+const STALE_THRESHOLD_MINUTES = 10;
+
+function isUndefinedColumnError(error: unknown, column: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  const maybeError = error as { code?: string; message?: string };
+  if (maybeError.code !== "42703") return false;
+  if (typeof maybeError.message !== "string") return false;
+  return maybeError.message.includes(column);
+}
+
+function removeColumnFromSelect(select: string, column: string): string {
+  return select
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && part !== column)
+    .join(", ");
+}
+
+async function fetchCalendarConnections(
+  adminClient: SupabaseClient,
+  tutorId: string,
+  select: string
+): Promise<{ data: CalendarConnectionRecord[] | null; error: unknown | null }> {
+  const primary = await adminClient.from("calendar_connections").select(select).eq("tutor_id", tutorId);
+  if (!primary.error) {
+    return { data: (primary.data ?? []) as unknown as CalendarConnectionRecord[], error: null };
+  }
+
+  if (isUndefinedColumnError(primary.error, "sync_enabled")) {
+    const fallbackSelect = removeColumnFromSelect(select, "sync_enabled");
+    const fallback = await adminClient
+      .from("calendar_connections")
+      .select(fallbackSelect)
+      .eq("tutor_id", tutorId);
+
+    if (!fallback.error) {
+      return { data: (fallback.data ?? []) as unknown as CalendarConnectionRecord[], error: null };
+    }
+  }
+
+  return { data: null, error: primary.error };
+}
 
 type ProviderEventResult = {
   providerEventId: string;
@@ -42,15 +85,35 @@ type ProviderEventResult = {
   isAllDay?: boolean;
 };
 
+type BusyWindowResult = {
+  windows: TimeWindow[];
+  usedCache: boolean;
+  hadLiveError: boolean;
+  lastSyncedAt: string | null;
+};
+
 export async function getCalendarBusyWindows({
   tutorId,
   start = new Date(),
   days = 14,
 }: BusyWindowParams): Promise<TimeWindow[]> {
+  const result = await getCalendarBusyWindowsWithStatus({ tutorId, start, days });
+  return result.windows;
+}
+
+export async function getCalendarBusyWindowsWithStatus({
+  tutorId,
+  start = new Date(),
+  days = 14,
+}: BusyWindowParams): Promise<{
+  windows: TimeWindow[];
+  staleProviders: CalendarProvider[];
+  unverifiedProviders: CalendarProvider[];
+}> {
   const adminClient = createServiceRoleClient();
   if (!adminClient) {
     console.warn("[CalendarBusy] Service role client unavailable; skipping busy-window sync.");
-    return [];
+    return { windows: [], staleProviders: [], unverifiedProviders: [] };
   }
 
   const windowStart = start;
@@ -58,19 +121,20 @@ export async function getCalendarBusyWindows({
   const timeMin = windowStart.toISOString();
   const timeMax = windowEnd.toISOString();
 
-  const { data, error } = await adminClient
-    .from("calendar_connections")
-    .select(
-      "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
-    )
-    .eq("tutor_id", tutorId);
+  const { data, error } = await fetchCalendarConnections(
+    adminClient,
+    tutorId,
+    "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled, last_synced_at"
+  );
 
   if (error) {
     console.error("[CalendarBusy] Failed to load connections", error);
-    return [];
+    return { windows: [], staleProviders: [], unverifiedProviders: [] };
   }
 
   const windows: TimeWindow[] = [];
+  const staleProviders = new Set<CalendarProvider>();
+  const unverifiedProviders = new Set<CalendarProvider>();
 
   for (const record of (data ?? []) as CalendarConnectionRecord[]) {
     if (record.sync_enabled === false) {
@@ -88,12 +152,31 @@ export async function getCalendarBusyWindows({
       timeMax,
     });
 
-    if (busy?.length) {
-      windows.push(...busy);
+    if (busy.windows.length) {
+      windows.push(...busy.windows);
+    }
+
+    if (busy.hadLiveError && busy.windows.length === 0) {
+      unverifiedProviders.add(record.provider);
+      continue;
+    }
+
+    if (busy.usedCache && isStale(busy.lastSyncedAt)) {
+      staleProviders.add(record.provider);
     }
   }
 
-  return windows.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  return {
+    windows: windows.sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
+    staleProviders: Array.from(staleProviders),
+    unverifiedProviders: Array.from(unverifiedProviders),
+  };
+}
+
+function isStale(timestamp: string | null | undefined): boolean {
+  if (!timestamp) return true;
+  const cutoff = Date.now() - STALE_THRESHOLD_MINUTES * 60_000;
+  return new Date(timestamp).getTime() < cutoff;
 }
 
 async function fetchBusyWindowsForConnection({
@@ -106,11 +189,24 @@ async function fetchBusyWindowsForConnection({
   adminClient: SupabaseClient;
   timeMin: string;
   timeMax: string;
-}): Promise<TimeWindow[] | null> {
+}): Promise<BusyWindowResult> {
+  const baseResult: BusyWindowResult = {
+    windows: [],
+    usedCache: false,
+    hadLiveError: false,
+    lastSyncedAt: connection.last_synced_at ?? null,
+  };
+
   const accessToken = await ensureFreshAccessToken(connection, adminClient);
 
   if (!accessToken) {
-    return null;
+    const cached = await fetchCachedBusyWindows({ adminClient, connection, timeMin, timeMax });
+    return {
+      ...baseResult,
+      windows: cached,
+      usedCache: true,
+      hadLiveError: true,
+    };
   }
 
   try {
@@ -133,7 +229,13 @@ async function fetchBusyWindowsForConnection({
         .eq("id", connection.id);
     }
 
-    return busy;
+    return {
+      ...baseResult,
+      windows: busy ?? [],
+      usedCache: false,
+      hadLiveError: false,
+      lastSyncedAt: new Date().toISOString(),
+    };
   } catch (error) {
     console.error("[CalendarBusy] Failed to fetch busy windows", error);
     await adminClient
@@ -143,7 +245,14 @@ async function fetchBusyWindowsForConnection({
         error_message: error instanceof Error ? error.message : "Unable to sync calendar.",
       })
       .eq("id", connection.id);
-    return null;
+
+    const cached = await fetchCachedBusyWindows({ adminClient, connection, timeMin, timeMax });
+    return {
+      ...baseResult,
+      windows: cached,
+      usedCache: true,
+      hadLiveError: true,
+    };
   }
 }
 
@@ -312,6 +421,44 @@ async function fetchOutlookBusyWindows(
     .filter((slot: TimeWindow | null): slot is TimeWindow => Boolean(slot));
 }
 
+async function fetchCachedBusyWindows({
+  adminClient,
+  connection,
+  timeMin,
+  timeMax,
+}: {
+  adminClient: SupabaseClient;
+  connection: CalendarConnectionRecord;
+  timeMin: string;
+  timeMax: string;
+}): Promise<TimeWindow[]> {
+  const { data, error } = await adminClient
+    .from("calendar_events")
+    .select("start_at, end_at")
+    .eq("tutor_id", connection.tutor_id)
+    .eq("provider", connection.provider)
+    .is("deleted_at", null)
+    .gte("start_at", timeMin)
+    .lte("end_at", timeMax)
+    .order("start_at", { ascending: true });
+
+  if (error) {
+    console.error("[CalendarBusy] Failed to load cached busy windows", error);
+    return [];
+  }
+
+  return (data ?? [])
+    .map((row: { start_at?: string | null; end_at?: string | null }) =>
+      row.start_at && row.end_at
+        ? {
+            start: row.start_at,
+            end: row.end_at,
+          }
+        : null
+    )
+    .filter((slot: TimeWindow | null): slot is TimeWindow => Boolean(slot));
+}
+
 function graphDateTimeToIso(value?: { dateTime?: string; timeZone?: string } | null): string | null {
   if (!value?.dateTime) {
     return null;
@@ -350,12 +497,11 @@ export async function createCalendarEventForBooking(
     return { success: false, error: "Service unavailable" };
   }
 
-  const { data, error } = await adminClient
-    .from("calendar_connections")
-    .select(
-      "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
-    )
-    .eq("tutor_id", params.tutorId);
+  const { data, error } = await fetchCalendarConnections(
+    adminClient,
+    params.tutorId,
+    "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
+  );
 
   if (error || !data || data.length === 0) {
     console.log("[CalendarEvent] No calendar connections for tutor", params.tutorId);
@@ -631,12 +777,11 @@ export async function getCalendarEventsWithDetails({
   const timeMin = windowStart.toISOString();
   const timeMax = windowEnd.toISOString();
 
-  const { data, error } = await adminClient
-    .from("calendar_connections")
-    .select(
-      "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
-    )
-    .eq("tutor_id", tutorId);
+  const { data, error } = await fetchCalendarConnections(
+    adminClient,
+    tutorId,
+    "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
+  );
 
   if (error) {
     console.error("[CalendarEvents] Failed to load connections", error);
@@ -679,11 +824,17 @@ async function fetchEventsForConnection({
   adminClient: SupabaseClient;
   timeMin: string;
   timeMax: string;
-}): Promise<CalendarEvent[] | null> {
+}): Promise<CalendarEvent[]> {
   const accessToken = await ensureFreshAccessToken(connection, adminClient);
 
   if (!accessToken) {
-    return null;
+    return fetchCachedEvents({
+      adminClient,
+      tutorId: connection.tutor_id,
+      provider: connection.provider,
+      timeMin,
+      timeMax,
+    });
   }
 
   try {
@@ -714,7 +865,7 @@ async function fetchEventsForConnection({
       });
     }
 
-    return events;
+    return events ?? [];
   } catch (error) {
     console.error("[CalendarEvents] Failed to fetch events", error);
     await adminClient
@@ -724,7 +875,14 @@ async function fetchEventsForConnection({
         error_message: error instanceof Error ? error.message : "Unable to sync calendar.",
       })
       .eq("id", connection.id);
-    return null;
+
+    return fetchCachedEvents({
+      adminClient,
+      tutorId: connection.tutor_id,
+      provider: connection.provider,
+      timeMin,
+      timeMax,
+    });
   }
 }
 
@@ -826,6 +984,53 @@ async function fetchOutlookEvents(
       };
     })
     .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
+}
+
+async function fetchCachedEvents({
+  adminClient,
+  tutorId,
+  provider,
+  timeMin,
+  timeMax,
+}: {
+  adminClient: SupabaseClient;
+  tutorId: string;
+  provider: CalendarProvider;
+  timeMin: string;
+  timeMax: string;
+}): Promise<CalendarEvent[]> {
+  const { data, error } = await adminClient
+    .from("calendar_events")
+    .select("provider_event_id, start_at, end_at, summary")
+    .eq("tutor_id", tutorId)
+    .eq("provider", provider)
+    .is("deleted_at", null)
+    .gte("start_at", timeMin)
+    .lte("end_at", timeMax)
+    .order("start_at", { ascending: true });
+
+  if (error) {
+    console.error("[CalendarEvents] Failed to load cached events", error);
+    return [];
+  }
+
+  return (data ?? [])
+    .map((row: { provider_event_id?: string; start_at?: string | null; end_at?: string | null; summary?: string | null }) => {
+      if (!row.start_at || !row.end_at || !row.provider_event_id) {
+        return null;
+      }
+      const event: CalendarEvent = {
+        id: `${provider}-${row.provider_event_id}`,
+        title: row.summary || "Busy",
+        start: row.start_at,
+        end: row.end_at,
+        type: provider,
+        source: provider === "google" ? "Google Calendar" : "Outlook Calendar",
+        packageType: "external",
+      };
+      return event;
+    })
+    .filter((event): event is CalendarEvent => event !== null);
 }
 
 function toProviderEventId(eventId: string, provider: CalendarProvider) {

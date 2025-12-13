@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminAuthProvider } from "@/components/admin/AdminAuthProvider";
-import { verifyAdminSession } from "@/lib/admin/auth";
+import { getAdminUser } from "@/lib/admin/get-admin-user";
 
 export const metadata = {
   title: "Admin Dashboard | TutorLingua",
@@ -13,7 +13,7 @@ export default async function AdminRootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const adminUser = await verifyAdminSession();
+  const adminUser = await getAdminUser();
 
   if (!adminUser) {
     redirect("/admin/login");
@@ -23,8 +23,8 @@ export default async function AdminRootLayout({
     <AdminAuthProvider
       initialAdmin={{
         id: adminUser.id,
-        email: adminUser.email,
-        fullName: adminUser.full_name,
+        email: adminUser.auth_user?.email ?? "",
+        fullName: adminUser.full_name ?? "",
         role: adminUser.role,
       }}
     >

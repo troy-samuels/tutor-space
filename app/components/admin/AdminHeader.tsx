@@ -50,7 +50,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   }[admin?.role || "support"];
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-6">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -61,6 +61,13 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle menu</span>
       </Button>
+
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-800">
+          <Shield className="h-3.5 w-3.5" />
+          Admin Mode
+        </span>
+      </div>
 
       {/* Spacer */}
       <div className="flex-1" />

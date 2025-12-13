@@ -36,7 +36,7 @@ test("routeStudentPayment chooses connect_destination when charges enabled", () 
   assert.equal(decision.reason, "connect_ready");
 });
 
-test("routeStudentPayment chooses payment_link when connect not ready but link present", () => {
+test("routeStudentPayment reports no method when connect not ready (Stripe Connect required)", () => {
   const tutorStripe: TutorStripeStatus = {
     accountId: "acct_123",
     chargesEnabled: false,
@@ -58,11 +58,11 @@ test("routeStudentPayment chooses payment_link when connect not ready but link p
   };
 
   const decision: RouteStudentPaymentDecision = routeStudentPayment(input);
-  assert.equal(decision.route, "payment_link");
-  assert.equal(decision.reason, "use_payment_link");
+  assert.equal(decision.route, "no_payment_method");
+  assert.equal(decision.reason, "no_payment_method_available");
 });
 
-test("routeStudentPayment reports no method when connect not ready and no link", () => {
+test("routeStudentPayment reports no method when connect not ready and no account", () => {
   const tutorStripe: TutorStripeStatus = {
     accountId: null,
     chargesEnabled: false,
@@ -84,6 +84,6 @@ test("routeStudentPayment reports no method when connect not ready and no link",
   };
 
   const decision: RouteStudentPaymentDecision = routeStudentPayment(input);
-  assert.equal(decision.route, "platform_fallback");
-  assert.equal(decision.reason, "connect_not_ready_fallback");
+  assert.equal(decision.route, "no_payment_method");
+  assert.equal(decision.reason, "no_payment_method_available");
 });

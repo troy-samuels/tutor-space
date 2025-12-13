@@ -9,6 +9,7 @@ interface VideoSettingsFormProps {
     video_provider: string;
     zoom_personal_link: string;
     google_meet_link: string;
+    microsoft_teams_link: string;
     calendly_link: string;
     custom_video_url: string;
     custom_video_name: string;
@@ -21,6 +22,8 @@ function getProviderDisplayName(provider: string, customName?: string): string {
       return "Zoom Personal Room";
     case "google_meet":
       return "Google Meet";
+    case "microsoft_teams":
+      return "Microsoft Teams";
     case "calendly":
       return "Calendly";
     case "custom":
@@ -38,6 +41,8 @@ function getCurrentUrl(data: VideoSettingsFormProps["initialData"]): string | nu
       return data.zoom_personal_link || null;
     case "google_meet":
       return data.google_meet_link || null;
+    case "microsoft_teams":
+      return data.microsoft_teams_link || null;
     case "calendly":
       return data.calendly_link || null;
     case "custom":
@@ -58,6 +63,7 @@ export default function VideoSettingsForm({
 
   const [formData, setFormData] = useState(initialData);
   const [savedData, setSavedData] = useState(initialData);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const currentUrl = getCurrentUrl(savedData);
   const hasConfiguredVideo = savedData.video_provider && savedData.video_provider !== "none" && currentUrl;
@@ -74,11 +80,31 @@ export default function VideoSettingsForm({
       } else {
         setMessage({
           type: "success",
-          text: "Video settings updated! Students will see this link in their booking confirmations.",
+          text: "Saved! Students will see this link when they book.",
         });
         setSavedData(formData);
       }
     });
+  };
+
+  const handleClearLinks = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      setTimeout(() => setConfirmClear(false), 3000);
+      return;
+    }
+    setFormData({
+      ...formData,
+      video_provider: "none",
+      zoom_personal_link: "",
+      google_meet_link: "",
+      microsoft_teams_link: "",
+      calendly_link: "",
+      custom_video_url: "",
+      custom_video_name: "",
+    });
+    setConfirmClear(false);
+    setMessage({ type: "success", text: "Video links cleared. Students won’t see a join link." });
   };
 
   const providers = [
@@ -90,6 +116,19 @@ export default function VideoSettingsForm({
       urlField: "zoom_personal_link" as const,
       placeholder: "https://zoom.us/j/1234567890",
       helpText: "Find this in your Zoom app under Meetings → Personal Room",
+      setupUrl: "https://zoom.us/meeting",
+    },
+    {
+      id: "microsoft_teams",
+      name: "Microsoft Teams",
+      description: "Use a reusable Teams meeting link. Great for business accounts.",
+      popular: true,
+      urlField: "microsoft_teams_link" as const,
+      placeholder: "https://teams.microsoft.com/l/meetup-join/...",
+      helpText: "In Teams: Calendar → Meet now → Get a link to share",
+      helpLink: "https://support.microsoft.com/en-us/office/create-a-link-or-code-for-joining-a-teams-meeting-775bd09d-bfbe-4c1d-998f-e22a35f8e3a9",
+      helpLinkText: "Need help? Learn how to get your Teams link →",
+      setupUrl: "https://teams.microsoft.com",
     },
     {
       id: "google_meet",
@@ -99,6 +138,7 @@ export default function VideoSettingsForm({
       urlField: "google_meet_link" as const,
       placeholder: "https://meet.google.com/xxx-yyyy-zzz",
       helpText: "Create one at meet.google.com → New meeting → Create for later",
+      setupUrl: "https://meet.google.com",
     },
     {
       id: "calendly",
@@ -109,6 +149,7 @@ export default function VideoSettingsForm({
       placeholder: "https://calendly.com/yourname",
       helpText: "Your Calendly booking page URL",
       warning: "Using Calendly bypasses our booking system. You'll manage bookings in Calendly instead.",
+      setupUrl: "https://calendly.com/app/scheduled_events/user/me",
     },
     {
       id: "custom",
@@ -172,10 +213,10 @@ export default function VideoSettingsForm({
             </div>
             <div>
               <p className="text-sm font-semibold text-amber-900">
-                Video link not configured
+                No video link yet
               </p>
               <p className="text-xs text-amber-700">
-                Choose a platform and add your meeting link so students can join lessons
+                Add a link so students can join
               </p>
             </div>
           </div>
@@ -188,6 +229,20 @@ export default function VideoSettingsForm({
           <Video className="h-5 w-5 text-primary" />
           Choose Your Video Platform
         </h2>
+
+        <div className="mb-3 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            Changing providers updates new bookings. Existing meetings stay unchanged.
+          </p>
+          <button
+            type="button"
+            onClick={handleClearLinks}
+            className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-3 py-1 font-semibold text-destructive transition hover:bg-destructive/10"
+          >
+            {confirmClear ? "Click to confirm removal" : "Remove all links"}
+          </button>
+        </div>
 
         <div className="space-y-3">
           {providers.map((provider) => (
@@ -202,6 +257,19 @@ export default function VideoSettingsForm({
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
+              {/* Setup URL icon - top right */}
+              {provider.setupUrl && (
+                <a
+                  href={provider.setupUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-100 transition"
+                  title={`Open ${provider.name}`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
               <div className="flex items-start gap-3">
                 <div
                   className={`flex h-5 w-5 items-center justify-center rounded-full border-2 mt-0.5 ${
@@ -214,7 +282,7 @@ export default function VideoSettingsForm({
                     <Check className="h-3 w-3 text-white" />
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 pr-6">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">
                       {provider.name}
@@ -274,6 +342,18 @@ export default function VideoSettingsForm({
                         <p className="text-xs text-gray-500 mt-1.5">
                           {provider.helpText}
                         </p>
+                        {provider.helpLink && (
+                          <a
+                            href={provider.helpLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {provider.helpLinkText || "Learn more →"}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
                         {provider.warning && (
                           <p className="text-xs text-amber-600 mt-2 flex items-start gap-1">
                             <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />

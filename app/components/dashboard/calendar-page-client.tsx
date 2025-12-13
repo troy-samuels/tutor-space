@@ -1,28 +1,63 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback } from "react";
+import { useState, useTransition, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Calendar, CalendarDays, CalendarRange, Plus, Settings } from "lucide-react";
+import { addDays, addMonths, addWeeks, endOfWeek, format, startOfWeek, subDays, subMonths, subWeeks } from "date-fns";
+import { Calendar, CalendarRange, Plus, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardBookingCalendar } from "./dashboard-booking-calendar";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarDayView } from "./calendar-day-view";
 import { CalendarDayPanel } from "./calendar-day-panel";
 import { QuickBlockDialog } from "./quick-block-dialog";
+import { CalendarBookingModal } from "./calendar-booking-modal";
+import { SlotQuickActions } from "./slot-quick-actions";
+import { EventDetailsPopover } from "./event-details-popover";
+import { BlockedTimePopover } from "./blocked-time-popover";
 import { Button } from "@/components/ui/button";
 import type { CalendarEvent, CalendarViewType } from "@/lib/types/calendar";
 import { rescheduleBooking } from "@/lib/actions/bookings";
 import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
 import { getDailyLessons, type DailyLesson } from "@/lib/actions/calendar-sidebar";
 import { getDayEvents } from "@/lib/actions/calendar-events";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { detectUserTimezone } from "@/lib/utils/timezones";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+type ServiceSummary = {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price_amount: number | null;
+  currency: string | null;
+};
+
+type StudentSummary = {
+  id: string;
+  full_name: string;
+  email: string;
+  timezone: string | null;
+};
 
 type CalendarPageClientProps = {
   signupDate: string | null;
+  services?: ServiceSummary[];
+  students?: StudentSummary[];
+  tutorTimezone?: string;
 };
 
-export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
-  const router = useRouter();
+export function CalendarPageClient({
+  signupDate,
+  services = [],
+  students = [],
+  tutorTimezone = "UTC",
+}: CalendarPageClientProps) {
   const [view, setView] = useState<CalendarViewType>("month");
+  const [activeDate, setActiveDate] = useState<Date>(new Date());
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [blockDialogDate, setBlockDialogDate] = useState<Date | undefined>();
   const [blockDialogHour, setBlockDialogHour] = useState<number | undefined>();
@@ -31,6 +66,23 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [, startMoveTransition] = useTransition();
+  const [secondaryTimezone, setSecondaryTimezone] = useState<string>("");
+
+  // Booking modal state
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [bookingModalDate, setBookingModalDate] = useState<Date | undefined>();
+  const [bookingModalHour, setBookingModalHour] = useState<number | undefined>();
+
+  // Quick actions popover state
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [quickActionsPosition] = useState({ x: 0, y: 0 });
+  const [pendingSlotDate, setPendingSlotDate] = useState<Date | undefined>();
+  const [pendingSlotHour, setPendingSlotHour] = useState<number | undefined>();
+
+  // Event details popover state
+  const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
+  const [eventPopoverPosition] = useState({ x: 0, y: 0 });
+  const [popoverEvent, setPopoverEvent] = useState<CalendarEvent | null>(null);
 
   // Sidebar state
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -59,7 +111,12 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
   // Handle date selection from calendar
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
+    setActiveDate(date);
+    setSelectedEvent(null);
     setSidebarOpen(true);
+    setQuickActionsOpen(false);
+    setEventPopoverOpen(false);
+    setPopoverEvent(null);
     loadDayData(date);
   }, [loadDayData]);
 
@@ -101,27 +158,66 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
   }, [refreshKey, selectedDate, sidebarOpen, loadDayData]);
 
   const handleEventClick = (event: CalendarEvent) => {
-    // TutorLingua bookings open reschedule dialog; others keep existing behavior
-    if (event.type === "tutorlingua") {
-      setSelectedEvent(event);
-      setRescheduleOpen(true);
-      return;
-    }
+    const eventDate = new Date(event.start);
+    setSelectedDate(eventDate);
+    setActiveDate(eventDate);
+    setSelectedEvent(event);
+    setSidebarOpen(true);
+    setEventPopoverOpen(false);
+    setPopoverEvent(null);
+    setQuickActionsOpen(false);
+    loadDayData(eventDate);
+  };
 
-    if (event.studentId) {
-      router.push(`/students/${event.studentId}`);
-    }
+  const handlePopoverReschedule = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setRescheduleOpen(true);
+  };
+
+  const handlePopoverRefresh = () => {
+    setRefreshKey((key) => key + 1);
   };
 
   const handleTimeSlotClick = (date: Date, hour: number) => {
-    setBlockDialogDate(date);
-    setBlockDialogHour(hour);
+    setPendingSlotDate(date);
+    setPendingSlotHour(hour);
+    setSelectedEvent(null);
+    setSelectedDate(date);
+    setActiveDate(date);
+    setSidebarOpen(true);
+    setQuickActionsOpen(false);
+    setEventPopoverOpen(false);
+    setPopoverEvent(null);
+    loadDayData(date);
+  };
+
+  const handleQuickActionsBlockTime = () => {
+    setBlockDialogDate(pendingSlotDate);
+    setBlockDialogHour(pendingSlotHour);
     setBlockDialogOpen(true);
   };
 
+  const handleQuickActionsCreateBooking = () => {
+    setBookingModalDate(pendingSlotDate);
+    setBookingModalHour(pendingSlotHour);
+    setBookingModalOpen(true);
+  };
+
+  useEffect(() => {
+    // Sync selected date used for side panel with activeDate changes
+    setSelectedDate(activeDate);
+  }, [activeDate]);
+
   const handleBlockSuccess = () => {
-    // Refresh the page to show the new blocked time
-    router.refresh();
+    // Refresh the calendar to show the new blocked time
+    setRefreshKey((key) => key + 1);
+    setFeedback({ type: "success", message: "Time blocked successfully." });
+  };
+
+  const handleBookingSuccess = () => {
+    // Refresh the calendar to show the new booking
+    setRefreshKey((key) => key + 1);
+    setFeedback({ type: "success", message: "Booking created successfully." });
   };
 
   const handleEventMove = (event: CalendarEvent, newStartIso: string) => {
@@ -156,19 +252,49 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
     }
   };
 
-  const viewDescriptions: Record<CalendarViewType, string> = {
-    month:
-      "Track every lesson at a glance. Dots show how many bookings you have per day—click a date to see the student roster.",
-    week:
-      "See your entire week with all lessons and external calendar events. Click empty slots to block time.",
-    day:
-      "Detailed view of a single day. Perfect for seeing exactly what's coming up.",
-  };
-
   const containerHeightClass =
     view === "month"
       ? "lg:min-h-[calc(100vh-4rem)]"
       : "lg:h-[calc(100vh-4rem)]";
+
+  const primaryTimezone = useMemo(
+    () => tutorTimezone || detectUserTimezone(),
+    [tutorTimezone]
+  );
+
+  const handlePrev = () => {
+    setFeedback(null);
+    setActiveDate((prev) => {
+      if (view === "month") return subMonths(prev, 1);
+      if (view === "week") return subWeeks(prev, 1);
+      return subDays(prev, 1);
+    });
+  };
+
+  const handleNext = () => {
+    setFeedback(null);
+    setActiveDate((prev) => {
+      if (view === "month") return addMonths(prev, 1);
+      if (view === "week") return addWeeks(prev, 1);
+      return addDays(prev, 1);
+    });
+  };
+
+  const handleToday = () => {
+    setFeedback(null);
+    const today = new Date();
+    setActiveDate(today);
+    setSelectedDate(today);
+  };
+
+  const toolbarLabel = useMemo(() => {
+    if (view === "week") {
+      const start = startOfWeek(activeDate, { weekStartsOn: 0 });
+      const end = endOfWeek(activeDate, { weekStartsOn: 0 });
+      return `${format(start, "MMMM")} ${format(start, "d")} - ${format(end, "d, yyyy")}`;
+    }
+    return format(activeDate, "MMMM yyyy");
+  }, [activeDate, view]);
 
   return (
     <div
@@ -178,99 +304,121 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
       ].join(" ")}
     >
       {/* Header */}
-      <div className="border-b bg-gradient-to-r from-background to-background-alt/70 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {viewDescriptions[view]}
-            </p>
-            {feedback ? (
-              <p
-                className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                  feedback.type === "success"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-destructive/10 text-destructive"
-                }`}
-              >
-                {feedback.message}
-              </p>
-            ) : null}
+      <div className="px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <span className="text-3xl font-semibold tracking-tight text-foreground">{toolbarLabel}</span>
+
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={handlePrev}
+              title="Previous"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={handleNext}
+              title="Next"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 px-3" onClick={handleToday}>
+              Today
+            </Button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-            <Button
-              asChild
-              size="sm"
-              className="hidden sm:inline-flex gap-2"
-              title="Add a new booking"
+          <div className="ml-auto flex items-center gap-2">
+            <div
+              role="tablist"
+              aria-label="Calendar views"
+              className="inline-flex overflow-hidden rounded-full border border-border bg-white/60 shadow-sm"
             >
-              <Link href="/bookings">
-                <Plus className="h-4 w-4" />
-                Add booking
-              </Link>
-            </Button>
+              {[
+                { value: "month" as const, label: "Month", Icon: Calendar },
+                { value: "week" as const, label: "Week", Icon: CalendarRange },
+              ].map(({ value, label, Icon }) => {
+                const isActive = view === value;
+                return (
+                  <button
+                    key={value}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setView(value)}
+                    className={[
+                      "relative flex items-center gap-1.5 px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                      isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                    {isActive ? (
+                      <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuItem className="flex-col items-start gap-2">
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">Display timezone</span>
+                  <TimezoneSelect
+                    value={secondaryTimezone}
+                    onChange={(tz) => setSecondaryTimezone(tz)}
+                    placeholder="Select timezone"
+                    autoDetect={false}
+                    showCurrentTime
+                    className="w-full"
+                  />
+                  {secondaryTimezone ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs font-semibold"
+                      onClick={() => setSecondaryTimezone("")}
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               asChild
               size="icon"
-              variant="outline"
-              className="sm:hidden"
-              title="Add a new booking"
+              className="h-10 w-10 rounded-full"
+              title="New booking"
             >
               <Link href="/bookings">
-                <Plus className="h-4 w-4" />
-                <span className="sr-only">Add booking</span>
+                <Plus className="h-5 w-5" />
               </Link>
             </Button>
-
-            {/* View Switcher */}
-            <div className="inline-flex rounded-lg border bg-muted/50 p-1">
-              <button
-                onClick={() => setView("month")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  view === "month"
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Calendar className="h-4 w-4" />
-                Month
-              </button>
-              <button
-                onClick={() => setView("week")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  view === "week"
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <CalendarRange className="h-4 w-4" />
-                Week
-              </button>
-              <button
-                onClick={() => setView("day")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  view === "day"
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <CalendarDays className="h-4 w-4" />
-                Day
-              </button>
-            </div>
-
-            {/* Calendar Settings Link */}
-            <Link
-              href="/settings/calendar"
-              className="flex h-9 w-9 items-center justify-center rounded-full border hover:bg-muted"
-              title="Calendar settings"
-            >
-              <Settings className="h-4 w-4" />
-            </Link>
           </div>
         </div>
 
+        {feedback ? (
+          <p
+            className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+              feedback.type === "success"
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-destructive/10 text-destructive"
+            }`}
+          >
+            {feedback.message}
+          </p>
+        ) : null}
       </div>
 
       {/* Main Content Area - Calendar + Sidebar */}
@@ -290,8 +438,11 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
           {view === "month" && (
             <DashboardBookingCalendar
               signupDate={signupDate}
-              selectedDate={selectedDate}
-              onDateSelect={handleDateSelect}
+              selectedDate={activeDate}
+              onDateSelect={(date) => {
+                setActiveDate(date);
+                handleDateSelect(date);
+              }}
             />
           )}
 
@@ -301,6 +452,10 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
               onTimeSlotClick={handleTimeSlotClick}
               onEventMove={handleEventMove}
               refreshKey={refreshKey}
+              primaryTimezone={primaryTimezone}
+              secondaryTimezone={secondaryTimezone || null}
+              activeDate={activeDate}
+              showHeaderControls={false}
             />
           )}
 
@@ -310,22 +465,60 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
               onTimeSlotClick={handleTimeSlotClick}
               onEventMove={handleEventMove}
               refreshKey={refreshKey}
+              primaryTimezone={primaryTimezone}
+              secondaryTimezone={secondaryTimezone || null}
+              activeDate={activeDate}
+              showHeaderControls={false}
             />
           )}
         </div>
 
-        {/* Day Details Sidebar - only visible on month view */}
-        {view === "month" && (
-          <CalendarDayPanel
-            date={selectedDate}
-            lessons={dailyLessons}
-            externalEvents={externalEvents}
-            isOpen={sidebarOpen}
-            onClose={handleSidebarClose}
-            onReschedule={handleRescheduleFromSidebar}
-          />
-        )}
       </div>
+
+      {/* Day Details Panel - fixed overlay, only visible on month view */}
+      <CalendarDayPanel
+        date={selectedDate}
+        lessons={dailyLessons}
+        externalEvents={externalEvents}
+        isOpen={sidebarOpen}
+        onClose={handleSidebarClose}
+        onReschedule={handleRescheduleFromSidebar}
+      />
+
+      {/* Quick Actions Popover */}
+      <SlotQuickActions
+        isOpen={quickActionsOpen}
+        onClose={() => setQuickActionsOpen(false)}
+        position={quickActionsPosition}
+        onBlockTime={handleQuickActionsBlockTime}
+        onCreateBooking={handleQuickActionsCreateBooking}
+      />
+
+      {/* Event Details Popover - Show different popover based on event type */}
+      {popoverEvent && popoverEvent.type === "blocked" ? (
+        <BlockedTimePopover
+          event={popoverEvent}
+          isOpen={eventPopoverOpen}
+          onClose={() => {
+            setEventPopoverOpen(false);
+            setPopoverEvent(null);
+          }}
+          position={eventPopoverPosition}
+          onRefresh={handlePopoverRefresh}
+        />
+      ) : popoverEvent ? (
+        <EventDetailsPopover
+          event={popoverEvent}
+          isOpen={eventPopoverOpen}
+          onClose={() => {
+            setEventPopoverOpen(false);
+            setPopoverEvent(null);
+          }}
+          position={eventPopoverPosition}
+          onReschedule={handlePopoverReschedule}
+          onRefresh={handlePopoverRefresh}
+        />
+      ) : null}
 
       {/* Quick Block Dialog */}
       <QuickBlockDialog
@@ -334,6 +527,18 @@ export function CalendarPageClient({ signupDate }: CalendarPageClientProps) {
         onSuccess={handleBlockSuccess}
         initialDate={blockDialogDate}
         initialHour={blockDialogHour}
+      />
+
+      {/* Calendar Booking Modal */}
+      <CalendarBookingModal
+        isOpen={bookingModalOpen}
+        onClose={() => setBookingModalOpen(false)}
+        onSuccess={handleBookingSuccess}
+        initialDate={bookingModalDate}
+        initialHour={bookingModalHour}
+        services={services}
+        students={students}
+        tutorTimezone={tutorTimezone}
       />
 
       <RescheduleDialog

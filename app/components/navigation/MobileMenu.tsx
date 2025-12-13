@@ -43,7 +43,7 @@ export function MobileMenu({ isOpen, onClose, links, brandHref = "/" }: MobileMe
           <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
             <button
               type="button"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-white text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FDF8F5] text-gray-700 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-primary"
               onClick={onClose}
             >
               <span className="sr-only">Close menu</span>
@@ -52,7 +52,7 @@ export function MobileMenu({ isOpen, onClose, links, brandHref = "/" }: MobileMe
           </div>
 
           {/* Menu content */}
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-brand-white px-6 pb-4 shadow-xl">
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#FDF8F5] px-6 pb-4 shadow-xl">
             <div className="flex h-16 shrink-0 items-center">
               <Logo href={brandHref} variant="wordmark" onClick={onClose} />
             </div>

@@ -25,6 +25,7 @@ export type StudentRecord = {
   email_opt_out: boolean;
   email_unsubscribe_token: string | null;
   last_reengage_email_at: string | null;
+  labels: string[];
   created_at: string;
   updated_at: string;
 };
@@ -56,6 +57,42 @@ export async function listStudents(): Promise<StudentRecord[]> {
     .order("full_name", { ascending: true });
 
   return (data as StudentRecord[] | null) ?? [];
+}
+
+/**
+ * Update student labels for organization
+ */
+export async function updateStudentLabels(
+  studentId: string,
+  labels: string[]
+): Promise<{ error?: string }> {
+  const { supabase, user } = await requireTutor();
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Validate and sanitize labels
+  const sanitizedLabels = labels
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && l.length <= 50)
+    .slice(0, 20); // Max 20 labels
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      labels: sanitizedLabels,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", studentId)
+    .eq("tutor_id", user.id);
+
+  if (error) {
+    console.error("[updateStudentLabels] Failed:", error);
+    return { error: "Failed to update labels" };
+  }
+
+  revalidatePath(`/students/${studentId}`);
+  return {};
 }
 
 export async function ensureStudent({
@@ -123,15 +160,15 @@ export async function ensureStudent({
     const bookingUrl =
       baseUrl && tutorProfile?.username
         ? `${baseUrl}/book/${tutorProfile.username}`
-        : `${baseUrl || "https://tutorlingua.co"}/student-auth/login`;
+        : `${baseUrl || "https://tutorlingua.co"}/student/login`;
 
     const nameParam = data.full_name ? `&name=${encodeURIComponent(data.full_name)}` : "";
     const requestAccessUrl =
       baseUrl && tutorProfile?.username
-        ? `${baseUrl}/student-auth/request-access?tutor=${encodeURIComponent(
+        ? `${baseUrl}/student/request-access?tutor=${encodeURIComponent(
             tutorProfile.username
           )}&tutor_id=${user.id}&email=${encodeURIComponent(normalizedEmail)}${nameParam}`
-        : `${baseUrl || "https://tutorlingua.co"}/student-auth/signup`;
+        : `${baseUrl || "https://tutorlingua.co"}/student/signup`;
 
     sendStudentInviteEmail({
       studentEmail: data.email,

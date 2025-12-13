@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarDays, Clock, Plus, Video, RefreshCw } from "lucide-react";
+import { CalendarDays, Clock, Plus, Video, RefreshCw, Sparkles } from "lucide-react";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { useAuth } from "@/lib/hooks/useAuth";
 import type { BookingRecord } from "@/lib/actions/bookings";
 import { createBooking, markBookingAsPaid } from "@/lib/actions/bookings";
 import type { StudentRecord } from "@/lib/actions/students";
@@ -19,12 +21,14 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FlowProgress } from "@/components/flows/FlowProgress";
+import { detectUserTimezone } from "@/lib/utils/timezones";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 
 type ServiceSummary = {
@@ -51,6 +55,7 @@ type BookingFormState = {
   studentTimezone: string;
   slot: GeneratedSlot | null;
   notes: string;
+  markAsPaid: boolean;
 };
 
 const BOOKING_STEPS = [
@@ -58,8 +63,6 @@ const BOOKING_STEPS = [
   { id: "student", title: "Learner", helper: "Existing or new student" },
   { id: "confirm", title: "Confirm & send", helper: "Add notes and finalize" },
 ] as const;
-
-const timezones = Intl.supportedValuesOf("timeZone");
 
 export function BookingDashboard({
   bookings,
@@ -83,14 +86,16 @@ export function BookingDashboard({
     studentId: students[0]?.id ?? null,
     name: "",
     email: "",
-    studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    studentTimezone: detectUserTimezone(),
     slot: null,
     notes: "",
+    markAsPaid: false,
   }));
   const [bookingStepIndex, setBookingStepIndex] = useState(0);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [paymentPending, startPaymentTransition] = useTransition();
+  const [selectedDay, setSelectedDay] = useState<string>("");
 
   const today = useMemo(() => new Date(), []);
   const selectedService = services.find((item) => item.id === formState.serviceId) ?? null;
@@ -133,15 +138,47 @@ export function BookingDashboard({
     );
   }, [availability, formState.serviceId, timezone, bookingList, busyWindows]);
 
+  const dayOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return generatedSlots.reduce<{ value: string; label: string }[]>((acc, slot) => {
+      const key = format(new Date(slot.start), "yyyy-MM-dd");
+      if (!seen.has(key)) {
+        seen.add(key);
+        acc.push({ value: key, label: slot.day_label });
+      }
+      return acc;
+    }, []);
+  }, [generatedSlots]);
+
+  const timeOptions = useMemo(
+    () =>
+      selectedDay
+        ? generatedSlots.filter((slot) => format(new Date(slot.start), "yyyy-MM-dd") === selectedDay)
+        : [],
+    [generatedSlots, selectedDay]
+  );
+
+  useEffect(() => {
+    if (formState.slot) {
+      const key = format(new Date(formState.slot.start), "yyyy-MM-dd");
+      setSelectedDay(key);
+      return;
+    }
+    if (dayOptions.length > 0 && !selectedDay) {
+      setSelectedDay(dayOptions[0].value);
+    }
+  }, [formState.slot, dayOptions, selectedDay]);
+
   function resetForm() {
     setFormState({
       serviceId: services[0]?.id ?? null,
       studentId: students[0]?.id ?? null,
       name: "",
       email: "",
-      studentTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      studentTimezone: detectUserTimezone(),
       slot: null,
       notes: "",
+      markAsPaid: false,
     });
     setBookingStepIndex(0);
   }
@@ -223,8 +260,23 @@ export function BookingDashboard({
           return;
         }
 
-        setBookingList((prev) => [...prev, result.data!].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()));
-        setStatus({ type: "success", message: "Booking created." });
+        let createdBooking = result.data!;
+
+        if (formState.markAsPaid) {
+          const paidResult = await markBookingAsPaid(createdBooking.id);
+          if (paidResult.error) {
+            setStatus({ type: "error", message: paidResult.error ?? "Could not mark as paid." });
+            return;
+          }
+          createdBooking = {
+            ...createdBooking,
+            status: "confirmed",
+            payment_status: "paid",
+          };
+        }
+
+        setBookingList((prev) => [...prev, createdBooking].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()));
+        setStatus({ type: "success", message: formState.markAsPaid ? "Booking created and marked as paid." : "Booking created." });
         resetForm();
         setIsModalOpen(false);
       })();
@@ -406,10 +458,10 @@ export function BookingDashboard({
       </div>
 
       {/* Add Booking Modal */}
-      <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-          <DialogHeader className="shrink-0">
-            <DialogTitle>Add Booking</DialogTitle>
+          <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
+            <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0 pb-6 text-left">
+            <DialogTitle className="font-serif text-3xl text-foreground">New Session</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             <p className="text-xs text-muted-foreground">
@@ -423,9 +475,9 @@ export function BookingDashboard({
             ) : null}
             <form className="space-y-4 text-sm" onSubmit={handleSubmit} id="booking-form">
               {bookingStepIndex === 0 ? (
-                <div className="space-y-4">
-                  <label className="flex flex-col gap-2">
-                    <span className="font-medium text-foreground">Service</span>
+                <div className="space-y-6">
+                  <label className="flex flex-col">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Service</span>
                     <select
                       value={formState.serviceId ?? ""}
                       onChange={(event) =>
@@ -434,7 +486,7 @@ export function BookingDashboard({
                           serviceId: event.target.value || null,
                         }))
                       }
-                      className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="">Select service</option>
                       {services.map((service) => (
@@ -445,36 +497,82 @@ export function BookingDashboard({
                     </select>
                   </label>
 
-                  <label className="flex flex-col gap-2">
-                    <span className="font-medium text-foreground">Time slot</span>
-                    <select
-                      value={formState.slot?.start ?? ""}
-                      onChange={(event) => {
-                        const selected = generatedSlots.find((slot) => slot.start === event.target.value) ?? null;
-                        setFormState((prev) => ({ ...prev, slot: selected }));
-                      }}
-                      className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="">Select slot</option>
-                      {generatedSlots.map((slot) => (
-                        <option key={slot.start} value={slot.start}>
-                          {slot.day_label} · {slot.time_label}
-                        </option>
-                      ))}
-                    </select>
-                    {generatedSlots.length === 0 && (
-                      <span className="text-xs text-destructive">
-                        Add availability to generate bookable slots.
-                      </span>
-                    )}
-                  </label>
+                  <div className="flex flex-col gap-4 sm:flex-row">
+                    <label className="flex w-full flex-col sm:w-1/2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Date</span>
+                      <select
+                        value={selectedDay}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSelectedDay(value);
+                          const firstSlot = generatedSlots.find(
+                            (slot) => format(new Date(slot.start), "yyyy-MM-dd") === value
+                          );
+                          setFormState((prev) => ({ ...prev, slot: firstSlot ?? null }));
+                        }}
+                        className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        {dayOptions.length === 0 ? (
+                          <option value="">No available dates</option>
+                        ) : (
+                          dayOptions.map((day) => (
+                            <option key={day.value} value={day.value}>
+                              {day.label}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </label>
+
+                    <label className="flex w-full flex-col sm:w-1/2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Start time</span>
+                      <select
+                        value={formState.slot?.start ?? ""}
+                        onChange={(event) => {
+                          const selected = timeOptions.find((slot) => slot.start === event.target.value) ?? null;
+                          setFormState((prev) => ({ ...prev, slot: selected }));
+                        }}
+                        className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        disabled={!selectedDay}
+                      >
+                        <option value="">{selectedDay ? "Select a time" : "Choose a date first"}</option>
+                        {timeOptions.map((slot) => (
+                          <option key={slot.start} value={slot.start}>
+                            {slot.time_label}
+                          </option>
+                        ))}
+                      </select>
+                      {generatedSlots.length === 0 && (
+                        <span className="text-xs text-destructive">
+                          Add availability to generate bookable slots.
+                        </span>
+                      )}
+                    </label>
+                  </div>
                 </div>
               ) : null}
 
               {bookingStepIndex === 1 ? (
                 <div className="space-y-4">
-                  <label className="flex flex-col gap-2">
-                    <span className="font-medium text-foreground">Student</span>
+                  <label className="flex flex-col">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Student</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            studentId: null,
+                            name: "",
+                            email: "",
+                          }))
+                        }
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground transition hover:bg-secondary/60"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        New
+                      </button>
+                    </div>
                     <select
                       value={formState.studentId ?? ""}
                       onChange={(event) =>
@@ -483,7 +581,7 @@ export function BookingDashboard({
                           studentId: event.target.value || null,
                         }))
                       }
-                      className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="">New student</option>
                       {students.map((student) => (
@@ -497,44 +595,37 @@ export function BookingDashboard({
                   {!formState.studentId ? (
                     <div className="space-y-3">
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="flex flex-col gap-2">
-                          <span className="font-medium text-foreground">Name</span>
+                        <label className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Name</span>
                           <input
                             type="text"
                             value={formState.name}
                             onChange={(event) =>
                               setFormState((prev) => ({ ...prev, name: event.target.value }))
                             }
-                            className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                           />
                         </label>
-                        <label className="flex flex-col gap-2">
-                          <span className="font-medium text-foreground">Email</span>
+                        <label className="flex flex-col">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Email</span>
                           <input
                             type="email"
                             value={formState.email}
                             onChange={(event) =>
                               setFormState((prev) => ({ ...prev, email: event.target.value }))
                             }
-                            className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                           />
                         </label>
                       </div>
-                      <label className="flex flex-col gap-2">
-                        <span className="font-medium text-foreground">Timezone</span>
-                        <select
+                      <label className="flex flex-col">
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Timezone</span>
+                        <TimezoneSelect
                           value={formState.studentTimezone}
-                          onChange={(event) =>
-                            setFormState((prev) => ({ ...prev, studentTimezone: event.target.value }))
+                          onChange={(timezoneValue) =>
+                            setFormState((prev) => ({ ...prev, studentTimezone: timezoneValue }))
                           }
-                          className="rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        >
-                          {timezones.map((tz) => (
-                            <option key={tz} value={tz}>
-                              {tz}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </label>
                     </div>
                   ) : selectedStudent?.timezone ? (
@@ -571,18 +662,27 @@ export function BookingDashboard({
                       </span>
                     </div>
                   </div>
-                  <label className="flex flex-col gap-2">
-                    <span className="font-medium text-foreground">Notes</span>
+                  <label className="flex flex-col">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Notes</span>
                     <textarea
                       value={formState.notes}
                       onChange={(event) =>
                         setFormState((prev) => ({ ...prev, notes: event.target.value }))
                       }
                       rows={2}
-                      className="rounded-xl border border-input bg-background px-3 py-2 text-sm leading-relaxed shadow-sm focus:border-brand-yellow focus:outline-none focus:ring-1 focus:ring-brand-yellow"
+                      className="rounded-xl border-0 bg-secondary/30 px-3 py-2 text-sm leading-relaxed shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="Optional notes for this session."
                     />
                   </label>
+                  <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-4 py-3">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Mark as Paid</span>
+                    <Switch
+                      checked={formState.markAsPaid}
+                      onCheckedChange={(checked) =>
+                        setFormState((prev) => ({ ...prev, markAsPaid: checked }))
+                      }
+                    />
+                  </div>
                 </div>
               ) : null}
             </form>
@@ -611,13 +711,11 @@ export function BookingDashboard({
               type="submit"
               form="booking-form"
               disabled={isPending}
-              className="flex-1"
+              className="w-full h-12 rounded-full shadow-lg shadow-primary/20"
             >
               {isPending
                 ? "Saving..."
-                : bookingStepIndex === BOOKING_STEPS.length - 1
-                  ? "Add Booking"
-                  : "Continue"}
+                : "Schedule Session"}
             </Button>
           </div>
         </DialogContent>
@@ -700,6 +798,8 @@ function BookingListItem({
   tutorId,
   onRescheduleSuccess,
 }: BookingListItemProps) {
+  const { entitlements } = useAuth();
+  const hasStudioAccess = entitlements?.hasStudioAccess ?? false;
   const isPaid = booking.payment_status === "paid";
   const isPendingPayment = booking.payment_status === "unpaid";
   const isConfirmed = booking.status === "confirmed";
@@ -778,6 +878,27 @@ function BookingListItem({
           </a>
         </div>
       )}
+
+      {/* Native Classroom Button */}
+      <div className="flex items-center gap-2 pt-2 border-t border-current/10">
+        {hasStudioAccess ? (
+          <Link
+            href={`/classroom/${booking.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 transition"
+          >
+            <Video className="h-3.5 w-3.5" />
+            Join Classroom
+          </Link>
+        ) : (
+          <Link
+            href="/settings/billing"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Upgrade for Native Classroom
+          </Link>
+        )}
+      </div>
 
       {/* Reschedule Button */}
       {canReschedule && (

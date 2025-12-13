@@ -57,8 +57,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false });
     }
 
-    const body = await request.json();
-    const { path, sessionId, referrer } = body ?? {};
+    let body: unknown = null;
+    try {
+      body = await request.json();
+    } catch {
+      // Fail silently - analytics shouldn't break the app
+      return NextResponse.json({ success: false });
+    }
+    const payload =
+      body && typeof body === "object" ? (body as Record<string, unknown>) : ({} as Record<string, unknown>);
+    const path = payload.path;
+    const sessionId = payload.sessionId;
+    const referrer = payload.referrer;
 
     if (
       typeof path !== "string" ||

@@ -42,17 +42,19 @@ type SubscriptionTemplateLite = {
   currency: string;
 };
 
+// Premium Typography Pairings - 11 font options
 type ThemeFont =
-  | "system"
-  | "serif"
-  | "mono"
-  | "rounded"
-  | "editorial"
-  | "humanist"
-  | "grotesk"
-  | "playful"
-  | "luxury"
-  | "tech";
+  | "system"        // Inter - Clean, Tech, Safe (body)
+  | "rounded"       // Manrope - Friendly, Modern, Soft (body)
+  | "luxury"        // DM Sans - High-end, Minimalist (body)
+  | "grotesk"       // Space Grotesk - Trendy, Gen-Z, Bold (heading)
+  | "serif"         // Playfair Display - Elegant, Magazine-style (heading)
+  | "dm-serif"      // DM Serif Display - Editorial headings (heading)
+  | "plus-jakarta"  // Plus Jakarta Sans - Swiss headings (heading)
+  | "source-sans"   // Source Sans 3 - Ivy League body (body)
+  | "spline-sans"   // Spline Sans - UI-focused headings (heading)
+  | "amatic-sc"     // Amatic SC - Hand-drawn headings (heading)
+  | "andika";       // Andika - Readable body (body)
 
 type ThemeSettings = {
   background: string;
@@ -60,22 +62,28 @@ type ThemeSettings = {
   gradientFrom: string;
   gradientTo: string;
   primary: string;
+  cardBg?: string;
+  textPrimary?: string;
+  textSecondary?: string;
   font: ThemeFont;
   spacing: "cozy" | "comfortable" | "compact";
 };
 
-// Modern Google Fonts for 2024-2025
+// Font stacks using CSS variables (set in layout.tsx) - Premium Typography Pairings
 const FONT_STACKS: Record<ThemeFont, string> = {
-  system: '"Inter", "Segoe UI", system-ui, sans-serif',
-  rounded: '"Manrope", "Segoe UI", system-ui, sans-serif',
-  tech: '"Poppins", "Segoe UI", system-ui, sans-serif',
-  serif: '"Merriweather", "Georgia", serif',
-  luxury: '"DM Sans", "Segoe UI", system-ui, sans-serif',
-  grotesk: '"Space Grotesk", system-ui, sans-serif',
-  humanist: '"Plus Jakarta Sans", system-ui, sans-serif',
-  editorial: '"Playfair Display", "Georgia", serif',
-  playful: '"Nunito", "Quicksand", system-ui, sans-serif',
-  mono: '"JetBrains Mono", "SFMono-Regular", monospace',
+  // Body fonts
+  system: 'var(--font-inter), "Inter", system-ui, sans-serif',
+  rounded: 'var(--font-manrope), "Manrope", system-ui, sans-serif',
+  luxury: 'var(--font-dm-sans), "DM Sans", system-ui, sans-serif',
+  "source-sans": 'var(--font-source-sans), "Source Sans 3", system-ui, sans-serif',
+  andika: 'var(--font-andika), "Andika", system-ui, sans-serif',
+  // Heading fonts
+  grotesk: 'var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif',
+  serif: 'var(--font-playfair-display), "Playfair Display", Georgia, serif',
+  "dm-serif": 'var(--font-dm-serif-display), "DM Serif Display", Georgia, serif',
+  "plus-jakarta": 'var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, sans-serif',
+  "spline-sans": 'var(--font-spline-sans), "Spline Sans", system-ui, sans-serif',
+  "amatic-sc": 'var(--font-amatic-sc), "Amatic SC", cursive, sans-serif',
 };
 
 // Placeholder defaults for empty content
@@ -119,6 +127,15 @@ type AdditionalPages = {
   resources: Array<{ title: string; url: string; description?: string }>;
 };
 
+// Language Row types for Cultural Banner
+type LanguageWithFlag = {
+  name: string;
+  flag: string;
+};
+
+// Border radius options per archetype
+type BorderRadius = "lg" | "xl" | "2xl" | "3xl";
+
 type SitePreviewProps = {
   profile: EditorProfile;
   about: { title: string; subtitle: string; body: string };
@@ -143,11 +160,15 @@ type SitePreviewProps = {
   showDigital?: boolean;
   showSocialIconsHeader: boolean;
   showSocialIconsFooter?: boolean;
-  heroStyle: "minimal" | "portrait" | "banner";
+  heroStyle?: "banner" | "minimal" | "portrait"; // Cultural Banner is default
   lessonsStyle: "cards" | "list";
   reviewsStyle: "cards" | "highlight";
   page: SitePageView;
   onNavigate?: (page: SitePageView) => void;
+  // New props for Cultural Banner / Language Niche Edition
+  languages?: LanguageWithFlag[];
+  borderRadius?: BorderRadius;
+  headingFont?: ThemeFont;
 };
 
 // Helper function to determine if a color is dark
@@ -206,7 +227,8 @@ function GallerySection({ images, borderColor, sectionBg, theme }: GallerySectio
       <section
         className="rounded-3xl p-4 shadow-sm"
         style={{
-          backgroundColor: sectionBg
+          backgroundColor: sectionBg,
+          border: `1px solid ${borderColor}`,
         }}
       >
         <div className={cn("grid gap-2", getGridClass(images.length))}>
@@ -313,6 +335,7 @@ function GalleryLightbox({ images, currentIndex, onClose, onNavigate, primaryCol
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
+          style={{ outlineColor: primaryColor }}
         >
           {/* Close button */}
           <button
@@ -320,6 +343,7 @@ function GalleryLightbox({ images, currentIndex, onClose, onNavigate, primaryCol
             onClick={onClose}
             className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
             aria-label="Close gallery"
+            style={{ borderColor: primaryColor }}
           >
             <X className="h-6 w-6" />
           </button>
@@ -417,19 +441,30 @@ export function SitePreview(props: SitePreviewProps) {
     pageVisibility,
     heroImageUrl,
     galleryImages = [],
-    contactCTA,
     socialLinks,
     additionalPages,
     booking,
-    showSocialIconsHeader,
-    heroStyle,
+    heroStyle = "banner", // Cultural Banner is default
     lessonsStyle,
     page,
     onNavigate,
+    languages = [],
+    borderRadius = "3xl",
+    headingFont,
   } = props;
   const [bookingOpen, setBookingOpen] = useState(false);
   const [subscribingTemplateId, setSubscribingTemplateId] = useState<string | null>(null);
   const previewFont = FONT_STACKS[theme.font] ?? FONT_STACKS.system;
+  const previewHeadingFont = headingFont ? FONT_STACKS[headingFont] : previewFont;
+
+  // Border radius mapping for Cultural Banner
+  const radiusMap: Record<BorderRadius, string> = {
+    lg: "0.5rem",
+    xl: "0.75rem",
+    "2xl": "1rem",
+    "3xl": "1.5rem",
+  };
+  const themeBorderRadius = radiusMap[borderRadius];
 
   // Handle native share
   const handleShare = async () => {
@@ -449,7 +484,7 @@ export function SitePreview(props: SitePreviewProps) {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareUrl);
       }
-    } catch (err) {
+    } catch {
       // User cancelled or error - silently ignore
     }
   };
@@ -494,11 +529,11 @@ export function SitePreview(props: SitePreviewProps) {
   // Determine if the background is dark
   const isDark = isColorDark(theme.background);
 
-  // Flat solid color values (no rgba, no transparency)
-  const sectionBg = isDark ? "#1a1a1a" : "#ffffff";
-  const cardBg = isDark ? "#222222" : "#ffffff";
-  const textPrimary = isDark ? "#ffffff" : "#0a0a0a";
-  const textSecondary = isDark ? "#b0b0b0" : "#666666";
+  // Use stored theme colors if available, otherwise compute from background
+  const sectionBg = theme.cardBg || (isDark ? "#1a1a1a" : "#ffffff");
+  const cardBg = theme.cardBg || (isDark ? "#222222" : "#ffffff");
+  const textPrimary = theme.textPrimary || (isDark ? "#ffffff" : "#0a0a0a");
+  const textSecondary = theme.textSecondary || (isDark ? "#b0b0b0" : "#666666");
   const borderColor = isDark ? "#333333" : "#e5e5e5";
 
   // Hero content with placeholder fallbacks
@@ -550,7 +585,7 @@ export function SitePreview(props: SitePreviewProps) {
     );
   };
 
-  const renderAvatar = (size = 96) => {
+  const renderAvatar = (size = 100, showGlow = true) => {
     const getInitials = (name: string) => {
       const parts = name.trim().split(/\s+/);
       if (parts.length >= 2) {
@@ -559,15 +594,20 @@ export function SitePreview(props: SitePreviewProps) {
       return name.substring(0, 2).toUpperCase();
     };
 
+    // Container is 8px larger than avatar
+    const containerSize = size + 8;
+
     return (
-      <div className="relative" style={{ width: size + 8, height: size + 8 }}>
-        {/* Soft glow behind avatar */}
+      <div className="relative" style={{ width: containerSize, height: containerSize }}>
+        {/* Soft glow behind avatar - blur-2xl and 20% opacity per Premium spec */}
+        {showGlow && (
+          <div
+            className="absolute inset-0 rounded-full blur-2xl opacity-20"
+            style={{ backgroundColor: theme.primary }}
+          />
+        )}
         <div
-          className="absolute inset-0 rounded-full blur-xl opacity-25"
-          style={{ backgroundColor: theme.primary }}
-        />
-        <div
-          className="relative overflow-hidden rounded-full shadow-xl ring-4 ring-white/90 flex items-center justify-center"
+          className="relative overflow-hidden rounded-full shadow-2xl ring-4 ring-white flex items-center justify-center"
           style={{
             width: size,
             height: size,
@@ -598,34 +638,162 @@ export function SitePreview(props: SitePreviewProps) {
     );
   };
 
+  // Cultural Banner Hero Section - Language Niche Edition
   const heroSection = (() => {
-    const mediaBlock = heroImageUrl ? (
-      <div
-        className="overflow-hidden rounded-2xl"
-        style={{
-          backgroundColor: cardBg
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={heroImageUrl} alt="Hero visual" className="h-36 w-full object-cover" />
-      </div>
-    ) : null;
+    // Get initials for avatar fallback
+    const getInitials = (name: string) => {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    };
 
+    // Cultural Banner layout (default and primary layout)
+    if (heroStyle === "banner" || heroStyle === undefined) {
+      return (
+        <section className="relative w-full">
+          {/* Banner: h-36 mobile / h-44 desktop */}
+          <div
+            className="relative h-36 md:h-44 w-full overflow-hidden"
+            style={{ borderRadius: `${themeBorderRadius} ${themeBorderRadius} 0 0` }}
+          >
+            {heroImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={heroImageUrl}
+                alt="Banner"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div
+                className="h-full w-full"
+                style={{
+                  background: `linear-gradient(135deg, ${theme.primary}20, ${theme.primary}05)`,
+                }}
+              />
+            )}
+            {/* Overlay gradient for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+          </div>
+
+          {/* Profile content - overlaps banner */}
+          <div
+            className="relative px-6 pb-6 text-center"
+            style={{ backgroundColor: theme.background }}
+          >
+            {/* Avatar: 112px (w-28 h-28), -mt-14 overlap, ring matches background */}
+            <div className="relative -mt-14 inline-block">
+              <div
+                className="h-28 w-28 rounded-full shadow-lg flex items-center justify-center overflow-hidden"
+                style={{
+                  backgroundColor: profile.avatar_url ? cardBg : theme.primary,
+                  boxShadow: `0 0 0 4px ${theme.background}`,
+                }}
+              >
+                {profile.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt={`${profile.full_name} avatar`}
+                    width={112}
+                    height={112}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="font-semibold text-white"
+                    style={{ fontSize: "2.8rem" }}
+                  >
+                    {getInitials(profile.full_name || profile.username)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Identity Stack */}
+            <div className="mt-3">
+              {/* Name: text-xl md:text-2xl - compact sizing */}
+              <h1
+                className={cn(
+                  "text-xl md:text-2xl font-bold tracking-tight",
+                  isHeroTitlePlaceholder && "opacity-40"
+                )}
+                style={{ color: textPrimary, fontFamily: previewHeadingFont }}
+              >
+                {heroTitle}
+              </h1>
+
+              {/* Language Row: flag emojis + language names */}
+              {languages.length > 0 && (
+                <div className="flex items-center justify-center gap-2 mt-2 text-sm font-semibold">
+                  {languages.map((lang, i) => (
+                    <span key={lang.name} style={{ color: textPrimary }}>
+                      {i > 0 && (
+                        <span className="mx-1" style={{ color: textSecondary, opacity: 0.4 }}>
+                          •
+                        </span>
+                      )}
+                      {lang.flag} {lang.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Tagline */}
+              {heroSubtitle && (
+                <p
+                  className={cn(
+                    "text-sm font-medium mt-1",
+                    isHeroSubtitlePlaceholder && "opacity-40"
+                  )}
+                  style={{ color: textSecondary }}
+                >
+                  {heroSubtitle}
+                </p>
+              )}
+            </div>
+
+            {/* Social icons - below tagline */}
+            {socialLinks.length > 0 && (
+              <div className="mt-4 flex justify-center opacity-70 hover:opacity-100 transition-opacity">
+                {renderSocialIconChips()}
+              </div>
+            )}
+
+            {/* Trust indicator */}
+            <div
+              className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+              style={{
+                backgroundColor: `${theme.primary}10`,
+                color: theme.primary,
+              }}
+            >
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Trial lesson available
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // Legacy: Portrait layout (for backwards compatibility)
     if (heroStyle === "portrait") {
       return (
         <section
           className="grid place-items-center gap-4 p-5 text-center"
-          style={{
-            backgroundColor: sectionBg
-          }}
+          style={{ backgroundColor: sectionBg }}
         >
           <div className="flex flex-col items-center gap-3">
-            {renderAvatar(96)}
-            {/* Social icons - always show under avatar */}
+            {renderAvatar(100, false)}
             {socialLinks.length > 0 && (
               <div className="flex justify-center">{renderSocialIconChips()}</div>
             )}
-            {mediaBlock}
           </div>
           <div className="space-y-2">
             <p
@@ -634,81 +802,59 @@ export function SitePreview(props: SitePreviewProps) {
             >
               Featured tutor
             </p>
-            <h1 className="text-2xl font-bold" style={{ color: textPrimary }}>{heroTitle}</h1>
-            {heroSubtitle ? (
-              <p className="text-sm" style={{ color: textSecondary }}>{heroSubtitle}</p>
-            ) : null}
+            <h1
+              className="text-xl md:text-2xl font-bold tracking-tight"
+              style={{ color: textPrimary, fontFamily: previewHeadingFont }}
+            >
+              {heroTitle}
+            </h1>
+            {heroSubtitle && (
+              <p className="text-base" style={{ color: textSecondary }}>
+                {heroSubtitle}
+              </p>
+            )}
           </div>
         </section>
       );
     }
 
-    if (heroStyle === "banner") {
-      // Name-first layout: Name → Tagline → CTA → Avatar → Trust
-      return (
-        <section
-          className="p-6 text-center"
-          style={{
-            backgroundColor: sectionBg
-          }}
-        >
-          {/* Name-first order (differentiator) */}
-          <h1
-            className={cn("text-2xl font-bold", isHeroTitlePlaceholder && "opacity-50 italic")}
-            style={{ color: textPrimary }}
-          >
-            {heroTitle}
-          </h1>
-          <p
-            className={cn("mt-2 text-sm", isHeroSubtitlePlaceholder && "opacity-50 italic")}
-            style={{ color: textSecondary }}
-          >
-            {heroSubtitle}
-          </p>
-
-          {/* Avatar */}
-          <div className="mt-5">{renderAvatar(80)}</div>
-
-          {/* Social icons - always show under avatar */}
-          {socialLinks.length > 0 && (
-            <div className="mt-3 flex justify-center">{renderSocialIconChips()}</div>
-          )}
-
-          {/* Trust indicator */}
-          <p className="mt-3 text-xs" style={{ color: textSecondary, opacity: 0.8 }}>
-            ✓ Trial lesson available
-          </p>
-
-          {/* Media block if present */}
-          {mediaBlock ? <div className="mt-5 w-full">{mediaBlock}</div> : null}
-        </section>
-      );
-    }
-
-    // Minimal style - clean but with visual polish
+    // Legacy: Minimal layout (for backwards compatibility)
     return (
       <section
         className="flex flex-col items-center p-8 md:p-10 lg:p-12 text-center"
-        style={{
-          backgroundColor: sectionBg
-        }}
+        style={{ backgroundColor: sectionBg }}
       >
-        {/* Avatar with premium styling */}
-        {renderAvatar(100)}
+        {renderAvatar(112, false)}
 
-        {/* Name and tagline */}
         <h1
           className={cn(
-            "mt-6 text-2xl font-bold tracking-tight leading-tight",
+            "mt-6 text-xl md:text-2xl font-bold tracking-tight leading-tight",
             isHeroTitlePlaceholder && "opacity-40"
           )}
-          style={{ color: textPrimary }}
+          style={{ color: textPrimary, fontFamily: previewHeadingFont }}
         >
           {heroTitle}
         </h1>
+
+        {/* Language Row for minimal layout */}
+        {languages.length > 0 && (
+          <div className="flex items-center justify-center gap-2 mt-2 text-sm font-semibold">
+            {languages.map((lang, i) => (
+              <span key={lang.name} style={{ color: textPrimary }}>
+                {i > 0 && (
+                  <span className="mx-1" style={{ color: textSecondary, opacity: 0.4 }}>
+                    •
+                  </span>
+                )}
+                {lang.flag} {lang.name}
+              </span>
+            ))}
+          </div>
+        )}
+
         <p
           className={cn(
-            "mt-2 max-w-xs text-base font-medium leading-relaxed",
+            "mt-2 max-w-80 text-base font-medium leading-relaxed",
             isHeroSubtitlePlaceholder && "opacity-40"
           )}
           style={{ color: textSecondary }}
@@ -716,29 +862,28 @@ export function SitePreview(props: SitePreviewProps) {
           {heroSubtitle}
         </p>
 
-        {/* Social icons - below name/tagline, more subtle */}
         {socialLinks.length > 0 && (
           <div className="mt-4 flex justify-center opacity-70 hover:opacity-100 transition-opacity">
             {renderSocialIconChips()}
           </div>
         )}
 
-        {/* Trust indicator - styled pill badge */}
         <div
           className="mt-5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
           style={{
-            backgroundColor: `${theme.primary}15`,
-            color: theme.primary
+            backgroundColor: `${theme.primary}10`,
+            color: theme.primary,
           }}
         >
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
           </svg>
           Trial lesson available
         </div>
-
-        {/* Media block if present */}
-        {mediaBlock ? <div className="mt-6 w-full">{mediaBlock}</div> : null}
       </section>
     );
   })();
@@ -765,7 +910,7 @@ export function SitePreview(props: SitePreviewProps) {
                   <p className="text-sm" style={{ color: textSecondary }}>{svc.description}</p>
                 ) : null}
               </div>
-              <div className="text-sm font-semibold" style={{ color: textPrimary }}>
+              <div className="text-sm font-semibold" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>
                 {svc.price != null ? formatCurrency(svc.price, svc.currency || "USD") : ""}
               </div>
             </div>
@@ -794,7 +939,7 @@ export function SitePreview(props: SitePreviewProps) {
                 {svc.duration_minutes ? `${svc.duration_minutes} min` : ""}
               </span>
               {svc.price != null ? (
-                <span className="text-sm font-semibold" style={{ color: textPrimary }}>
+                <span className="text-sm font-semibold" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>
                   {formatCurrency(svc.price, svc.currency || "USD")}
                 </span>
               ) : null}
@@ -832,7 +977,7 @@ export function SitePreview(props: SitePreviewProps) {
             backgroundColor: sectionBg
           }}
         >
-          <h2 className="text-lg font-bold tracking-tight" style={{ color: textPrimary }}>About</h2>
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>About</h2>
           <p className="mt-2 text-sm leading-6" style={{ color: textSecondary }}>{about.body}</p>
         </section>
       ) : null}
@@ -844,7 +989,7 @@ export function SitePreview(props: SitePreviewProps) {
             backgroundColor: sectionBg
           }}
         >
-          <h2 className="text-lg font-bold tracking-tight" style={{ color: textPrimary }}>What Students Say</h2>
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>What Students Say</h2>
           {/* Show just the first review as social proof */}
           <blockquote
             className="mt-3 rounded-2xl p-4 text-sm"
@@ -901,7 +1046,7 @@ export function SitePreview(props: SitePreviewProps) {
                   >
                     {template.lessonsPerMonth} lessons/mo
                   </span>
-                  <span className="text-sm font-semibold" style={{ color: textPrimary }}>
+                  <span className="text-sm font-semibold" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>
                     {formatCurrency(template.priceCents, template.currency)}/mo
                   </span>
                 </div>
@@ -942,7 +1087,7 @@ export function SitePreview(props: SitePreviewProps) {
           backgroundColor: sectionBg
         }}
       >
-        <h2 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: textPrimary }}>Services & Pricing</h2>
+        <h2 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>Services & Pricing</h2>
         <p className="mt-2 text-sm" style={{ color: textSecondary }}>Choose a lesson type that fits your goals</p>
 
         {/* Subscription Services */}
@@ -985,7 +1130,7 @@ export function SitePreview(props: SitePreviewProps) {
           backgroundColor: sectionBg
         }}
       >
-        <h2 className="text-xl font-bold" style={{ color: textPrimary }}>{bookingHeadline}</h2>
+        <h2 className="text-xl font-bold" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>{bookingHeadline}</h2>
         <p className="mt-2 text-sm" style={{ color: textSecondary }}>{bookingSubcopy}</p>
         <div className="mt-5">
           <button
@@ -1021,7 +1166,7 @@ export function SitePreview(props: SitePreviewProps) {
           backgroundColor: sectionBg
         }}
       >
-        <h2 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: textPrimary }}>Frequently Asked Questions</h2>
+        <h2 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: textPrimary, fontFamily: previewHeadingFont }}>Frequently Asked Questions</h2>
         <div className={cn("mt-3 space-y-3", isPlaceholder && "opacity-50")}>
           {displayFaq.map((item, index) => (
             <div
@@ -1127,14 +1272,9 @@ export function SitePreview(props: SitePreviewProps) {
 
       </main>
 
-      {/* Sticky bottom CTA bar - shows on all pages except Contact */}
+      {/* Sticky bottom CTA bar - floating per Premium spec (bottom-4, shadow-xl, hover lift) */}
       {page !== "contact" && (
-        <div
-          className="sticky bottom-0 z-30 px-4 py-3"
-          style={{
-            backgroundColor: theme.background
-          }}
-        >
+        <div className="sticky bottom-4 z-30 px-4">
           <button
             type="button"
             onClick={() => {
@@ -1144,9 +1284,10 @@ export function SitePreview(props: SitePreviewProps) {
               }
               onNavigate?.("contact");
             }}
-            className="w-full rounded-lg py-3 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full rounded-full py-3.5 text-sm font-bold text-white shadow-xl transition-all hover:-translate-y-0.5 active:scale-[0.98]"
             style={{
-              backgroundColor: theme.primary
+              backgroundColor: theme.primary,
+              boxShadow: `0 10px 25px -5px ${theme.primary}30, 0 8px 10px -6px ${theme.primary}20`
             }}
           >
             Book a class →

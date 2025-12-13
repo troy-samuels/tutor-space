@@ -33,7 +33,7 @@ export function useUnreadMessages(mode: Mode, options?: Options) {
             .from("conversation_threads")
             .select("id", { count: "exact", head: true })
             .eq("tutor_id", user.id)
-            .eq("unread_for_tutor", true);
+            .eq("tutor_unread", true);
 
           if (isActive) setCount(count ?? 0);
           return;
@@ -59,7 +59,7 @@ export function useUnreadMessages(mode: Mode, options?: Options) {
           .from("conversation_threads")
           .select("id", { count: "exact", head: true })
           .in("student_id", studentIds)
-          .eq("unread_for_student", true);
+          .eq("student_unread", true);
 
         if (isActive) setCount(count ?? 0);
       } catch (error) {

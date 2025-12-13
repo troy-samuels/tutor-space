@@ -76,9 +76,9 @@ interface TutorPlanManagerProps {
 }
 
 const PLAN_OPTIONS = [
-  { value: "professional", label: "Legacy free", limit: 20 },
-  { value: "growth", label: "All-access ($29/mo or $199/yr)", limit: "Unlimited" },
-  { value: "studio", label: "Custom (legacy/enterprise)", limit: "Unlimited" },
+  { value: "professional", label: "Free" },
+  { value: "all_access", label: "All-access ($39/mo or $299/yr)" },
+  { value: "founder_lifetime", label: "Founder Lifetime" },
 ];
 
 const OVERRIDE_TYPES = [

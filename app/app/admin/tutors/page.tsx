@@ -120,9 +120,9 @@ function getInitials(name: string | null): string {
 function PlanBadge({ plan }: { plan: string | null }) {
   const planName = plan || "professional";
   const variants: Record<string, { className: string; label: string }> = {
-    professional: { className: "bg-gray-100 text-gray-700", label: "Legacy Free" },
-    growth: { className: "bg-blue-100 text-blue-700", label: "All-access" },
-    studio: { className: "bg-purple-100 text-purple-700", label: "Custom" },
+    professional: { className: "bg-gray-100 text-gray-700", label: "Free" },
+    all_access: { className: "bg-blue-100 text-blue-700", label: "All-access" },
+    founder_lifetime: { className: "bg-green-100 text-green-700", label: "Lifetime" },
   };
   const { className, label } = variants[planName] || variants.professional;
   return <Badge className={className}>{label}</Badge>;
@@ -369,9 +369,9 @@ export default function AdminTutorsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Plans</SelectItem>
-            <SelectItem value="professional">Legacy Free</SelectItem>
-            <SelectItem value="growth">All-access</SelectItem>
-            <SelectItem value="studio">Custom</SelectItem>
+            <SelectItem value="professional">Free</SelectItem>
+            <SelectItem value="all_access">All-access</SelectItem>
+            <SelectItem value="founder_lifetime">Lifetime</SelectItem>
           </SelectContent>
         </Select>
 

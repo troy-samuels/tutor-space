@@ -9,15 +9,45 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import type { PlatformBillingPlan } from "@/lib/types/payments";
+import type { PlatformBillingPlan, PlanTier } from "@/lib/types/payments";
 
 type Entitlements = {
   plan: PlatformBillingPlan;
-  growth: boolean;
-  studio: boolean;
+  tier: PlanTier;
+  isPaid: boolean;
+  hasProAccess: boolean;
+  hasStudioAccess: boolean;
 };
+
+// Tier helper constants (inline to avoid import issues)
+const PRO_PLANS: PlatformBillingPlan[] = [
+  "pro_monthly",
+  "pro_annual",
+  "tutor_life",
+  "founder_lifetime",
+  "all_access",
+];
+
+const STUDIO_PLANS: PlatformBillingPlan[] = [
+  "studio_monthly",
+  "studio_annual",
+  "studio_life",
+];
+
+function getPlanTier(plan: PlatformBillingPlan): PlanTier {
+  if (STUDIO_PLANS.includes(plan)) return "studio";
+  if (PRO_PLANS.includes(plan)) return "pro";
+  return "free";
+}
+
+function checkProAccess(plan: PlatformBillingPlan): boolean {
+  return PRO_PLANS.includes(plan) || STUDIO_PLANS.includes(plan);
+}
+
+function checkStudioAccess(plan: PlatformBillingPlan): boolean {
+  return STUDIO_PLANS.includes(plan);
+}
 
 type Profile = {
   id: string;
@@ -37,10 +67,19 @@ export type AuthContextValue = {
   loading: boolean;
 };
 
+type AuthProviderProps = {
+  children: React.ReactNode;
+  initialUser?: User | null;
+  initialProfile?: Profile | null;
+  initialEntitlements?: Entitlements;
+};
+
 const defaultEntitlements: Entitlements = {
   plan: "professional",
-  growth: false,
-  studio: false,
+  tier: "free",
+  isPaid: false,
+  hasProAccess: false,
+  hasStudioAccess: false,
 };
 
 const MAX_AUTH_RETRIES = 2;
@@ -55,14 +94,34 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+  initialUser,
+  initialProfile,
+  initialEntitlements,
+}: AuthProviderProps) {
+  const initialPlan = (initialEntitlements?.plan ??
+    (initialProfile?.plan as PlatformBillingPlan | undefined) ??
+    "professional") as PlatformBillingPlan;
+  const initialTier = getPlanTier(initialPlan);
+  const derivedInitialEntitlements: Entitlements =
+    initialEntitlements ??
+    ({
+      plan: initialPlan,
+      tier: initialTier,
+      isPaid: checkProAccess(initialPlan),
+      hasProAccess: checkProAccess(initialPlan),
+      hasStudioAccess: checkStudioAccess(initialPlan),
+    } as const);
+
+  const shouldHydrateFromServer = initialUser !== undefined || initialProfile !== undefined;
+
   const [state, setState] = useState<AuthContextValue>({
-    user: null,
-    profile: null,
-    entitlements: defaultEntitlements,
-    loading: true,
+    user: initialUser ?? null,
+    profile: initialProfile ?? null,
+    entitlements: derivedInitialEntitlements,
+    loading: !shouldHydrateFromServer,
   });
-  const pathname = usePathname();
   const isMountedRef = useRef(true);
 
   const loadAuthState = useCallback(
@@ -118,10 +177,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const entitlementsRaw =
           (payload.entitlements as Entitlements | undefined) ?? defaultEntitlements;
         const resolvedPlan = (entitlementsRaw.plan as PlatformBillingPlan) ?? "professional";
+        const tier = getPlanTier(resolvedPlan);
         const entitlements: Entitlements = {
           plan: resolvedPlan,
-          growth: resolvedPlan === "growth" || resolvedPlan === "studio" || resolvedPlan === "founder_lifetime",
-          studio: resolvedPlan === "studio",
+          tier,
+          isPaid: checkProAccess(resolvedPlan),
+          hasProAccess: checkProAccess(resolvedPlan),
+          hasStudioAccess: checkStudioAccess(resolvedPlan),
         };
 
         if (!user && attempt < MAX_AUTH_RETRIES) {
@@ -168,7 +230,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMountedRef.current = true;
-    loadAuthState();
+    const schedule = (callback: () => void) => {
+      const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
+        .requestIdleCallback;
+      if (ric) return ric(callback, { timeout: 2500 });
+      return window.setTimeout(callback, 2000);
+    };
+
+    const cancel = (id: number) => {
+      const cancelRic = (window as unknown as { cancelIdleCallback?: (id: number) => void })
+        .cancelIdleCallback;
+      if (cancelRic) cancelRic(id);
+      else window.clearTimeout(id);
+    };
+
+    // When we hydrate from server-provided auth, defer a background refresh so
+    // we can keep cookies/session fresh without delaying first paint.
+    const refreshId = shouldHydrateFromServer
+      ? schedule(() => loadAuthState({ soft: true }))
+      : schedule(() => loadAuthState());
 
     const channel = new BroadcastChannel("auth");
     channel.onmessage = (event) => {
@@ -183,22 +263,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMountedRef.current = false;
       channel.close();
+      cancel(refreshId);
     };
-  }, [loadAuthState]);
+  }, [loadAuthState, shouldHydrateFromServer]);
 
-  const initialPathRef = useRef(pathname);
-
-  useEffect(() => {
-    if (initialPathRef.current === pathname) {
-      return;
-    }
-
-    initialPathRef.current = pathname;
-    if (isDebug) {
-      console.debug("[AuthProvider] Path change detected, refreshing auth (soft)", { pathname });
-    }
-    loadAuthState({ soft: true });
-  }, [pathname, loadAuthState]);
+  // Removed: pathname-based refresh was calling /api/auth/me on every navigation
+  // Auth state is already refreshed on: initial mount, tab visibility change, BroadcastChannel events
 
   useEffect(() => {
     const handleVisibility = () => {

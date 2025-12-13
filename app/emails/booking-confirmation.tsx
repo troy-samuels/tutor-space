@@ -272,10 +272,10 @@ export function BookingConfirmationEmail({
           <tr>
             <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #e5e5e5;">
               <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
-                Powered by Learn with Sarai
+                Powered by TutorLingua
               </p>
               <p style="margin: 0; color: #999; font-size: 12px;">
-                © ${new Date().getFullYear()} Learn with Sarai. All rights reserved.
+                © ${new Date().getFullYear()} TutorLingua. All rights reserved.
               </p>
             </td>
           </tr>
@@ -393,8 +393,8 @@ If you have any questions, reach out to ${tutorName} at ${tutorEmail}
 Looking forward to your lesson!
 
 ---
-Powered by Learn with Sarai
-© ${new Date().getFullYear()} Learn with Sarai. All rights reserved.
+Powered by TutorLingua
+© ${new Date().getFullYear()} TutorLingua. All rights reserved.
 `;
 
   return text;

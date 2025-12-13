@@ -5,7 +5,9 @@ type TelemetryEvent =
   | "site_update_conflict"
   | "site_update_error"
   | "site_published"
-  | "site_publish_error";
+  | "site_publish_error"
+  | "site_config_upsert_error"
+  | "site_config_upserted";
 
 export function track(event: TelemetryEvent, props?: Record<string, unknown>) {
   // No-op for now; plug your provider here (e.g., PostHog/Amplitude/Sentry breadcrumbs)
@@ -17,5 +19,4 @@ export function track(event: TelemetryEvent, props?: Record<string, unknown>) {
     // ignore
   }
 }
-
 

@@ -1,77 +1,88 @@
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
-import { PublicSitePage } from "@/components/marketing/public-site-page";
-import { loadPublicSite } from "./load-site";
+import { notFound, redirect } from "next/navigation";
+import { getPublicSiteData } from "@/lib/actions/tutor-sites";
+import { SITE_THEMES } from "@/lib/themes";
+import PublicProfileClient from "./public-profile-client";
 
 type PageParams = {
   username: string;
 };
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<PageParams>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: { params: Promise<PageParams> }
+): Promise<Metadata> {
   const resolvedParams = await params;
-  const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("public_profiles")
-    .select("id, full_name, tagline, bio, avatar_url, username")
-    .eq("username", resolvedParams.username.toLowerCase())
-    .single();
+  try {
+    const data = await getPublicSiteData(resolvedParams.username);
+    const canonicalUsername = data.profile.username || resolvedParams.username;
+    const name = data.profile.full_name || data.profile.username || canonicalUsername;
+    const description =
+      data.profile.tagline || data.site.config.bio || `Book a lesson with ${name} on TutorLingua.`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+    const canonicalUrl = `${baseUrl.replace(/\/+$/, "")}/${canonicalUsername}`;
 
-  if (!profile) {
     return {
-      title: "TutorLingua | Page not found",
+      title: `${name} | TutorLingua`,
+      description,
+      alternates: { canonical: canonicalUrl },
+      openGraph: {
+        title: `${name} | TutorLingua`,
+        description,
+        url: canonicalUrl,
+      },
+    };
+  } catch {
+    return {
+      title: "Tutor not found | TutorLingua",
+      description: "This tutor profile could not be found.",
     };
   }
-
-  const { data: site } = await supabase
-    .from("tutor_sites")
-    .select("about_title, about_subtitle, about_body, hero_image_url")
-    .eq("tutor_id", profile.id)
-    .eq("status", "published")
-    .single();
-
-  const title = site?.about_title || profile.full_name || profile.username;
-  const description =
-    site?.about_subtitle ||
-    profile.tagline ||
-    profile.bio ||
-    `Professional tutor page for ${profile.full_name || profile.username}`;
-
-  return {
-    title: `${title} | TutorLingua`,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `https://tutorlingua.co/${profile.username ?? resolvedParams.username}`,
-      images:
-        site?.hero_image_url || profile.avatar_url
-          ? [
-              {
-                url: site?.hero_image_url || profile.avatar_url!,
-                width: 1200,
-                height: 630,
-                alt: title,
-              },
-            ]
-          : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: site?.hero_image_url || profile.avatar_url ? [site?.hero_image_url || profile.avatar_url!] : undefined,
-    },
-  };
 }
 
-export default async function PublicMiniSitePage({ params }: { params: Promise<PageParams> }) {
+export default async function PublicProfilePage({ params }: { params: Promise<PageParams> }) {
   const resolvedParams = await params;
-  const { siteProps, reviewFormProps } = await loadPublicSite(resolvedParams, "home");
-  return <PublicSitePage siteProps={siteProps} reviewFormProps={reviewFormProps} />;
+  const data = await getPublicSiteData(resolvedParams.username);
+  if (!data) {
+    notFound();
+  }
+
+  const { profile, site, services, products, reviews, nextSlot } = data;
+  if (profile.username && profile.username !== resolvedParams.username) {
+    redirect(`/${profile.username}`);
+  }
+  const theme = SITE_THEMES[site.config.themeId] ?? SITE_THEMES.academic;
+  const visibility = new Map(site.config.blocks.map((b) => [b.type, b.isVisible !== false] as const));
+
+  return (
+    <PublicProfileClient
+      profile={{
+        full_name: profile.full_name || profile.username || "Tutor",
+        tagline: site.config.hero?.customHeadline || profile.tagline || "",
+        bio: site.config.bio || profile.bio || "",
+        avatar_url: profile.avatar_url,
+        languages_taught: Array.isArray(profile.languages_taught)
+          ? (profile.languages_taught as string[])
+          : typeof profile.languages_taught === "string"
+            ? (profile.languages_taught as string).split(",").map((s) => s.trim()).filter(Boolean)
+            : [],
+      }}
+      coverImage={site.config.hero?.coverImage || null}
+      themeId={site.config.themeId}
+      accentColor={theme.accentColor}
+      bgColor={theme.bgPage}
+      services={services}
+      products={products}
+      reviews={reviews}
+      nextSlot={nextSlot}
+      visibility={{
+        about: visibility.get("about") ?? true,
+        services: visibility.get("services") ?? true,
+        products: visibility.get("products") ?? true,
+        reviews: visibility.get("reviews") ?? true,
+        faq: visibility.get("faq") ?? true,
+      }}
+      faqs={site.config.faq ?? []}
+    />
+  );
 }

@@ -114,20 +114,23 @@ export function PublicBookingLanding({
                 ? t("requestMessageLoggedIn", { tutorName: tutor.fullName })
                 : t("requestMessageLoggedOut", { tutorName: tutor.fullName })}
             </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Usually responds within 24 hours
+            </p>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {!isLoggedIn ? (
                 <>
                   <Link
-                    href={`/student-auth/login?tutor=${tutor.username}&redirect=/book/${tutor.username}`}
+                    href={`/student/login?tutor=${tutor.username}&redirect=/book/${tutor.username}`}
                     className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:bg-primary/90 transition shadow-md"
                   >
                     <LogIn className="h-5 w-5" />
                     {t("login")}
                   </Link>
                   <Link
-                    href={`/student-auth/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
+                    href={`/student/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
                     className="inline-flex items-center justify-center gap-2 bg-white text-primary shadow-md px-8 py-4 rounded-xl font-semibold hover:bg-primary/5 transition"
                   >
                     <UserPlus className="h-5 w-5" />
@@ -136,7 +139,7 @@ export function PublicBookingLanding({
                 </>
               ) : (
                 <Link
-                  href={`/student-auth/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
+                  href={`/student/request-access?tutor=${tutor.username}&tutor_id=${tutor.id}`}
                   className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-xl font-semibold hover:bg-primary/90 transition shadow-md"
                 >
                   <UserPlus className="h-5 w-5" />
@@ -158,7 +161,12 @@ export function PublicBookingLanding({
                 key={service.id}
                 className="shadow-sm rounded-xl p-4 sm:p-6 hover:shadow-lg transition"
               >
-                <h4 className="font-semibold text-gray-900 mb-2">{service.name}</h4>
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-semibold text-gray-900">{service.name}</h4>
+                  <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                    Request access
+                  </span>
+                </div>
                 {service.description && (
                   <p className="text-sm text-gray-600 mb-3">{service.description}</p>
                 )}

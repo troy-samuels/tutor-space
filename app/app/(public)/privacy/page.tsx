@@ -68,13 +68,23 @@ export default function PrivacyPolicyPage() {
               <li><strong>Device Information:</strong> Device name, operating system, browser type, and device identifiers</li>
               <li><strong>Usage Information:</strong> Pages visited, features used, time spent, clicks, navigation paths, actions taken</li>
               <li><strong>Location Information:</strong> Approximate location based on IP address (for timezone detection and fraud prevention)</li>
-              <li><strong>Cookies Information:</strong> We use cookies and similar technologies to enhance user experience and analytics. See Section 11 for more details.</li>
+              <li><strong>Cookies Information:</strong> We use cookies and similar technologies to enhance user experience and analytics. See Section 12 for more details.</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">2.3 Information from Third Parties</h3>
-            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
               <li><strong>Calendar Data:</strong> If you connect Google Calendar or Microsoft Outlook, we access your calendar events to prevent double-bookings and display availability</li>
               <li><strong>Social Media:</strong> If you interact with our social media pages, we may receive information made available through those platforms</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">2.4 AI Processing and Learning Data</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">When you use our AI-powered learning features, we collect additional data to provide personalized educational services:</p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+              <li><strong>Audio Data:</strong> Voice recordings submitted for pronunciation assessment, audio homework submissions, and audio messages between tutors and students</li>
+              <li><strong>Conversation Data:</strong> Messages exchanged with our AI Practice Companion, including your text inputs and AI-generated responses, grammar corrections, and session context</li>
+              <li><strong>Learning Analytics:</strong> Grammar error patterns categorized by type (verb tense, subject-verb agreement, prepositions, articles, word order, gender agreement, conjugation, pronouns, plural/singular, spelling, vocabulary), pronunciation accuracy scores, fluency metrics, and vocabulary usage tracking</li>
+              <li><strong>Lesson Recording Data (Studio Tier):</strong> Video and audio recordings of lessons conducted through our platform, transcripts generated from recordings, AI-generated lesson summaries, key moments with timestamps, and auto-generated practice drills</li>
+              <li><strong>Homework Submissions:</strong> Text responses, audio recordings, and file attachments submitted by students for homework assignments, along with tutor feedback</li>
             </ul>
           </section>
 
@@ -106,11 +116,22 @@ export default function PrivacyPolicyPage() {
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">3.4 Legal Compliance</h3>
-            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
               <li>Comply with applicable laws, lawful requests, and legal process</li>
               <li>Protect our, your, or others&apos; rights, privacy, safety, or property</li>
               <li>Enforce the terms and conditions that govern the Service</li>
               <li>Audit our compliance with legal and contractual requirements</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">3.5 AI-Powered Learning Features</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">We use artificial intelligence and machine learning technologies to enhance the educational experience:</p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+              <li><strong>Real-Time Grammar Correction:</strong> AI language models analyze your written text to identify grammar errors, provide corrections, and offer explanations to help you learn</li>
+              <li><strong>Pronunciation Assessment:</strong> Speech recognition services process your audio recordings to evaluate pronunciation accuracy, fluency, and provide detailed feedback on specific sounds and words</li>
+              <li><strong>Learning Analytics:</strong> We aggregate and analyze your learning data to identify patterns, track progress over time, and provide insights to tutors to personalize your instruction</li>
+              <li><strong>Lesson Transcription and Analysis (Studio Tier):</strong> AI services transcribe lesson recordings and generate summaries, identify key learning moments, and create personalized practice materials based on lesson content</li>
+              <li><strong>Auto-Generated Practice Content:</strong> AI generates vocabulary drills, grammar exercises, and practice scenarios based on your identified areas for improvement</li>
+              <li><strong>Conversational AI Practice:</strong> Our AI Practice Companion engages in conversational practice sessions, adapting to your proficiency level and providing contextual feedback</li>
             </ul>
           </section>
 
@@ -166,8 +187,19 @@ export default function PrivacyPolicyPage() {
               <li><strong>Database & Hosting:</strong> Supabase, Vercel</li>
               <li><strong>Analytics:</strong> Usage analytics and performance monitoring services</li>
             </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">AI and Machine Learning Service Providers</h4>
             <p className="text-gray-700 leading-relaxed mb-4">
-              Pursuant to our instructions, these parties will access, process, or store personal information in the course of performing their duties to us.
+              We use the following third-party AI services to provide our learning features. Your data is processed by these providers under our Data Processing Agreements in accordance with GDPR Article 28:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>OpenAI, Inc. (United States):</strong> Powers our AI Practice Companion, real-time grammar correction, lesson analysis, and feedback generation. Processes text conversations and lesson transcripts. OpenAI does not use API data to train their models.</li>
+              <li><strong>Microsoft Azure Speech Services (United States/EU):</strong> Provides pronunciation assessment and speech recognition. Processes audio recordings and returns accuracy scores, fluency metrics, and word-level feedback. Audio is processed and not retained after analysis.</li>
+              <li><strong>Deepgram, Inc. (United States):</strong> Transcribes lesson recordings for Studio tier users. Processes audio files and returns timestamped transcripts with speaker identification.</li>
+              <li><strong>LiveKit, Inc. (United States):</strong> Provides real-time video conferencing infrastructure for Studio tier. Processes video and audio streams during live lessons and facilitates recording to secure storage.</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Pursuant to our instructions, these parties will access, process, or store personal information in the course of performing their duties to us. All AI service providers are bound by confidentiality obligations and are prohibited from using your data for purposes other than providing services to TutorLingua.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">5.3 Professional Advisors</h3>
@@ -206,14 +238,88 @@ export default function PrivacyPolicyPage() {
           {/* Data Retention */}
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Data Retention</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <p className="text-gray-700 leading-relaxed mb-4">
               We retain your information for as long as your account is active or as needed to provide Services. After account deletion, we may retain certain information as required by law or for legitimate business purposes (e.g., preventing fraud, resolving disputes, enforcing our agreements).
             </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">7.1 AI and Learning Data Retention Periods</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">We apply specific retention periods to AI-processed and learning-related data:</p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>AI Practice Session Messages:</strong> Retained for 2 years to enable progress tracking, learning analytics, and tutor review of student development</li>
+              <li><strong>Grammar and Pronunciation Analytics:</strong> Aggregated learning patterns retained for 3 years; individual error records retained for 1 year</li>
+              <li><strong>Pronunciation Audio Recordings:</strong> Original audio files retained for 30 days; pronunciation scores and analytics retained for the duration of your account</li>
+              <li><strong>Lesson Recordings (Studio Tier):</strong> Retained for 90 days by default; tutors and students may configure longer retention up to 1 year</li>
+              <li><strong>Lesson Transcripts and AI Summaries:</strong> Retained for the same period as the associated lesson recording</li>
+              <li><strong>Homework Submissions:</strong> Retained for the duration of your account; audio and file attachments retained for 1 year after submission</li>
+              <li><strong>AI Practice Usage and Billing Data:</strong> Retained for 7 years for tax compliance and billing dispute resolution</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed">
+              You may request deletion of specific AI-processed data at any time by contacting{" "}
+              <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">
+                privacy@tutorlingua.co
+              </a>. Some data may be retained in anonymized or aggregated form for service improvement purposes.
+            </p>
+          </section>
+
+          {/* AI Processing & Automated Decision Making */}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">8. AI Processing & Automated Decision Making</h2>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua uses artificial intelligence to enhance language learning. This section explains how AI processes your data and your rights regarding automated processing.
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">8.1 How We Use AI</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">Our AI features include:</p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Real-Time Processing:</strong> Grammar correction and pronunciation assessment provide immediate feedback as you practice</li>
+              <li><strong>Batch Processing:</strong> Lesson recordings are transcribed and analyzed after sessions to generate summaries and practice materials</li>
+              <li><strong>Learning Analytics:</strong> Your progress data is analyzed to identify patterns and areas for improvement</li>
+              <li><strong>Content Generation:</strong> AI generates personalized drills, exercises, and practice scenarios based on your learning needs</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">8.2 Your Rights Regarding AI Processing</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              In accordance with GDPR Article 22 and applicable US state privacy laws:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>No Significant Automated Decisions:</strong> TutorLingua does not make automated decisions that produce legal effects or similarly significant effects concerning you. AI is used solely to enhance learning, not to make consequential decisions about your access to services or opportunities.</li>
+              <li><strong>Right to Human Review:</strong> You may request human review of any AI-generated assessment or feedback by contacting your tutor or our support team.</li>
+              <li><strong>Right to Explanation:</strong> You may request an explanation of how AI features process your data and generate outputs by contacting{" "}
+                <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">privacy@tutorlingua.co</a>.</li>
+              <li><strong>Right to Object:</strong> You may object to AI processing by disabling specific AI features in your account settings or by not using AI-powered features. Note that some core functionality requires AI processing.</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">8.3 AI Output Ownership</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>TutorLingua owns all AI-generated content</strong>, including but not limited to: grammar corrections and explanations, pronunciation feedback, lesson summaries and key moments, auto-generated drills and exercises, AI Practice Companion responses, and learning analytics insights.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              We grant you a limited, non-exclusive, non-transferable license to use AI-generated content for your personal educational purposes only. You may not:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Commercially redistribute AI-generated content</li>
+              <li>Use AI outputs to develop competing products or services</li>
+              <li>Claim authorship or ownership of AI-generated content</li>
+              <li>Use AI outputs to train other AI models without our written consent</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Your input remains your property.</strong> Content you submit (messages, homework, audio recordings) remains yours, subject to our license to process it for providing services.
+            </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">8.4 AI Data Security</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">We implement robust security measures for AI processing:</p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+              <li>All data transmitted to AI services is encrypted using TLS 1.3</li>
+              <li>We maintain Data Processing Agreements (DPAs) with all AI subprocessors</li>
+              <li>Conversation context is limited to the current session to minimize data exposure</li>
+              <li>AI providers are contractually prohibited from using your data to train their models</li>
+              <li>Audio data sent for pronunciation assessment is processed in real-time and not retained by the provider</li>
+            </ul>
           </section>
 
           {/* Your Rights */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Your Privacy Rights</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Your Privacy Rights</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               Depending on where you are based, and as provided under applicable law and subject to any limitations in such law, you may have the following rights:
             </p>
@@ -255,7 +361,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Children's Privacy */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Children&apos;s Privacy</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Children&apos;s Privacy</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               TutorLingua is not directed to children under the age of 16. We do not knowingly collect personal information from children under 16 without parental consent. If you have reason to believe that a child under 16 has provided personal information to TutorLingua, please contact us and we will endeavor to delete that information from our databases.
             </p>
@@ -266,7 +372,7 @@ export default function PrivacyPolicyPage() {
 
           {/* International Users */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">10. International Data Transfers</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">11. International Data Transfers</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               TutorLingua is based in the United States and your personal information will be stored here. We may share your personal information with third parties who are also based in the United States or other countries.
             </p>
@@ -288,7 +394,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Cookies */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">11. Cookies and Tracking Technologies</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Cookies and Tracking Technologies</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               We use cookies and similar technologies to:
             </p>
@@ -308,7 +414,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Do Not Track */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">12. Do Not Track Signals</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Do Not Track Signals</h2>
             <p className="text-gray-700 leading-relaxed">
               Do Not Track (&quot;DNT&quot;) is a privacy preference that users can set in certain web browsers. Please note that we do not respond to or honor DNT signals or similar mechanisms transmitted by web browsers. To find out more about &quot;Do Not Track,&quot; please visit{" "}
               <a href="http://www.allaboutdnt.com" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
@@ -319,7 +425,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Updates */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">13. Changes to This Privacy Policy</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">14. Changes to This Privacy Policy</h2>
             <p className="text-gray-700 leading-relaxed">
               The Service and our business may change from time to time. As a result, we may change this Privacy Policy at any time. When we do, we will post an updated version on this page, unless another type of notice is required by applicable law. By continuing to use our Service or providing us with personal information after we have posted an updated Privacy Policy, you consent to the revised Privacy Policy and practices described in it.
             </p>
@@ -327,7 +433,7 @@ export default function PrivacyPolicyPage() {
 
           {/* GDPR Representative */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">14. GDPR Representatives</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">15. GDPR Representatives</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               If you wish to lodge a complaint about how we process your personal information, please contact us and we will endeavor to respond to your complaint as soon as possible. Depending on where you reside, such as if you reside in the European Economic Area or United Kingdom, you may have the right to complain to a data protection regulator where you live or work, or where you feel a violation has occurred.
             </p>
@@ -361,7 +467,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Contact */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">15. Contact Us</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Contact Us</h2>
             <p className="text-gray-700 leading-relaxed">
               If you have any questions about our Privacy Policy or information practices, please feel free to contact us:
             </p>

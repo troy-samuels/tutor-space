@@ -97,8 +97,8 @@ export function DashboardBookingCalendar({
   };
 
   return (
-    <section className="rounded-3xl border border-border bg-background/90 p-5 shadow-sm">
-      <div className="flex items-center justify-between">
+    <section className="rounded-3xl border border-border bg-background/70 p-0 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-primary" />
           <div>
@@ -111,92 +111,90 @@ export function DashboardBookingCalendar({
             type="button"
             onClick={handlePrev}
             disabled={!canGoPrev}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-sm text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={handleNext}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-sm text-foreground transition hover:bg-muted"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="py-1">
-            {day}
-          </div>
-        ))}
-      </div>
+      <div className="px-4 pb-4">
+        <div className="grid grid-cols-7 text-center text-xs font-semibold text-muted-foreground">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div key={day} className="py-2">
+              {day}
+            </div>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {gridDates.map((date) => {
-          const key = formatKey(date);
-          const dayInfo = bookingsByDay[key];
-          const bookingCount = dayInfo?.count || 0;
-          const packageTypes = dayInfo?.packageTypes || [];
-          const disabled = isBefore(date, earliest);
-          const isCurrentMonth = isSameMonth(date, currentMonth);
-          const selected = isSameDay(date, selectedDate);
-          const isTodayDate = isToday(date);
+        <div className="grid grid-cols-7">
+          {gridDates.map((date) => {
+            const key = formatKey(date);
+            const dayInfo = bookingsByDay[key];
+            const bookingCount = dayInfo?.count || 0;
+            const packageTypes = dayInfo?.packageTypes || [];
+            const disabled = isBefore(date, earliest);
+            const isCurrentMonth = isSameMonth(date, currentMonth);
+            const selected = isSameDay(date, selectedDate);
+            const isTodayDate = isToday(date);
 
-          // Get dot colors based on package types
-          const dotColors = getDotColors(packageTypes, selected);
+            // Get dot colors based on package types
+            const dotColors = getDotColors(packageTypes, selected).slice(0, 3);
 
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                if (disabled || !isCurrentMonth) return;
-                handleDateSelect(date);
-              }}
-              disabled={disabled || !isCurrentMonth}
-              className={[
-                "relative aspect-square rounded-xl border text-sm font-medium transition-all",
-                isCurrentMonth ? "border-transparent hover:bg-muted" : "border-transparent text-muted-foreground/40 cursor-default",
-                selected ? "bg-primary text-white shadow-md" : "",
-                disabled ? "cursor-not-allowed opacity-40" : "",
-                isTodayDate && !selected ? "ring-2 ring-primary/30" : "",
-              ].join(" ")}
-            >
-              <span>{format(date, "d")}</span>
-              <div className="mt-1 flex items-center justify-center gap-0.5">
-                {bookingCount === 0 ? null : bookingCount <= 3 ? (
-                  // Show colored dots based on package types
-                  dotColors.length > 0 ? (
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  if (disabled || !isCurrentMonth) return;
+                  handleDateSelect(date);
+                }}
+                disabled={disabled || !isCurrentMonth}
+                className={[
+                  "relative flex min-h-[110px] flex-col items-center justify-between rounded-2xl p-3 text-center text-sm font-medium transition-all",
+                  isCurrentMonth ? "text-foreground" : "text-muted-foreground/40 cursor-default",
+                  disabled ? "cursor-not-allowed opacity-40" : "",
+                  "hover:bg-stone-100",
+                ].join(" ")}
+              >
+                <div
+                  className={[
+                    "flex h-9 w-9 items-center justify-center rounded-full text-base font-semibold",
+                    isTodayDate ? "bg-primary text-white" : "text-foreground",
+                    selected && !isTodayDate ? "ring-2 ring-primary/40" : "",
+                  ].join(" ")}
+                >
+                  {format(date, "d")}
+                </div>
+
+                <div className="mb-1 flex items-center justify-center gap-1">
+                  {bookingCount === 0 ? null : dotColors.length > 0 ? (
                     dotColors.map((color, index) => (
                       <span
                         key={index}
-                        className={`h-1.5 w-1.5 rounded-full ${color}`}
+                        className={`h-2 w-2 rounded-full ${color} ring-2 ring-white`}
                       />
                     ))
                   ) : (
-                    // Fallback to count-based dots if no package types
-                    Array.from({ length: bookingCount }).map((_, index) => (
+                    Array.from({ length: Math.min(bookingCount, 3) }).map((_, index) => (
                       <span
                         key={index}
-                        className={`h-1.5 w-1.5 rounded-full ${selected ? "bg-white/80" : "bg-primary/70"}`}
+                        className="h-2 w-2 rounded-full bg-primary ring-2 ring-white"
                       />
                     ))
-                  )
-                ) : (
-                  <span
-                    className={`min-w-[1.4rem] rounded-full px-1 text-[10px] font-semibold ${
-                      selected ? "bg-white/80 text-primary" : "bg-primary/15 text-primary"
-                    }`}
-                  >
-                    {bookingCount}
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
     </section>

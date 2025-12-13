@@ -7,13 +7,51 @@ const optionalUrl = () => z.string().url().optional().or(z.literal("").optional(
 // Hex color like #ffffff
 const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
 
-// Theme constraints aligned with existing defaults
+// Theme constraints - Premium Typography Pairings (11 font options)
 const themeFont = z
-  .enum(["system", "serif", "mono", "rounded", "editorial", "humanist", "grotesk", "playful", "luxury", "tech"])
+  .enum([
+    // Body fonts
+    "system",       // Inter
+    "rounded",      // Manrope
+    "luxury",       // DM Sans
+    "source-sans",  // Source Sans 3
+    "andika",       // Andika (Creative body)
+    // Heading fonts
+    "grotesk",      // Space Grotesk
+    "serif",        // Playfair Display
+    "dm-serif",     // DM Serif Display
+    "plus-jakarta", // Plus Jakarta Sans
+    "spline-sans",  // Spline Sans (Interface heading)
+    "amatic-sc",    // Amatic SC (Creative heading)
+  ])
   .optional();
+
+// Legacy palette IDs (deprecated, use archetypeId)
+const themePaletteId = z
+  .enum(["classic-ink", "ocean-trust", "warm-clay", "midnight-gold", "lavender-luxe"])
+  .optional();
+
+// Teaching Archetype IDs (Language Niche Edition)
+const themeArchetypeId = z
+  .enum(["professional", "immersion", "academic", "polyglot", "artisan"])
+  .optional();
+
+// Border radius options per archetype
+const themeBorderRadius = z.enum(["lg", "xl", "2xl", "3xl"]).optional();
+
+// Font pairing IDs for independent typography selection
+const themeFontPairingId = z
+  .enum(["minimal", "literary", "heritage", "expressive", "interface", "creative"])
+  .optional();
+
 const themeSpacing = z.enum(["cozy", "comfortable", "compact"]).optional();
 const backgroundStyle = z.enum(["solid", "gradient"]).optional();
-const layoutOption = z.string().max(32).optional(); // "minimal" | "portrait" | "banner" | "cards" | "list" | "highlight"
+
+// Hero layout: banner (Cultural Banner), minimal (legacy), portrait (legacy)
+const heroLayoutOption = z.enum(["banner", "minimal", "portrait"]).optional();
+
+// Other layouts for services, reviews
+const layoutOption = z.string().max(32).optional(); // "cards" | "list" | "highlight"
 
 export const tutorSiteDataSchema = z
   .object({
@@ -25,16 +63,24 @@ export const tutorSiteDataSchema = z
     gallery_images: z.array(z.string().url()).optional(),
 
     // Theme
+    theme_palette_id: themePaletteId, // Legacy, use archetype_id instead
+    theme_archetype_id: themeArchetypeId,
+    theme_font_pairing_id: themeFontPairingId,
     theme_background: hexColor.optional(),
     theme_background_style: backgroundStyle,
     theme_gradient_from: hexColor.optional(),
     theme_gradient_to: hexColor.optional(),
+    theme_card_bg: hexColor.optional(),
     theme_primary: hexColor.optional(),
+    theme_text_primary: hexColor.optional(),
+    theme_text_secondary: hexColor.optional(),
     theme_font: themeFont,
+    theme_heading_font: themeFont, // NEW: For Academic archetype (serif headings)
+    theme_border_radius: themeBorderRadius, // NEW: Per-archetype border radius
     theme_spacing: themeSpacing,
 
     // Layouts
-    hero_layout: layoutOption,
+    hero_layout: heroLayoutOption,
     lessons_layout: layoutOption,
     reviews_layout: layoutOption,
 

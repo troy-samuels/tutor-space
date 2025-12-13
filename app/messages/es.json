@@ -95,9 +95,9 @@
     }
   },
   "tutorSignupPage": {
-    "title": "Únase a TutorLingua",
-    "subtitle": "Empieza con una prueba gratis de 14 días. Luego 39 $/mes o 299 $/año. Cambia la facturación cuando quieras.",
-    "ctaLoginPrefix": "¿Ya tiene una cuenta?",
+    "title": "Crea tu estudio.",
+    "subtitle": "Comienza tu prueba gratuita de 14 días. Sin compromiso.",
+    "ctaLoginPrefix": "¿Ya tienes un estudio?",
     "ctaLogin": "Conectarse"
   },
   "forgotPasswordPage": {
@@ -141,7 +141,7 @@
     "terms": "Condiciones generales",
     "and": "y",
     "privacy": "Confidencialidad",
-    "termsNote": "Entiendo que TutorLingua sólo facilita las conexiones y no es parte ni responsable de ningún acuerdo entre tutores y estudiantes.",
+    "termsNote": "Entiendo que TutorLingua sólo facilita las conexiones y no es parte ni responsable de ningún acuerdo entre tutores y estudiantes. Acepto el procesamiento de mis datos y contenido de aprendizaje por IA según se describe en la Política de Privacidad.",
     "createAccount": "Crear una cuenta",
     "creatingAccount": "Crear cuenta...",
     "signIn": "Iniciar sesión",
@@ -245,5 +245,20 @@
     "stepPaid4": "Únase al enlace de la reunión a la hora prevista",
     "backHome": "Volver al inicio",
     "bookingId": "ID de reserva: {bookingId}"
+  },
+  "studioTier": {
+    "headline": "El Aula Que Toma Notas",
+    "perfectRecall": {
+      "title": "Memoria Perfecta",
+      "description": "Cada clase se transcribe automáticamente. Los estudiantes buscan esa palabra que olvidaron hace tres semanas. Nada se escapa."
+    },
+    "invisibleInsights": {
+      "title": "Información Invisible",
+      "description": "Tiempo de habla, patrones de vocabulario, errores comunes—registrados silenciosamente en segundo plano. Tú enseñas. El sistema observa."
+    },
+    "homeworkThatWrites": {
+      "title": "Tareas Que Se Escriben Solas",
+      "description": "Ejercicios de repaso generados desde la propia clase. Basados en errores reales, no plantillas genéricas."
+    }
   }
 }

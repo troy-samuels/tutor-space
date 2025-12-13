@@ -95,9 +95,9 @@
     }
   },
   "tutorSignupPage": {
-    "title": "Rejoindre TutorLingua",
-    "subtitle": "Essai gratuit de 14 jours. Ensuite 39 $/mois ou 299 $/an. Changement de facturation à tout moment.",
-    "ctaLoginPrefix": "Vous avez déjà un compte ?",
+    "title": "Créez votre studio.",
+    "subtitle": "Commencez votre essai gratuit de 14 jours. Sans engagement.",
+    "ctaLoginPrefix": "Vous avez déjà un studio ?",
     "ctaLogin": "Se connecter"
   },
   "forgotPasswordPage": {
@@ -141,7 +141,7 @@
     "terms": "Conditions générales d'utilisation",
     "and": "et",
     "privacy": "Avis de confidentialité",
-    "termsNote": "Je comprends que TutorLingua ne fait que faciliter la mise en relation et n'est pas partie prenante, ni responsable, des accords entre les tuteurs et les étudiants.",
+    "termsNote": "Je comprends que TutorLingua ne fait que faciliter la mise en relation et n'est pas partie prenante, ni responsable, des accords entre les tuteurs et les étudiants. Je consens au traitement par IA de mes données et contenus d'apprentissage comme décrit dans la Politique de Confidentialité.",
     "createAccount": "Créer un compte",
     "creatingAccount": "Création d'un compte...",
     "signIn": "S'inscrire",
@@ -245,5 +245,20 @@
     "stepPaid4": "Rejoindre le lien de la réunion à l'heure prévue",
     "backHome": "Retour à l'accueil",
     "bookingId": "ID de réservation : {bookingId}"
+  },
+  "studioTier": {
+    "headline": "La Salle de Classe Qui Prend des Notes",
+    "perfectRecall": {
+      "title": "Mémoire Parfaite",
+      "description": "Chaque cours est transcrit automatiquement. Les élèves retrouvent ce mot oublié il y a trois semaines. Rien ne se perd."
+    },
+    "invisibleInsights": {
+      "title": "Analyses Invisibles",
+      "description": "Temps de parole, tendances de vocabulaire, erreurs fréquentes—suivis silencieusement en arrière-plan. Vous enseignez. Le système observe."
+    },
+    "homeworkThatWrites": {
+      "title": "Devoirs Automatiques",
+      "description": "Exercices de révision générés à partir du cours lui-même. Basés sur les vraies erreurs, pas des modèles génériques."
+    }
   }
 }

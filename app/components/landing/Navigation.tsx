@@ -21,7 +21,7 @@ export function Navigation({ navigation }: NavigationProps) {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-background/95 shadow-sm backdrop-blur-sm">
+      <nav className="sticky top-0 z-50 bg-transparent backdrop-blur-sm border-b border-black/5">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Mobile menu button */}
@@ -31,7 +31,7 @@ export function Navigation({ navigation }: NavigationProps) {
 
             {/* Logo */}
             <div className="flex items-center">
-              <Logo href={brandHref} variant="wordmark" />
+              <Logo href={brandHref} variant="wordmark" className="h-9 sm:h-10" />
             </div>
 
             {/* Navigation links - Desktop */}

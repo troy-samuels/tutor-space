@@ -5,9 +5,12 @@ import { BillingToggle, type BillingCycle } from "@/components/pricing/BillingTo
 
 type PlatformSubscriptionCTAProps = {
   className?: string;
+  tier?: "pro" | "studio";
   defaultCycle?: BillingCycle;
   ctaLabel?: string;
   helperText?: string;
+  monthlyLabel?: string;
+  annualLabel?: string;
 };
 
 /**
@@ -16,25 +19,26 @@ type PlatformSubscriptionCTAProps = {
  */
 export function PlatformSubscriptionCTA({
   className = "",
+  tier = "pro",
   defaultCycle = "monthly",
-  ctaLabel = "Start 14-day free trial",
+  ctaLabel = "Start free trial",
   helperText,
+  monthlyLabel,
+  annualLabel,
 }: PlatformSubscriptionCTAProps) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(defaultCycle);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const helper =
-    helperText ?? "14-day free trial. Then $39/mo or $299/yr. Switch anytime.";
 
   const handleSubscribe = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/app/api/stripe/subscribe", {
+      const response = await fetch("/api/stripe/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billingCycle }),
+        body: JSON.stringify({ billingCycle, tier }),
       });
 
       const data = await response.json();
@@ -54,28 +58,25 @@ export function PlatformSubscriptionCTA({
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">TutorLingua access</p>
-          <p className="text-xs text-muted-foreground">
-            14-day free trial. Billed $39/mo or $299/yr after. Cancel anytime during the trial.
-          </p>
-        </div>
+    <div className={`space-y-5 ${className}`}>
+      <div className="flex justify-center">
         <BillingToggle
           value={billingCycle}
           onChange={setBillingCycle}
-          monthlyLabel="$39/mo after trial"
-          annualLabel="$299/yr after trial (save 36%)"
-          helper={helper}
+          monthlyLabel={monthlyLabel ?? (tier === "studio" ? "$69/mo" : "$39/mo")}
+          annualLabel={annualLabel ?? (tier === "studio" ? "$499/yr" : "$299/yr")}
         />
       </div>
+
+      {helperText ? (
+        <p className="text-center text-xs text-muted-foreground">{helperText}</p>
+      ) : null}
 
       <button
         type="button"
         onClick={handleSubscribe}
         disabled={loading}
-        className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+        className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? "Starting checkout..." : ctaLabel}
       </button>

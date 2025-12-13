@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   startOfWeek,
   endOfWeek,
@@ -12,18 +12,27 @@ import {
   addDays,
 } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Plus } from "lucide-react";
 import { getWeekEvents } from "@/lib/actions/calendar-events";
 import type { CalendarEvent } from "@/lib/types/calendar";
-import { generateTimeSlots, groupOverlappingEvents } from "@/lib/types/calendar";
+import {
+  generateTimeSlots,
+  groupOverlappingEvents,
+  findExternalConflictIds,
+} from "@/lib/types/calendar";
 import { CalendarEventBlock, CalendarColorLegend } from "./calendar-event-block";
+import { createBlockedTime } from "@/lib/actions/blocked-times";
 
 type CalendarWeekViewProps = {
-  onEventClick?: (event: CalendarEvent) => void;
-  onTimeSlotClick?: (date: Date, hour: number) => void;
+  onEventClick?: (event: CalendarEvent, clickEvent?: React.MouseEvent) => void;
+  onTimeSlotClick?: (date: Date, hour: number, event?: React.MouseEvent) => void;
   initialDate?: Date;
   onEventMove?: (event: CalendarEvent, newStartIso: string) => void;
   refreshKey?: number;
+  activeDate?: Date | null;
+  showHeaderControls?: boolean;
+  primaryTimezone?: string;
+  secondaryTimezone?: string | null;
 };
 
 export function CalendarWeekView({
@@ -32,6 +41,10 @@ export function CalendarWeekView({
   initialDate,
   onEventMove,
   refreshKey = 0,
+  activeDate,
+  showHeaderControls = true,
+  primaryTimezone,
+  secondaryTimezone,
 }: CalendarWeekViewProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(
     startOfWeek(initialDate || new Date(), { weekStartsOn: 0 })
@@ -39,13 +52,46 @@ export function CalendarWeekView({
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+  const [copyStatus, setCopyStatus] = useState<{ type: "success" | "error"; message: string } | null>(
+    null
+  );
+  const [isCopying, setIsCopying] = useState(false);
 
   const timeSlots = generateTimeSlots(6, 22, 60);
   const pixelsPerHour = 60;
   const startHour = 6;
+  const showSecondaryTimezone = Boolean(secondaryTimezone);
+  const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-16 sm:w-20";
+  const baseTimezone =
+    primaryTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const primaryAbbr = useMemo(() => {
+    try {
+      return formatInTimeZone(new Date(), baseTimezone, "zzz");
+    } catch {
+      return "LOCAL";
+    }
+  }, [baseTimezone]);
 
   // Generate days for the week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  const conflictIds = useMemo(() => findExternalConflictIds(events), [events]);
+
+  const getRowBg = (index: number) =>
+    index % 2 === 0 ? "bg-transparent" : "bg-stone-50/30";
+
+  const formatSecondaryTime = (hour: number, minute: number) => {
+    if (!secondaryTimezone) return "";
+    try {
+      const datePart = formatInTimeZone(currentWeekStart, baseTimezone, "yyyy-MM-dd");
+      const zoned = fromZonedTime(
+        `${datePart}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
+        baseTimezone
+      );
+      return formatInTimeZone(zoned, secondaryTimezone, "h a");
+    } catch {
+      return "";
+    }
+  };
 
   // Fetch events when week changes
   useEffect(() => {
@@ -61,6 +107,12 @@ export function CalendarWeekView({
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   const goToToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+
+  useEffect(() => {
+    if (activeDate) {
+      setCurrentWeekStart(startOfWeek(activeDate, { weekStartsOn: 0 }));
+    }
+  }, [activeDate]);
 
   // Get events for a specific day
   const getEventsForDay = (date: Date) => {
@@ -101,52 +153,128 @@ export function CalendarWeekView({
     setDraggedEvent(null);
   };
 
+  const handleCopyBlockedWeek = async () => {
+    setCopyStatus(null);
+    setIsCopying(true);
+
+    const blockedEvents = events.filter((event) => event.type === "blocked");
+    if (blockedEvents.length === 0) {
+      setCopyStatus({ type: "error", message: "No blocked time to copy for this week." });
+      setIsCopying(false);
+      return;
+    }
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const event of blockedEvents) {
+      const start = addWeeks(new Date(event.start), 1);
+      const end = addWeeks(new Date(event.end), 1);
+      const result = await createBlockedTime({
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        label: event.title || event.source || "Blocked time",
+      });
+
+      if (result.success) {
+        successCount += 1;
+      } else {
+        failureCount += 1;
+      }
+    }
+
+    if (successCount > 0) {
+      setCopyStatus({
+        type: failureCount ? "error" : "success",
+        message:
+          failureCount > 0
+            ? `Copied ${successCount} blocked slot${successCount === 1 ? "" : "s"}. ${failureCount} skipped.`
+            : `Copied ${successCount} blocked slot${successCount === 1 ? "" : "s"} to next week.`,
+      });
+    } else {
+      setCopyStatus({ type: "error", message: "No blocked slots copied." });
+    }
+
+    setIsCopying(false);
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={goToPreviousWeek}
-            className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            onClick={goToNextWeek}
-            className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <button
-            onClick={goToToday}
-            className="ml-2 rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted"
-          >
-            Today
-          </button>
+      {showHeaderControls ? (
+        <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPreviousWeek}
+              className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={goToNextWeek}
+              className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={goToToday}
+              className="ml-2 rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted"
+            >
+              Today
+            </button>
+          </div>
+
+          <h2 className="text-lg font-semibold">
+            {format(currentWeekStart, "MMM d")} -{" "}
+            {format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), "MMM d, yyyy")}
+          </h2>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyBlockedWeek}
+              disabled={isCopying}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              title="Copy blocked time to the next week"
+            >
+              <Copy className="h-4 w-4" />
+              {isCopying ? "Copying…" : "Copy week → next"}
+            </button>
+            <CalendarColorLegend />
+          </div>
         </div>
+      ) : null}
 
-        <h2 className="text-lg font-semibold">
-          {format(currentWeekStart, "MMM d")} -{" "}
-          {format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), "MMM d, yyyy")}
-        </h2>
-
-        <CalendarColorLegend />
-      </div>
+      {copyStatus ? (
+        <p
+          className={`mb-2 inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ${
+            copyStatus.type === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-destructive/10 text-destructive"
+          }`}
+        >
+          {copyStatus.message}
+        </p>
+      ) : null}
 
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto rounded-xl border bg-white">
         <div className="min-w-[800px]">
           {/* Day Headers */}
-          <div className="sticky top-0 z-20 flex border-b bg-muted/50">
+          <div className="sticky top-0 z-20 flex bg-background/80 backdrop-blur-md">
             {/* Time column spacer */}
-            <div className="w-16 flex-shrink-0 border-r" />
+            <div className={`${timeColumnWidth} flex-shrink-0 px-2 py-3 text-right bg-transparent`}>
+              <div className="flex h-full items-end justify-end">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-medium">
+                  {primaryAbbr || "LOCAL"}
+                </span>
+              </div>
+            </div>
 
             {/* Day columns */}
             {weekDays.map((day) => (
               <div
                 key={day.toISOString()}
-                className={`flex-1 border-r p-2 text-center ${
+                className={`flex-1 p-2 text-center ${
                   isToday(day) ? "bg-primary/10" : ""
                 }`}
               >
@@ -165,18 +293,25 @@ export function CalendarWeekView({
           </div>
 
           {/* Time Grid */}
-          <div className="relative flex">
+          <div className="relative flex bg-stone-50/30">
             {/* Time labels */}
-            <div className="w-16 flex-shrink-0 border-r">
-              {timeSlots.map((slot) => (
+            <div className={`${timeColumnWidth} flex-shrink-0 bg-transparent`}>
+              {timeSlots.map((slot, index) => (
                 <div
                   key={`${slot.hour}-${slot.minute}`}
-                  className="relative border-b"
+                  className={`relative ${getRowBg(index)}`}
                   style={{ height: `${pixelsPerHour}px` }}
                 >
-                  <span className="absolute -top-2 right-2 text-[10px] text-muted-foreground">
-                    {slot.label}
-                  </span>
+                  <div className="flex h-full items-start justify-end px-3 pt-2">
+                    <span className="relative -mt-2.5 text-xs font-sans text-muted-foreground">
+                      {slot.label.replace(" ", "")}
+                    </span>
+                    {showSecondaryTimezone ? (
+                      <span className="text-muted-foreground">
+                        {formatSecondaryTime(slot.hour, slot.minute)}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -189,7 +324,7 @@ export function CalendarWeekView({
               return (
                 <div
                   key={day.toISOString()}
-                  className={`relative flex-1 border-r ${
+                  className={`relative flex-1 ${
                     isToday(day) ? "bg-primary/5" : ""
                   }`}
                   onDragOver={(e) => {
@@ -200,10 +335,10 @@ export function CalendarWeekView({
                   onDrop={(e) => handleDrop(day, e)}
                 >
                   {/* Time slot backgrounds */}
-                  {timeSlots.map((slot) => (
+                  {timeSlots.map((slot, slotIndex) => (
                     <div
                       key={`${slot.hour}-${slot.minute}`}
-                      className="border-b hover:bg-muted/30 cursor-pointer"
+                      className={`${getRowBg(slotIndex)} cursor-pointer transition-colors hover:bg-muted/40`}
                       style={{ height: `${pixelsPerHour}px` }}
                       onClick={() => onTimeSlotClick?.(day, slot.hour)}
                     >
@@ -230,23 +365,30 @@ export function CalendarWeekView({
                         draggable={event.type === "tutorlingua"}
                         onDragStart={setDraggedEvent}
                         onDragEnd={() => setDraggedEvent(null)}
+                        isConflict={conflictIds.has(event.id)}
                       />
                     ))
-                  )}
-
-                  {/* Current time indicator */}
-                  {isToday(day) && showCurrentTime && (
-                    <div
-                      className="absolute left-0 right-0 z-30 flex items-center"
-                      style={{ top: `${currentTimePosition}px` }}
-                    >
-                      <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                      <div className="h-0.5 flex-1 bg-red-500" />
-                    </div>
                   )}
                 </div>
               );
             })}
+
+            {/* Current time indicator across grid */}
+            {showCurrentTime && (
+              <div
+                className="pointer-events-none absolute inset-x-0"
+                style={{ top: `${currentTimePosition}px` }}
+              >
+                <div
+                  className="absolute h-0.5 w-full border-t-2 border-primary"
+                  style={{ left: 0, right: 0, zIndex: 50 }}
+                />
+                <div
+                  className="absolute h-3 w-3 -translate-y-1.5 rounded-full bg-primary"
+                  style={{ left: showSecondaryTimezone ? 70 : 44, zIndex: 50 }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

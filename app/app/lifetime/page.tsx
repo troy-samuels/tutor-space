@@ -3,13 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { LifetimePageClient } from "./client";
 
 export const metadata = {
-  title: "Lifetime Deal - $49 for Life | TutorLingua",
+  title: "Lifetime Deal - $99 for Life | TutorLingua",
   description:
-    "Get lifetime access to TutorLingua for just $49. One-time payment, no monthly fees. The all-in-one platform for language tutors. Limited time offer.",
+    "Get lifetime access to TutorLingua for $99. One-time payment, no monthly fees. The all-in-one platform for language tutors.",
   openGraph: {
-    title: "Lifetime Deal - $49 for Life | TutorLingua",
+    title: "Lifetime Deal - $99 for Life | TutorLingua",
     description:
-      "Get lifetime access to TutorLingua for just $49. One-time payment, no monthly fees. Limited time offer.",
+      "Get lifetime access to TutorLingua for $99. One-time payment, no monthly fees.",
     type: "website",
   },
 };

@@ -4,6 +4,7 @@ import { Buffer } from "node:buffer";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { WizardState } from "@/lib/contexts/profile-wizard-context";
+import { normalizeAndValidateUsernameSlug } from "@/lib/utils/username-slug";
 
 export type WizardSaveResult = {
   success: boolean;
@@ -46,7 +47,11 @@ export async function saveWizardProgress(
     updateData.full_name = wizardState.step1.full_name.trim();
   }
   if (wizardState.step1.username) {
-    updateData.username = wizardState.step1.username.toLowerCase().trim();
+    const result = normalizeAndValidateUsernameSlug(wizardState.step1.username);
+    if (!result.valid) {
+      return { success: false, error: result.error || "Invalid username." };
+    }
+    updateData.username = result.normalized;
   }
   if (wizardState.step1.timezone) {
     updateData.timezone = wizardState.step1.timezone;

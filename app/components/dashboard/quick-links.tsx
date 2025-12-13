@@ -9,20 +9,20 @@ export function DashboardQuickLinks() {
   const hasUnread = unreadCount > 0;
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-center gap-2">
-      <Button
-      variant="outline"
-      size="sm"
-      asChild
-      className="w-full max-w-xs shrink-0 whitespace-nowrap text-center sm:w-auto"
-    >
-      <Link href="/calendar">Calendar</Link>
-    </Button>
+    <div className="flex max-w-full items-center justify-center gap-2 overflow-x-auto">
       <Button
         variant="outline"
         size="sm"
         asChild
-        className="w-full max-w-xs shrink-0 whitespace-nowrap text-center sm:w-auto"
+        className="shrink-0 whitespace-nowrap"
+      >
+        <Link href="/calendar">Calendar</Link>
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        asChild
+        className="shrink-0 whitespace-nowrap"
       >
         <Link href="/services">Services</Link>
       </Button>
@@ -30,7 +30,7 @@ export function DashboardQuickLinks() {
         variant="outline"
         size="sm"
         asChild
-        className="w-full max-w-xs shrink-0 whitespace-nowrap text-center sm:w-auto"
+        className="shrink-0 whitespace-nowrap"
       >
         <Link href="/students">Students</Link>
       </Button>
@@ -38,7 +38,7 @@ export function DashboardQuickLinks() {
         variant="outline"
         size="sm"
         asChild
-        className="w-full max-w-xs shrink-0 whitespace-nowrap text-center sm:w-auto"
+        className="shrink-0 whitespace-nowrap"
       >
         <Link href="/pages">Pages</Link>
       </Button>
@@ -46,7 +46,7 @@ export function DashboardQuickLinks() {
         variant="outline"
         size="sm"
         asChild
-        className="relative w-full max-w-xs shrink-0 whitespace-nowrap text-center sm:w-auto"
+        className="relative shrink-0 whitespace-nowrap"
       >
         <Link href="/messages">
           Messages
@@ -59,7 +59,7 @@ export function DashboardQuickLinks() {
         variant="outline"
         size="sm"
         asChild
-        className="w-full max-w-xs shrink-0 whitespace-nowrap text-center sm:w-auto"
+        className="shrink-0 whitespace-nowrap"
       >
         <Link href="/analytics">Analytics</Link>
       </Button>

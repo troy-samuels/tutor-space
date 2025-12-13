@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarDays, X } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import type { DailyLesson } from "@/lib/actions/calendar-sidebar";
@@ -27,7 +28,7 @@ const panelVariants: Variants = {
     opacity: 1,
     transition: {
       type: "spring",
-      damping: 25,
+      damping: 30,
       stiffness: 300,
     },
   },
@@ -117,14 +118,25 @@ export function CalendarDayPanel({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          variants={panelVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="w-full h-full bg-background border-l border-border flex flex-col overflow-hidden transition-all duration-300 lg:w-[26rem] xl:w-[30rem]"
-          data-testid="calendar-day-panel"
-        >
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-transparent"
+          />
+          {/* Panel */}
+          <motion.div
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed right-0 top-0 z-50 m-4 h-[95vh] w-full max-w-md rounded-3xl border border-white/20 bg-background shadow-2xl flex flex-col overflow-hidden sm:w-[24rem] lg:w-[26rem]"
+            data-testid="calendar-day-panel"
+          >
           {/* Header */}
           <div className="flex items-center justify-between border-b px-4 py-3 bg-background">
             <h4 className="font-semibold text-sm flex items-center gap-2 text-foreground">
@@ -136,9 +148,9 @@ export function CalendarDayPanel({
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="truncate"
+                  className="truncate text-base font-semibold tracking-tight text-foreground"
                 >
-                  {date ? format(date, "EEEE, MMMM d") : "Select a date"}
+                  {date ? format(date, "EEEE, MMM d") : "Select a date"}
                 </motion.span>
               </AnimatePresence>
             </h4>
@@ -195,15 +207,30 @@ export function CalendarDayPanel({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="text-center py-12"
+                  className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-10 text-center shadow-sm"
                 >
-                  <CalendarDays className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
-                  <p className="text-sm font-medium text-foreground mb-1">
-                    No lessons scheduled
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    This day is free for new bookings.
-                  </p>
+                  <div className="pointer-events-none absolute inset-0 opacity-25">
+                    <div className="absolute -left-10 -top-10 h-48 w-48 rounded-full bg-gradient-to-br from-primary/10 via-orange-200/30 to-transparent blur-2xl" />
+                    <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-gradient-to-tl from-muted/70 via-white/60 to-transparent blur-2xl" />
+                    <CalendarDays className="absolute left-6 top-6 h-16 w-16 text-muted-foreground/20" />
+                  </div>
+                  <div className="relative space-y-3">
+                    <p className="text-sm font-medium text-foreground">
+                      No lessons scheduled
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      This day is free—set up a new lesson.
+                    </p>
+                    <div className="pt-2">
+                      <Link
+                        href={`/bookings?date=${dateKey}`}
+                        className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-6 text-lg font-semibold text-primary-foreground shadow-md transition hover:shadow-lg"
+                      >
+                        <Plus className="h-5 w-5" />
+                        Add Lesson
+                      </Link>
+                    </div>
+                  </div>
                 </motion.div>
               ) : (
                 // Lessons and events list with staggered animation
@@ -271,6 +298,7 @@ export function CalendarDayPanel({
             </AnimatePresence>
           </div>
         </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

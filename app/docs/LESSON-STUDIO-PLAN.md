@@ -21,8 +21,8 @@
 | **Sheet Modals** | Slide-up from bottom for forms/details | `components/ui/sheet.tsx` |
 | **Touch Targets** | Minimum 44px (h-10/h-11) for all interactive elements | `components/ui/button.tsx` |
 | **Full-Width Inputs** | 100% width on mobile, constrained on desktop | `components/booking/StudentInfoForm.tsx` |
-| **Content Padding** | `pb-20` to clear fixed bottom nav | `components/student-auth/StudentPortalLayout.tsx` |
-| **Responsive Text** | Hide labels on mobile, show icons only | `components/student-auth/StudentBottomNav.tsx` |
+| **Content Padding** | `pb-20` to clear fixed bottom nav | `components/student/StudentPortalLayout.tsx` |
+| **Responsive Text** | Hide labels on mobile, show icons only | `components/student/StudentBottomNav.tsx` |
 
 ### Mobile-Specific Activity Considerations
 
@@ -110,7 +110,7 @@
 
 ### Student Portal Pages (Mobile-Optimized)
 ```
-/app/student-auth/activities/
+/app/student/activities/
 ├── page.tsx                    # Assigned activities (card list)
 ├── [assignmentId]/page.tsx     # Full-screen activity player
 └── flashcards/[deckId]/page.tsx # Swipe-based flashcard practice
@@ -351,7 +351,7 @@ CREATE TABLE video_resources (
 | Sheet Modals | `/app/components/ui/sheet.tsx` |
 | Mobile Forms | `/app/components/booking/StudentInfoForm.tsx` |
 | AI Chat Interface | `/app/components/student/AIPracticeChat.tsx` |
-| Student Portal Layout | `/app/components/student-auth/StudentPortalLayout.tsx` |
+| Student Portal Layout | `/app/components/student/StudentPortalLayout.tsx` |
 | Drag-and-Drop | `/app/components/marketing/link-manager.tsx` (@dnd-kit) |
 | Complex Form State | `/app/components/page-builder/wizard-context.tsx` |
 | Activity Types | `/app/components/students/HomeworkPlanner.tsx` |

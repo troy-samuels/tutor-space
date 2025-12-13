@@ -1,21 +1,27 @@
 "use client";
 
-import { Video } from "lucide-react";
 import type { CalendarEvent } from "@/lib/types/calendar";
 import { CALENDAR_COLORS, getEventPosition } from "@/lib/types/calendar";
 
 type CalendarEventBlockProps = {
   event: CalendarEvent;
-  onClick?: (event: CalendarEvent) => void;
+  onClick?: (event: CalendarEvent, clickEvent?: React.MouseEvent) => void;
   pixelsPerHour?: number;
   startHour?: number;
   columnWidth?: number;
   columnIndex?: number;
   totalColumns?: number;
-  compact?: boolean;
   draggable?: boolean;
   onDragStart?: (event: CalendarEvent) => void;
   onDragEnd?: () => void;
+  isConflict?: boolean;
+};
+
+const CONFLICT_COLORS = {
+  bg: "bg-rose-50",
+  border: "border-rose-300",
+  text: "text-rose-900",
+  dot: "bg-rose-500",
 };
 
 export function CalendarEventBlock({
@@ -26,13 +32,13 @@ export function CalendarEventBlock({
   columnWidth,
   columnIndex = 0,
   totalColumns = 1,
-  compact = false,
   draggable = false,
   onDragStart,
   onDragEnd,
+  isConflict = false,
 }: CalendarEventBlockProps) {
-  const colors = CALENDAR_COLORS[event.type];
   const { top, height } = getEventPosition(event, startHour, pixelsPerHour);
+  const accentColor = isConflict ? "#f43f5e" : "var(--primary)";
 
   // Calculate width and left position for overlapping events
   const width = columnWidth
@@ -43,7 +49,6 @@ export function CalendarEventBlock({
     : `calc(${(100 / totalColumns) * columnIndex}%)`;
 
   const startTime = new Date(event.start);
-  const endTime = new Date(event.end);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], {
@@ -53,9 +58,7 @@ export function CalendarEventBlock({
     });
   };
 
-  const durationMinutes = Math.round(
-    (endTime.getTime() - startTime.getTime()) / 60000
-  );
+  const showTime = height >= 34; // Hide time text on very small blocks
 
   return (
     <button
@@ -66,41 +69,25 @@ export function CalendarEventBlock({
         onDragStart?.(event);
       }}
       onDragEnd={() => onDragEnd?.()}
-      onClick={() => onClick?.(event)}
-      className={`absolute overflow-hidden rounded-md border px-2 py-1 text-left transition-all hover:shadow-md ${colors.bg} ${colors.border} ${colors.text} ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      onClick={(e) => onClick?.(event, e)}
+      className={`absolute overflow-hidden rounded-lg border border-stone-200/60 bg-white px-3 py-1.5 text-left text-sm text-foreground shadow-sm transition-all hover:scale-[1.02] hover:shadow-md border-l-[3px] ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
       style={{
         top: `${top}px`,
         height: `${height}px`,
         width: typeof width === "number" ? `${width}px` : width,
         left: typeof left === "number" ? `${left}px` : left,
-        zIndex: 10 + columnIndex,
+        borderLeftColor: accentColor,
+        zIndex: 60 + columnIndex,
       }}
     >
-      <div className="flex h-full flex-col">
-        {/* Time */}
-        <div className="flex items-center gap-1 text-[10px] font-medium opacity-80">
-          <span>{formatTime(startTime)}</span>
-          {event.meetingUrl && <Video className="h-2.5 w-2.5" />}
-        </div>
-
-        {/* Title - only show if enough space */}
-        {height >= 30 && (
-          <div className="mt-0.5 flex-1 overflow-hidden">
-            <p
-              className={`font-medium leading-tight ${
-                compact ? "text-[10px]" : "text-xs"
-              } line-clamp-2`}
-            >
-              {event.title}
-            </p>
-          </div>
-        )}
-
-        {/* Duration - only show if enough space */}
-        {height >= 50 && !compact && (
-          <div className="mt-auto text-[9px] opacity-70">
-            {durationMinutes} min
-          </div>
+      <div className="flex h-full flex-col justify-center gap-1">
+        <p className="truncate text-sm font-semibold leading-tight tracking-tight">
+          {event.studentName || event.title}
+        </p>
+        {showTime && (
+          <p className="text-[10px] font-sans font-medium leading-none text-muted-foreground">
+            {formatTime(startTime)}
+          </p>
         )}
       </div>
     </button>
@@ -111,11 +98,13 @@ export function CalendarEventBlock({
 export function CalendarEventChip({
   event,
   onClick,
+  isConflict = false,
 }: {
   event: CalendarEvent;
-  onClick?: (event: CalendarEvent) => void;
+  onClick?: (event: CalendarEvent, clickEvent?: React.MouseEvent) => void;
+  isConflict?: boolean;
 }) {
-  const colors = CALENDAR_COLORS[event.type];
+  const colors = isConflict ? CONFLICT_COLORS : CALENDAR_COLORS[event.type];
 
   const startTime = new Date(event.start);
   const formatTime = (date: Date) => {
@@ -128,7 +117,7 @@ export function CalendarEventChip({
 
   return (
     <button
-      onClick={() => onClick?.(event)}
+      onClick={(e) => onClick?.(event, e)}
       className={`flex w-full items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[10px] transition hover:opacity-80 ${colors.bg} ${colors.text}`}
     >
       <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${colors.dot}`} />
@@ -146,12 +135,13 @@ export function CalendarColorLegend() {
     { type: "google" as const, label: "Google" },
     { type: "outlook" as const, label: "Outlook" },
     { type: "blocked" as const, label: "Blocked" },
+    { type: "conflict" as const, label: "External conflict" },
   ];
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-xs">
       {items.map((item) => {
-        const colors = CALENDAR_COLORS[item.type];
+        const colors = item.type === "conflict" ? CONFLICT_COLORS : CALENDAR_COLORS[item.type];
         return (
           <div key={item.type} className="flex items-center gap-1.5">
             <span className={`h-2.5 w-2.5 rounded-sm ${colors.dot}`} />

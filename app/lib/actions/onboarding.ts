@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeAndValidateUsernameSlug } from "@/lib/utils/username-slug";
 
 type StepData = {
   // Step 1
@@ -33,7 +34,7 @@ type StepData = {
   // Step 5
   calendar_provider?: "google" | "outlook" | null;
   // Step 6 - Video Conferencing
-  video_provider?: "zoom_personal" | "google_meet" | "custom" | "none";
+  video_provider?: "zoom_personal" | "google_meet" | "microsoft_teams" | "custom" | "none";
   video_url?: string;
   custom_video_name?: string;
   // Step 7 - Payments
@@ -70,11 +71,20 @@ export async function saveOnboardingStep(
     switch (step) {
       case 1: {
         // Profile basics
+        let normalizedUsername: string | undefined;
+        if (typeof data.username === "string" && data.username.trim().length > 0) {
+          const result = normalizeAndValidateUsernameSlug(data.username);
+          if (!result.valid) {
+            return { success: false, error: result.error || "Invalid username" };
+          }
+          normalizedUsername = result.normalized;
+        }
+
         const { error } = await supabase
           .from("profiles")
           .update({
             full_name: data.full_name,
-            username: data.username,
+            username: normalizedUsername ?? data.username,
             timezone: data.timezone,
             avatar_url: data.avatar_url,
             onboarding_step: 1,
@@ -207,6 +217,8 @@ export async function saveOnboardingStep(
           videoUpdateData.zoom_personal_link = data.video_url;
         } else if (data.video_provider === "google_meet" && data.video_url) {
           videoUpdateData.google_meet_link = data.video_url;
+        } else if (data.video_provider === "microsoft_teams" && data.video_url) {
+          videoUpdateData.microsoft_teams_link = data.video_url;
         } else if (data.video_provider === "custom" && data.video_url) {
           videoUpdateData.custom_video_url = data.video_url;
           if (data.custom_video_name) {

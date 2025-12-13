@@ -6,6 +6,7 @@ import { toZonedTime } from "date-fns-tz";
 import { Video, Clock, Calendar, Loader2, ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getStudentBookings } from "@/lib/actions/student-bookings";
+import Link from "next/link";
 
 type Booking = {
   id: string;
@@ -20,6 +21,7 @@ type Booking = {
     username: string;
     full_name: string | null;
     avatar_url: string | null;
+    tier: string | null;
   };
   service: {
     id: string;
@@ -117,7 +119,7 @@ export function UpcomingLessons() {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
         {error}
       </div>
     );
@@ -132,7 +134,7 @@ export function UpcomingLessons() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Upcoming Lessons</h2>
+      <h2 className="text-lg font-semibold text-foreground">Upcoming Lessons</h2>
 
       <div className="space-y-3">
         {upcomingBookings.map((booking) => {
@@ -145,7 +147,7 @@ export function UpcomingLessons() {
           return (
             <div
               key={booking.id}
-              className={`rounded-xl border p-4 transition ${
+              className={`rounded-2xl border p-4 transition ${
                 isJoinable
                   ? "border-primary bg-primary/5 shadow-sm"
                   : "border-border bg-white"
@@ -164,7 +166,7 @@ export function UpcomingLessons() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-foreground">
                       {booking.service.name}
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -196,7 +198,7 @@ export function UpcomingLessons() {
                 </span>
               </div>
 
-              {/* Join Button */}
+              {/* Join Button - External Provider */}
               {booking.meeting_url && (
                 <div className="mt-4">
                   {isJoinable ? (
@@ -217,6 +219,29 @@ export function UpcomingLessons() {
                     >
                       <Video className="h-5 w-5" />
                       Join available 15 min before
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Join Button - Native Classroom (Studio tier tutors only) */}
+              {booking.tutor.tier === "studio" && (
+                <div className="mt-3">
+                  {isJoinable ? (
+                    <Link
+                      href={`/classroom/${booking.id}`}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
+                    >
+                      <Video className="h-5 w-5" />
+                      Join Native Classroom
+                    </Link>
+                  ) : (
+                    <button
+                      disabled
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-100 px-4 py-3 text-sm font-medium text-purple-400 cursor-not-allowed"
+                    >
+                      <Video className="h-5 w-5" />
+                      Classroom available 15 min before
                     </button>
                   )}
                 </div>

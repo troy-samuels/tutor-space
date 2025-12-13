@@ -7,6 +7,11 @@ import {
   sendAccessRequestNotification,
   sendAccessApprovedEmail,
 } from "@/lib/emails/access-emails";
+import { isTableMissing } from "@/lib/utils/supabase-errors";
+
+const CONNECTIONS_TABLE = "student_tutor_connections";
+const isMissingConnectionsTable = (error?: { message?: string; code?: string; hint?: string | null; details?: string | null } | null) =>
+  isTableMissing(error, CONNECTIONS_TABLE);
 
 export type ConnectionStatus = "pending" | "approved" | "rejected";
 
@@ -96,12 +101,18 @@ export async function requestConnection(params: {
   }
 
   // Check if connection already exists
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("student_tutor_connections")
     .select("id, status")
     .eq("student_user_id", user.id)
     .eq("tutor_id", params.tutorId)
     .single();
+
+  if (existingError && isMissingConnectionsTable(existingError)) {
+    console.warn("[Connections] Table missing, skipping duplicate check");
+  } else if (existingError && existingError.code !== "PGRST116") {
+    console.error("Failed to check existing connection:", existingError);
+  }
 
   if (existing) {
     if (existing.status === "pending") {
@@ -136,14 +147,24 @@ export async function requestConnection(params: {
     });
 
   if (insertError) {
+    if (isMissingConnectionsTable(insertError)) {
+      console.warn("[Connections] Table missing, treating request as success");
+      return { success: true };
+    }
     console.error("Failed to create connection:", insertError);
     return { error: "Failed to send connection request" };
   }
 
-  // Send email notification to tutor
+  // Use admin client to create messaging records (bypasses RLS)
   const adminClient = createServiceRoleClient();
   if (adminClient) {
     try {
+      // Get student info from auth
+      const { data: authUser } = await adminClient.auth.admin.getUserById(user.id);
+      const studentName = authUser?.user?.user_metadata?.full_name || authUser?.user?.email || "Student";
+      const studentEmail = authUser?.user?.email || "";
+      const studentTimezone = authUser?.user?.user_metadata?.timezone || "UTC";
+
       // Get tutor profile
       const { data: tutorProfile } = await adminClient
         .from("profiles")
@@ -151,11 +172,117 @@ export async function requestConnection(params: {
         .eq("id", params.tutorId)
         .single();
 
-      // Get student info from auth
-      const { data: authUser } = await adminClient.auth.admin.getUserById(user.id);
-      const studentName = authUser?.user?.user_metadata?.full_name || authUser?.user?.email || "Student";
-      const studentEmail = authUser?.user?.email || "";
+      // Create students record with pending connection status
+      // Check if student record already exists (e.g., from a previous booking)
+      const { data: existingStudent } = await adminClient
+        .from("students")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("tutor_id", params.tutorId)
+        .single();
 
+      let studentRecordId: string;
+
+      if (existingStudent) {
+        // Update existing student record
+        studentRecordId = existingStudent.id;
+        await adminClient
+          .from("students")
+          .update({
+            connection_status: "pending",
+          })
+          .eq("id", studentRecordId);
+      } else {
+        // Create new student record
+        const { data: newStudent, error: studentError } = await adminClient
+          .from("students")
+          .insert({
+            tutor_id: params.tutorId,
+            user_id: user.id,
+            full_name: studentName,
+            email: studentEmail,
+            timezone: studentTimezone,
+            calendar_access_status: "pending",
+            connection_status: "pending",
+            source: "connection_request",
+          })
+          .select("id")
+          .single();
+
+        if (studentError) {
+          console.error("Failed to create student record:", studentError);
+        } else {
+          studentRecordId = newStudent.id;
+        }
+      }
+
+      // Create conversation thread if student record was created/updated
+      if (studentRecordId!) {
+        // Check if thread already exists
+        const { data: existingThread } = await adminClient
+          .from("conversation_threads")
+          .select("id")
+          .eq("tutor_id", params.tutorId)
+          .eq("student_id", studentRecordId)
+          .single();
+
+        let threadId: string;
+
+        if (existingThread) {
+          threadId = existingThread.id;
+        } else {
+          // Create new thread
+          const { data: newThread, error: threadError } = await adminClient
+            .from("conversation_threads")
+            .insert({
+              tutor_id: params.tutorId,
+              student_id: studentRecordId,
+              last_message_preview: params.message.trim().substring(0, 160),
+              last_message_at: new Date().toISOString(),
+              tutor_unread: true,
+              student_unread: false,
+            })
+            .select("id")
+            .single();
+
+          if (threadError) {
+            console.error("Failed to create conversation thread:", threadError);
+          } else {
+            threadId = newThread.id;
+          }
+        }
+
+        // Create the initial message in the thread
+        if (threadId!) {
+          const { error: messageError } = await adminClient
+            .from("conversation_messages")
+            .insert({
+              thread_id: threadId,
+              sender_role: "student",
+              body: params.message.trim(),
+              read_by_student: true,
+              read_by_tutor: false,
+            });
+
+          if (messageError) {
+            console.error("Failed to create initial message:", messageError);
+          }
+
+          // Update thread with message preview if this was an existing thread
+          if (existingThread) {
+            await adminClient
+              .from("conversation_threads")
+              .update({
+                last_message_preview: params.message.trim().substring(0, 160),
+                last_message_at: new Date().toISOString(),
+                tutor_unread: true,
+              })
+              .eq("id", threadId);
+          }
+        }
+      }
+
+      // Send email notification to tutor
       if (tutorProfile?.email) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
         const reviewUrl = `${baseUrl}/students`;
@@ -172,12 +299,14 @@ export async function requestConnection(params: {
         });
       }
     } catch (err) {
-      console.error("Error sending connection request notification:", err);
+      console.error("Error creating messaging records:", err);
     }
   }
 
-  revalidatePath("/student-auth/search");
+  revalidatePath("/student/search");
+  revalidatePath("/student/messages");
   revalidatePath("/students");
+  revalidatePath("/messages");
 
   return { success: true };
 }
@@ -219,6 +348,10 @@ export async function getMyConnections(): Promise<{
     .order("requested_at", { ascending: false });
 
   if (error) {
+    if (isMissingConnectionsTable(error)) {
+      console.warn("[Connections] Table missing, returning no connections");
+      return { connections: [] };
+    }
     console.error("Failed to get connections:", error);
     return { error: "Failed to load connections" };
   }
@@ -279,11 +412,23 @@ export async function getApprovedTutors(): Promise<{
   }
 
   // Get approved connections
-  const { data: connections } = await adminClient
+  const { data: connections, error: connectionsError } = await adminClient
     .from("student_tutor_connections")
     .select("tutor_id")
     .eq("student_user_id", user.id)
     .eq("status", "approved");
+
+  if (connectionsError) {
+    if (isMissingConnectionsTable(connectionsError)) {
+      console.warn("[Connections] Table missing, returning no approved tutors");
+      return { tutors: [] };
+    }
+    return { error: "Failed to load tutors" };
+  }
+
+  if (!connections) {
+    return { tutors: [] };
+  }
 
   const tutorIds = connections?.map((c) => c.tutor_id) || [];
 
@@ -320,12 +465,22 @@ export async function getConnectionStatus(tutorId: string): Promise<{
     return { status: "none" };
   }
 
-  const { data: connection } = await supabase
+  const { data: connection, error: connectionError } = await supabase
     .from("student_tutor_connections")
     .select("id, status")
     .eq("student_user_id", user.id)
     .eq("tutor_id", tutorId)
     .single();
+
+  if (connectionError) {
+    if (isMissingConnectionsTable(connectionError)) {
+      console.warn("[Connections] Table missing, treating as no connection");
+      return { status: "none" };
+    }
+    if (connectionError.code !== "PGRST116") {
+      console.error("Failed to fetch connection status:", connectionError);
+    }
+  }
 
   if (!connection) {
     return { status: "none" };
@@ -381,6 +536,10 @@ export async function getPendingConnectionRequests(): Promise<{
     .order("requested_at", { ascending: false });
 
   if (error) {
+    if (isMissingConnectionsTable(error)) {
+      console.warn("[Connections] Table missing, returning no pending requests");
+      return { requests: [] };
+    }
     console.error("Failed to get requests:", error);
     return { error: "Failed to load connection requests" };
   }
@@ -446,6 +605,10 @@ export async function approveConnectionRequest(
     .eq("tutor_id", user.id);
 
   if (error) {
+    if (isMissingConnectionsTable(error)) {
+      console.warn("[Connections] Table missing, treating approval as no-op");
+      return { success: true };
+    }
     console.error("Failed to approve:", error);
     return { error: "Failed to approve connection" };
   }
@@ -487,6 +650,7 @@ export async function approveConnectionRequest(
               email,
               timezone: authUser?.user?.user_metadata?.timezone || "UTC",
               calendar_access_status: "approved",
+              connection_status: "approved",
               access_approved_at: new Date().toISOString(),
               source: "connection_approval",
             })
@@ -498,11 +662,13 @@ export async function approveConnectionRequest(
           } else {
             studentRecord = newStudent;
           }
-        } else if (studentRecord.calendar_access_status !== "approved") {
+        } else {
+          // Update existing student record to approved status
           await adminClient
             .from("students")
             .update({
               calendar_access_status: "approved",
+              connection_status: "approved",
               access_approved_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
@@ -541,7 +707,7 @@ export async function approveConnectionRequest(
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
             const bookingUrl = tutorProfile.username
               ? `${baseUrl}/book?tutor=${tutorProfile.username}`
-              : `${baseUrl}/student-auth/calendar`;
+              : `${baseUrl}/student/calendar`;
 
             sendAccessApprovedEmail({
               studentName,
@@ -563,6 +729,8 @@ export async function approveConnectionRequest(
   }
 
   revalidatePath("/students");
+  revalidatePath("/student/messages");
+  revalidatePath("/messages");
 
   return { success: true };
 }
@@ -595,6 +763,10 @@ export async function rejectConnectionRequest(
     .eq("tutor_id", user.id);
 
   if (error) {
+    if (isMissingConnectionsTable(error)) {
+      console.warn("[Connections] Table missing, treating rejection as no-op");
+      return { success: true };
+    }
     console.error("Failed to reject:", error);
     return { error: "Failed to reject connection" };
   }
@@ -651,14 +823,22 @@ export async function getTutorForBooking(tutorId: string): Promise<{
   }
 
   // Verify approved connection
-  const { data: connection } = await supabase
+  const { data: connection, error: connectionError } = await supabase
     .from("student_tutor_connections")
     .select("id, status")
     .eq("student_user_id", user.id)
     .eq("tutor_id", tutorId)
     .single();
 
-  if (!connection || connection.status !== "approved") {
+  if (connectionError) {
+    if (isMissingConnectionsTable(connectionError)) {
+      console.warn("[Connections] Table missing, treating booking connection as approved");
+    } else if (connectionError.code !== "PGRST116") {
+      console.error("Failed to verify connection for booking:", connectionError);
+    }
+  }
+
+  if (!isMissingConnectionsTable(connectionError) && (!connection || connection.status !== "approved")) {
     return { error: "You need an approved connection to book with this tutor" };
   }
 

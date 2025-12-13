@@ -327,12 +327,12 @@ export function AIPracticeChat({
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
               <Bot className="mx-auto h-10 w-10 text-primary" />
               <p className="mt-2 font-medium text-foreground">
-                Ready to practice {language}!
+                Ready to chat in {language}!
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {topic
                   ? `Today's topic: ${topic}`
-                  : "Start the conversation and I'll help you practice."}
+                  : "Say hello and let's get started."}
               </p>
             </div>
           )}

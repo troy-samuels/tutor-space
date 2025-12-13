@@ -4,6 +4,7 @@ import { Buffer } from "node:buffer";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { profileSchema, type ProfileFormValues } from "@/lib/validators/profile";
+import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 
 export type ProfileActionState = {
   error?: string;
@@ -56,7 +57,7 @@ export async function updateProfile(
 
   const fields: ProfileFormValues = {
     full_name: (formData.get("full_name") as string) ?? "",
-    username: (formData.get("username") as string) ?? "",
+    username: normalizeUsernameSlug(((formData.get("username") as string) ?? "").trim()),
     tagline: (formData.get("tagline") as string) ?? "",
     bio: (formData.get("bio") as string) ?? "",
     languages_taught: languagesRaw,
@@ -195,6 +196,7 @@ export async function updateVideoSettings(data: {
   video_provider: string;
   zoom_personal_link: string;
   google_meet_link: string;
+  microsoft_teams_link: string;
   calendly_link: string;
   custom_video_url: string;
   custom_video_name: string;
@@ -227,6 +229,16 @@ export async function updateVideoSettings(data: {
     }
   }
 
+  if (data.video_provider === "microsoft_teams" && data.microsoft_teams_link) {
+    if (!isValidUrl(data.microsoft_teams_link)) {
+      return { error: "Microsoft Teams link must be a valid URL" };
+    }
+    if (!data.microsoft_teams_link.includes("teams.microsoft.com") &&
+        !data.microsoft_teams_link.includes("teams.live.com")) {
+      return { error: "Please enter a valid Microsoft Teams meeting URL" };
+    }
+  }
+
   if (data.video_provider === "calendly" && data.calendly_link) {
     if (!isValidUrl(data.calendly_link)) {
       return { error: "Calendly link must be a valid URL" };
@@ -248,6 +260,7 @@ export async function updateVideoSettings(data: {
       video_provider: data.video_provider,
       zoom_personal_link: data.zoom_personal_link || null,
       google_meet_link: data.google_meet_link || null,
+      microsoft_teams_link: data.microsoft_teams_link || null,
       calendly_link: data.calendly_link || null,
       custom_video_url: data.custom_video_url || null,
       custom_video_name: data.custom_video_name || null,

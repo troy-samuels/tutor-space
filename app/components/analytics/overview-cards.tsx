@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { DollarSign, CalendarCheck, Users, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCountUp } from "@/lib/hooks/useCountUp";
 
 interface OverviewData {
   revenue: number;
@@ -17,32 +18,38 @@ interface OverviewCardsProps {
 }
 
 export function OverviewCards({ data, isLoading }: OverviewCardsProps) {
+  // Animated values for "big numbers"
+  const animatedRevenue = useCountUp(data?.revenue ?? 0, 1200);
+  const animatedStudents = useCountUp(data?.students ?? 0, 1000);
+  const animatedLessons = useCountUp(data?.lessons ?? 0, 1000);
+  const animatedRetention = useCountUp(data?.retentionRate ?? 0, 1000);
+
   const cards = [
     {
       icon: <DollarSign className="h-5 w-5 text-emerald-600" />,
       label: "Revenue",
-      value: data ? `$${data.revenue.toLocaleString()}` : "$0",
+      value: `$${animatedRevenue.toLocaleString()}`,
       helper: "Total for period",
       bgColor: "bg-emerald-50",
     },
     {
       icon: <CalendarCheck className="h-5 w-5 text-blue-600" />,
       label: "Lessons",
-      value: data?.lessons ?? 0,
+      value: animatedLessons,
       helper: "Completed sessions",
       bgColor: "bg-blue-50",
     },
     {
       icon: <Users className="h-5 w-5 text-purple-600" />,
       label: "Students",
-      value: data?.students ?? 0,
+      value: animatedStudents,
       helper: "Active learners",
       bgColor: "bg-purple-50",
     },
     {
       icon: <TrendingUp className="h-5 w-5 text-amber-600" />,
       label: "Retention",
-      value: data ? `${data.retentionRate}%` : "0%",
+      value: `${animatedRetention}%`,
       helper: "Students returning",
       bgColor: "bg-amber-50",
     },

@@ -5,6 +5,7 @@ import { EmailAutomationSettings } from "@/components/marketing/email-automation
 import type { EmailAudienceId } from "@/lib/constants/email-audiences";
 import type { LaunchTopicId } from "@/lib/constants/launch-topics";
 import type { EmailTemplateId } from "@/lib/constants/email-templates";
+import { hasProAccess } from "@/lib/payments/subscriptions";
 
 type AudienceCounts = Record<EmailAudienceId, number>;
 
@@ -33,8 +34,8 @@ export default async function EmailMarketingPage() {
     .single();
 
   const plan = profile?.plan ?? "professional";
-  if (plan !== "growth" && plan !== "studio") {
-    redirect("/upgrade?plan=growth");
+  if (!hasProAccess(plan)) {
+    redirect("/settings/billing");
   }
 
   const { data: students } = await supabase

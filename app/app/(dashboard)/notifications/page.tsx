@@ -30,6 +30,9 @@ import {
   Trash2,
   Check,
   Loader2,
+  BookOpen,
+  ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import {
   getNotifications,
@@ -58,6 +61,11 @@ const iconMap: Record<NotificationType, React.ComponentType<{ className?: string
   review_approved: CheckCircle,
   system_announcement: Megaphone,
   account_update: UserCog,
+  homework_assigned: BookOpen,
+  homework_due_reminder: Clock,
+  homework_submission_received: ClipboardCheck,
+  drill_assigned: Sparkles,
+  drill_due_reminder: Sparkles,
 };
 
 export default function NotificationsPage() {

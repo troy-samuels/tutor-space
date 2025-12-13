@@ -34,6 +34,8 @@ export function StudentBookingForm({
   onBack,
   onSuccess,
 }: StudentBookingFormProps) {
+  const totalSteps = 3;
+  const currentStep = 2; // Step 1: pick time, Step 2: confirm & payment, Step 3: success
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -47,6 +49,7 @@ export function StudentBookingForm({
 
   const zonedStart = toZonedTime(slot.start, tutor.timezone);
   const zonedEnd = toZonedTime(slot.end, tutor.timezone);
+  const priceDisplay = formatCurrency(service.price_amount, service.price_currency);
 
   // Load available packages on mount
   useEffect(() => {
@@ -133,7 +136,7 @@ export function StudentBookingForm({
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Booking Confirmed!</h2>
         <p className="text-muted-foreground mb-4">
           Your lesson with {tutor.full_name || `@${tutor.username}`} has been scheduled.
         </p>
@@ -155,6 +158,20 @@ export function StudentBookingForm({
       </button>
 
       <div className="bg-white rounded-2xl border border-border p-6">
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <span>
+              Step {currentStep} of {totalSteps}
+            </span>
+            <span>Confirm & Payment</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            />
+          </div>
+        </div>
         <h2 className="text-xl font-bold mb-6">Confirm Your Booking</h2>
 
         {/* Tutor Info */}
@@ -198,10 +215,35 @@ export function StudentBookingForm({
             <DollarSign className="h-5 w-5 text-muted-foreground" />
             <div>
               <div className="font-medium">
-                {formatCurrency(service.price_amount, service.price_currency)}
+                {priceDisplay}
               </div>
-              <div className="text-sm text-muted-foreground">Payment due after booking</div>
+              <div className="text-sm text-muted-foreground">
+                {paymentMethod === "package" && selectedPackageId
+                  ? "Using package credit · no charge"
+                  : "Secure checkout after confirm"}
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Payment summary */}
+        <div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">
+                {paymentMethod === "package" && selectedPackageId
+                  ? "Using session package"
+                  : "Pay with card"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {paymentMethod === "package" && selectedPackageId
+                  ? "1 session credit will be applied. No payment required today."
+                  : `You will pay ${priceDisplay} via secure checkout after confirming.`}
+              </p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary">
+              {paymentMethod === "package" && selectedPackageId ? "Credits" : "Checkout"}
+            </span>
           </div>
         </div>
 
@@ -310,7 +352,7 @@ export function StudentBookingForm({
         {/* Notes Form */}
         <form onSubmit={handleSubmit} className="pt-4 border-t border-border space-y-4">
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-foreground mb-2">
               Notes for your tutor (optional)
             </label>
             <textarea
@@ -324,7 +366,7 @@ export function StudentBookingForm({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">
               {error}
             </div>
           )}

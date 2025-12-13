@@ -1,0 +1,57 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { AIPracticeChat, type ChatMessage } from "@/components/student/AIPracticeChat";
+import type { PracticeUsage } from "@/lib/actions/progress";
+
+interface PracticeSessionClientProps {
+  sessionId: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  language: string;
+  level?: string | null;
+  topic?: string | null;
+  systemPrompt?: string;
+  maxMessages: number;
+  initialUsage?: PracticeUsage | null;
+  initialMessages: ChatMessage[];
+}
+
+export function PracticeSessionClient({
+  sessionId,
+  assignmentTitle,
+  language,
+  level,
+  topic,
+  systemPrompt,
+  maxMessages,
+  initialUsage,
+  initialMessages,
+}: PracticeSessionClientProps) {
+  const router = useRouter();
+
+  const handleBack = () => {
+    router.push("/student/progress");
+  };
+
+  const handleSessionEnd = (feedback: any) => {
+    // Could show a toast or handle completion
+    console.log("Session ended with feedback:", feedback);
+  };
+
+  return (
+    <AIPracticeChat
+      sessionId={sessionId}
+      assignmentTitle={assignmentTitle}
+      language={language}
+      level={level}
+      topic={topic}
+      systemPrompt={systemPrompt}
+      initialMessages={initialMessages}
+      maxMessages={maxMessages}
+      initialUsage={initialUsage}
+      onBack={handleBack}
+      onSessionEnd={handleSessionEnd}
+    />
+  );
+}

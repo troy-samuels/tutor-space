@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import VideoSettingsForm from "@/components/settings/VideoSettingsForm";
+import AIHomeworkPreferenceToggle from "@/components/settings/AIHomeworkPreferenceToggle";
 
 export default async function VideoSettingsPage() {
   const supabase = await createClient();
@@ -13,21 +14,23 @@ export default async function VideoSettingsPage() {
     redirect("/login");
   }
 
-  // Get current video settings
+  // Get current video settings and AI homework preference
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "video_provider, zoom_personal_link, google_meet_link, calendly_link, custom_video_url, custom_video_name"
+      "video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link, calendly_link, custom_video_url, custom_video_name, auto_homework_approval, tier"
     )
     .eq("id", user.id)
     .single();
+
+  const isStudioTier = profile?.tier === "studio";
 
   return (
     <div className="max-w-4xl space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Video Conferencing</h1>
         <p className="text-gray-600 mt-2">
-          Choose how you&apos;ll conduct your online lessons
+          Set up your video platform
         </p>
       </div>
 
@@ -51,9 +54,7 @@ export default async function VideoSettingsPage() {
               Use Your Own Video Platform
             </h3>
             <p className="text-sm text-blue-800 mt-1">
-              Most tutors use their free Zoom Personal Meeting Room or Google Meet.
-              Just paste your link once and we&apos;ll include it in all booking confirmations.
-              No API integrations or monthly costs required.
+              Paste your Zoom or Google Meet link. We&apos;ll include it in booking confirmations.
             </p>
           </div>
         </div>
@@ -64,11 +65,35 @@ export default async function VideoSettingsPage() {
           video_provider: profile?.video_provider || "none",
           zoom_personal_link: profile?.zoom_personal_link || "",
           google_meet_link: profile?.google_meet_link || "",
+          microsoft_teams_link: profile?.microsoft_teams_link || "",
           calendly_link: profile?.calendly_link || "",
           custom_video_url: profile?.custom_video_url || "",
           custom_video_name: profile?.custom_video_name || "",
         }}
       />
+
+      {/* AI Homework Preferences - Studio Tier Feature */}
+      {isStudioTier && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">AI-Generated Homework</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                When you record a lesson, our AI automatically analyzes the session and generates personalized practice materials for your students.
+              </p>
+            </div>
+          </div>
+
+          <AIHomeworkPreferenceToggle
+            initialPreference={(profile?.auto_homework_approval as "require_approval" | "auto_send") || "require_approval"}
+          />
+        </div>
+      )}
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold mb-4">💡 Platform Guides</h2>
@@ -84,6 +109,19 @@ export default async function VideoSettingsPage() {
             </ol>
             <p className="mt-1 text-xs text-gray-600">
               ⏰ Free Zoom accounts have 40-minute limit on group calls, but 1-on-1 lessons are unlimited
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-medium text-gray-900">Microsoft Teams</h3>
+            <ol className="mt-2 ml-4 list-decimal space-y-1">
+              <li>Open Microsoft Teams</li>
+              <li>Go to Calendar → click &quot;Meet now&quot;</li>
+              <li>Click &quot;Get a link to share&quot;</li>
+              <li>Copy and paste the link above</li>
+            </ol>
+            <p className="mt-1 text-xs text-gray-600">
+              Works with both business and personal Microsoft accounts
             </p>
           </div>
 
@@ -112,7 +150,7 @@ export default async function VideoSettingsPage() {
           <div>
             <h3 className="font-medium text-gray-900">Other Platforms</h3>
             <p className="mt-1">
-              You can also use Microsoft Teams, WhatsApp Video, FaceTime, or any other
+              You can also use WhatsApp Video, FaceTime, or any other
               platform by selecting &quot;Custom video platform&quot; and pasting your meeting link.
             </p>
           </div>

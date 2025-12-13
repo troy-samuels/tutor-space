@@ -26,7 +26,7 @@ export default async function TutorLoginPage() {
         <p className="text-center text-sm text-muted-foreground">
           {t("studentAccessQuestion")}{" "}
           <Link
-            href="/student-auth/login"
+            href="/student/login"
             className="font-semibold text-primary hover:underline"
           >
             {t("studentLoginLink")}

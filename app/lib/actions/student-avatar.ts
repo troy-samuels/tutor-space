@@ -95,7 +95,7 @@ export async function uploadStudentAvatar(
     return { success: false, error: "Failed to save avatar" };
   }
 
-  revalidatePath("/student-auth/settings");
+  revalidatePath("/student/settings");
   return { success: true, avatarUrl: publicUrl };
 }
 
@@ -143,7 +143,7 @@ export async function deleteStudentAvatar(): Promise<{ success: boolean; error?:
     return { success: false, error: "Failed to remove avatar" };
   }
 
-  revalidatePath("/student-auth/settings");
+  revalidatePath("/student/settings");
   return { success: true };
 }
 

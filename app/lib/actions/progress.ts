@@ -10,6 +10,7 @@ import {
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
 import { HOMEWORK_STATUSES } from "@/lib/types/progress";
+import { sendHomeworkAssignedEmail } from "@/lib/emails/ops-emails";
 
 export interface LearningGoal {
   id: string;
@@ -41,6 +42,8 @@ export interface LearningStats {
   student_id: string;
   tutor_id: string;
   total_lessons: number;
+  lessons_completed?: number;
+  lessons_cancelled?: number;
   total_minutes: number;
   lessons_this_month: number;
   minutes_this_month: number;
@@ -80,6 +83,16 @@ export interface PracticeAssignmentRef {
   sessions_completed: number;
 }
 
+export interface HomeworkDrill {
+  id: string;
+  drill_type: "pronunciation" | "grammar" | "vocabulary" | "fluency";
+  content: {
+    type: string;
+    prompt?: string;
+  } | null;
+  is_completed: boolean;
+}
+
 export interface HomeworkAssignment {
   id: string;
   tutor_id: string;
@@ -90,6 +103,7 @@ export interface HomeworkAssignment {
   status: HomeworkStatus;
   due_date: string | null;
   attachments: HomeworkAttachment[];
+  audio_instruction_url: string | null;
   student_notes: string | null;
   tutor_notes: string | null;
   completed_at: string | null;
@@ -101,6 +115,13 @@ export interface HomeworkAssignment {
   practice_assignment_id: string | null;
   // Joined practice assignment data (if linked)
   practice_assignment?: PracticeAssignmentRef | null;
+  // Linked practice drills
+  drills?: HomeworkDrill[];
+  // Auto-generated homework tracking fields
+  source?: "manual" | "auto_lesson_analysis" | "auto_ai_practice";
+  recording_id?: string | null;
+  tutor_reviewed?: boolean;
+  tutor_reviewed_at?: string | null;
 }
 
 // HOMEWORK_STATUSES moved to @/lib/types/progress to allow export from "use server" file
@@ -132,7 +153,10 @@ function normalizeAttachments(attachments?: HomeworkAttachment[] | null): Homewo
 /**
  * Get student progress data (for student portal)
  */
-export async function getStudentProgress(tutorId?: string): Promise<{
+export async function getStudentProgress(
+  tutorId?: string,
+  studentIdOverride?: string
+): Promise<{
   stats: LearningStats | null;
   goals: LearningGoal[];
   assessments: ProficiencyAssessment[];
@@ -153,19 +177,33 @@ export async function getStudentProgress(tutorId?: string): Promise<{
 
   const emptyResponse = { stats: null, goals: [], assessments: [], recentNotes: [], homework: [] };
 
-  // Get student (and owning tutor) for this user
-  let studentQuery = serviceClient
-    .from("students")
-    .select("id, tutor_id")
-    .eq("user_id", user.id);
+  let studentId = studentIdOverride ?? null;
+  let scopedTutorId = tutorId ?? null;
 
-  if (tutorId) {
-    studentQuery = studentQuery.eq("tutor_id", tutorId);
+  // Look up student (and tutor) if we don't already have both pieces
+  if (!studentId || !scopedTutorId) {
+    // Prefer an explicit student ID override; otherwise fall back to the authenticated user
+    let studentQuery = serviceClient
+      .from("students")
+      .select("id, tutor_id")
+      .limit(1);
+
+    if (studentIdOverride) {
+      studentQuery = studentQuery.eq("id", studentIdOverride);
+    } else if (user) {
+      studentQuery = studentQuery.eq("user_id", user.id);
+    } else {
+      return emptyResponse;
+    }
+
+    if (tutorId) {
+      studentQuery = studentQuery.eq("tutor_id", tutorId);
+    }
+
+    const { data: student } = await studentQuery.maybeSingle();
+    studentId = student?.id ?? studentId;
+    scopedTutorId = student?.tutor_id ?? scopedTutorId;
   }
-
-  const { data: student } = await studentQuery.limit(1).maybeSingle();
-  const studentId = student?.id;
-  const scopedTutorId = student?.tutor_id;
 
   if (!studentId || !scopedTutorId) {
     return emptyResponse;
@@ -210,6 +248,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
 
     // Homework assignments (ordered by due date first, then newest)
     // Join with practice_assignments to get practice status
+    // Filter out draft homework (auto-generated content awaiting tutor review)
     serviceClient
       .from("homework_assignments")
       .select(`
@@ -222,6 +261,7 @@ export async function getStudentProgress(tutorId?: string): Promise<{
       `)
       .eq("student_id", studentId)
       .eq("tutor_id", scopedTutorId)
+      .neq("status", "draft")
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(25),
@@ -331,6 +371,12 @@ export async function getTutorStudentProgress(studentId: string): Promise<{
           id,
           status,
           sessions_completed
+        ),
+        drills:lesson_drills!lesson_drills_homework_assignment_id_fkey (
+          id,
+          drill_type,
+          content,
+          is_completed
         )
       `)
       .eq("student_id", studentId)
@@ -345,10 +391,15 @@ export async function getTutorStudentProgress(studentId: string): Promise<{
     const practiceRaw = assignment.practice_assignment;
     const practiceAssignment = Array.isArray(practiceRaw) ? practiceRaw[0] || null : practiceRaw || null;
 
+    // Normalize drills (always array from Supabase join)
+    const drillsRaw = assignment.drills;
+    const drills = Array.isArray(drillsRaw) ? drillsRaw : [];
+
     return {
       ...(assignment as HomeworkAssignment),
       attachments: normalizeAttachments((assignment as any).attachments),
       practice_assignment: practiceAssignment,
+      drills,
     };
   }) as HomeworkAssignment[];
 
@@ -491,6 +542,7 @@ export async function assignHomework(input: {
   dueDate?: string | null;
   bookingId?: string | null;
   attachments?: HomeworkAttachment[];
+  audioInstructionUrl?: string | null;
   status?: HomeworkStatus;
 }) {
   const { supabase, user } = await requireUser();
@@ -516,6 +568,7 @@ export async function assignHomework(input: {
     due_date: input.dueDate ?? null,
     status,
     attachments: normalizeAttachments(input.attachments),
+    audio_instruction_url: input.audioInstructionUrl ?? null,
   };
 
   const { data, error } = await supabase
@@ -527,6 +580,57 @@ export async function assignHomework(input: {
   if (error) {
     console.error("[assignHomework] error", error);
     return { error: "Unable to assign homework right now." };
+  }
+
+  // Send notification to student if they have a user account
+  try {
+    // Fetch student's user_id and the tutor's name for the notification
+    const [studentResult, tutorResult] = await Promise.all([
+      supabase
+        .from("students")
+        .select("user_id, first_name, email")
+        .eq("id", input.studentId)
+        .single(),
+      supabase.from("profiles").select("full_name, email").eq("id", user.id).single(),
+    ]);
+
+    if (studentResult.data?.user_id && tutorResult.data?.full_name) {
+      const { notifyHomeworkAssigned } = await import("@/lib/actions/notifications");
+      await notifyHomeworkAssigned({
+        studentUserId: studentResult.data.user_id,
+        tutorName: tutorResult.data.full_name,
+        homeworkId: data.id,
+        homeworkTitle: input.title.trim(),
+        dueDate: input.dueDate ?? null,
+      });
+
+      // Update notification_sent_at timestamp
+      await supabase
+        .from("homework_assignments")
+        .update({ notification_sent_at: new Date().toISOString() })
+        .eq("id", data.id);
+    }
+
+    // Email the student if we have an address
+    if (studentResult.data?.email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+      await sendHomeworkAssignedEmail({
+        to: studentResult.data.email,
+        studentName: studentResult.data.first_name || "Student",
+        tutorName: tutorResult.data?.full_name || "Your tutor",
+        title: input.title.trim(),
+        instructions: input.instructions ?? null,
+        dueDate: input.dueDate ?? null,
+        timezone: null,
+        homeworkUrl: `${appUrl.replace(/\/+$/, "")}/student/library`,
+        practiceUrl: input.bookingId
+          ? `${appUrl.replace(/\/+$/, "")}/student/practice`
+          : undefined,
+      });
+    }
+  } catch (notificationError) {
+    // Don't fail the whole operation if notification fails
+    console.error("[assignHomework] notification error:", notificationError);
   }
 
   return { data: { ...(data as HomeworkAssignment), attachments: normalizeAttachments((data as any).attachments) } };

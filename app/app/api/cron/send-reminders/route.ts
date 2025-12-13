@@ -11,6 +11,7 @@ import {
   PracticeReminderEmail,
   PracticeReminderEmailText,
 } from "@/emails/practice-reminder";
+import { recordSystemEvent, recordSystemMetric, startDuration } from "@/lib/monitoring";
 
 type ReminderLessonRecord = {
   id: string;
@@ -71,6 +72,7 @@ const PUBLIC_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.c
  * Protected by CRON_SECRET environment variable
  */
 export async function GET(request: Request) {
+  const endTimer = startDuration("cron:send-reminders");
   // Verify cron secret to prevent unauthorized access
   const cronSecret = process.env.CRON_SECRET;
 
@@ -91,6 +93,11 @@ export async function GET(request: Request) {
   const adminClient = createServiceRoleClient();
 
   if (!adminClient) {
+    void recordSystemEvent({
+      source: "cron:send-reminders",
+      message: "Service role client unavailable",
+      meta: { stage: "init" },
+    });
     return NextResponse.json(
       { error: "Service unavailable" },
       { status: 500 }
@@ -219,7 +226,7 @@ export async function GET(request: Request) {
                 type: "booking_reminder",
                 title: "Lesson tomorrow",
                 body: `${service?.name || "Lesson"} with ${tutor?.full_name || "your tutor"}`,
-                link: lesson.meeting_url || "/student-auth/search",
+                link: lesson.meeting_url || "/student/search",
                 icon: "bell",
                 metadata: {
                   booking_id: lesson.id,
@@ -286,7 +293,7 @@ export async function GET(request: Request) {
                 type: "booking_reminder",
                 title: "Lesson starting soon",
                 body: `${service?.name || "Lesson"} with ${tutor?.full_name || "your tutor"} in 1 hour`,
-                link: lesson.meeting_url || "/student-auth/search",
+                link: lesson.meeting_url || "/student/search",
                 icon: "bell",
                 metadata: {
                   booking_id: lesson.id,
@@ -322,13 +329,24 @@ export async function GET(request: Request) {
 
     console.info("[Cron] Jobs dispatched", results);
 
+    const durationMs = endTimer();
+    void recordSystemMetric({ metric: "cron:send-reminders:duration_ms", value: durationMs ?? 0, sampleRate: 0.25 });
+    void recordSystemMetric({ metric: "cron:send-reminders:notifications", value: results.notifications1h + results.notifications24h, sampleRate: 0.5 });
+
     return NextResponse.json({
       success: true,
       results,
+      duration_ms: durationMs,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Error in send-reminders cron:", error);
+    endTimer();
+    void recordSystemEvent({
+      source: "cron:send-reminders",
+      message: "Unhandled error",
+      meta: { error: String(error) },
+    });
     return NextResponse.json(
       { error: "Internal server error", details: String(error) },
       { status: 500 }
@@ -705,7 +723,7 @@ async function sendPracticeReminders(
       }
 
       // Student hasn't practiced, send the reminder
-      const practiceUrl = `${PUBLIC_APP_URL}/student-auth/practice/${hw.practice_assignment_id}`;
+      const practiceUrl = `${PUBLIC_APP_URL}/student/practice/${hw.practice_assignment_id}`;
       const timezone = student.timezone || "UTC";
 
       const html = PracticeReminderEmail({
@@ -768,7 +786,7 @@ async function sendPracticeReminders(
             type: "practice_reminder",
             title: "Extra practice available",
             body: `Practice available for "${hw.title}" before it's due`,
-            link: `/student-auth/practice/${hw.practice_assignment_id}`,
+            link: `/student/practice/${hw.practice_assignment_id}`,
             icon: "bot",
             metadata: {
               homework_id: hw.id,

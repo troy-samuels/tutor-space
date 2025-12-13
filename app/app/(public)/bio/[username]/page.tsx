@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Instagram, Mail, Music4, Facebook, Twitter } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { LinkRecord } from "@/lib/actions/links";
+import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 
 type BioProfile = {
   id: string;
@@ -26,10 +27,12 @@ type BioParams = {
 export async function generateMetadata({ params }: { params: Promise<BioParams> }): Promise<Metadata> {
   const resolvedParams = await params;
   const supabase = await createClient();
+  const rawLower = resolvedParams.username.trim().toLowerCase();
+  const normalized = normalizeUsernameSlug(resolvedParams.username) || rawLower;
   const { data: profile } = await supabase
     .from("public_profiles")
     .select("full_name, tagline, username, avatar_url")
-    .eq("username", resolvedParams.username.toLowerCase())
+    .eq("username", normalized)
     .single();
 
   if (!profile) {
@@ -61,17 +64,23 @@ export async function generateMetadata({ params }: { params: Promise<BioParams> 
 export default async function BioPage({ params }: { params: Promise<BioParams> }) {
   const resolvedParams = await params;
   const supabase = await createClient();
+  const rawLower = resolvedParams.username.trim().toLowerCase();
+  const normalized = normalizeUsernameSlug(resolvedParams.username) || rawLower;
 
   const { data: profile } = await supabase
     .from("public_profiles")
     .select(
       "id, full_name, username, tagline, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, email"
     )
-    .eq("username", resolvedParams.username.toLowerCase())
+    .eq("username", normalized)
     .single<BioProfile>();
 
   if (!profile) {
     notFound();
+  }
+
+  if (profile.username && profile.username !== resolvedParams.username) {
+    redirect(`/bio/${profile.username}`);
   }
 
   const { data: links } = await supabase

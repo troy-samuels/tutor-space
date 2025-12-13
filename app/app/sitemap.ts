@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getAllBlogPosts } from "@/lib/blog";
+import { NICHE_DATA } from "@/lib/marketing/niche-data";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
@@ -73,6 +74,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: post.featured ? 0.8 : 0.7,
   }));
 
+  const nicheUrls = (Object.keys(NICHE_DATA) as Array<keyof typeof NICHE_DATA>).map((slug) => ({
+    url: `${baseUrl}/for/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
   return [
     {
       url: baseUrl,
@@ -111,5 +119,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...profileUrls,
     ...englishBlogUrls,
     ...spanishBlogUrls,
+    ...nicheUrls,
   ];
 }

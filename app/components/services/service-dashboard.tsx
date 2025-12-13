@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Plus, Trash2, Pencil, Package, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Package, MoreVertical, Link as LinkIcon } from "lucide-react";
 import { format } from "date-fns";
 import type { ServiceRecord } from "@/lib/types/service";
+import type { DigitalProductRecord } from "@/lib/types/digital-product";
 import type { ServiceOfferType, ServiceInput } from "@/lib/validators/service";
 import {
   createService,
   updateService,
   deleteService,
 } from "@/lib/actions/services";
+import { saveServiceSubscriptionTiers } from "@/lib/actions/lesson-subscriptions";
+import type { TierPricing } from "./SubscriptionTierInput";
 import type { SessionPackageRecord } from "@/lib/types/session-package";
 import type { SessionPackageInput } from "@/lib/validators/session-package";
 import {
@@ -21,9 +25,28 @@ import {
 import { ServiceForm } from "@/components/services/service-form";
 import { PackageForm } from "@/components/services/session-package-form";
 import { DigitalProductForm } from "@/components/digital-products/product-form";
+import { DigitalProductList } from "@/components/digital-products/product-list";
 import { formatCurrency } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
 
-type ServiceWithPackages = ServiceRecord & { packages: SessionPackageRecord[] };
+type ServiceWithPackages = ServiceRecord & {
+  packages: SessionPackageRecord[];
+  subscriptionTiers?: TierPricing[];
+};
+
+type ServiceDashboardProps = {
+  services: ServiceWithPackages[];
+  defaultCurrency: string;
+  digitalProducts: DigitalProductRecord[];
+  profileUsername?: string | null;
+};
 
 const OFFER_TYPE_STYLES: Record<ServiceOfferType, { label: string; className: string }> = {
   subscription: { label: "Subscription", className: "bg-indigo-50 text-indigo-700" },
@@ -35,10 +58,10 @@ const OFFER_TYPE_STYLES: Record<ServiceOfferType, { label: string; className: st
 export function ServiceDashboard({
   services,
   defaultCurrency,
-}: {
-  services: ServiceWithPackages[];
-  defaultCurrency: string;
-}) {
+  digitalProducts,
+  profileUsername,
+}: ServiceDashboardProps) {
+  const router = useRouter();
   const [serviceList, setServiceList] = useState<ServiceWithPackages[]>(services);
   const [activeForm, setActiveForm] = useState<
     | { type: "create" }
@@ -49,7 +72,8 @@ export function ServiceDashboard({
     service: ServiceWithPackages;
     package?: SessionPackageRecord;
   } | null>(null);
-  const [showDigitalProductModal, setShowDigitalProductModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"services" | "digital">("services");
+  const [productSheetOpen, setProductSheetOpen] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -146,30 +170,53 @@ export function ServiceDashboard({
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Services</h1>
-          <p className="text-sm text-muted-foreground">
-            Shape how students book you. Publish 1:1 lessons, high-converting bundles, and future group sessions.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowDigitalProductModal(true)}
-            className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted"
-          >
-            <Package className="mr-2 h-4 w-4" />
-            Digital Products
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveForm({ type: "create" })}
-            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New service
-          </button>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          {activeTab === "digital" ? "Digital products" : "Services"}
+        </h1>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-full bg-secondary/50 p-1 text-xs font-semibold text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("services");
+                setProductSheetOpen(false);
+              }}
+              className={`rounded-full px-3 py-1.5 transition ${activeTab === "services" ? "bg-white shadow-sm text-foreground" : ""}`}
+            >
+              Services
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("digital");
+                setActiveForm(null);
+                setPackageContext(null);
+              }}
+              className={`rounded-full px-3 py-1.5 transition ${activeTab === "digital" ? "bg-white shadow-sm text-foreground" : ""}`}
+            >
+              Digital Products
+            </button>
+          </div>
+          {activeTab === "services" ? (
+            <button
+              type="button"
+              onClick={() => setActiveForm({ type: "create" })}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New service
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setProductSheetOpen(true)}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New product
+            </button>
+          )}
         </div>
       </header>
 
@@ -185,292 +232,407 @@ export function ServiceDashboard({
         </p>
       ) : null}
 
-      {activeForm ? (
-        <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                {activeForm.type === "create" ? "New service" : "Edit service"}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Define what you offer, how long it lasts, and how it&apos;s booked.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveForm(null)}
-              className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
-            >
-              Cancel
-            </button>
-          </div>
-          <div className="mt-4">
-            <ServiceForm
-              defaultCurrency={defaultCurrency}
-              initialValues={activeForm.type === "edit" ? activeForm.service : undefined}
-              loading={isPending}
-              onCancel={() => setActiveForm(null)}
-              onSubmit={(values) => {
-                const payload: ServiceInput = {
-                  ...values,
-                };
-                if (activeForm.type === "edit") {
-                  mutateService(() => updateService(activeForm.service.id, payload));
-                } else {
-                  mutateService(() => createService(payload));
-                }
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      <div className="space-y-6">
-        {serviceList.length === 0 ? (
-          <div className="rounded-3xl border border-border bg-white/90 p-8 text-center text-sm text-muted-foreground shadow-sm backdrop-blur">
-            You haven’t published any services yet. Add your first offer above to open booking.
-          </div>
-        ) : (
-          serviceList.map((service) => {
-            const offerMeta =
-              OFFER_TYPE_STYLES[service.offer_type] ?? OFFER_TYPE_STYLES.one_off;
-            return (
-              <div
-                key={service.id}
-                className="space-y-4 rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-base font-semibold text-foreground">{service.name}</h2>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
-                          service.is_active
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {service.is_active ? "Active" : "Hidden"}
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${offerMeta.className}`}
-                      >
-                        {offerMeta.label}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {service.description ?? "No description provided yet."}
-                    </p>
-                    <Link
-                      href={`/book?service=${service.id}`}
-                      className="mt-2 inline-flex items-center text-xs font-semibold text-primary hover:underline"
-                    >
-                      View booking link
-                    </Link>
-                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      <span>{service.duration_minutes} min</span>
-                      <span>
-                        {formatCurrency(service.price, service.currency ?? defaultCurrency)}{" "}
-                        {service.currency?.toUpperCase() ?? defaultCurrency}
-                      </span>
-                      <span>{service.max_students_per_session} student(s)</span>
-                      {service.requires_approval ? <span>Manual approval</span> : <span>Auto-confirm</span>}
-                      <span>Updated {format(new Date(service.updated_at), "MMM d, yyyy")}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveForm({ type: "edit", service })}
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-border px-3 text-xs font-semibold text-primary transition hover:bg-primary/10"
-                    >
-                      <Pencil className="mr-1 h-4 w-4" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // Confirm before deleting to prevent accidental data loss
-                        const confirmed = window.confirm(
-                          `Are you sure you want to delete "${service.name}"? This action cannot be undone.`
-                        );
-                        if (!confirmed) return;
-
-                        startTransition(() => {
-                          (async () => {
-                            const result = await deleteService(service.id);
-                            if (result.error) {
-                              handleStatus({ type: "error", message: result.error });
-                              return;
-                            }
-                            removeService(service.id);
-                            handleStatus({ type: "success", message: "Service removed." });
-                          })();
-                        });
-                      }}
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-destructive/30 px-3 text-xs font-semibold text-destructive transition hover:bg-destructive/10"
-                    >
-                      <Trash2 className="mr-1 h-4 w-4" />
-                      Delete
-                    </button>
-                  </div>
+      <AnimatePresence mode="wait" initial={false}>
+        {activeTab === "services" ? (
+          <motion.div
+            key="services-tab"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="space-y-8"
+          >
+            {serviceList.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-8 text-center">
+                <p className="text-lg font-semibold text-foreground">No services yet</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Add your first offer so students can book you.
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveForm({ type: "create" })}
+                    className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    New service
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("digital");
+                      setProductSheetOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Digital products
+                  </button>
                 </div>
+              </div>
+            ) : null}
 
-                <div className="rounded-2xl border border-border/60 bg-primary/5 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">Packages</p>
-                    <button
-                      type="button"
-                      onClick={() => setPackageContext({ service })}
-                      className="text-xs font-semibold text-primary hover:underline"
-                    >
-                      Add package
-                    </button>
+            {activeForm ? (
+              <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold text-foreground">
+                      {activeForm.type === "create" ? "New service" : "Edit service"}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Define what you offer, how long it lasts, and how it&apos;s booked.
+                    </p>
                   </div>
-                  <ul className="mt-3 space-y-3 text-sm text-muted-foreground">
-                    {service.packages.length === 0 ? (
-                      <li className="rounded-xl border border-dashed border-border px-3 py-3 text-xs">
-                        Create a discounted bundle or multi-session pass to boost conversions.
-                      </li>
-                    ) : (
-                      service.packages.map((pkg) => (
-                        <li
-                          key={pkg.id}
-                          className="flex flex-col gap-2 rounded-xl border border-border bg-white px-4 py-3 text-sm text-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div>
-                            <p className="font-semibold">{pkg.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {pkg.total_minutes} minutes •{" "}
-                              {pkg.session_count ? `${pkg.session_count} sessions` : "Flexible sessions"}
-                            </p>
-                            {pkg.description ? (
-                              <p className="mt-1 text-xs text-muted-foreground">{pkg.description}</p>
-                            ) : null}
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                              <span>
-                                {formatCurrency(pkg.price_cents, pkg.currency)} {pkg.currency}
-                              </span>
-                              {pkg.price_cents > 0 ? (
-                                pkg.stripe_price_id ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600">
-                                    Stripe synced
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">
-                                    Stripe price pending
-                                  </span>
-                                )
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 font-semibold text-gray-700">
-                                  Free package
-                                </span>
-                              )}
-                            </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveForm(null)}
+                    className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <ServiceForm
+                    defaultCurrency={defaultCurrency}
+                    initialValues={activeForm.type === "edit" ? activeForm.service : undefined}
+                    initialSubscriptionTiers={activeForm.type === "edit" ? activeForm.service.subscriptionTiers : undefined}
+                    loading={isPending}
+                    existingNames={serviceList.map((s) => s.name)}
+                    onCancel={() => setActiveForm(null)}
+                    onSubmit={(values, subscriptionTiers) => {
+                      const payload: ServiceInput = {
+                        ...values,
+                      };
+
+                      // Wrapper that creates/updates service then saves subscription tiers
+                      const saveWithTiers = async (
+                        serviceAction: () => Promise<{ error?: string; data?: ServiceRecord }>
+                      ): Promise<{ error?: string; data?: ServiceRecord }> => {
+                        const result = await serviceAction();
+                        if (result.error || !result.data) {
+                          return result;
+                        }
+
+                        // Save subscription tiers if this is a subscription offer type
+                        if (subscriptionTiers && values.offer_type === "subscription") {
+                          const tiersWithCents = subscriptionTiers.map((t) => ({
+                            tier_id: t.tier_id,
+                            price_cents: t.price !== null ? Math.round(t.price * 100) : null,
+                          }));
+
+                          const tiersResult = await saveServiceSubscriptionTiers(
+                            result.data.id,
+                            true,
+                            tiersWithCents
+                          );
+
+                          if (tiersResult.error) {
+                            return { error: tiersResult.error, data: result.data };
+                          }
+                        }
+
+                        return result;
+                      };
+
+                      if (activeForm.type === "edit") {
+                        mutateService(() => saveWithTiers(() => updateService(activeForm.service.id, payload)));
+                      } else {
+                        mutateService(() => saveWithTiers(() => createService(payload)));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="space-y-6">
+              {serviceList.length === 0 ? (
+                <div className="rounded-3xl border border-border bg-white/90 p-8 text-center text-sm text-muted-foreground shadow-sm backdrop-blur">
+                  You haven’t published any services yet. Add your first offer above to open booking.
+                </div>
+              ) : (
+                serviceList.map((service) => {
+                  const offerMeta =
+                    OFFER_TYPE_STYLES[service.offer_type] ?? OFFER_TYPE_STYLES.one_off;
+                  return (
+                    <div
+                      key={service.id}
+                      className={`space-y-4 rounded-3xl bg-white p-8 shadow-sm transition hover:shadow-md ${
+                        service.is_active ? "" : "opacity-70"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
+                            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                              {service.name}
+                            </h2>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <button
-                              type="button"
-                              onClick={() => setPackageContext({ service, package: pkg })}
-                              className="font-semibold text-primary hover:underline"
+                          {service.description ? (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {service.description}
+                            </p>
+                          ) : null}
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl font-semibold tracking-tight text-foreground">
+                                {formatCurrency(service.price, service.currency ?? defaultCurrency)}
+                              </span>
+                              <span className="h-4 w-px bg-stone-200" aria-hidden />
+                              <span className="text-muted-foreground">
+                                {service.duration_minutes} min
+                              </span>
+                              <span className="h-4 w-px bg-stone-200" aria-hidden />
+                              <span className="text-muted-foreground">
+                                {service.max_students_per_session} student{service.max_students_per_session === 1 ? "" : "s"}
+                              </span>
+                            </div>
+                            <span>{offerMeta.label}</span>
+                            {service.requires_approval ? <span>Manual approval</span> : <span>Auto-confirm</span>}
+                            <span>Updated {format(new Date(service.updated_at), "MMM d, yyyy")}</span>
+                            <Link
+                              href={`/book?service=${service.id}`}
+                              className="inline-flex items-center gap-1 text-muted-foreground transition hover:text-foreground"
+                              aria-label={`Open booking link for ${service.name}`}
                             >
-                              Edit
-                            </button>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5 21 3m0 0h-5.25M21 3v5.25M10.5 13.5 3 21m0 0h5.25M3 21v-5.25" />
+                              </svg>
+                            </Link>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <button
                               type="button"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary/60 text-muted-foreground transition hover:bg-secondary"
+                              aria-label="Service options"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onClick={() => setActiveForm({ type: "edit", service })}
+                              className="flex items-center gap-2"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => {
-                                // Confirm before deleting to prevent accidental data loss
                                 const confirmed = window.confirm(
-                                  `Are you sure you want to delete the package "${pkg.name}"? This action cannot be undone.`
+                                  `Are you sure you want to delete "${service.name}"? This action cannot be undone.`
                                 );
                                 if (!confirmed) return;
 
                                 startTransition(() => {
                                   (async () => {
-                                    const result = await deleteSessionPackage(pkg.id);
+                                    const result = await deleteService(service.id);
                                     if (result.error) {
                                       handleStatus({ type: "error", message: result.error });
                                       return;
                                     }
-                                    removePackage(service.id, pkg.id);
-                                    handleStatus({ type: "success", message: "Package removed." });
+                                    removeService(service.id);
+                                    handleStatus({ type: "success", message: "Service removed." });
                                   })();
                                 });
                               }}
-                              className="font-semibold text-destructive hover:underline"
+                              className="flex items-center gap-2 text-destructive focus:text-destructive"
                             >
+                              <Trash2 className="h-4 w-4" />
                               Delete
-                            </button>
-                          </div>
-                        </li>
-                      ))
-                    )}
-                  </ul>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                navigator.clipboard?.writeText(`${window.location.origin}/book?service=${service.id}`);
+                                handleStatus({ type: "success", message: "Link copied." });
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <LinkIcon className="h-4 w-4" />
+                              Copy link
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {service.packages.length > 0 ? (
+                        <div className="mt-6 space-y-2">
+                          {service.packages.map((pkg) => (
+                            <div
+                              key={pkg.id}
+                              className="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-3 text-sm text-foreground"
+                            >
+                              <div className="min-w-0">
+                                <p className="font-semibold">
+                                  {pkg.name || `${pkg.session_count ?? 1} lessons`}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {pkg.session_count ? `${pkg.session_count} sessions` : "Flexible sessions"} • {pkg.total_minutes} minutes total
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="font-semibold text-foreground whitespace-nowrap">
+                                  {formatCurrency(pkg.price_cents, pkg.currency)} {pkg.currency}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setPackageContext({ service, package: pkg })}
+                                  className="text-primary hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const confirmed = window.confirm(
+                                      `Are you sure you want to delete the package "${pkg.name}"? This action cannot be undone.`
+                                    );
+                                    if (!confirmed) return;
+
+                                    startTransition(() => {
+                                      (async () => {
+                                        const result = await deleteSessionPackage(pkg.id);
+                                        if (result.error) {
+                                          handleStatus({ type: "error", message: result.error });
+                                          return;
+                                        }
+                                        removePackage(service.id, pkg.id);
+                                        handleStatus({ type: "success", message: "Package removed." });
+                                      })();
+                                    });
+                                  }}
+                                  className="text-destructive hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPackageContext({ service })}
+                          className="mt-6 inline-flex items-center gap-2 rounded-full bg-secondary/60 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:bg-secondary"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add package bundle
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {packageContext ? (
+              <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold text-foreground">
+                      {packageContext.package ? "Edit package" : `New package for ${packageContext.service.name}`}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Encourage pre-paid bundles to improve retention and cash flow.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPackageContext(null)}
+                    className="text-xs font-semibold text-muted-foreground hover:text-primary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <PackageForm
+                    service={packageContext.service}
+                    initialValues={packageContext.package}
+                    loading={isPending}
+                    onCancel={() => setPackageContext(null)}
+                    onSubmit={(values) => {
+                      const payload: SessionPackageInput = values;
+                      if (packageContext.package) {
+                        mutatePackage(packageContext.service.id, () =>
+                          updateSessionPackage(packageContext.package!.id, payload)
+                        );
+                      } else {
+                        mutatePackage(packageContext.service.id, () =>
+                          createSessionPackage(packageContext.service.id, payload)
+                        );
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="digital-tab"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="space-y-4"
+          >
+            <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Digital library</p>
+                  <p className="text-xs text-muted-foreground">
+                    Upload PDFs, templates, or lesson packs for async students.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProductSheetOpen(true)}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-xs font-semibold text-foreground shadow-sm transition hover:bg-muted"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create product
+                </button>
+              </div>
+              <div className="mt-4">
+                <DigitalProductList
+                  products={digitalProducts}
+                  profileUsername={profileUsername}
+                  onStatus={handleStatus}
+                  onCreateProduct={() => setProductSheetOpen(true)}
+                />
               </div>
             </div>
-            );
-          })
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
-      {packageContext ? (
-        <div className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                {packageContext.package ? "Edit package" : `New package for ${packageContext.service.name}`}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Encourage pre-paid bundles to improve retention and cash flow.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPackageContext(null)}
-              className="text-xs font-semibold text-muted-foreground hover:text-primary"
-            >
-              Cancel
-            </button>
+      <Sheet open={productSheetOpen} onOpenChange={setProductSheetOpen} side="right">
+        <SheetOverlay onClick={() => setProductSheetOpen(false)} />
+        <SheetContent className="flex w-full max-w-xl flex-col bg-white p-6 shadow-xl" side="right">
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Digital product</p>
+            <p className="text-2xl font-semibold tracking-tight text-foreground">Create Product</p>
           </div>
-          <div className="mt-4">
-            <PackageForm
-              service={packageContext.service}
-              initialValues={packageContext.package}
-              loading={isPending}
-              onCancel={() => setPackageContext(null)}
-              onSubmit={(values) => {
-                const payload: SessionPackageInput = values;
-                if (packageContext.package) {
-                  mutatePackage(packageContext.service.id, () =>
-                    updateSessionPackage(packageContext.package!.id, payload)
-                  );
-                } else {
-                  mutatePackage(packageContext.service.id, () =>
-                    createSessionPackage(packageContext.service.id, payload)
-                  );
-                }
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {/* Digital Product Modal */}
-      {showDigitalProductModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-xl">
-            <button
-              type="button"
-              onClick={() => setShowDigitalProductModal(false)}
-              className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </button>
-            <DigitalProductForm />
-          </div>
-        </div>
-      ) : null}
+          <DigitalProductForm
+            onSuccess={() => {
+              handleStatus({ type: "success", message: "Product saved." });
+              setProductSheetOpen(false);
+              setActiveTab("digital");
+              router.refresh();
+            }}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

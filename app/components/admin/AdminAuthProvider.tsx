@@ -1,24 +1,31 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import type { AdminRole } from "@/lib/admin/types";
 
 export interface AdminUser {
   id: string;
   email: string;
   fullName: string;
-  role: "super_admin" | "admin" | "support";
+  role: AdminRole;
 }
 
 interface AdminAuthContextType {
   admin: AdminUser | null;
+  role: AdminRole | null;
   isSuperAdmin: boolean;
   isAdmin: boolean;
+  isSupport: boolean;
+  canViewFinancials: boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType>({
   admin: null,
+  role: null,
   isSuperAdmin: false,
   isAdmin: false,
+  isSupport: false,
+  canViewFinancials: false,
 });
 
 export function useAdminAuth() {
@@ -32,15 +39,21 @@ export function AdminAuthProvider({
   children: ReactNode;
   initialAdmin: AdminUser | null;
 }) {
-  const isSuperAdmin = initialAdmin?.role === "super_admin";
-  const isAdmin = initialAdmin?.role === "super_admin" || initialAdmin?.role === "admin";
+  const role = initialAdmin?.role ?? null;
+  const isSuperAdmin = role === "super_admin";
+  const isAdmin = role === "super_admin" || role === "admin";
+  const isSupport = role === "support";
+  const canViewFinancials = isSuperAdmin || isAdmin;
 
   return (
     <AdminAuthContext.Provider
       value={{
         admin: initialAdmin,
+        role,
         isSuperAdmin,
         isAdmin,
+        isSupport,
+        canViewFinancials,
       }}
     >
       {children}

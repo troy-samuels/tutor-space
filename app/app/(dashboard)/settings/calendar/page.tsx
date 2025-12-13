@@ -64,8 +64,7 @@ export default async function CalendarSettingsPage({
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-foreground">Calendar sync</h1>
         <p className="text-sm text-muted-foreground">
-          Keep every lesson in sync across Google, Outlook, Zoom, and TutorLingua with a one-click
-          OAuth connection.
+          Sync your calendar to avoid double-bookings.
         </p>
       </header>
 
@@ -117,15 +116,15 @@ export default async function CalendarSettingsPage({
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex items-start gap-3">
               <CalendarCheck2 className="mt-0.5 h-5 w-5 text-primary" />
-              <span>Blocks out existing events immediately so parents can only book true availability.</span>
+              <span>Blocks out busy times so people only see open slots.</span>
             </li>
             <li className="flex items-start gap-3">
               <Zap className="mt-0.5 h-5 w-5 text-primary" />
-              <span>Pushes confirmed lessons—plus Zoom links—straight into your calendar with reminders.</span>
+              <span>Adds bookings to your calendar with reminders.</span>
             </li>
             <li className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-primary" />
-              <span>OAuth keeps credentials secure. You can disconnect anytime from this settings page.</span>
+              <span>Your login stays secure. Disconnect anytime.</span>
             </li>
           </ul>
         </div>

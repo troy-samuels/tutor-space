@@ -1,20 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { addDays, subDays, format, isToday } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { ChevronLeft, ChevronRight, Plus, Video, ExternalLink } from "lucide-react";
 import { getDayEvents } from "@/lib/actions/calendar-events";
 import type { CalendarEvent } from "@/lib/types/calendar";
-import { generateTimeSlots, groupOverlappingEvents, CALENDAR_COLORS } from "@/lib/types/calendar";
+import {
+  generateTimeSlots,
+  groupOverlappingEvents,
+  CALENDAR_COLORS,
+  findExternalConflictIds,
+} from "@/lib/types/calendar";
 import { CalendarEventBlock, CalendarColorLegend } from "./calendar-event-block";
 
 type CalendarDayViewProps = {
-  onEventClick?: (event: CalendarEvent) => void;
-  onTimeSlotClick?: (date: Date, hour: number) => void;
+  onEventClick?: (event: CalendarEvent, clickEvent?: React.MouseEvent) => void;
+  onTimeSlotClick?: (date: Date, hour: number, event?: React.MouseEvent) => void;
   initialDate?: Date;
   onEventMove?: (event: CalendarEvent, newStartIso: string) => void;
   refreshKey?: number;
+  activeDate?: Date | null;
+  showHeaderControls?: boolean;
+  primaryTimezone?: string;
+  secondaryTimezone?: string | null;
 };
 
 export function CalendarDayView({
@@ -23,16 +32,25 @@ export function CalendarDayView({
   initialDate,
   onEventMove,
   refreshKey = 0,
+  activeDate,
+  showHeaderControls = true,
+  primaryTimezone,
+  secondaryTimezone,
 }: CalendarDayViewProps) {
   const [currentDate, setCurrentDate] = useState(initialDate || new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null);
+  const conflictIds = useMemo(() => findExternalConflictIds(events), [events]);
 
   const timeSlots = generateTimeSlots(6, 22, 60);
   const pixelsPerHour = 80; // Larger for day view
   const startHour = 6;
+  const showSecondaryTimezone = Boolean(secondaryTimezone);
+  const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-20";
+  const baseTimezone =
+    primaryTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
   // Fetch events when date changes
   useEffect(() => {
@@ -49,6 +67,12 @@ export function CalendarDayView({
   const goToNextDay = () => setCurrentDate(addDays(currentDate, 1));
   const goToToday = () => setCurrentDate(new Date());
 
+  useEffect(() => {
+    if (activeDate) {
+      setCurrentDate(activeDate);
+    }
+  }, [activeDate]);
+
   // Current time indicator position
   const now = new Date();
   const currentTimePosition =
@@ -58,9 +82,9 @@ export function CalendarDayView({
 
   const eventGroups = groupOverlappingEvents(events);
 
-  const handleEventClick = (event: CalendarEvent) => {
+  const handleEventClick = (event: CalendarEvent, clickEvent?: React.MouseEvent) => {
     setSelectedEvent(event);
-    onEventClick?.(event);
+    onEventClick?.(event, clickEvent);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -90,120 +114,167 @@ export function CalendarDayView({
     setDraggedEvent(null);
   };
 
+  const getRowBg = (index: number) =>
+    index % 2 === 0 ? "bg-transparent" : "bg-black/[0.02]";
+
+  const formatSecondaryTime = (hour: number, minute: number) => {
+    if (!secondaryTimezone) return "";
+    try {
+      const datePart = formatInTimeZone(currentDate, baseTimezone, "yyyy-MM-dd");
+      const zoned = fromZonedTime(
+        `${datePart}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
+        baseTimezone
+      );
+      return formatInTimeZone(zoned, secondaryTimezone, "h a");
+    } catch {
+      return "";
+    }
+  };
+
   return (
     <div className="flex h-full gap-4">
       {/* Main Calendar */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goToPreviousDay}
-              className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={goToNextDay}
-              className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={goToToday}
-              className="ml-2 rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted"
-            >
-              Today
-            </button>
-          </div>
-
-          <h2 className="text-lg font-semibold">
-            {format(currentDate, "EEEE, MMMM d, yyyy")}
-            {isToday(currentDate) && (
-              <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+        {showHeaderControls ? (
+          <div className="flex items-center justify-between pb-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousDay}
+                className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={goToNextDay}
+                className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={goToToday}
+                className="ml-2 rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted"
+              >
                 Today
-              </span>
-            )}
-          </h2>
+              </button>
+            </div>
 
-          <CalendarColorLegend />
-        </div>
+            <h2 className="text-lg font-semibold">
+              {format(currentDate, "EEEE, MMMM d, yyyy")}
+              {isToday(currentDate) && (
+                <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+                  Today
+                </span>
+              )}
+            </h2>
+
+            <CalendarColorLegend />
+          </div>
+        ) : null}
 
         {/* Calendar Grid */}
         <div className="flex-1 overflow-auto rounded-xl border bg-white">
-          <div className="relative flex min-h-full">
-            {/* Time labels */}
-            <div className="w-20 flex-shrink-0 border-r">
-              {timeSlots.map((slot) => (
-                <div
-                  key={`${slot.hour}-${slot.minute}`}
-                  className="relative border-b"
-                  style={{ height: `${pixelsPerHour}px` }}
-                >
-                  <span className="absolute -top-2.5 right-3 text-xs text-muted-foreground">
-                    {slot.label}
-                  </span>
+          <div className="relative min-h-full">
+            <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+              <div className={`${timeColumnWidth} flex-shrink-0 px-1`}>
+                <div className="flex items-center gap-2 font-semibold">
+                  <span className="text-foreground">Local</span>
+                  {showSecondaryTimezone ? (
+                    <span className="ml-auto text-muted-foreground">Student</span>
+                  ) : null}
                 </div>
-              ))}
+                {secondaryTimezone ? (
+                  <p className="mt-1 truncate text-[11px] font-normal text-muted-foreground">
+                    {secondaryTimezone.replace(/_/g, " ")}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] font-normal text-muted-foreground">Your time</p>
+                )}
+              </div>
+              <div className="flex-1 text-right text-[11px] font-semibold text-muted-foreground">
+                Schedule
+              </div>
             </div>
 
-            {/* Main column with events */}
-            <div
-              className={`relative flex-1 ${
-                isToday(currentDate) ? "bg-primary/5" : ""
-              }`}
-              onDragOver={(e) => {
-                if (draggedEvent) {
-                  e.preventDefault();
-                }
-              }}
-              onDrop={handleDrop}
-            >
-              {/* Time slot backgrounds */}
-              {timeSlots.map((slot) => (
-                <div
-                  key={`${slot.hour}-${slot.minute}`}
-                  className="border-b hover:bg-muted/30 cursor-pointer"
-                  style={{ height: `${pixelsPerHour}px` }}
-                  onClick={() => onTimeSlotClick?.(currentDate, slot.hour)}
-                >
-                  <div className="group h-full w-full p-2">
-                    <div className="hidden group-hover:flex items-center gap-1 text-xs text-muted-foreground">
-                      <Plus className="h-3 w-3" />
-                      <span>Block time</span>
+            <div className="relative flex">
+              {/* Time labels */}
+              <div className={`${timeColumnWidth} flex-shrink-0`}>
+                {timeSlots.map((slot, index) => (
+                  <div
+                    key={`${slot.hour}-${slot.minute}`}
+                    className={`relative ${getRowBg(index)}`}
+                    style={{ height: `${pixelsPerHour}px` }}
+                  >
+                    <div className="flex h-full items-center justify-between px-3 text-[11px]">
+                      <span className="font-semibold text-foreground">{slot.label}</span>
+                      {showSecondaryTimezone ? (
+                        <span className="text-muted-foreground">
+                          {formatSecondaryTime(slot.hour, slot.minute)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
 
-              {/* Events */}
-              {eventGroups.map((group) =>
-                group.map((event, index) => (
-                  <CalendarEventBlock
-                    key={event.id}
-                    event={event}
-                    onClick={handleEventClick}
-                    pixelsPerHour={pixelsPerHour}
-                    startHour={startHour}
-                    columnIndex={index}
-                    totalColumns={group.length}
-                    draggable={event.type === "tutorlingua"}
-                    onDragStart={setDraggedEvent}
-                    onDragEnd={() => setDraggedEvent(null)}
-                  />
-                ))
-              )}
+              {/* Main column with events */}
+              <div
+                className={`relative flex-1 ${
+                  isToday(currentDate) ? "bg-primary/5" : ""
+                }`}
+                onDragOver={(e) => {
+                  if (draggedEvent) {
+                    e.preventDefault();
+                  }
+                }}
+                onDrop={handleDrop}
+              >
+                {/* Time slot backgrounds */}
+                {timeSlots.map((slot, index) => (
+                  <div
+                    key={`${slot.hour}-${slot.minute}`}
+                    className={`${getRowBg(index)} cursor-pointer transition-colors hover:bg-muted/40`}
+                    style={{ height: `${pixelsPerHour}px` }}
+                    onClick={(e) => onTimeSlotClick?.(currentDate, slot.hour, e)}
+                  >
+                    <div className="group h-full w-full p-2">
+                      <div className="hidden group-hover:flex items-center gap-1 text-xs text-muted-foreground">
+                        <Plus className="h-3 w-3" />
+                        <span>Add event</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
 
-              {/* Current time indicator */}
-              {showCurrentTime && (
-                <div
-                  className="absolute left-0 right-0 z-30 flex items-center"
-                  style={{ top: `${currentTimePosition}px` }}
-                >
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <div className="h-0.5 flex-1 bg-red-500" />
-                </div>
-              )}
+                {/* Events */}
+                {eventGroups.map((group) =>
+                  group.map((event, index) => (
+                    <CalendarEventBlock
+                      key={event.id}
+                      event={event}
+                      onClick={handleEventClick}
+                      pixelsPerHour={pixelsPerHour}
+                      startHour={startHour}
+                      columnIndex={index}
+                      totalColumns={group.length}
+                      draggable={event.type === "tutorlingua"}
+                      onDragStart={setDraggedEvent}
+                      onDragEnd={() => setDraggedEvent(null)}
+                      isConflict={conflictIds.has(event.id)}
+                    />
+                  ))
+                )}
+
+                {/* Current time indicator */}
+                {showCurrentTime && (
+                  <div
+                    className="absolute left-0 right-0 z-30 flex items-center"
+                    style={{ top: `${currentTimePosition}px` }}
+                  >
+                    <div className="h-3 w-3 rounded-full bg-red-500" />
+                    <div className="h-0.5 flex-1 bg-red-500" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -221,6 +292,7 @@ export function CalendarDayView({
         <div className="w-80 flex-shrink-0">
           <EventDetailPanel
             event={selectedEvent}
+            isConflict={conflictIds.has(selectedEvent.id)}
             onClose={() => setSelectedEvent(null)}
           />
         </div>
@@ -232,12 +304,19 @@ export function CalendarDayView({
 // Event detail panel component
 function EventDetailPanel({
   event,
+  isConflict,
   onClose,
 }: {
   event: CalendarEvent;
+  isConflict: boolean;
   onClose: () => void;
 }) {
-  const colors = CALENDAR_COLORS[event.type];
+  const colors = isConflict ? {
+    bg: "bg-rose-50",
+    border: "border-rose-300",
+    text: "text-rose-900",
+    dot: "bg-rose-500",
+  } : CALENDAR_COLORS[event.type];
   const startTime = new Date(event.start);
   const endTime = new Date(event.end);
 
@@ -256,8 +335,15 @@ function EventDetailPanel({
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between mb-3">
-        <div className={`rounded-lg px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}>
-          {event.source}
+        <div className="flex items-center gap-2">
+          <div className={`rounded-lg px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}>
+            {event.source}
+          </div>
+          {isConflict && (
+            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-rose-700">
+              Conflict
+            </span>
+          )}
         </div>
         <button
           onClick={onClose}

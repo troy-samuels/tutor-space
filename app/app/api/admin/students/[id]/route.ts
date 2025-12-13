@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { verifyAdminSession } from "@/lib/admin/session";
+import { isTableMissing } from "@/lib/utils/supabase-errors";
 
 export async function GET(
   request: NextRequest,
@@ -82,7 +83,7 @@ export async function GET(
     .eq("sender_id", student.user_id || "none");
 
   // Get tutor connections for this student
-  const { data: connections } = await supabase
+  const { data: connections, error: connectionsError } = await supabase
     .from("student_tutor_connections")
     .select(`
       id,
@@ -96,6 +97,10 @@ export async function GET(
       )
     `)
     .eq("student_user_id", student.user_id || "none");
+
+  if (connectionsError && !isTableMissing(connectionsError, "student_tutor_connections")) {
+    console.error("Failed to load student connections:", connectionsError);
+  }
 
   // Calculate booking stats
   const completedBookings = bookings?.filter((b) => b.status === "completed")?.length || 0;

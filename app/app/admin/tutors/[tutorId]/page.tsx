@@ -277,14 +277,17 @@ export default function TutorDetailPage() {
             <div className="flex gap-2 mt-2">
               <Badge
                 className={
-                  tutor.plan === "growth" || tutor.plan === "founder_lifetime"
+                  tutor.plan === "all_access" ||
+                  tutor.plan === "founder_lifetime"
                     ? "bg-blue-100 text-blue-700"
-                    : tutor.plan === "studio"
-                      ? "bg-purple-100 text-purple-700"
-                      : "bg-gray-100 text-gray-700"
+                    : "bg-gray-100 text-gray-700"
                 }
               >
-                {tutor.plan === "founder_lifetime" ? "Founder lifetime" : tutor.plan || "Legacy Free"}
+                {tutor.plan === "founder_lifetime"
+                  ? "Founder lifetime"
+                  : tutor.plan === "all_access"
+                    ? "All-access"
+                    : "Free"}
               </Badge>
               {tutor.stripe_charges_enabled && (
                 <Badge className="bg-green-100 text-green-700">

@@ -1,5 +1,6 @@
 "use client";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
@@ -16,6 +17,15 @@ export function SignupForm() {
     initialState
   );
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
+  // Handle client-side redirect after successful signup
+  useEffect(() => {
+    if (state?.redirectTo) {
+      router.push(state.redirectTo);
+      router.refresh();
+    }
+  }, [state?.redirectTo, router]);
   const [emailValue, setEmailValue] = useState("");
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
   const [emailMessage, setEmailMessage] = useState("");
@@ -283,8 +293,12 @@ export function SignupForm() {
 
   return (
     <form action={formAction} className="space-y-6">
+      <input type="hidden" name="plan" value="professional" />
       <div className="space-y-2">
-        <label htmlFor="full_name" className="block text-sm font-medium text-foreground">
+        <label
+          htmlFor="full_name"
+          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Full name
         </label>
         <input
@@ -292,13 +306,16 @@ export function SignupForm() {
           name="full_name"
           type="text"
           required
-          className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
           placeholder="Jane Doe"
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="email" className="block text-sm font-medium text-foreground">
+        <label
+          htmlFor="email"
+          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Email address
         </label>
         <input
@@ -309,7 +326,7 @@ export function SignupForm() {
           value={emailValue}
           onChange={handleEmailChange}
           onBlur={handleEmailBlur}
-          className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
           placeholder="you@example.com"
           aria-describedby={emailMessage ? "signup-email-status" : undefined}
         />
@@ -329,11 +346,14 @@ export function SignupForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="username" className="block text-sm font-medium text-foreground">
+        <label
+          htmlFor="username"
+          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Username
         </label>
-        <div className="relative rounded-md border border-input bg-background px-3 py-2 shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-base text-muted-foreground">
             @
           </div>
           <input
@@ -346,7 +366,7 @@ export function SignupForm() {
             required
             minLength={3}
             maxLength={32}
-            className="block w-full border-0 bg-transparent pl-6 pr-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 pl-10 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="username"
             pattern="^[a-z0-9\-]+$"
             title="Use 3-32 lowercase letters, numbers, or dashes."
@@ -369,7 +389,10 @@ export function SignupForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="password" className="block text-sm font-medium text-foreground">
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Password
         </label>
         <div className="relative">
@@ -378,51 +401,18 @@ export function SignupForm() {
             name="password"
             type={showPassword ? "text" : "password"}
             required
-            minLength={6}
-            className="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            minLength={8}
+            className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 pr-12 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-2 inline-flex items-center text-muted-foreground hover:text-foreground"
+            className="absolute inset-y-0 right-3 inline-flex items-center text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword((prev) => !prev)}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-      </div>
-
-      {/* Terms and Privacy Acceptance */}
-      <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          id="terms"
-          name="terms"
-          required
-          className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
-        />
-        <label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer">
-          I agree to the{" "}
-          <Link
-            href="/terms"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary font-semibold hover:underline"
-          >
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link
-            href="/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary font-semibold hover:underline"
-          >
-            Privacy Policy
-          </Link>
-          . I understand TutorLingua provides the platform only and is not a party to, nor liable
-          for, agreements between tutors and students.
-        </label>
       </div>
 
       {state?.error && (
@@ -437,12 +427,24 @@ export function SignupForm() {
         </p>
       )}
 
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        By joining, you agree to our{" "}
+        <Link href="/terms" className="underline underline-offset-4">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline underline-offset-4">
+          Privacy Policy
+        </Link>
+        , including AI processing of your data and learning content.
+      </p>
+
       <button
         type="submit"
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+        className="w-full h-12 rounded-full bg-primary px-4 text-base font-medium text-primary-foreground shadow-lg shadow-primary/20 transition hover:scale-[1.01] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
         disabled={Boolean(state?.success) || isPending}
       >
-        {isPending ? "Creating..." : "Create account"}
+        {isPending ? "Creating..." : "Start Free Trial"}
       </button>
 
     </form>

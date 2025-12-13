@@ -35,16 +35,23 @@ TutorLingua is a comprehensive business management platform built specifically f
 - Tailwind CSS 4.x
 - shadcn/ui component library
 - Lucide React icons
-- next-intl for internationalization (English & Spanish)
+- next-intl for internationalization (10 languages)
 
 **Backend**:
 - Next.js Server Actions ("use server")
-- Supabase (PostgreSQL + Auth + Storage + RLS)
+- Supabase (PostgreSQL + Auth + Storage + RLS + Realtime)
 - Stripe for payments & Stripe Connect for marketplace model
 - Resend for email delivery
 
+**Video & Audio**:
+- LiveKit for native video conferencing (Studio tier)
+- Deepgram for speech-to-text transcription
+- OpenAI for AI practice and grammar correction
+
 **Key Libraries**:
 - @supabase/ssr for server-side auth
+- @livekit/components-react for video UI
+- @deepgram/sdk for transcription
 - react-hook-form + zod for form validation
 - date-fns & date-fns-tz for timezone handling
 - @dnd-kit for drag-and-drop interfaces
@@ -76,6 +83,8 @@ app/
 │   │   ├── notifications/       # Notification center
 │   │   ├── practice-scenarios/  # AI practice scenario builder
 │   │   ├── marketplace/         # Marketplace sales dashboard
+│   │   ├── classroom/           # LiveKit video classroom (Studio)
+│   │   ├── student/             # Student management pages
 │   │   └── ai/                  # AI assistant dashboard
 │   ├── (public)/                # Public-facing pages
 │   │   ├── [username]/          # Dynamic tutor pages
@@ -95,6 +104,9 @@ app/
 │   │   ├── email/               # Email operations
 │   │   ├── pricing/             # Pricing calculations
 │   │   ├── practice/            # AI Practice endpoints
+│   │   ├── livekit/             # LiveKit token & recording
+│   │   ├── webhooks/            # Deepgram, LiveKit, Resend webhooks
+│   │   ├── booking/             # Booking API
 │   │   └── cron/                # Scheduled tasks
 │   ├── book/                    # Public booking flow
 │   ├── signup/                  # Registration
@@ -107,12 +119,17 @@ app/
 │   ├── settings/                # Settings forms
 │   ├── marketing/               # Marketing tools UI
 │   ├── landing/                 # Landing page components
+│   ├── classroom/               # LiveKit classroom components
+│   ├── drills/                  # AI drill game components
+│   ├── messaging/               # Realtime messaging components
 │   ├── ui/                      # shadcn/ui components
 │   └── ...
 ├── lib/                         # Business logic & utilities
-│   ├── actions/                 # Server actions (39+ modules)
+│   ├── actions/                 # Server actions (40+ modules)
 │   ├── supabase/                # Supabase clients
 │   ├── stripe.ts                # Stripe utilities
+│   ├── livekit.ts               # LiveKit utilities
+│   ├── deepgram.ts              # Deepgram utilities
 │   ├── calendar/                # Calendar integrations
 │   ├── emails/                  # Email templates
 │   ├── validators/              # Zod schemas
@@ -123,6 +140,7 @@ app/
 │   ├── payments/                # Payment processing
 │   ├── pricing/                 # Pricing calculations
 │   ├── practice/                # AI Practice constants & utils
+│   ├── subscription/            # Lesson subscription utilities
 │   ├── admin/                   # Admin utilities
 │   ├── middleware/              # Custom middleware
 │   ├── utils/                   # Utility functions
@@ -143,6 +161,7 @@ app/
    - Onboarding state, subscription plan
    - Payment settings, Stripe Connect status
    - Video conferencing preferences
+   - Tier (standard/studio)
 
 2. **students**
    - Student records managed by tutors
@@ -150,6 +169,7 @@ app/
    - Access control (pending/approved/denied/suspended)
    - Email preferences, timezone
    - Source tracking (booking_page, import, manual)
+   - Labels (text array for tagging/organization)
 
 3. **bookings**
    - Scheduled lessons between tutors and students
@@ -157,6 +177,7 @@ app/
    - Payment status (paid/unpaid), amount, currency
    - Meeting URL and provider info
    - Status (pending/confirmed/cancelled/completed)
+   - Egress ID (for LiveKit recording tracking)
 
 4. **services**
    - Lesson types offered by tutors
@@ -185,6 +206,8 @@ app/
    - Theme settings (colors, fonts, spacing)
    - Section visibility toggles
    - Published/draft status
+   - Theme archetype (professional/immersion/academic/polyglot)
+   - Theme heading font, border radius
 
 9. **tutor_site_services**, **tutor_site_reviews**, **tutor_site_resources**, **tutor_site_products**
    - Junction tables for tutor site content
@@ -205,12 +228,15 @@ app/
     - Message threads between tutors and students
     - Last message preview, unread status
     - Unique per tutor-student pair
+    - Realtime enabled
 
 13. **conversation_messages**
     - Individual messages in threads
     - Sender role (tutor/student/system)
     - Read status tracking
     - Attachments (JSONB)
+    - Audio URL support
+    - Realtime enabled
 
 14. **calendar_connections**
     - OAuth tokens for Google/Outlook calendar sync
@@ -312,40 +338,42 @@ app/
     - Tutor-assigned homework with resources
     - Due dates, status tracking, student notes
     - Resource attachments (JSONB)
+    - Audio instruction URL
 
-34. **learning_goals**
+34. **homework_submissions**
+    - Student homework submissions
+    - Text response, audio URL, file attachments
+    - Tutor feedback, review status (pending/reviewed/needs_revision)
+    - RLS policies for students and tutors
+
+35. **learning_goals**
     - Student learning goals with progress tracking
     - Target dates, progress percentage
     - Status (active/completed/paused/abandoned)
 
-35. **proficiency_assessments**
+36. **proficiency_assessments**
     - Skill assessments by area (8 areas)
     - speaking, listening, reading, writing, vocabulary, grammar, pronunciation, overall
     - Levels: beginner → proficient
 
-36. **learning_stats**
+37. **learning_stats**
     - Aggregate student statistics
     - Total lessons, minutes, streaks
     - Homework completed count
 
-37. **lesson_notes**
+38. **lesson_notes**
     - Post-lesson notes from tutors
     - Topics, vocabulary, grammar points covered
     - Student-visible feedback section
 
-38. **content_reports**
+39. **content_reports**
     - Content moderation report system
     - Report types: spam, harassment, inappropriate, scam, etc.
     - Priority levels and resolution workflow
 
-39. **moderation_actions**
+40. **moderation_actions**
     - Audit trail for moderation decisions
     - Actions: warning_issued, content_removed, user_suspended, etc.
-
-40. **support_tickets**
-    - Platform support ticket system
-    - Categories, status workflow (open/in_progress/closed)
-    - User role tracking
 
 41. **marketplace_transactions**
     - Digital product sales tracking
@@ -390,6 +418,26 @@ app/
     - Prevents future sends to bad email addresses
     - Automatically populated by Resend webhook on bounce/complaint/dropped events
     - Checked before every email send via `sendEmail()`
+
+50. **lesson_subscription_templates**
+    - Tutor subscription tier offerings
+    - Tiers: 2_lessons, 4_lessons, 8_lessons, custom
+    - One per service, with pricing and Stripe integration
+
+51. **lesson_subscriptions**
+    - Active student subscriptions
+    - Status: active, paused, canceled, past_due, trialing
+    - Stripe subscription linking
+
+52. **lesson_allowance_periods**
+    - Monthly credit tracking with rollover
+    - lessons_allocated, lessons_rolled_over, lessons_used
+    - is_current flag for billing period
+
+53. **lesson_subscription_redemptions**
+    - Links bookings to subscription usage
+    - One redemption per booking
+    - Refund support for cancellations
 
 ---
 
@@ -441,7 +489,7 @@ app/
 **Key actions**:
 - `updateProfile(formData)` - Updates profile with validation
 - `updatePaymentSettings(data)` - Payment methods (Venmo, PayPal, Zelle, Stripe)
-- `updateVideoSettings(data)` - Video conferencing (Zoom, Google Meet, Calendly, custom)
+- `updateVideoSettings(data)` - Video conferencing (Zoom, Google Meet, Microsoft Teams, Calendly, custom)
 
 ---
 
@@ -485,13 +533,14 @@ app/
 1. Student visits tutor's booking link
 2. Selects service → sees available times from tutor's availability
 3. Fills form (name, email, phone, timezone, notes)
-4. Chooses payment option (session package or direct payment)
+4. Chooses payment option (session package, subscription, or direct payment)
 5. `createBookingAndCheckout()` server action:
    - Validates service pricing
    - Checks availability conflicts
    - Creates or updates student record
    - Creates booking (pending or confirmed)
    - If package: redeems minutes, confirms booking
+   - If subscription: redeems lesson credit
    - If Stripe Connect enabled: creates checkout session
    - If manual payment: returns booking ID with payment instructions
 6. Sends confirmation emails to student and tutor
@@ -508,7 +557,7 @@ app/
 - `createBookingAndCheckout()` - Main public booking flow
 - `createBooking()` - Tutor creates booking manually
 - `markBookingAsPaid()` - Tutor confirms payment received
-- `cancelBooking()` - Cancels booking, refunds package minutes
+- `cancelBooking()` - Cancels booking, refunds package minutes/subscription credits
 - `listBookings()` - Fetches tutor's bookings
 - `validateBooking()` - Checks conflicts and availability
 
@@ -605,6 +654,48 @@ app/
 
 ---
 
+### Feature: Lesson Subscriptions
+
+**What it does**: Monthly recurring lesson plans with soft rollover (students subscribe for 2, 4, 8, or custom lessons per month).
+
+**Where the code lives**:
+- Actions: `/lib/actions/lesson-subscriptions.ts`
+- Components: `/components/services/SubscriptionTierInput.tsx`
+- Booking: `/components/booking/SubscriptionCreditSelector.tsx`
+
+**How it works**:
+
+**Tutor Setup**:
+1. Creates subscription tier for a service (2/4/8/custom lessons per month)
+2. Sets monthly price and Stripe product/price IDs
+3. Tier saved to `lesson_subscription_templates`
+
+**Student Subscription**:
+1. Student selects subscription tier during booking
+2. Redirected to Stripe checkout for recurring billing
+3. `lesson_subscriptions` record created on successful payment
+4. `lesson_allowance_periods` tracks monthly credits
+
+**Soft Rollover Policy**:
+- Unused lessons roll over to next month (max 1 month)
+- If not used in rollover month, credits expire
+- Database function `process_subscription_rollover()` handles billing cycle reset
+
+**Booking with Subscription**:
+1. Student books lesson
+2. System checks `get_subscription_balance()` for available credits
+3. If credits available, `redeem_subscription_lesson()` deducts 1 credit
+4. `lesson_subscription_redemptions` links booking to subscription
+5. On cancellation, `refund_subscription_lesson()` restores credit
+
+**Key Database Functions**:
+- `get_subscription_balance(subscription_id)` - Returns available lessons
+- `process_subscription_rollover(subscription_id)` - Handles billing cycle
+- `redeem_subscription_lesson(subscription_id, booking_id)` - Uses credit
+- `refund_subscription_lesson(redemption_id)` - Restores credit
+
+---
+
 ### Feature: Digital Products
 
 **What it does**: Tutors sell digital downloads (PDFs, ebooks, worksheets).
@@ -668,13 +759,16 @@ app/
 
 ### Feature: Messaging System
 
-**What it does**: Direct messaging between tutors and students within the platform.
+**What it does**: Direct messaging between tutors and students within the platform with realtime updates.
 
 **Where the code lives**:
 - Tutor: `/app/(dashboard)/messages/page.tsx`
-- Student: `/app/student-auth/messages/page.tsx`
+- Student: `/app/student/messages/page.tsx`
 - Actions: `/lib/actions/messaging.ts`
-- Components: `/components/messaging/message-composer.tsx`
+- Components: `/components/messaging/`
+  - `message-composer.tsx` - Send messages
+  - `message-display.tsx` - Render messages with audio
+  - `RealtimeMessagesContainer.tsx` - Realtime subscriptions
 
 **How it works**:
 1. Conversation thread created per tutor-student pair
@@ -682,6 +776,8 @@ app/
 3. Updates `conversation_threads.last_message_preview`
 4. Tracks unread status per user
 5. Messages support attachments (JSONB field)
+6. Audio messages stored in `message-attachments` bucket
+7. Supabase Realtime subscription pushes new messages instantly
 
 **Key actions**:
 - `sendThreadMessage(formData)` - Sends message
@@ -691,7 +787,7 @@ app/
 
 ### Feature: Student Management
 
-**What it does**: Full student CRM with notes, lesson history, and access control.
+**What it does**: Full student CRM with notes, lesson history, labels, and access control.
 
 **Where the code lives**:
 - Pages: `/app/(dashboard)/students/page.tsx`, `/app/(dashboard)/students/[studentId]/page.tsx`
@@ -707,6 +803,12 @@ app/
 3. Auto-created during public booking
 4. Email normalization (lowercase, trimmed)
 
+**Student Labels**:
+1. Tutors can tag students with labels (text array)
+2. Examples: "beginner", "advanced", "exam_prep", "conversation_only"
+3. Filter students by label in CRM
+4. GIN index for efficient label querying
+
 **Access Control**:
 1. Student requests calendar access (if not auto-approved)
 2. Creates `student_access_requests` record
@@ -718,6 +820,7 @@ app/
 - Student notes (learning goals, proficiency, native language)
 - Lesson history
 - Package purchases
+- Subscription status
 - Communication preferences (email opt-out)
 - Status (active/trial/paused/alumni)
 
@@ -792,6 +895,13 @@ app/
 - Publishing workflow (draft/published)
 - Version history (snapshots)
 
+**Teaching Archetypes**:
+- 4 cultural banner themes:
+  - **Professional**: Business-focused, dark/trust themes (border radius: lg)
+  - **Immersion**: Warm, friendly, community-focused (border radius: 3xl)
+  - **Academic**: Formal, scholarly presentation (border radius: xl, serif headings)
+  - **Polyglot**: Modern, global, polyglot-friendly (border radius: 2xl)
+
 **Key actions**:
 - `getTutorSiteData()` - Fetches site data
 - `updateTutorSite()` - Saves site changes
@@ -805,7 +915,7 @@ app/
 **What it does**: Subscription-based conversational AI practice for students to practice between lessons. Features real-time grammar corrections, pronunciation assessment, vocabulary tracking, and session feedback.
 
 **Where the code lives**:
-- Student pages: `/app/student-auth/practice/[assignmentId]/page.tsx`, `/app/student-auth/practice/subscribe/page.tsx`
+- Student pages: `/app/student/practice/[assignmentId]/page.tsx`, `/app/student/practice/subscribe/page.tsx`
 - Tutor builder: `/app/(dashboard)/practice-scenarios/page.tsx`
 - API routes: `/app/api/practice/`
 - Components: `/components/student/AIPracticeChat.tsx`, `/components/student/AIPracticeCard.tsx`
@@ -847,14 +957,39 @@ verb_tense, subject_verb_agreement, preposition, article, word_order, gender_agr
 
 ---
 
+### Feature: AI Drills
+
+**What it does**: Interactive drill games for language practice - match, gap-fill, and word scramble.
+
+**Where the code lives**:
+- Components: `/components/drills/`
+  - `MatchGame.tsx` - Word/phrase matching drills
+  - `GapFillGame.tsx` - Fill-in-the-blank exercises
+  - `ScrambleGame.tsx` - Word scramble challenges
+  - `DrillModal.tsx` - Modal wrapper for drill presentation
+
+**How it works**:
+1. AI generates drill content based on lesson or practice session
+2. Student selects drill type (match, gap-fill, scramble)
+3. Gamified interface with points and streaks
+4. Difficulty progression based on performance
+5. Results tracked for tutor review
+
+**Drill Types**:
+- **Match Game**: Connect words/phrases with translations or definitions
+- **Gap-Fill**: Complete sentences with missing words
+- **Scramble**: Rearrange scrambled words into correct sentences
+
+---
+
 ### Feature: Homework Planner
 
 **What it does**: Tutors assign homework with resources and due dates. Students view and complete homework from their portal.
 
 **Where the code lives**:
 - Tutor page: `/app/(dashboard)/students/[studentId]/page.tsx`
-- Student page: `/app/student-auth/progress/page.tsx`
-- Components: `/components/students/HomeworkPlanner.tsx`, `/components/student/HomeworkPracticeButton.tsx`
+- Student page: `/app/student/progress/page.tsx`
+- Components: `/components/students/HomeworkPlanner.tsx`, `/components/students/HomeworkTab.tsx`
 - Actions: `/lib/actions/progress.ts`
 
 **How it works**:
@@ -864,8 +999,9 @@ verb_tense, subject_verb_agreement, preposition, article, word_order, gender_agr
 2. Scrolls to Homework Planner section
 3. Enters title, instructions, due date
 4. Adds resource attachments (PDFs, videos, links)
-5. Optionally links to AI practice assignment
-6. Student immediately sees in progress portal
+5. Optionally adds audio instructions URL
+6. Optionally links to AI practice assignment
+7. Student immediately sees in progress portal
 
 **Student Completes Homework**:
 1. Views homework in progress dashboard
@@ -881,13 +1017,44 @@ verb_tense, subject_verb_agreement, preposition, article, word_order, gender_agr
 
 ---
 
+### Feature: Homework Submissions
+
+**What it does**: Students submit homework with text, audio recordings, and file attachments. Tutors review and provide feedback.
+
+**Where the code lives**:
+- Components: `/components/student/HomeworkSubmissionForm.tsx`, `/components/student/AudioRecorder.tsx`
+- Actions: `/lib/actions/homework-submissions.ts`
+
+**How it works**:
+
+**Student Submission**:
+1. Opens homework assignment
+2. Writes text response
+3. Records audio response (browser-based recording)
+4. Attaches files (PDFs, images up to 20MB)
+5. Submits → `homework_submissions` record created
+
+**Tutor Review**:
+1. Views submission in student detail page
+2. Listens to audio, reads text, downloads files
+3. Writes feedback
+4. Sets status: reviewed or needs_revision
+5. Student sees feedback in portal
+
+**Key actions**:
+- `submitHomework()` - Student submits work
+- `reviewHomeworkSubmission()` - Tutor provides feedback
+- `getHomeworkSubmissions()` - Fetch submissions for assignment
+
+---
+
 ### Feature: Student Progress Tracking
 
 **What it does**: Unified progress dashboard for students with goals, proficiency assessments, learning stats, and lesson notes.
 
 **Where the code lives**:
-- Student page: `/app/student-auth/progress/page.tsx`
-- Components: `/app/student-auth/progress/StudentProgressClient.tsx`
+- Student page: `/app/student/progress/page.tsx`
+- Components: `/app/student/progress/StudentProgressClient.tsx`
 - Actions: `/lib/actions/progress.ts`
 
 **How it works**:
@@ -934,7 +1101,7 @@ speaking, listening, reading, writing, vocabulary, grammar, pronunciation, overa
 7. Filter by All/Unread tabs
 
 **Notification Types**:
-booking_new, booking_confirmed, booking_cancelled, booking_reminder, payment_received, payment_failed, message_new, message_reply, student_new, student_access_request, package_purchased, package_expiring, review_received, review_approved, system_announcement, account_update
+booking_new, booking_confirmed, booking_cancelled, booking_reminder, payment_received, payment_failed, message_new, message_reply, student_new, student_access_request, package_purchased, package_expiring, review_received, review_approved, system_announcement, account_update, homework_submitted
 
 **Key actions**:
 - `getNotifications()` - Fetches paginated notifications
@@ -1070,7 +1237,199 @@ low, normal, high, urgent
 
 ---
 
-## 4. API ROUTES
+### Feature: Help Center
+
+**What it does**: Searchable help documentation with categorized articles for tutors and students, with i18n support.
+
+**Where the code lives**:
+- Pages: `/app/(public)/help/page.tsx`, `/app/(public)/help/[slug]/page.tsx`
+- Spanish: `/app/(public)/es/help/page.tsx`, `/app/(public)/es/help/[slug]/page.tsx`
+- Utilities: `/lib/help.ts`
+- Content: `/docs/help/` (Markdown files)
+
+**How it works**:
+1. Help articles stored as Markdown files in `/docs/help/`
+2. `lib/help.ts` parses frontmatter for title, category, reading time
+3. Main page shows categorized article list with search
+4. Article pages render Markdown with syntax highlighting
+5. i18n support via locale-prefixed routes
+
+**Categories**:
+getting-started, booking, payments, calendar, students, marketing, studio, ai-practice, account
+
+---
+
+### Feature: Niche Landing Pages
+
+**What it does**: Dynamic SEO landing pages for specific tutoring niches to improve organic discovery.
+
+**Where the code lives**:
+- Page: `/app/(public)/for/[slug]/page.tsx`
+- Data: `/lib/marketing/niche-data.ts`
+
+**How it works**:
+1. Slug-based routing for niches (e.g., `/for/spanish-conversation`, `/for/business-english`)
+2. `niche-data.ts` contains structured content per niche:
+   - Hero title and subtitle
+   - Target audience description
+   - Benefits and features
+   - SEO metadata
+3. Page renders with niche-specific content and CTA to signup
+
+**Example Niches**:
+spanish-conversation, business-english, exam-prep-ielts, kids-tutoring, accent-reduction, medical-english
+
+---
+
+## 4. STUDIO TIER FEATURES
+
+### Feature: LiveKit Video Classroom
+
+**What it does**: Native video conferencing for lessons using LiveKit, available exclusively for Studio tier tutors.
+
+**Where the code lives**:
+- Classroom page: `/app/(dashboard)/classroom/[bookingId]/page.tsx`
+- API token route: `/app/api/livekit/token/route.ts`
+- API recording route: `/app/api/livekit/recording/route.ts`
+- LiveKit utilities: `/lib/livekit.ts`
+- Components: `/components/classroom/`
+  - `VideoStage.tsx` - Main video canvas
+  - `ControlBar.tsx` - Video controls (mute, camera, screen share)
+  - `RecordingControls.tsx` - Start/stop recording
+  - `SessionHeader.tsx` - Session info and duration
+  - `SidebarTabs.tsx` - Tabs for chat, notes, participants
+  - `NotesEditor.tsx` - Real-time lesson notes
+  - `ChatTab.tsx` - In-room messaging
+  - `MicVolumeIndicator.tsx` - Audio level visualization
+  - `ParticipantNameTag.tsx` - Name badges for participants
+  - `PreJoinScreen.tsx` - Pre-join setup and device testing
+  - `RecordingConsentModal.tsx` - Recording consent workflow
+  - `StudioSidebar.tsx` - Sidebar container with tabs
+
+**How it works**:
+
+**Classroom Flow**:
+1. Tutor or student navigates to `/classroom/[bookingId]`
+2. Page fetches LiveKit token from `/api/livekit/token`
+3. API validates:
+   - User is authenticated
+   - User is participant in the booking (tutor or student)
+   - Tutor has Studio tier subscription
+4. Returns signed LiveKit access token
+5. Client connects to LiveKit Cloud
+6. VideoConference component renders full video room
+7. On disconnect, user is redirected to `/dashboard`
+
+**Recording Flow**:
+1. Tutor clicks "Start Recording"
+2. Recording consent modal shown to all participants
+3. All participants must consent
+4. `/api/livekit/recording` starts S3 egress
+5. `egress_id` stored in booking record
+6. Recording saved to S3-compatible storage (Supabase)
+7. On lesson end, recording stops automatically
+
+**Error Handling**:
+- 401: Not authenticated → "Please sign in" message
+- 403: Not authorized or tutor lacks Studio tier → "Access Denied" with upgrade CTA
+- 404: Booking not found
+- 503: LiveKit not configured (missing env vars)
+
+**Key files**:
+- `lib/livekit.ts`:
+  - `createAccessToken(userId, roomName, options)` - Generates JWT token
+  - `getRoomServiceClient()` - Server-side room management
+  - `getEgressClient()` - Recording management
+  - `isLiveKitConfigured()` - Checks if env vars are set
+  - `getS3RecordingOptions()` - S3 egress configuration
+
+**Environment Variables**:
+```bash
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud
+
+# S3-compatible storage for recordings
+SUPABASE_S3_ENDPOINT=your_s3_endpoint
+SUPABASE_S3_ACCESS_KEY=your_access_key
+SUPABASE_S3_SECRET_KEY=your_secret_key
+SUPABASE_S3_BUCKET=recordings
+```
+
+**Dependencies**:
+- `@livekit/components-react` - React components for video UI
+- `@livekit/components-styles` - LiveKit default styles
+- `livekit-server-sdk` - Server-side token generation and room management
+
+---
+
+### Feature: Lesson Transcription
+
+**What it does**: Deepgram-powered speech-to-text transcription of lesson recordings.
+
+**Where the code lives**:
+- Webhook: `/app/api/webhooks/deepgram/route.ts`
+- Utilities: `/lib/deepgram.ts`
+- Admin retry: `/app/api/admin/retry-transcriptions/route.ts`
+
+**How it works**:
+1. Lesson recording saved to S3
+2. Deepgram API called with recording URL
+3. Transcription returned via webhook
+4. Transcript stored and associated with booking
+5. Tutor can view transcript in lesson detail
+
+**Key utilities**:
+- `transcribeAudio(audioUrl)` - Initiates Deepgram transcription
+- Webhook handler processes callback
+
+---
+
+### Feature: Lesson Review & Post-Lesson Insights
+
+**What it does**: Post-lesson review page with video replay, AI-generated summaries, key moments, auto-generated drills, and fluency feedback.
+
+**Where the code lives**:
+- Page: `/app/(dashboard)/student/review/[bookingId]/page.tsx`
+- Cron: `/app/api/cron/lesson-analysis/route.ts`
+- Analysis utils: `/lib/analysis/lesson-insights.ts`
+- Migration: `supabase/migrations/20250115000000_post_lesson_insights.sql`
+
+**How it works**:
+
+**Lesson Analysis Pipeline**:
+1. Lesson recording saved to S3 via LiveKit egress
+2. Cron job `/api/cron/lesson-analysis` polls for unprocessed recordings
+3. Deepgram transcribes audio → transcript stored in `lesson_recordings`
+4. OpenAI analyzes transcript for:
+   - Key moments with timestamps
+   - AI-generated summary (3-5 bullet points)
+   - Fluency assessment (speaking pace, filler words, grammar patterns)
+   - Auto-generated drill content (vocabulary, grammar exercises)
+5. Results stored in `lesson_recordings` and `lesson_drills` tables
+6. `processing_logs` tracks pipeline status
+
+**Review Page Features**:
+1. Video replay with seeking to key moments
+2. AI-generated lesson summary
+3. Key moments timeline with clickable timestamps
+4. Auto-generated drills based on lesson content
+5. Fluency feedback with metrics
+6. Student can replay specific moments
+
+**Database tables**:
+- `lesson_recordings` - Enhanced with `ai_summary`, `key_moments` (JSONB), `fluency_score`
+- `lesson_drills` - Generated drills linked to booking
+- `processing_logs` - Pipeline audit trail
+
+**Key functions**:
+- `generateLessonInsights(transcriptId)` - Runs full analysis pipeline
+- `getKeyMoments(transcript)` - Extracts important moments
+- `generateDrills(transcript, language)` - Creates practice exercises
+
+---
+
+## 5. API ROUTES
 
 **Authentication**:
 - `GET /api/auth/me` - Get current user
@@ -1084,6 +1443,7 @@ low, normal, high, urgent
 - `POST /api/stripe/connect/account-link` - Onboarding link
 - `POST /api/stripe/billing-portal` - Billing portal session
 - `POST /api/stripe/sync-customer` - Sync customer data
+- `POST /api/stripe/subscription-checkout` - Create subscription checkout
 
 **Calendar**:
 - `GET /api/calendar/oauth/[provider]` - OAuth callback (Google/Outlook)
@@ -1102,6 +1462,8 @@ low, normal, high, urgent
 
 **Cron Jobs**:
 - `POST /api/cron/send-reminders` - Send lesson reminders
+- `POST /api/cron/homework-reminders` - Send homework reminders
+- `POST /api/cron/lesson-analysis` - Analyze recordings and generate AI insights (Studio)
 
 **AI Practice**:
 - `POST /api/practice/chat` - AI conversation with grammar corrections
@@ -1114,16 +1476,36 @@ low, normal, high, urgent
 - `GET /api/practice/stats` - Practice statistics
 - `GET /api/practice/progress` - Student practice progress
 
+**LiveKit (Studio)**:
+- `POST /api/livekit/token` - Generate WebRTC access token
+- `POST /api/livekit/recording` - Start/stop room recording
+
+**Webhooks**:
+- `POST /api/webhooks/deepgram` - Transcription webhook
+- `POST /api/webhooks/livekit` - LiveKit event webhooks
+- `POST /api/webhooks/resend` - Email service webhooks
+
+**Booking**:
+- `POST /api/booking/inline` - Inline booking interface
+
 **Admin**:
 - `GET /api/admin/health` - System health check
 - `GET /api/admin/moderation` - Moderation queue
 - `POST /api/admin/moderation/resolve` - Resolve moderation report
 - `GET /api/admin/tutors/inactive` - List inactive tutors
 - `POST /api/admin/tutors/reengagement` - Send re-engagement emails
+- `POST /api/admin/retry-transcriptions` - Retry failed transcriptions
+- `GET /api/admin/export/tutors` - Export tutor data (CSV)
+- `GET /api/admin/export/revenue` - Export revenue data (CSV)
+- `GET /api/admin/export/students` - Export student data (CSV)
+- `GET /api/admin/analytics/page-views` - Page view analytics
+
+**Pricing**:
+- `GET /api/pricing/founder` - Founder pricing info
 
 ---
 
-## 5. AUTHENTICATION & AUTHORIZATION
+## 6. AUTHENTICATION & AUTHORIZATION
 
 ### How Auth Works
 
@@ -1163,6 +1545,7 @@ PROTECTED_ROUTES = [
   "/calendar",
   "/digital-products",
   "/messages",
+  "/classroom",
 ]
 ```
 
@@ -1171,9 +1554,10 @@ PROTECTED_ROUTES = [
 - Checks `profiles.onboarding_completed` field
 
 **Plan Access**:
-- Single all-access plan today; no feature gates in middleware
-- Calendar sync + direct booking position TutorLingua as complementary to marketplaces
-- Redirects to `/upgrade` only when billing flow is explicitly invoked
+- Pro routes require any paid plan (Pro or Studio tier)
+- Studio routes (`/classroom`, `/studio`) require Studio tier subscription
+- Unpaid users (`professional`) are redirected to `/settings/billing`
+- Exceptions: `/settings/billing`, `/settings/profile`, `/onboarding` are accessible to all authenticated users
 
 ### RLS Policies
 
@@ -1194,7 +1578,7 @@ CREATE POLICY "Public view published sites"
 
 ---
 
-## 6. INTEGRATIONS
+## 7. INTEGRATIONS
 
 ### Stripe Connect
 
@@ -1251,9 +1635,32 @@ CREATE POLICY "Public view published sites"
 - Unsubscribe management
 - Email queue
 
+### LiveKit
+
+**Purpose**: Native video conferencing for Studio tier
+
+**Provider**: LiveKit Cloud
+
+**Features**:
+- Real-time video and audio
+- Screen sharing
+- Recording with S3 egress
+- Room-based architecture
+
+### Deepgram
+
+**Purpose**: Speech-to-text transcription
+
+**Provider**: Deepgram API
+
+**Features**:
+- Asynchronous transcription via webhook
+- Speaker diarization
+- Timestamped transcripts
+
 ---
 
-## 7. KEY SERVER ACTIONS
+## 8. KEY SERVER ACTIONS
 
 Located in `/lib/actions/`:
 
@@ -1314,6 +1721,13 @@ Located in `/lib/actions/`:
 - `redeemPackageMinutes()` - Use package
 - `refundPackageMinutes()` - Restore on cancellation
 
+**Lesson Subscriptions** (`lesson-subscriptions.ts`):
+- `createSubscriptionTemplate()` - Create subscription tier
+- `subscribeToLessons()` - Student subscribes
+- `redeemSubscriptionLesson()` - Use subscription credit
+- `refundSubscriptionLesson()` - Restore credit on cancellation
+- `getSubscriptionBalance()` - Check available lessons
+
 **Students** (`students.ts`, `tutor-students.ts`):
 - `listStudents()` - Fetch all students
 - `ensureStudent()` - Create or update
@@ -1358,6 +1772,11 @@ Located in `/lib/actions/`:
 - `getTutorStudentPracticeData()` - Tutor CRM view of practice
 - `getStudentPracticeAnalytics()` - Analytics with grammar trends
 
+**Homework Submissions** (`homework-submissions.ts`):
+- `submitHomework()` - Student submits work
+- `reviewHomeworkSubmission()` - Tutor provides feedback
+- `getHomeworkSubmissions()` - Fetch submissions
+
 **AI Assistant** (`ai-assistant.ts`):
 - `createAIConversation()` - Start new AI conversation
 - `addAIMessage()` - Add message to conversation
@@ -1383,9 +1802,15 @@ Located in `/lib/actions/`:
 - `getStudentSubscription()` - Fetch subscription status
 - `cancelStudentSubscription()` - Cancel subscription
 
+**Stripe Payments** (`stripe-payments.ts`):
+- Additional Stripe-related payment operations
+
+**Trial** (`trial.ts`):
+- `createAutoTrial()` - Create 14-day free trial on signup
+
 ---
 
-## 8. COMPONENT LIBRARY
+## 9. COMPONENT LIBRARY
 
 ### UI Components (shadcn/ui)
 
@@ -1406,6 +1831,9 @@ Located in `/components/ui/`:
 - `dropdown-menu.tsx` - Dropdown menus
 - `label.tsx` - Form labels
 - `table.tsx` - Data tables
+- `color-picker.tsx` - HSL color picker for themes
+- `resizable.tsx` - Resizable panel component
+- `tooltip.tsx` - Hover tooltips
 
 ### Custom Components
 
@@ -1431,6 +1859,8 @@ Located in `/components/ui/`:
 - `StudentInfoForm` - Booking form
 - `AccessRequestStatus` - Access request UI
 - `StudentLessonHistory` - Lesson history widget
+- `InlineBookingSheet` - Inline booking interface
+- `SubscriptionCreditSelector` - Select subscription for booking
 
 **Settings**:
 - `ProfileWizard` - Multi-step profile setup
@@ -1453,9 +1883,11 @@ Located in `/components/ui/`:
 - `PageBuilderWizard` - Multi-step site creation wizard
 - `WizardContext` - State management for wizard
 - `SimplifiedPreview` - Wizard preview panel
-- Step components: Theme, Layout, Content, Pages
+- `circular-progress-wheel.tsx` - Progress indicator
+- `mobile-preview-toggle.tsx` - Mobile/desktop preview
+- Step components: Theme, Layout, Content, Pages, Profile, FAQ
 
-**Student Portal** (`/components/student-auth/`):
+**Student Portal** (`/components/student/`):
 - `StudentLoginForm` - Student authentication
 - `StudentSignupForm` - Student registration
 - `StudentPortalLayout` - Portal layout wrapper
@@ -1464,13 +1896,41 @@ Located in `/components/ui/`:
 - `StudentConnectButton` - Request tutor connection
 - `StudentBookingForm` - Book lessons
 - `ConnectionRequestModal` - Connection request UI
+- `UpcomingLessons` - Student's upcoming lessons
 
 **Student Components** (`/components/student/`):
 - `AIPracticeChat` - Main AI conversation interface
 - `AIPracticeCard` - Subscription and usage display card
 - `AudioInputButton` - Pronunciation recording and assessment
+- `AudioRecorder` - Browser-based audio recording
 - `HomeworkPracticeButton` - Homework completion actions
+- `HomeworkSubmissionForm` - Submit homework with text/audio/files
 - `SubscribeClient` - AI Practice subscription flow
+
+**Classroom** (`/components/classroom/`):
+- `VideoStage.tsx` - Main video canvas
+- `ControlBar.tsx` - Video controls (mute, camera, screen share)
+- `RecordingControls.tsx` - Start/stop recording
+- `SessionHeader.tsx` - Session info and duration
+- `SidebarTabs.tsx` - Tabs for chat, notes, participants
+- `NotesEditor.tsx` - Real-time lesson notes
+- `ChatTab.tsx` - In-room messaging
+- `MicVolumeIndicator.tsx` - Audio level visualization
+- `ParticipantNameTag.tsx` - Name badges for participants
+- `PreJoinScreen.tsx` - Pre-join setup and device testing
+- `RecordingConsentModal.tsx` - Recording consent workflow
+- `StudioSidebar.tsx` - Sidebar container with tabs
+
+**Drills** (`/components/drills/`):
+- `MatchGame.tsx` - Word/phrase matching drills
+- `GapFillGame.tsx` - Fill-in-the-blank exercises
+- `ScrambleGame.tsx` - Word scramble challenges
+- `DrillModal.tsx` - Modal wrapper for drill presentation
+
+**Messaging** (`/components/messaging/`):
+- `message-composer.tsx` - Send messages
+- `message-display.tsx` - Render messages with audio
+- `RealtimeMessagesContainer.tsx` - Realtime subscriptions
 
 **AI Practice** (`/components/practice/`):
 - `ScenarioBuilder` - Create custom AI conversation templates
@@ -1479,17 +1939,33 @@ Located in `/components/ui/`:
 - `AIChatInterface` - AI assistant conversation interface
 
 **Students CRM** (`/components/students/`):
-- `HomeworkPlanner` - Tutor homework assignment interface
+- `HomeworkPlanner` - Tutor homework assignment interface (old)
+- `HomeworkTab` - New homework tab component
 - `AIPracticeAnalytics` - Student AI practice analytics view
+- `StudentProgressPanel` - Progress overview
+- `StudentDetailTabs` - Tabbed student detail view
+- `StudentDetailsTab` - Basic student info
+- `StudentLessonsCalendar` - Student's lesson history calendar
+- `StudentMessagesTab` - Student messages
+- `StudentPaymentsTab` - Payment history
+- `StudentProfileCard` - Student profile card
+- `StudentUpcomingLessons` - Upcoming lessons list
+- `StudentAIPracticeTab` - AI practice tab
+
+**Services** (`/components/services/`):
+- `service-dashboard.tsx` - Services management
+- `service-form.tsx` - Create/edit service
+- `SubscriptionTierInput.tsx` - Configure subscription tiers
 
 **Admin** (`/components/admin/`):
 - Admin dashboard components for platform management
 - Moderation queue interface
 - Health monitoring dashboard
+- `TutorPlanManager` - Manage tutor plans
 
 ---
 
-## 9. ENVIRONMENT VARIABLES
+## 10. ENVIRONMENT VARIABLES
 
 ### Required (Core Functionality)
 
@@ -1538,14 +2014,29 @@ MICROSOFT_OAUTH_REDIRECT_URL=...
 # Analytics
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```
 
-# AI Features (Included Plan)
-OPENAI_API_KEY=sk-...
+### Studio Tier (Video & Transcription)
+
+```bash
+# LiveKit Video Conferencing
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-project.livekit.cloud
+
+# Deepgram Transcription
+DEEPGRAM_API_KEY=your_api_key
+
+# S3-compatible Storage (for recordings)
+SUPABASE_S3_ENDPOINT=your_s3_endpoint
+SUPABASE_S3_ACCESS_KEY=your_access_key
+SUPABASE_S3_SECRET_KEY=your_secret_key
+SUPABASE_S3_BUCKET=recordings
 ```
 
 ---
 
-## 10. DEVELOPMENT
+## 11. DEVELOPMENT
 
 ### Commands
 
@@ -1582,29 +2073,95 @@ supabase migration up # Apply specific migration
 
 ### Internationalization
 
-- Supports English (`en`) and Spanish (`es`)
-- Uses `next-intl` for translations
-- Landing page copy in `/lib/constants/landing-copy.ts`
+TutorLingua supports 10 languages:
+- English (en)
+- Spanish (es)
+- French (fr)
+- Portuguese (pt)
+- German (de)
+- Italian (it)
+- Japanese (ja)
+- Korean (ko)
+- Dutch (nl)
+- Chinese (zh)
+
+Uses `next-intl` for translations. Landing page copy in `/lib/constants/landing-copy.ts`.
 
 ### SEO Blog Content
 
-Located in `/docs/blog/`:
-- 80+ SEO-optimized articles in English and Spanish
+Located in `/app/docs/blog/`:
+- **140+ SEO-optimized articles** across 10 languages
 - 7 topic clusters: Commissions, Tools, Business, Retention, Marketing, Specializations, Operations
 - Blog utilities in `/lib/blog.ts`
-- Public routes: `/blog/[slug]`, `/es/blog/[slug]`
+- Public routes: `/blog/[slug]`, `/{lang}/blog/[slug]`
+
+**Language Coverage**:
+| Cluster | EN | ES | FR | PT | DE | IT | JA | KO | NL | ZH |
+|---------|----|----|----|----|----|----|----|----|----|----|
+| 1. Commissions (9 articles) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2. Tools (9 articles) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 3-7. (English only) | ✅ | - | - | - | - | - | - | - | - | - |
+
+**Slug Conventions**:
+- European languages (DE, IT, NL, PT, FR, ES): Native language slugs
+- CJK languages (JA, KO, ZH): Romanized slugs (e.g., `yoyaku-system-tutor-osusume`)
 
 ### Pricing Model
 
-**Single All-Access Plan** (Tutor Subscription):
-- **Price**: $29/month or $199/year (~$16.58/month)
-- **Features**: All platform features included, no tiers
-- **Positioning**: "One flat price. Full platform access."
+**Platform Subscription Plans** (Tutor Accounts):
 
-**Founder Lifetime Offer** (limited time):
-- **Price**: $49 one-time (vs. $29/month recurring)
-- **Deadline**: December 3, 2025
-- **Features**: Lifetime access to all current and future features
+| Plan ID | Display Name | Price | Tier | Description |
+|---------|--------------|-------|------|-------------|
+| `professional` | Free | $0 | Free | Default for new signups / trial expired |
+| `pro_monthly` | Pro Monthly | $39/month | Pro | Full platform access |
+| `pro_annual` | Pro Annual | $351/year | Pro | 25% off ($29.25/mo effective) |
+| `tutor_life` | Pro Lifetime | $299 one-time | Pro | Lifetime Pro access (launch pricing) |
+| `studio_monthly` | Studio Monthly | $79/month | Studio | Pro + LiveKit video, transcription, drills, clips |
+| `studio_annual` | Studio Annual | $711/year | Studio | 25% off ($59.25/mo effective) |
+| `studio_life` | Studio Lifetime | $499 one-time | Studio | Lifetime Studio access (launch pricing) |
+| `founder_lifetime` | Founder Lifetime | $49 one-time | Pro | Legacy grandfathered lifetime deal |
+| `all_access` | Pro (Legacy) | $39/month | Pro | Legacy plan, maps to pro_monthly |
+
+**Tier Feature Access**:
+
+| Feature | Free | Pro | Studio |
+|---------|------|-----|--------|
+| Dashboard, Calendar, Bookings | - | Yes | Yes |
+| Students, Services, Availability | - | Yes | Yes |
+| Messages, Pages, Analytics, Marketing | - | Yes | Yes |
+| LiveKit Native Video | - | - | Yes |
+| Lesson Transcription | - | - | Yes |
+| AI Drill Generation | - | - | Yes |
+| Marketing Clips | - | - | Yes |
+| Learning Roadmaps | - | - | Yes |
+
+**Auto-Trial System**:
+- New tutors automatically start a 14-day free trial on signup (via `createAutoTrial()`)
+- No credit card required upfront
+- During trial, users have Pro tier access with full platform access
+- After trial ends without payment method, subscription reverts to `professional`
+- Users can add payment method anytime to continue
+
+**Middleware Access Control**:
+- Pro routes require any paid plan (Pro or Studio tier)
+- Studio routes (`/studio`, `/classroom`) require Studio tier subscription
+- Unpaid users (`professional`) are redirected to `/settings/billing`
+- Exceptions: `/settings/billing`, `/settings/profile`, `/onboarding` are accessible to all authenticated users
+
+**Code Reference**:
+- Plan types: `/lib/types/payments.ts` (`PlatformBillingPlan`, `PlanTier`)
+- Subscription helpers: `/lib/payments/subscriptions.ts` (`getPlanTier`, `hasProAccess`, `hasStudioAccess`)
+- Trial creation: `/lib/actions/trial.ts`
+- Access control: `/middleware.ts` (tier-based route gating)
+- Entitlements: Auth provider returns `isPaid`, `hasProAccess`, `hasStudioAccess`, `tier` flags
+
+**Student AI Materials Subscription** (Studio Feature):
+- **Price**: $10/month flat fee
+- **Revenue Share**: 75% platform / 25% tutor
+- Platform receives: $7.50/student/month
+- Tutor receives: $2.50/student/month (passive income)
+- Platform API cost: ~$1.50/month (at 4 hrs avg usage)
+- **Platform net profit**: ~$6.00/student/month (80% margin)
 
 **AI Practice Companion** (Student Subscription):
 - **Base tier**: $8/month = 100 audio minutes + 300 text turns
@@ -1627,8 +2184,8 @@ Located in `/docs/blog/`:
 
 For a tutor earning $2,000/month on Preply (33% commission):
 - Commission cost: $660/month ($7,920/year)
-- TutorLingua cost: $29/month ($348/year)
-- **Annual savings: $7,572**
+- TutorLingua Pro cost: $39/month ($468/year)
+- **Annual savings: $7,452**
 
 ### Marketplace Positioning Strategy
 
@@ -1663,16 +2220,135 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-This documentation covers all **working, functional features** in the TutorLingua platform as of the current codebase state. New features documented in this update include:
+## IMPLEMENTATION LOG
 
-- AI Practice Companion with grammar tracking and pronunciation assessment
-- Usage-based billing for AI Practice ($8/month base + $5 blocks)
-- Homework Planner and Student Progress Tracking
-- Notifications System (14+ notification types)
-- Marketplace Sales Dashboard with tiered commissions
-- Practice Scenarios Builder
-- Booking Reschedule with history tracking
-- Content Moderation and Support Tickets
-- Admin Health Monitoring and Platform Config
+### 13 December 2025: Calendar & Booking Infrastructure Enhancements
 
-*Last updated: 3 December 2025*
+**Calendar Smart Management**:
+- Added calendar settings for smart management features
+- New `calendar_settings` table for tutor preferences
+- Buffer time between lessons configuration
+- Minimum booking notice settings
+- Actions in `/lib/actions/calendar-settings.ts`
+
+**Recurring Reservations**:
+- New recurring reservations system for regular students
+- Students can book weekly recurring slots
+- `recurring_reservations` table with frequency settings
+- Actions in `/lib/actions/recurring-reservations.ts`
+
+**Booking Demand Heatmap**:
+- Analytics for booking demand patterns
+- `booking_demand` table for aggregated data
+- Heatmap visualization in analytics dashboard
+- Actions in `/lib/actions/analytics-demand.ts`
+
+**Database Optimizations**:
+- Added atomic booking function to prevent race conditions
+- Dashboard query indexes for improved performance
+- Tutor site config column for advanced customization
+- Marketing clip SEO fields for better discoverability
+
+**New Server Actions**:
+- `drills.ts` - AI drill management actions
+- `recurring-reservations.ts` - Recurring booking management
+- `analytics-demand.ts` - Demand analytics queries
+- `calendar-settings.ts` - Calendar preferences
+- `booking-duration.ts` - Custom duration settings
+
+---
+
+### 12 December 2025: Cluster-2-Tools Translation (7 Languages)
+
+**Completed Translation Work**:
+- Translated all 9 cluster-2-tools articles to 7 additional languages
+- Total new files: 63 (9 articles × 7 languages)
+- Languages: German (DE), Portuguese (PT), Dutch (NL), Italian (IT), Japanese (JA), Korean (KO), Chinese (ZH)
+
+**Articles Translated**:
+1. `tutor-tech-stack-2025` - Complete tech stack guide
+2. `best-booking-system-tutors` - Booking system comparison
+3. `accept-payments-private-tutor` - Payment processing guide
+4. `best-link-in-bio-tutors` - Link-in-bio tools
+5. `create-tutor-website-no-coding` - No-code website creation
+6. `automated-lesson-reminders` - Lesson reminder automation
+7. `stop-using-spreadsheets-tutoring` - CRM over spreadsheets
+8. `automatic-zoom-links-students` - Zoom link automation
+9. `best-free-tools-language-tutors-2025` - Free tools roundup
+
+**Directory Structure**:
+- `/app/docs/blog/{lang}/cluster-2-tools/` for each language
+- Localized slugs, categories, tags, and SEO keywords
+- `alternateLocale` field linking back to English source
+- Internal links updated to same-language cluster-1 articles
+
+---
+
+### 11 December 2025: E2E Testing & Documentation Refresh
+
+**E2E Smoke Test Fixes**:
+- Fixed E2E golden path test (`e2e/smoke-golden-path.spec.ts`)
+- Discovered database trigger `handle_new_user()` auto-creates 3 default services
+- Updated test to use auto-created services instead of manual creation
+- Fixed service name matching for booking validation
+
+**Documentation Refresh**:
+- Added Help Center feature documentation (Section 3)
+- Added Niche Landing Pages feature documentation (Section 3)
+- Added Lesson Review & Post-Lesson Insights feature documentation (Section 4 - Studio)
+- Added missing API routes: cron/lesson-analysis, admin exports, pricing/founder
+- Updated README.md Application Map with new routes
+- Updated README.md Key Flows with new features
+
+**New Routes Documented**:
+- `/help`, `/help/[slug]` - Help center
+- `/for/[slug]` - Niche landing pages
+- `/student/review/[bookingId]` - Post-lesson review (Studio)
+- `/student/drills`, `/student/library` - Student portal routes
+- `/{lang}/blog/[slug]` - Extended blog language support
+
+---
+
+### 10 December 2025: Documentation Update
+
+**Updated documentation** to reflect all December 2025 features:
+- LiveKit Video Classroom (Studio tier)
+- Lesson Subscriptions with soft rollover
+- Homework Submissions with audio/text/file support
+- Realtime Messaging via Supabase
+- AI Drills (match, gap-fill, scramble)
+- Teaching Archetypes (Professional, Immersion, Academic, Polyglot)
+- Student Labels for CRM
+- Microsoft Teams video provider
+- 10 i18n languages
+- New UI components (color-picker, resizable, tooltip)
+
+### 9 December 2025: Studio Tier - LiveKit Classroom
+
+**Completed Tasks**:
+
+1. **LiveKit Server-Side Integration**
+   - Created `/lib/livekit.ts` with token generation utilities
+   - Created `/app/api/livekit/token/route.ts` for secure token generation
+   - Validates booking participation and Studio tier access
+
+2. **Classroom Video Room Page**
+   - Created `/app/(dashboard)/classroom/[bookingId]/page.tsx`
+   - Installed `@livekit/components-react` and `@livekit/components-styles`
+   - Full VideoConference UI with loading and error states
+   - Error handling for 401/403/404 scenarios
+   - Tier-based access control with upgrade CTA
+
+3. **Database Updates**
+   - Added `tier` column to profiles table (enum: 'standard', 'studio')
+   - Added `egress_id` column to bookings for recording tracking
+
+4. **Environment Configuration**
+   - Configured LiveKit credentials
+   - Configured S3 storage for recordings
+
+**Status**: Working and verified. Video conferencing connects successfully.
+
+---
+
+*Last updated: 13 December 2025*

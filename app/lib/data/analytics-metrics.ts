@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { stripe } from "@/lib/stripe";
+import type {
+  StripeBalanceData,
+  RevenueSourceBreakdown,
+  RecentActivityItem,
+} from "@/lib/types/analytics-premium";
 
 export type RevenueDataPoint = {
   date: string;
@@ -37,6 +43,24 @@ export type BookingsByPeriod = {
   completed: number;
   cancelled: number;
   pending: number;
+};
+
+export type EngagementDataPoint = {
+  date: string;
+  lessonCount: number;
+  activeStudentCount: number;
+};
+
+export type ProfileViewStats = {
+  totalViews: number;
+  trend: { date: string; views: number }[];
+};
+
+export type PaymentHealth = {
+  grossVolume: number;
+  netEarnings: number;
+  refunds: number;
+  fees: number;
 };
 
 /**
@@ -110,7 +134,8 @@ export async function getStudentMetrics(
   const { data: bookings } = await supabase
     .from("bookings")
     .select("student_id, status, scheduled_at, payment_amount")
-    .eq("tutor_id", tutorId);
+    .eq("tutor_id", tutorId)
+    .gte("scheduled_at", since);
 
   const studentList = students ?? [];
   const bookingList = bookings ?? [];
@@ -314,18 +339,24 @@ export async function getBookingsByPeriod(
     .map(([period, stats]) => ({
       period: formatWeekLabel(period),
       ...stats,
+      rawPeriod: period,
     }))
-    .sort((a, b) => a.period.localeCompare(b.period));
+    .sort((a, b) => new Date(a.rawPeriod).getTime() - new Date(b.rawPeriod).getTime())
+    .map((item) => {
+      const rest = { ...item };
+      delete (rest as { rawPeriod?: string }).rawPeriod;
+      return rest as Omit<typeof item, "rawPeriod">;
+    });
 }
 
 /**
- * Get total revenue for a period
+ * Get total revenue for a period with payment health breakdown
  */
 export async function getTotalRevenue(
   tutorId: string,
   days: number,
   client?: SupabaseClient
-): Promise<{ gross: number; net: number; refunds: number }> {
+): Promise<PaymentHealth> {
   const supabase = client ?? (await createClient());
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
@@ -352,9 +383,10 @@ export async function getTotalRevenue(
   }
 
   return {
-    gross: gross / 100,
-    net: Math.max(0, (gross - refunds - fees)) / 100,
+    grossVolume: gross / 100,
+    netEarnings: Math.max(0, (gross - refunds - fees)) / 100,
     refunds: refunds / 100,
+    fees: fees / 100,
   };
 }
 
@@ -363,4 +395,321 @@ function formatWeekLabel(dateStr: string): string {
   const month = date.toLocaleString("default", { month: "short" });
   const day = date.getDate();
   return `${month} ${day}`;
+}
+
+/**
+ * Get engagement trends over time (lesson counts and active students per day)
+ */
+export async function getEngagementOverTime(
+  tutorId: string,
+  days: number,
+  client?: SupabaseClient
+): Promise<EngagementDataPoint[]> {
+  const supabase = client ?? (await createClient());
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: bookings } = await supabase
+    .from("bookings")
+    .select("student_id, scheduled_at")
+    .eq("tutor_id", tutorId)
+    .eq("status", "completed")
+    .gte("scheduled_at", since);
+
+  const bookingList = bookings ?? [];
+
+  // Group by date
+  const engagementByDate = new Map<string, { lessons: number; students: Set<string> }>();
+
+  for (const booking of bookingList) {
+    if (!booking.scheduled_at) continue;
+
+    const date = new Date(booking.scheduled_at).toISOString().split("T")[0];
+    const existing = engagementByDate.get(date) ?? { lessons: 0, students: new Set<string>() };
+    existing.lessons += 1;
+    if (booking.student_id) {
+      existing.students.add(booking.student_id);
+    }
+    engagementByDate.set(date, existing);
+  }
+
+  // Fill in missing dates with zeros
+  const result: EngagementDataPoint[] = [];
+  const startDate = new Date(since);
+  const endDate = new Date();
+
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split("T")[0];
+    const dayData = engagementByDate.get(dateStr);
+    result.push({
+      date: dateStr,
+      lessonCount: dayData?.lessons ?? 0,
+      activeStudentCount: dayData?.students.size ?? 0,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Get profile view statistics for a tutor's public pages
+ */
+export async function getProfileViews(
+  tutorId: string,
+  days: number,
+  client?: SupabaseClient
+): Promise<ProfileViewStats> {
+  const supabase = client ?? (await createClient());
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  // First get the tutor's username
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", tutorId)
+    .single();
+
+  if (!profile?.username) {
+    return { totalViews: 0, trend: [] };
+  }
+
+  const username = profile.username;
+
+  // Query page_views for all tutor's public pages
+  // Note: page_views has RLS that blocks user access, but we're using the server client
+  const { data: views } = await supabase
+    .from("page_views")
+    .select("created_at")
+    .or(`page_path.eq./${username},page_path.eq./profile/${username},page_path.eq./bio/${username},page_path.eq./book/${username}`)
+    .gte("created_at", since);
+
+  const viewList = views ?? [];
+  const totalViews = viewList.length;
+
+  // Group by date for trend
+  const viewsByDate = new Map<string, number>();
+
+  for (const view of viewList) {
+    if (!view.created_at) continue;
+    const date = new Date(view.created_at).toISOString().split("T")[0];
+    viewsByDate.set(date, (viewsByDate.get(date) ?? 0) + 1);
+  }
+
+  // Fill in missing dates with zeros
+  const trend: { date: string; views: number }[] = [];
+  const startDate = new Date(since);
+  const endDate = new Date();
+
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split("T")[0];
+    trend.push({
+      date: dateStr,
+      views: viewsByDate.get(dateStr) ?? 0,
+    });
+  }
+
+  return { totalViews, trend };
+}
+
+/**
+ * Get Stripe balance for a tutor's connected account
+ */
+export async function getStripeBalance(
+  tutorId: string,
+  client?: SupabaseClient
+): Promise<StripeBalanceData | null> {
+  const supabase = client ?? (await createClient());
+
+  // Get tutor's stripe account ID
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_account_id, stripe_charges_enabled")
+    .eq("id", tutorId)
+    .single();
+
+  if (!profile?.stripe_account_id || !profile.stripe_charges_enabled) {
+    return null;
+  }
+
+  try {
+    // Fetch balance from Stripe
+    const balance = await stripe.balance.retrieve({
+      stripeAccount: profile.stripe_account_id,
+    });
+
+    // Fetch account to check for requirements
+    const account = await stripe.accounts.retrieve(profile.stripe_account_id);
+
+    const availableCents = balance.available.reduce(
+      (sum, b) => sum + b.amount,
+      0
+    );
+    const pendingCents = balance.pending.reduce((sum, b) => sum + b.amount, 0);
+    const currency = balance.available[0]?.currency ?? "usd";
+
+    const actionItems = account.requirements?.currently_due ?? [];
+    const requiresAction = actionItems.length > 0;
+
+    return {
+      availableCents,
+      pendingCents,
+      currency,
+      requiresAction,
+      actionItems,
+    };
+  } catch (error) {
+    console.error("[Analytics] Failed to fetch Stripe balance:", error);
+    return null;
+  }
+}
+
+/**
+ * Get revenue source breakdown (subscriptions, packages, ad-hoc)
+ */
+export async function getRevenueSourceBreakdown(
+  tutorId: string,
+  client?: SupabaseClient
+): Promise<RevenueSourceBreakdown> {
+  const supabase = client ?? (await createClient());
+
+  // Query active lesson subscriptions
+  const { data: subscriptions } = await supabase
+    .from("lesson_subscriptions")
+    .select("id, template_id, lesson_subscription_templates(price_cents)")
+    .eq("tutor_id", tutorId)
+    .in("status", ["active", "trialing"]);
+
+  const subscriptionCount = subscriptions?.length ?? 0;
+
+  // Calculate MRR from active subscriptions
+  const estimatedMRR =
+    subscriptions?.reduce((sum, sub) => {
+      const template = sub.lesson_subscription_templates as { price_cents?: number } | null;
+      return sum + (template?.price_cents ?? 0);
+    }, 0) ?? 0;
+
+  // Query active session packages
+  const { data: packages } = await supabase
+    .from("session_package_purchases")
+    .select("id, session_package_templates!inner(tutor_id)")
+    .eq("session_package_templates.tutor_id", tutorId)
+    .eq("status", "active")
+    .gt("remaining_minutes", 0);
+
+  const packageCount = packages?.length ?? 0;
+
+  // Get total students
+  const { count: totalStudents } = await supabase
+    .from("students")
+    .select("id", { count: "exact", head: true })
+    .eq("tutor_id", tutorId);
+
+  const totalActiveStudents = totalStudents ?? 0;
+
+  // Calculate ad-hoc (students not on subscription or package)
+  const adHocCount = Math.max(0, totalActiveStudents - subscriptionCount - packageCount);
+
+  // Calculate percentages
+  const total = subscriptionCount + packageCount + adHocCount;
+  const subscriptionPercentage = total > 0 ? Math.round((subscriptionCount / total) * 100) : 0;
+  const packagePercentage = total > 0 ? Math.round((packageCount / total) * 100) : 0;
+  const adHocPercentage = total > 0 ? 100 - subscriptionPercentage - packagePercentage : 0;
+
+  return {
+    subscriptionCount,
+    packageCount,
+    adHocCount,
+    totalActiveStudents,
+    subscriptionPercentage,
+    packagePercentage,
+    adHocPercentage,
+    estimatedMRR: estimatedMRR / 100, // Convert to dollars
+  };
+}
+
+/**
+ * Get recent activity feed items
+ */
+export async function getRecentActivity(
+  tutorId: string,
+  limit: number = 10,
+  client?: SupabaseClient
+): Promise<RecentActivityItem[]> {
+  const supabase = client ?? (await createClient());
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Fetch recent bookings, payments, and new students in parallel
+  const [bookingsResult, paymentsResult, studentsResult] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("id, scheduled_at, payment_amount, currency, students(name, email)")
+      .eq("tutor_id", tutorId)
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: false })
+      .limit(5),
+
+    supabase
+      .from("payments_audit")
+      .select("id, amount_cents, currency, created_at, students(name, email)")
+      .eq("tutor_id", tutorId)
+      .gt("amount_cents", 0)
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: false })
+      .limit(5),
+
+    supabase
+      .from("students")
+      .select("id, name, email, created_at")
+      .eq("tutor_id", tutorId)
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const activities: RecentActivityItem[] = [];
+
+  // Add bookings
+  for (const booking of bookingsResult.data ?? []) {
+    const student = booking.students as { name?: string; email?: string } | null;
+    activities.push({
+      id: `booking-${booking.id}`,
+      type: "booking",
+      title: "Lesson booked",
+      subtitle: student?.name ?? student?.email ?? "Unknown student",
+      timestamp: booking.scheduled_at,
+      amount: booking.payment_amount ? booking.payment_amount / 100 : undefined,
+      currency: booking.currency ?? "usd",
+    });
+  }
+
+  // Add payments
+  for (const payment of paymentsResult.data ?? []) {
+    const student = payment.students as { name?: string; email?: string } | null;
+    activities.push({
+      id: `payment-${payment.id}`,
+      type: "payment",
+      title: "Payment received",
+      subtitle: student?.name ?? student?.email ?? "Unknown student",
+      timestamp: payment.created_at,
+      amount: payment.amount_cents / 100,
+      currency: payment.currency ?? "usd",
+    });
+  }
+
+  // Add new students
+  for (const student of studentsResult.data ?? []) {
+    activities.push({
+      id: `student-${student.id}`,
+      type: "student",
+      title: "New student",
+      subtitle: student.name ?? student.email ?? "Unknown",
+      timestamp: student.created_at,
+    });
+  }
+
+  // Sort by timestamp DESC and limit
+  activities.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  return activities.slice(0, limit);
 }

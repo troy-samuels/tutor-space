@@ -5,6 +5,8 @@ import { Upload, Plus, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
+import { StudentDetailView } from "@/components/students/StudentDetailView";
 import {
   importStudentsBatch,
   type StudentImportPayload,
@@ -41,6 +43,8 @@ export function AddStudentsPanel({ students, onStudentAdded }: Props) {
   const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const [csvResult, setCsvResult] = useState<StudentImportResult | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,28 +253,76 @@ export function AddStudentsPanel({ students, onStudentAdded }: Props) {
             const statusClass = statusStyles[status] ?? statusStyles.active;
 
             return (
-              <Link
+              <div
                 key={student.id}
-                href={`/students/${student.id}`}
                 className="flex items-center gap-3 rounded-xl border border-border bg-white/90 px-4 py-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+                onClick={() => {
+                  setActiveStudentId(student.id);
+                  setSheetOpen(true);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setActiveStudentId(student.id);
+                    setSheetOpen(true);
+                  }
+                }}
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600">
-                  {initials}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{student.fullName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{student.email}</p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{student.fullName}</p>
-                  <p className="text-xs text-muted-foreground truncate">{student.email}</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${statusClass}`}
+                  >
+                    {status}
+                  </span>
+                  <Link
+                    href={`/messages?student=${student.id}`}
+                    className="text-xs font-semibold text-primary hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Message"
+                  >
+                    Message
+                  </Link>
+                  <Link
+                    href={`/bookings?student=${student.id}`}
+                    className="text-xs font-semibold text-primary hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Book"
+                  >
+                    Book
+                  </Link>
                 </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${statusClass}`}
-                >
-                  {status}
-                </span>
-              </Link>
+              </div>
             );
           })
         )}
       </div>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen} side="right">
+        <SheetOverlay className="backdrop-blur-sm" />
+        <SheetContent className="w-full max-w-3xl bg-background">
+          <div className="h-full overflow-y-auto p-4 sm:p-6">
+            {activeStudentId ? (
+              <StudentDetailView
+                studentId={activeStudentId}
+                onClose={() => setSheetOpen(false)}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Select a student to view details.</p>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

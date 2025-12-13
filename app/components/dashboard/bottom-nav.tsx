@@ -53,7 +53,7 @@ export function DashboardBottomNav() {
   return (
     <nav
       aria-label="Dashboard quick navigation"
-      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around bg-background/90 backdrop-blur lg:hidden shadow-sm"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-center justify-around bg-background/90 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur lg:hidden shadow-sm"
     >
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;

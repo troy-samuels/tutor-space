@@ -2,14 +2,16 @@
 
 import { CheckCircle2, XCircle, Clock, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { BookingMetrics } from "@/lib/data/analytics-metrics";
 
 interface BookingStatsCardProps {
   data: BookingMetrics | null;
   isLoading?: boolean;
+  dimmed?: boolean;
 }
 
-export function BookingStatsCard({ data, isLoading }: BookingStatsCardProps) {
+export function BookingStatsCard({ data, isLoading, dimmed }: BookingStatsCardProps) {
   if (isLoading) {
     return (
       <Card className="rounded-3xl border border-border/60 bg-white/90 shadow-sm">
@@ -76,7 +78,12 @@ export function BookingStatsCard({ data, isLoading }: BookingStatsCardProps) {
   ];
 
   return (
-    <Card className="rounded-3xl border border-border/60 bg-white/90 shadow-sm">
+    <Card
+      className={cn(
+        "rounded-3xl border border-border/60 bg-white/90 shadow-sm transition-opacity duration-200",
+        dimmed && "opacity-80"
+      )}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-foreground">
           Booking Stats

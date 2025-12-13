@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button";
 import {
   PageBuilderWizardProvider,
   usePageBuilderWizard,
-  WIZARD_STEPS,
   type InitialWizardData,
 } from "./wizard-context";
-import { WizardProgress } from "./wizard-progress";
-import { StepBrand } from "./steps/step-brand";
-import { StepLayout } from "./steps/step-layout";
-import { StepContent } from "./steps/step-content";
-import { StepPages } from "./steps/step-pages";
+import {
+  InlineProgressWheel,
+  calculateSectionCompletion,
+} from "./circular-progress-wheel";
+import { SectionWrapper } from "./section-wrapper";
+import { MobilePreviewToggle } from "./mobile-preview-toggle";
+import { StepProfile } from "./steps/step-profile";
+import { StepContentUnified } from "./steps/step-content-unified";
+import { StepStyle } from "./steps/step-style";
 import { SimplifiedPreview } from "./preview/simplified-preview";
+import { useMemo } from "react";
 
 type EditorProfile = {
   id: string;
@@ -80,11 +84,23 @@ type WizardContentProps = {
 
 function WizardContent({ profile, services, reviews }: WizardContentProps) {
   const { state, saveDraft, publish } = usePageBuilderWizard();
-  const { currentStep, status, autoSaveStatus, lastSaved, isPublishing } = state;
+  const { status, autoSaveStatus, lastSaved, isPublishing, avatarUrl, faq } = state;
 
-  const currentStepData = WIZARD_STEPS[currentStep];
+  const previewUrl = useMemo(() => {
+    if (!state.siteId) return null;
+    const base = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+    return `${base}/pages/${state.siteId}/preview`;
+  }, [state.siteId]);
 
-  // Transform reviews for StepPages component
+  // Calculate section completion for progress wheel
+  const sectionCompletion = calculateSectionCompletion({
+    content: state.content,
+    pages: state.pages,
+    faq,
+    avatarUrl,
+  });
+
+  // Transform reviews for StepContentUnified component
   const reviewsForStep = reviews.map((r) => ({
     id: r.id,
     author: r.author_name,
@@ -92,10 +108,10 @@ function WizardContent({ profile, services, reviews }: WizardContentProps) {
   }));
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-4">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border/60 bg-background/90 p-4 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/30 bg-background p-4">
+        <div className="flex items-center gap-4">
           <h1 className="text-lg font-semibold text-foreground">Build Your Page</h1>
           {status === "published" ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -108,6 +124,9 @@ function WizardContent({ profile, services, reviews }: WizardContentProps) {
               Draft
             </span>
           )}
+          <div className="hidden sm:block border-l border-border/50 pl-4">
+            <InlineProgressWheel completion={sectionCompletion} />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {autoSaveStatus === "saving" ? (
@@ -131,9 +150,21 @@ function WizardContent({ profile, services, reviews }: WizardContentProps) {
             size="sm"
             className="rounded-full"
           >
-            <Save className="h-4 w-4 mr-1.5" />
-            Save Draft
-          </Button>
+              <Save className="h-4 w-4 mr-1.5" />
+              Save Draft
+            </Button>
+          {previewUrl && (
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="rounded-full"
+            >
+              <a href={previewUrl} target="_blank" rel="noreferrer">
+                Preview link
+              </a>
+            </Button>
+          )}
           <Button
             onClick={publish}
             size="sm"
@@ -147,37 +178,74 @@ function WizardContent({ profile, services, reviews }: WizardContentProps) {
       </div>
 
       {/* Main content grid */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.4fr)] lg:items-start">
-        {/* Editor */}
-        <div className="space-y-6">
-          {/* Progress */}
-          <section className="rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
-            <WizardProgress />
-          </section>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.4fr)] lg:items-start">
+        {/* Editor - All sections in single scrollable column */}
+        <div className="space-y-4">
+          {/* Profile Section */}
+          <SectionWrapper
+            title="Profile"
+            description="Photo, name, about"
+            isComplete={sectionCompletion.profile}
+          >
+            <StepProfile fullName={profile.full_name} />
+          </SectionWrapper>
 
-          {/* Current step content */}
-          <section className="rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-foreground">
-                {currentStepData.title}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {currentStepData.description}
-              </p>
-            </div>
+          {/* Content Section */}
+          <SectionWrapper
+            title="Content"
+            description="Services, FAQ, reviews"
+            isComplete={sectionCompletion.content}
+          >
+            <StepContentUnified services={services} reviews={reviewsForStep} />
+          </SectionWrapper>
 
-            {/* Step components */}
-            {currentStep === 0 && <StepBrand />}
-            {currentStep === 1 && <StepLayout />}
-            {currentStep === 2 && <StepContent />}
-            {currentStep === 3 && (
-              <StepPages services={services} reviews={reviewsForStep} />
-            )}
-          </section>
+          {/* Style Section */}
+          <SectionWrapper
+            title="Style"
+            description="Colors, fonts, layout"
+            isComplete={sectionCompletion.style}
+          >
+            <StepStyle />
+          </SectionWrapper>
+
+          {/* Bottom action buttons (for mobile) */}
+          <div className="flex flex-col gap-2 pb-20 lg:hidden">
+            <Button
+              onClick={saveDraft}
+              variant="outline"
+              className="w-full rounded-full"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Draft
+            </Button>
+            <Button
+              onClick={publish}
+              className="w-full rounded-full"
+              disabled={isPublishing}
+            >
+              <Rocket className="h-4 w-4 mr-2" />
+              {isPublishing ? "Publishing..." : "Publish Site"}
+            </Button>
+          </div>
         </div>
 
-        {/* Preview */}
-        <SimplifiedPreview profile={profile} services={services} reviews={reviewsForStep} />
+        {/* Preview - Desktop (sticky sidebar) */}
+        <div className="hidden lg:block lg:sticky lg:top-4">
+          <SimplifiedPreview
+            profile={{ ...profile, avatar_url: avatarUrl }}
+            services={services}
+            reviews={reviewsForStep}
+          />
+        </div>
+
+        {/* Preview - Mobile (toggle panel) */}
+        <MobilePreviewToggle>
+          <SimplifiedPreview
+            profile={{ ...profile, avatar_url: avatarUrl }}
+            services={services}
+            reviews={reviewsForStep}
+          />
+        </MobilePreviewToggle>
       </div>
     </div>
   );

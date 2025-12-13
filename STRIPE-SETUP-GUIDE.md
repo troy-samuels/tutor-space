@@ -5,7 +5,7 @@
 This guide explains how to set up Stripe Connect so that:
 1. **Tutors can receive payments** directly from students who book lessons
 2. **You (the platform) take a 1% commission** on each booking
-3. **Tutors can upgrade to paid plans** (your $29/month or $49 lifetime upsell)
+3. **Tutors can upgrade to paid plans** (Pro/Studio subscriptions + $99 lifetime)
 
 ---
 
@@ -19,7 +19,7 @@ Your developer has already built all the code needed. What's missing is the **St
 
 ### Flow A: Tutors Paying You (Platform Subscription)
 ```
-Tutor → Pays $29/month or $49 lifetime → Goes to YOUR Stripe account
+Tutor → Pays Pro/Studio subscription or $99 lifetime → Goes to YOUR Stripe account
 ```
 This is a normal Stripe payment. The money goes directly to you.
 
@@ -100,38 +100,60 @@ Choose which countries your tutors can be based in.
 
 These are for your **tutor subscription upsell** (not for student bookings).
 
-### Step 1: Create the Monthly Plan ($29/month)
+### Step 1: Create Pro Monthly ($39/month)
 
 1. Go to **Products** in the left sidebar
 2. Click **+ Add product**
 3. Fill in:
-   - **Name**: "All-Access Monthly" (or your preferred name)
-   - **Description**: "Full access to all platform features"
+   - **Name**: "Pro Monthly"
+   - **Description**: "Pro tier access"
 4. Under **Pricing**:
    - Select **Recurring**
-   - Price: **$29.00**
+   - Price: **$39.00**
    - Billing period: **Monthly**
 5. Click **Save product**
 6. **Copy the Price ID** (starts with `price_`) - you'll need this!
 
-### Step 2: Create the Yearly Plan (Optional)
+### Step 2: Create Pro Annual ($351/year)
 
 1. On the same product, click **+ Add another price**
 2. Fill in:
-   - Price: **$199.00** (or whatever yearly price you want)
+   - Price: **$351.00**
    - Billing period: **Yearly**
 3. Click **Save**
 4. **Copy this Price ID too**
 
-### Step 3: Create the Lifetime Deal ($49)
+### Step 3: Create Studio Monthly ($79/month)
 
 1. Click **+ Add product** again
 2. Fill in:
-   - **Name**: "Founder Lifetime Access"
-   - **Description**: "One-time payment for lifetime access"
+   - **Name**: "Studio Monthly"
+   - **Description**: "Studio tier access"
+3. Under **Pricing**:
+   - Select **Recurring**
+   - Price: **$79.00**
+   - Billing period: **Monthly**
+4. Click **Save product**
+5. **Copy the Price ID**
+
+### Step 4: Create Studio Annual ($711/year)
+
+1. On the Studio product, click **+ Add another price**
+2. Fill in:
+   - Price: **$711.00**
+   - Billing period: **Yearly**
+3. Click **Save**
+4. **Copy this Price ID too**
+
+### Step 5: Create Pro Lifetime ($99 one-time)
+
+1. Click **+ Add product** again
+2. Fill in:
+   - **Name**: "Pro Lifetime"
+   - **Description**: "One-time payment for lifetime Pro access"
 3. Under **Pricing**:
    - Select **One time**
-   - Price: **$49.00**
+   - Price: **$99.00**
 4. Click **Save product**
 5. **Copy the Price ID**
 
@@ -176,6 +198,25 @@ This is for events on your tutors' connected accounts - **this is a separate web
 
 ---
 
+## Part 5B: Enable Billing Portal Plan Changes (Pro ↔ Studio)
+
+This is what allows tutors to **upgrade/downgrade** between Pro and Studio from inside the Stripe customer portal.
+
+1. In Stripe Dashboard, go to **Settings → Billing → Customer portal**
+2. Click **Configure** (or edit your existing configuration)
+3. Under **Products**, make sure your **Pro** and **Studio** products/prices are enabled
+4. Under **Subscriptions**, enable **Customers can update subscriptions**
+   - Allow switching between **Pro Monthly/Annual** and **Studio Monthly/Annual**
+5. Save the configuration
+
+Optional (recommended): if you use a non-default portal configuration, set:
+
+```
+STRIPE_BILLING_PORTAL_CONFIGURATION_ID=bpc_...
+```
+
+---
+
 ## Part 6: Configure Your Environment Variables
 
 Give these values to your developer, or add them to your hosting platform (Vercel, etc.):
@@ -188,9 +229,17 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 # Webhook Secret (from Step 5)
 STRIPE_WEBHOOK_SECRET=whsec_...
 
+# Optional (Customer portal configuration for plan switches)
+STRIPE_BILLING_PORTAL_CONFIGURATION_ID=bpc_...
+
 # Price IDs (from Step 4)
-STRIPE_ALL_ACCESS_PRICE_ID=price_...
-STRIPE_ALL_YEAR_ACCESS_PRICE_ID=price_...
+STRIPE_PRO_MONTHLY_PRICE_ID=price_...
+STRIPE_PRO_ANNUAL_PRICE_ID=price_...
+STRIPE_STUDIO_MONTHLY_PRICE_ID=price_...
+STRIPE_STUDIO_ANNUAL_PRICE_ID=price_...
+STRIPE_PRO_LIFETIME_PRICE_ID=price_...
+
+# (Optional legacy alias; maps to Pro lifetime if set)
 STRIPE_LIFETIME_PRICE_ID=price_...
 
 # Connect Return URLs

@@ -12,7 +12,7 @@ import { generateTutorPersonSchema, generateBreadcrumbSchema } from "@/lib/utils
 
 interface BookPageProps {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ service?: string }>;
+  searchParams: Promise<{ service?: string; services?: string }>;
 }
 
 export async function generateMetadata({ params }: BookPageProps): Promise<Metadata> {
@@ -83,33 +83,57 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
 
 export default async function BookPage({ params, searchParams }: BookPageProps) {
   const { username } = await params;
-  const { service: serviceId } = await searchParams;
+  const { service: serviceId, services: allowedServicesParam } = await searchParams;
+
+  // Parse allowed services from invite link (comma-separated IDs)
+  const allowedServiceIds = allowedServicesParam
+    ? allowedServicesParam.split(",").map((id) => id.trim()).filter(Boolean)
+    : null;
 
   const supabase = await createClient();
 
-  // Check if student is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Get tutor profile by username (from public_profiles view which only returns tutors)
-  const { data: profile, error: profileError } = await supabase
-    .from("public_profiles")
-    .select("id, full_name, username, email, timezone, bio, tagline, avatar_url, instagram_handle, website_url, languages_taught, average_rating, testimonial_count")
-    .eq("username", username)
-    .single();
+  // Fetch auth + tutor profile in parallel to reduce latency
+  const [
+    {
+      data: { user },
+    },
+    { data: profile, error: profileError },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("public_profiles")
+      .select(
+        "id, full_name, username, timezone, bio, tagline, avatar_url, instagram_handle, website_url, languages_taught"
+      )
+      .eq("username", username)
+      .single(),
+  ]);
 
   if (profileError || !profile) {
+    // Debug logging for 404 investigation
+    console.error("[BookPage] Profile not found:", {
+      username,
+      error: profileError?.message,
+      code: profileError?.code,
+      details: profileError?.details,
+      hint: profileError?.hint,
+    });
     return notFound();
   }
 
   // Get tutor's active services
-  const { data: services } = await supabase
+  let servicesQuery = supabase
     .from("services")
     .select("id, name, description, duration_minutes, price_amount, price_currency, is_active")
     .eq("tutor_id", profile.id)
-    .eq("is_active", true)
-    .order("name", { ascending: true });
+    .eq("is_active", true);
+
+  // If invite link specified allowed services, filter to only those
+  if (allowedServiceIds && allowedServiceIds.length > 0) {
+    servicesQuery = servicesQuery.in("id", allowedServiceIds);
+  }
+
+  const { data: services } = await servicesQuery.order("name", { ascending: true });
 
   if (!services || services.length === 0) {
     return (
@@ -143,7 +167,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
           id: profile.id,
           fullName: profile.full_name || "",
           username: profile.username || "",
-          email: profile.email || "",
+          email: "", // Email no longer exposed in public_profiles for privacy
           bio: profile.bio || "",
           avatarUrl: profile.avatar_url || "",
           instagramHandle: profile.instagram_handle || "",
@@ -165,7 +189,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
           id: profile.id,
           fullName: profile.full_name || "",
           username: profile.username || "",
-          email: profile.email || "",
+          email: "", // Email no longer exposed in public_profiles for privacy
           bio: profile.bio || "",
           avatarUrl: profile.avatar_url || "",
           instagramHandle: profile.instagram_handle || "",
@@ -185,7 +209,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
           id: profile.id,
           fullName: profile.full_name || "",
           username: profile.username || "",
-          email: profile.email || "",
+          email: "", // Email no longer exposed in public_profiles for privacy
           bio: profile.bio || "",
           avatarUrl: profile.avatar_url || "",
           instagramHandle: profile.instagram_handle || "",
@@ -199,36 +223,38 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
 
   // APPROVED: Student can see calendar and book!
 
-  // Get student record to fetch lesson history
-  const { data: studentRecord } = await supabase
-    .from("students")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("tutor_id", profile.id)
-    .single();
+  // Get selected service or default to first
+  const selectedService = services.find((s) => s.id === serviceId) || services[0];
+
+  // Fetch student record + availability + existing bookings in parallel
+  const [studentRecordResult, availabilityResult, existingBookingsResult] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("tutor_id", profile.id)
+      .single(),
+    supabase
+      .from("availability")
+      .select("day_of_week, start_time, end_time, is_available")
+      .eq("tutor_id", profile.id)
+      .eq("is_available", true),
+    supabase
+      .from("bookings")
+      .select("scheduled_at, duration_minutes, status")
+      .eq("tutor_id", profile.id)
+      .in("status", ["pending", "confirmed"])
+      .gte("scheduled_at", new Date().toISOString()),
+  ]);
+
+  const studentRecord = studentRecordResult.data;
+  const availability = availabilityResult.data;
+  const existingBookings = existingBookingsResult.data;
 
   // Fetch student's lesson history
   const lessonHistoryResult = studentRecord
     ? await getStudentLessonHistory(studentRecord.id, profile.id)
     : { data: null, error: null };
-
-  // Get selected service or default to first
-  const selectedService = services.find((s) => s.id === serviceId) || services[0];
-
-  // Get tutor's availability
-  const { data: availability } = await supabase
-    .from("availability")
-    .select("day_of_week, start_time, end_time, is_available")
-    .eq("tutor_id", profile.id)
-    .eq("is_available", true);
-
-  // Get existing bookings to filter out conflicts
-  const { data: existingBookings } = await supabase
-    .from("bookings")
-    .select("scheduled_at, duration_minutes, status")
-    .eq("tutor_id", profile.id)
-    .in("status", ["pending", "confirmed"])
-    .gte("scheduled_at", new Date().toISOString());
 
   const timezone = profile.timezone || "UTC";
 
@@ -272,8 +298,9 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
       website_url: profile.website_url || undefined,
       instagram_handle: profile.instagram_handle || undefined,
       timezone: profile.timezone || undefined,
-      average_rating: profile.average_rating || undefined,
-      testimonial_count: profile.testimonial_count || undefined,
+      // average_rating and testimonial_count not in public_profiles view yet
+      average_rating: undefined,
+      testimonial_count: undefined,
     },
     services.map(s => ({
       id: s.id,
@@ -312,7 +339,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
           id: profile.id,
           fullName: profile.full_name || "",
           username: profile.username || "",
-          email: profile.email || "",
+          email: "", // Email no longer exposed in public_profiles for privacy
           bio: profile.bio || "",
           avatarUrl: profile.avatar_url || "",
           instagramHandle: profile.instagram_handle || "",

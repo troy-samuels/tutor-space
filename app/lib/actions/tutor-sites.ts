@@ -6,6 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { tutorSiteDataSchema } from "@/lib/validators/tutor-site";
 import { track } from "@/lib/telemetry/tracker";
 import { getSiteById, listChildren, getLastVersion, insertVersionSnapshot } from "@/lib/repositories/tutor-sites";
+import { SiteConfig } from "@/lib/types/site";
+import { notFound } from "next/navigation";
+import { getNextAvailableSlot } from "@/lib/availability/next-slot";
+import { ServiceRecord } from "@/lib/types/service";
+import { DigitalProductRecord } from "@/lib/types/digital-product";
+import { normalizeAndValidateUsernameSlug, normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import { normalizeSiteConfig } from "@/lib/site/site-config";
 
 export type TutorSiteStatus = "draft" | "published";
 
@@ -17,12 +24,19 @@ export type TutorSite = {
   about_body: string | null;
   hero_image_url: string | null;
   gallery_images: string[] | null;
+  theme_palette_id: string | null;
+  theme_archetype_id: string | null; // NEW: Teaching archetype ID
   theme_background: string;
   theme_background_style: string | null;
   theme_gradient_from: string | null;
   theme_gradient_to: string | null;
+  theme_card_bg: string | null;
   theme_primary: string;
+  theme_text_primary: string | null;
+  theme_text_secondary: string | null;
   theme_font: string;
+  theme_heading_font: string | null; // NEW: For Academic archetype
+  theme_border_radius: string | null; // NEW: lg | xl | 2xl | 3xl
   theme_spacing: string;
   hero_layout: string | null;
   lessons_layout: string | null;
@@ -46,6 +60,7 @@ export type TutorSite = {
   contact_cta_label: string | null;
   contact_cta_url: string | null;
   additional_pages: AdditionalPages | null;
+  config: SiteConfig | null;
   status: TutorSiteStatus;
   published_at: string | null;
   created_at: string;
@@ -97,12 +112,19 @@ export type TutorSiteData = {
   about_body?: string | null;
   hero_image_url?: string | null;
   gallery_images?: string[];
+  theme_palette_id?: string;
+  theme_archetype_id?: string; // NEW: Teaching archetype ID
   theme_background?: string;
   theme_background_style?: string;
   theme_gradient_from?: string;
   theme_gradient_to?: string;
+  theme_card_bg?: string;
   theme_primary?: string;
+  theme_text_primary?: string;
+  theme_text_secondary?: string;
   theme_font?: string;
+  theme_heading_font?: string; // NEW: For Academic archetype
+  theme_border_radius?: string; // NEW: lg | xl | 2xl | 3xl
   theme_spacing?: string;
   hero_layout?: string;
   lessons_layout?: string;
@@ -111,6 +133,8 @@ export type TutorSiteData = {
   booking_subcopy?: string | null;
   booking_cta_label?: string | null;
   booking_cta_url?: string | null;
+  show_hero?: boolean;
+  show_gallery?: boolean;
   show_about?: boolean;
   show_lessons?: boolean;
   show_booking?: boolean;
@@ -133,6 +157,154 @@ export type TutorSiteData = {
 };
 
 const HERO_IMAGE_BUCKET = "site-assets";
+
+/**
+ * Insert or update the JSON-based site configuration for the authenticated tutor.
+ */
+export async function upsertSiteConfig(config: SiteConfig) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { data, error } = await supabase
+    .from("tutor_sites")
+    .upsert(
+      {
+        tutor_id: user.id,
+        config,
+      },
+      { onConflict: "tutor_id" }
+    )
+    .select("id, config, updated_at")
+    .single();
+
+  if (error || !data) {
+    track("site_config_upsert_error", { reason: error?.message });
+    return { error: "Failed to save site configuration" };
+  }
+
+  revalidatePath("/pages");
+  revalidatePath(`/site/${user.id}`);
+  track("site_config_upserted", { site_id: data.id });
+
+  return { success: true, siteId: data.id, config: data.config as SiteConfig };
+}
+
+/**
+ * Fetch public-facing site data (profile, config, services, products, reviews) by username with next available slot.
+ */
+export async function getPublicSiteData(username: string) {
+  const supabase = await createClient();
+  const rawLower = String(username ?? "").trim().toLowerCase();
+  const normalizedUsername = normalizeUsernameSlug(username) || rawLower;
+
+  let profileResult = await supabase
+    .from("public_profiles")
+    .select("id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone")
+    .eq("username", normalizedUsername)
+    .maybeSingle();
+
+  if (!profileResult.data && rawLower && rawLower !== normalizedUsername) {
+    profileResult = await supabase
+      .from("public_profiles")
+      .select("id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone")
+      .eq("username", rawLower)
+      .maybeSingle();
+  }
+
+  const profile = profileResult.data;
+  if (profileResult.error || !profile) {
+    return notFound();
+  }
+
+  const { data: siteRow } = await supabase
+    .from("tutor_sites")
+    .select("id, config")
+    .eq("tutor_id", profile.id)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (!siteRow?.id) {
+    return notFound();
+  }
+
+  const config = normalizeSiteConfig(siteRow.config as SiteConfig | null);
+
+  const blockVisibility = new Map(config.blocks.map((b) => [b.type, b.isVisible !== false] as const));
+  const showServices = blockVisibility.get("services") ?? true;
+  const showProducts = blockVisibility.get("products") ?? true;
+  const showReviews = blockVisibility.get("reviews") ?? true;
+
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, name, description, duration_minutes, price_amount, price, currency, price_currency, is_active, offer_type")
+    .eq("tutor_id", profile.id)
+    .eq("is_active", true)
+    .order("price_amount", { ascending: true });
+
+  const servicesEnabled = config.servicesEnabled ? new Set(config.servicesEnabled) : null;
+  const visibleServices = showServices
+    ? ((services as ServiceRecord[] | null) ?? [])
+        .filter((service) => !servicesEnabled || servicesEnabled.has(service.id))
+        .map((service) => ({
+          ...service,
+          price: (service.price_amount ?? service.price ?? 0) as number,
+          currency: (service.price_currency ?? service.currency ?? null) as string | null,
+        }))
+    : [];
+
+  const { data: products } = await supabase
+    .from("digital_products")
+    .select("id, title, description, price_cents, currency, published, is_active")
+    .eq("tutor_id", profile.id)
+    .eq("published", true)
+    .order("price_cents", { ascending: true });
+
+  const productsEnabled = config.productsEnabled ? new Set(config.productsEnabled) : null;
+  const visibleProducts = showProducts
+    ? ((products as DigitalProductRecord[] | null) ?? []).filter(
+        (product) => !productsEnabled || productsEnabled.has(product.id)
+      )
+    : [];
+
+  const { data: reviews } = await supabase
+    .from("tutor_site_reviews")
+    .select("author_name, quote, rating, sort_order")
+    .eq("tutor_site_id", siteRow.id)
+    .eq("status", "approved")
+    .order("sort_order", { ascending: true });
+
+  const nextSlot = await getNextAvailableSlot(profile.id, (profile as any).timezone || "UTC");
+
+  return {
+    profile,
+    site: {
+      id: siteRow.id,
+      tutor_id: profile.id,
+      status: "published" as TutorSiteStatus,
+      config,
+    },
+    services: visibleServices,
+    products: visibleProducts,
+    reviews:
+      showReviews
+        ? ((reviews as Array<{ author_name: string; quote: string; rating?: number | null }> | null) ?? []).map(
+            (r) => ({
+              author: r.author_name,
+              quote: r.quote,
+              rating: (r as any).rating,
+            })
+          )
+        : [],
+    nextSlot,
+  };
+}
+
 
 /**
  * Upload hero image to Supabase Storage
@@ -280,14 +452,20 @@ export async function createSite(data: TutorSiteData) {
       about_body: input.about_body,
       hero_image_url: input.hero_image_url || null,
       gallery_images: input.gallery_images || [],
+      theme_archetype_id: input.theme_archetype_id || "immersion",
       theme_background: input.theme_background || "#ffffff",
       theme_background_style: input.theme_background_style || "solid",
       theme_gradient_from: input.theme_gradient_from || "#f8fafc",
       theme_gradient_to: input.theme_gradient_to || "#ffffff",
+      theme_card_bg: input.theme_card_bg || "#ffffff",
       theme_primary: input.theme_primary || "#2563eb",
+      theme_text_primary: input.theme_text_primary || "#0a0a0a",
+      theme_text_secondary: input.theme_text_secondary || "#666666",
       theme_font: input.theme_font || "system",
+      theme_heading_font: input.theme_heading_font || input.theme_font || "system",
+      theme_border_radius: input.theme_border_radius || "3xl",
       theme_spacing: input.theme_spacing || "comfortable",
-      hero_layout: input.hero_layout || "minimal",
+      hero_layout: input.hero_layout || "banner",
       lessons_layout: input.lessons_layout || "cards",
       reviews_layout: input.reviews_layout || "cards",
       booking_headline: input.booking_headline,
@@ -400,12 +578,18 @@ export async function updateSite(siteId: string, data: TutorSiteData) {
       about_body: input.about_body,
       hero_image_url: input.hero_image_url,
       gallery_images: input.gallery_images,
+      theme_archetype_id: input.theme_archetype_id,
       theme_background: input.theme_background,
       theme_background_style: input.theme_background_style,
       theme_gradient_from: input.theme_gradient_from,
       theme_gradient_to: input.theme_gradient_to,
+      theme_card_bg: input.theme_card_bg,
       theme_primary: input.theme_primary,
+      theme_text_primary: input.theme_text_primary,
+      theme_text_secondary: input.theme_text_secondary,
       theme_font: input.theme_font,
+      theme_heading_font: input.theme_heading_font,
+      theme_border_radius: input.theme_border_radius,
       theme_spacing: input.theme_spacing,
       hero_layout: input.hero_layout,
       lessons_layout: input.lessons_layout,
@@ -527,6 +711,42 @@ export async function publishSite(siteId: string) {
     return { error: "Not authenticated" };
   }
 
+  // Ensure the tutor has a clean, canonical username for the public URL.
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("username, full_name")
+    .eq("id", user.id)
+    .maybeSingle<{ username: string | null; full_name: string | null }>();
+
+  const usernameCandidate =
+    profileRow?.username ||
+    (user.user_metadata as any)?.user_name ||
+    (user.user_metadata as any)?.username ||
+    profileRow?.full_name ||
+    user.email ||
+    "";
+
+  const normalizedResult = normalizeAndValidateUsernameSlug(usernameCandidate);
+  if (!normalizedResult.valid) {
+    return { error: normalizedResult.error || "Set a valid username before publishing." };
+  }
+
+  const canonicalUsername = normalizedResult.normalized;
+
+  if (normalizeUsernameSlug(profileRow?.username || "") !== canonicalUsername) {
+    const { error: usernameUpdateError } = await supabase
+      .from("profiles")
+      .update({ username: canonicalUsername })
+      .eq("id", user.id);
+
+    if (usernameUpdateError) {
+      if ((usernameUpdateError as any).code === "23505") {
+        return { error: "That username is already in use. Choose a different one before publishing." };
+      }
+      return { error: "Unable to set your public URL. Try again." };
+    }
+  }
+
   // Fetch current site ensuring ownership
   const { data: site, error: fetchErr } = await getSiteById(supabase, siteId, user.id);
   if (fetchErr || !site) {
@@ -572,9 +792,13 @@ export async function publishSite(siteId: string) {
   }
 
   revalidatePath("/pages");
-  revalidatePath(`/site/${user.id}`); // Revalidate public site if it exists
+  revalidatePath(`/${canonicalUsername}`);
+  revalidatePath(`/page/${canonicalUsername}`);
+  revalidatePath(`/bio/${canonicalUsername}`);
+  revalidatePath(`/profile/${canonicalUsername}`);
+  revalidatePath(`/products/${canonicalUsername}`);
   track("site_published", { site_id: siteId });
-  return { success: true };
+  return { success: true, username: canonicalUsername };
 }
 
 /**

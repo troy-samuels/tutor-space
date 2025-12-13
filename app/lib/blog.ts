@@ -8,6 +8,78 @@ import readingTime from "reading-time";
 // Blog content directory
 const BLOG_DIR = path.join(process.cwd(), "docs", "blog");
 
+// Supported blog locales
+export type BlogLocale = "en" | "es" | "fr" | "pt" | "de" | "it" | "nl" | "ja" | "zh" | "ko";
+
+// Locale metadata for schema generation
+const LOCALE_CONFIG: Record<BlogLocale, { inLanguage: string; blogName: string; homeName: string; description: string }> = {
+  en: {
+    inLanguage: "en-US",
+    blogName: "TutorLingua Blog",
+    homeName: "Home",
+    description: "Expert guides, tips, and strategies for independent language tutors. Learn how to grow your tutoring business, reduce platform fees, and keep more of your income.",
+  },
+  es: {
+    inLanguage: "es",
+    blogName: "Blog de TutorLingua",
+    homeName: "Inicio",
+    description: "Guías expertas, consejos y estrategias para tutores de idiomas independientes. Aprende cómo hacer crecer tu negocio de tutoría, reducir comisiones y conservar más de tus ingresos.",
+  },
+  fr: {
+    inLanguage: "fr-FR",
+    blogName: "Blog TutorLingua",
+    homeName: "Accueil",
+    description: "Guides experts, conseils et stratégies pour les tuteurs de langues indépendants. Apprenez à développer votre activité de tutorat, réduire les frais de plateforme et conserver plus de vos revenus.",
+  },
+  pt: {
+    inLanguage: "pt-BR",
+    blogName: "Blog TutorLingua",
+    homeName: "Início",
+    description: "Guias especializados, dicas e estratégias para tutores de idiomas independentes. Aprenda a expandir seu negócio de tutoria, reduzir taxas de plataforma e manter mais da sua renda.",
+  },
+  de: {
+    inLanguage: "de-DE",
+    blogName: "TutorLingua Blog",
+    homeName: "Startseite",
+    description: "Expertenratgeber, Tipps und Strategien für selbstständige Sprachlehrer. Erfahren Sie, wie Sie Ihr Nachhilfegeschäft ausbauen, Plattformgebühren reduzieren und mehr von Ihrem Einkommen behalten.",
+  },
+  it: {
+    inLanguage: "it-IT",
+    blogName: "Blog TutorLingua",
+    homeName: "Home",
+    description: "Guide esperte, consigli e strategie per tutor di lingue indipendenti. Scopri come far crescere la tua attività di tutoring, ridurre le commissioni delle piattaforme e trattenere più guadagni.",
+  },
+  nl: {
+    inLanguage: "nl-NL",
+    blogName: "TutorLingua Blog",
+    homeName: "Home",
+    description: "Expertgidsen, tips en strategieën voor onafhankelijke taaldocenten. Leer hoe u uw bijlesbedrijf kunt laten groeien, platformkosten kunt verlagen en meer van uw inkomen kunt behouden.",
+  },
+  ja: {
+    inLanguage: "ja-JP",
+    blogName: "TutorLingua ブログ",
+    homeName: "ホーム",
+    description: "独立した語学講師のための専門ガイド、ヒント、戦略。チューター事業の成長、プラットフォーム手数料の削減、収入をより多く残す方法を学びましょう。",
+  },
+  zh: {
+    inLanguage: "zh-CN",
+    blogName: "TutorLingua 博客",
+    homeName: "首页",
+    description: "为独立语言教师提供的专业指南、技巧和策略。了解如何发展您的辅导业务、降低平台费用并保留更多收入。",
+  },
+  ko: {
+    inLanguage: "ko-KR",
+    blogName: "TutorLingua 블로그",
+    homeName: "홈",
+    description: "독립 어학 튜터를 위한 전문 가이드, 팁 및 전략. 과외 비즈니스 성장, 플랫폼 수수료 절감 및 수입 유지 방법을 알아보세요.",
+  },
+};
+
+// Get blog path for a locale
+function getBlogPath(locale: BlogLocale): string {
+  return locale === "en" ? "/blog" : `/${locale}/blog`;
+}
+
 export interface BlogPostMeta {
   slug: string;
   title: string;
@@ -22,9 +94,9 @@ export interface BlogPostMeta {
   featured: boolean;
   seoKeywords: string[];
   relatedArticles: string[];
-  locale: "en" | "es" | "fr";
+  locale: BlogLocale;
   alternateLocale?: {
-    locale: "en" | "es" | "fr";
+    locale: BlogLocale;
     slug: string;
   };
   cluster: string;
@@ -39,7 +111,7 @@ export interface BlogPost extends BlogPostMeta {
 /**
  * Get all blog posts for a specific locale
  */
-export function getAllBlogPosts(locale: "en" | "es" | "fr" = "en"): BlogPostMeta[] {
+export function getAllBlogPosts(locale: BlogLocale = "en"): BlogPostMeta[] {
   const localeDir = path.join(BLOG_DIR, locale);
 
   if (!fs.existsSync(localeDir)) {
@@ -103,7 +175,7 @@ export function getAllBlogPosts(locale: "en" | "es" | "fr" = "en"): BlogPostMeta
  */
 export async function getBlogPost(
   slug: string,
-  locale: "en" | "es" | "fr" = "en"
+  locale: BlogLocale = "en"
 ): Promise<BlogPost | null> {
   const localeDir = path.join(BLOG_DIR, locale);
 
@@ -169,7 +241,7 @@ export async function getBlogPost(
 /**
  * Get all unique categories
  */
-export function getAllCategories(locale: "en" | "es" | "fr" = "en"): string[] {
+export function getAllCategories(locale: BlogLocale = "en"): string[] {
   const posts = getAllBlogPosts(locale);
   const categories = new Set(posts.map((post) => post.category).filter(Boolean));
   return Array.from(categories).sort();
@@ -178,7 +250,7 @@ export function getAllCategories(locale: "en" | "es" | "fr" = "en"): string[] {
 /**
  * Get all unique tags
  */
-export function getAllTags(locale: "en" | "es" | "fr" = "en"): string[] {
+export function getAllTags(locale: BlogLocale = "en"): string[] {
   const posts = getAllBlogPosts(locale);
   const tags = new Set(posts.flatMap((post) => post.tags));
   return Array.from(tags).sort();
@@ -189,7 +261,7 @@ export function getAllTags(locale: "en" | "es" | "fr" = "en"): string[] {
  */
 export function getPostsByCategory(
   category: string,
-  locale: "en" | "es" | "fr" = "en"
+  locale: BlogLocale = "en"
 ): BlogPostMeta[] {
   return getAllBlogPosts(locale).filter(
     (post) => post.category.toLowerCase() === category.toLowerCase()
@@ -201,7 +273,7 @@ export function getPostsByCategory(
  */
 export function getPostsByTag(
   tag: string,
-  locale: "en" | "es" | "fr" = "en"
+  locale: BlogLocale = "en"
 ): BlogPostMeta[] {
   return getAllBlogPosts(locale).filter((post) =>
     post.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
@@ -255,7 +327,7 @@ export function getRelatedPosts(
  * Get featured posts
  */
 export function getFeaturedPosts(
-  locale: "en" | "es" | "fr" = "en",
+  locale: BlogLocale = "en",
   limit: number = 5
 ): BlogPostMeta[] {
   return getAllBlogPosts(locale)
@@ -267,9 +339,8 @@ export function getFeaturedPosts(
  * Generate JSON-LD schema for a blog post
  */
 export function generateBlogPostSchema(post: BlogPost, baseUrl: string) {
-  const blogPath = post.locale === "es" ? "/es/blog" : post.locale === "fr" ? "/fr/blog" : "/blog";
-  const inLanguage = post.locale === "es" ? "es" : post.locale === "fr" ? "fr-FR" : "en-US";
-  const blogName = post.locale === "es" ? "Blog de TutorLingua" : post.locale === "fr" ? "Blog TutorLingua" : "TutorLingua Blog";
+  const blogPath = getBlogPath(post.locale);
+  const config = LOCALE_CONFIG[post.locale];
 
   return {
     "@context": "https://schema.org",
@@ -300,10 +371,10 @@ export function generateBlogPostSchema(post: BlogPost, baseUrl: string) {
     keywords: post.seoKeywords.join(", "),
     articleSection: post.category,
     wordCount: post.wordCount,
-    inLanguage: inLanguage,
+    inLanguage: config.inLanguage,
     isPartOf: {
       "@type": "Blog",
-      name: blogName,
+      name: config.blogName,
       url: `${baseUrl}${blogPath}`,
     },
   };
@@ -316,9 +387,8 @@ export function generateBreadcrumbSchema(
   post: BlogPost,
   baseUrl: string
 ) {
-  const locale = post.locale;
-  const blogPath = locale === "es" ? "/es/blog" : locale === "fr" ? "/fr/blog" : "/blog";
-  const homeName = locale === "es" ? "Inicio" : locale === "fr" ? "Accueil" : "Home";
+  const blogPath = getBlogPath(post.locale);
+  const config = LOCALE_CONFIG[post.locale];
 
   return {
     "@context": "https://schema.org",
@@ -327,7 +397,7 @@ export function generateBreadcrumbSchema(
       {
         "@type": "ListItem",
         position: 1,
-        name: homeName,
+        name: config.homeName,
         item: baseUrl,
       },
       {
@@ -381,28 +451,22 @@ export function generateOrganizationSchema(baseUrl: string) {
 /**
  * Generate WebSite schema for the blog
  */
-export function generateWebSiteSchema(baseUrl: string, locale: "en" | "es" | "fr" = "en") {
-  const blogPath = locale === "es" ? "/es/blog" : locale === "fr" ? "/fr/blog" : "/blog";
-  const blogName = locale === "es" ? "Blog de TutorLingua" : locale === "fr" ? "Blog TutorLingua" : "TutorLingua Blog";
-  const description = locale === "es"
-    ? "Guías expertas y estrategias para tutores de idiomas independientes."
-    : locale === "fr"
-    ? "Guides experts et stratégies pour les tuteurs de langues indépendants."
-    : "Expert guides and strategies for independent language tutors.";
-  const inLanguage = locale === "es" ? "es" : locale === "fr" ? "fr-FR" : "en-US";
+export function generateWebSiteSchema(baseUrl: string, locale: BlogLocale = "en") {
+  const blogPath = getBlogPath(locale);
+  const config = LOCALE_CONFIG[locale];
 
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: blogName,
+    name: config.blogName,
     url: `${baseUrl}${blogPath}`,
-    description: description,
+    description: config.description,
     publisher: {
       "@type": "Organization",
       name: "TutorLingua",
       url: baseUrl,
     },
-    inLanguage: inLanguage,
+    inLanguage: config.inLanguage,
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -417,23 +481,17 @@ export function generateWebSiteSchema(baseUrl: string, locale: "en" | "es" | "fr
 /**
  * Generate Blog schema (CollectionPage) for blog index
  */
-export function generateBlogSchema(baseUrl: string, locale: "en" | "es" | "fr" = "en") {
-  const blogPath = locale === "es" ? "/es/blog" : locale === "fr" ? "/fr/blog" : "/blog";
-  const blogName = locale === "es" ? "Blog de TutorLingua" : locale === "fr" ? "Blog TutorLingua" : "TutorLingua Blog";
-  const description = locale === "es"
-    ? "Guías expertas, consejos y estrategias para tutores de idiomas independientes. Aprende cómo hacer crecer tu negocio de tutoría, reducir comisiones y conservar más de tus ingresos."
-    : locale === "fr"
-    ? "Guides experts, conseils et stratégies pour les tuteurs de langues indépendants. Apprenez à développer votre activité de tutorat, réduire les frais de plateforme et conserver plus de vos revenus."
-    : "Expert guides, tips, and strategies for independent language tutors. Learn how to grow your tutoring business, reduce platform fees, and keep more of your income.";
-  const inLanguage = locale === "es" ? "es" : locale === "fr" ? "fr-FR" : "en-US";
+export function generateBlogSchema(baseUrl: string, locale: BlogLocale = "en") {
+  const blogPath = getBlogPath(locale);
+  const config = LOCALE_CONFIG[locale];
 
   return {
     "@context": "https://schema.org",
     "@type": "Blog",
-    name: blogName,
-    description: description,
+    name: config.blogName,
+    description: config.description,
     url: `${baseUrl}${blogPath}`,
-    inLanguage: inLanguage,
+    inLanguage: config.inLanguage,
     publisher: {
       "@type": "Organization",
       name: "TutorLingua",
@@ -456,9 +514,9 @@ export function generateBlogSchema(baseUrl: string, locale: "en" | "es" | "fr" =
 export function generateBlogItemListSchema(
   posts: BlogPostMeta[],
   baseUrl: string,
-  locale: "en" | "es" | "fr" = "en"
+  locale: BlogLocale = "en"
 ) {
-  const blogPath = locale === "es" ? "/es/blog" : locale === "fr" ? "/fr/blog" : "/blog";
+  const blogPath = getBlogPath(locale);
 
   return {
     "@context": "https://schema.org",
@@ -486,10 +544,10 @@ export function generateBlogItemListSchema(
  */
 export function generateBlogIndexBreadcrumbSchema(
   baseUrl: string,
-  locale: "en" | "es" | "fr" = "en"
+  locale: BlogLocale = "en"
 ) {
-  const blogPath = locale === "es" ? "/es/blog" : locale === "fr" ? "/fr/blog" : "/blog";
-  const homeName = locale === "es" ? "Inicio" : locale === "fr" ? "Accueil" : "Home";
+  const blogPath = getBlogPath(locale);
+  const config = LOCALE_CONFIG[locale];
 
   return {
     "@context": "https://schema.org",
@@ -498,7 +556,7 @@ export function generateBlogIndexBreadcrumbSchema(
       {
         "@type": "ListItem",
         position: 1,
-        name: homeName,
+        name: config.homeName,
         item: baseUrl,
       },
       {

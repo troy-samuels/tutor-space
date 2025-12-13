@@ -26,7 +26,7 @@ export function HomeworkPracticeButton({
 
   return (
     <Link
-      href={`/student-auth/practice/${practiceAssignmentId}`}
+      href={`/student/practice/${practiceAssignmentId}`}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
         isCompleted
@@ -40,17 +40,17 @@ export function HomeworkPracticeButton({
       {isCompleted ? (
         <>
           <Bot className="h-3.5 w-3.5" />
-          <span>Practice done</span>
+          <span>Done</span>
         </>
       ) : hasStarted ? (
         <>
           <Bot className="h-3.5 w-3.5" />
-          <span>Continue practice</span>
+          <span>Continue</span>
         </>
       ) : (
         <>
           <Sparkles className="h-3.5 w-3.5" />
-          <span>Practice this topic</span>
+          <span>Start chatting</span>
         </>
       )}
     </Link>

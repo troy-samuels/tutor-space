@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { recordSystemEvent, recordSystemMetric, startDuration } from "@/lib/monitoring";
 
 /**
  * Cron job to clean up old analytics data for GDPR compliance.
@@ -21,6 +22,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 const RETENTION_DAYS = 90; // Keep 90 days of analytics data
 
 export async function GET(request: Request) {
+  const endTimer = startDuration("cron:cleanup-analytics");
   // Verify cron secret to prevent unauthorized access
   const cronSecret = process.env.CRON_SECRET;
 
@@ -67,14 +69,25 @@ export async function GET(request: Request) {
       `[Cron] Analytics cleanup completed: ${deletedCount} records deleted (retention: ${RETENTION_DAYS} days)`
     );
 
+    const durationMs = endTimer();
+    void recordSystemMetric({ metric: "cron:cleanup-analytics:duration_ms", value: durationMs ?? 0, sampleRate: 0.25 });
+    void recordSystemMetric({ metric: "cron:cleanup-analytics:deleted", value: deletedCount, sampleRate: 0.5 });
+
     return NextResponse.json({
       success: true,
       deleted_count: deletedCount,
       retention_days: RETENTION_DAYS,
+      duration_ms: durationMs,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("[Cron] Error in cleanup-analytics cron:", error);
+    endTimer();
+    void recordSystemEvent({
+      source: "cron:cleanup-analytics",
+      message: "Unhandled error",
+      meta: { error: String(error) },
+    });
     return NextResponse.json(
       { error: "Internal server error", details: String(error) },
       { status: 500 }

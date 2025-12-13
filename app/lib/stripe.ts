@@ -217,12 +217,16 @@ export async function cancelSubscription(
 export async function createBillingPortalSession(params: {
   customerId: string;
   returnUrl: string;
+  configurationId?: string;
 }): Promise<Stripe.BillingPortal.Session> {
-  const { customerId, returnUrl } = params;
+  const { customerId, returnUrl, configurationId } = params;
+  const resolvedConfigurationId =
+    configurationId ?? process.env.STRIPE_BILLING_PORTAL_CONFIGURATION_ID ?? undefined;
 
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
+    ...(resolvedConfigurationId ? { configuration: resolvedConfigurationId } : {}),
   });
 
   return session;

@@ -80,20 +80,16 @@ class ResendClient {
 }
 
 class NoopResendClient {
-  constructor(private shouldError: boolean) {}
+  constructor() {}
 
   emails = {
     send: async (payload: EmailPayload): Promise<EmailResult> => {
       const message = "Resend API key is not configured. Email send skipped.";
-      if (this.shouldError) {
-        return { error: new Error(message) };
-      }
-
       console.warn("[Resend] Email send skipped (no API key configured)", {
         to: payload.to,
         subject: payload.subject,
       });
-      return { data: { skipped: true } };
+      return { data: { skipped: true, message } };
     },
   };
 }
@@ -104,16 +100,29 @@ if (!resendApiKey) {
   );
 }
 
-const emailFrom = process.env.EMAIL_FROM;
-const emailReplyTo = process.env.EMAIL_REPLY_TO;
+const emailFrom = process.env.EMAIL_FROM?.trim();
+const emailReplyTo = process.env.EMAIL_REPLY_TO?.trim();
+const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+const fallbackDomain = (() => {
+  if (!publicAppUrl) return "localhost";
+  try {
+    const url = new URL(publicAppUrl);
+    return url.hostname || "localhost";
+  } catch {
+    return "localhost";
+  }
+})();
 
 const resolvedEmailFrom =
-  emailFrom || "TutorLingua Dev <dev@localhost>";
+  emailFrom && emailFrom.includes("@")
+    ? emailFrom
+    : `TutorLingua Dev <no-reply@${fallbackDomain}>`;
 
-if (!emailFrom && isProduction) {
-  console.warn(
-    "[Resend] EMAIL_FROM is not set. Using fallback dev sender address."
-  );
+if (!emailFrom) {
+  console.warn("[Resend] EMAIL_FROM is not set. Using fallback sender address.", {
+    from: resolvedEmailFrom,
+  });
 }
 
 /**
@@ -121,9 +130,11 @@ if (!emailFrom && isProduction) {
  */
 export const EMAIL_CONFIG = {
   from: resolvedEmailFrom,
-  replyTo: emailReplyTo || resolvedEmailFrom,
+  replyTo:
+    (emailReplyTo && emailReplyTo.includes("@") ? emailReplyTo : undefined) ||
+    resolvedEmailFrom,
 } as const;
 
 export const resend = resendApiKey
   ? new ResendClient(resendApiKey)
-  : new NoopResendClient(isProduction);
+  : new NoopResendClient();
