@@ -19,6 +19,8 @@ import { StructuredData } from "@/components/landing/StructuredData";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, ArrowDown, ArrowRight, BookOpen, CheckCircle2 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function LandingPage() {
   let user = null;
   try {
