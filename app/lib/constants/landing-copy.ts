@@ -229,7 +229,7 @@ const landingCopyEn: LandingCopy = {
   socialProof: {
     text: "Used by language tutors on Preply, iTalki, and Verbling to own their repeat business",
     tutors: [
-      { name: "Sarai A.", language: "Spanish Teacher" },
+      { name: "Alba GB.", language: "Spanish Teacher" },
       { name: "Thomas B.", language: "French Tutor" },
       { name: "Ricardo M.", language: "Portuguese Tutor" },
     ],
@@ -481,7 +481,7 @@ const landingCopyEn: LandingCopy = {
     featured: {
       quote:
         "I stay on Preply for new students. But repeat lessons go through TutorLingua. Saved me $7,500 in commissions this year.",
-      author: "Sarai A.",
+      author: "Alba GB.",
       role: "Spanish Teacher",
       image: "/testimonials/sara.jpg",
     },
@@ -706,7 +706,7 @@ const landingCopyEs: LandingCopy = {
   socialProof: {
     text: "Usado por tutores de idiomas en Preply, iTalki y Verbling para ser dueños de su negocio repetido",
     tutors: [
-      { name: "Sarai A.", language: "Profesora de español" },
+      { name: "Alba GB.", language: "Profesora de español" },
       { name: "Thomas B.", language: "Tutor de francés" },
       { name: "Ricardo M.", language: "Tutor de portugués" },
     ],
@@ -940,7 +940,7 @@ const landingCopyEs: LandingCopy = {
     featured: {
       quote:
         "Me quedo en Preply para nuevos estudiantes. Pero lecciones repetidas van por TutorLingua. Me ahorró $7.500 en comisiones este año.",
-      author: "Sarai A.",
+      author: "Alba GB.",
       role: "Tutora de español",
       image: "/testimonials/sara.jpg",
     },
@@ -1166,7 +1166,7 @@ const landingCopyFr: LandingCopy = {
   socialProof: {
     text: "Utilisé par des tuteurs de langues sur Preply, iTalki et Verbling pour maîtriser leur activité récurrente",
     tutors: [
-      { name: "Sarai A.", language: "Professeure d'espagnol" },
+      { name: "Alba GB.", language: "Professeure d'espagnol" },
       { name: "Thomas B.", language: "Tuteur de français" },
       { name: "Ricardo M.", language: "Tuteur de portugais" },
     ],
@@ -1400,7 +1400,7 @@ const landingCopyFr: LandingCopy = {
     featured: {
       quote:
         "Je reste sur Preply pour les nouveaux étudiants. Mais les leçons récurrentes passent par TutorLingua. J'ai économisé 7 500 $ en commissions cette année.",
-      author: "Sarai A.",
+      author: "Alba GB.",
       role: "Professeure d'espagnol",
       image: "/testimonials/sara.jpg",
     },

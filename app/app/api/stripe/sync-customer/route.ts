@@ -12,9 +12,7 @@ export async function POST() {
     return NextResponse.json({ success: true, customerId: result.customerId });
   } catch (error) {
     console.error("Error syncing Stripe customer:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

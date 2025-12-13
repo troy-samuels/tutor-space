@@ -1,20 +1,5 @@
-import type { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { defaultLocale, locales, type Locale } from "./lib/i18n/edge-config";
-
-// Vercel Edge runtime does not provide Node's `__dirname`, but some bundled Next.js
-// dependencies still reference it (e.g. ncc-compiled `ua-parser-js`). Because ESM
-// imports execute before module code, we must define this global *before* loading
-// `next/server`.
-try {
-  const globalShim = globalThis as unknown as { __dirname?: string; __filename?: string };
-  globalShim.__dirname ??= "/";
-  globalShim.__filename ??= "/";
-} catch {
-  // Ignore if the runtime forbids mutation (shouldn't happen on Vercel).
-}
-
-type NextServerModule = typeof import("next/server");
-const nextServerPromise = import("next/server") as Promise<NextServerModule>;
 
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
 const GATE_SESSION_COOKIE = "tl_site_gate";
@@ -65,7 +50,7 @@ function getPreferredLocale(request: NextRequest): Locale {
   }
 
   // 1. Check stored cookie preference (user's explicit choice)
-  const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  const cookieLocale = getCookieValue(request, "NEXT_LOCALE");
   if (cookieLocale && SUPPORTED_LOCALES.has(cookieLocale as Locale)) {
     return cookieLocale as Locale;
   }
@@ -101,41 +86,67 @@ function getPreferredLocale(request: NextRequest): Locale {
   return defaultLocale;
 }
 
-function setLocaleCookie(response: NextResponse, locale: Locale) {
-  response.cookies.set("NEXT_LOCALE", locale, { path: "/", sameSite: "lax" });
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function withLocalePath(pathname: string, locale: Locale) {
-  return pathname === "/"
-    ? `/${locale}`
-    : `/${locale}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
-}
+function getCookieValue(request: NextRequest, name: string) {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
 
-export async function middleware(request: NextRequest) {
-  let NextResponse: NextServerModule["NextResponse"];
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${escapeRegExp(name)}=([^;]*)`));
+  if (!match) return null;
+
+  const value = match[1] ?? "";
   try {
-    ({ NextResponse } = await nextServerPromise);
-  } catch (error) {
-    console.error("[middleware] Failed to load next/server", error);
-    return new Response(null, { headers: { "x-middleware-next": "1" } });
+    return decodeURIComponent(value);
+  } catch {
+    return value;
   }
+}
 
+function appendMiddlewareCookie(headers: Headers, cookie: string) {
+  const existing = headers.get("x-middleware-set-cookie");
+  headers.set("x-middleware-set-cookie", existing ? `${existing},${cookie}` : cookie);
+}
+
+function buildLocaleCookie(locale: Locale, requestUrl: string) {
+  const encoded = encodeURIComponent(locale);
+  const secure = requestUrl.startsWith("https://");
+  return `NEXT_LOCALE=${encoded}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`;
+}
+
+function nextResponse(headers?: HeadersInit) {
+  const nextHeaders = new Headers(headers);
+  nextHeaders.set("x-middleware-next", "1");
+  return new Response(null, { headers: nextHeaders });
+}
+
+function redirectResponse(url: URL, headers?: HeadersInit, status = 307) {
+  const redirectHeaders = new Headers(headers);
+  redirectHeaders.set("Location", url.toString());
+  return new Response(null, { status, headers: redirectHeaders });
+}
+
+export function proxy(request: NextRequest) {
   try {
-    const { pathname } = request.nextUrl;
+    const { pathname } = new URL(request.url);
     const pathLocale = getPathLocale(pathname);
     const preferredLocale = pathLocale ?? getPreferredLocale(request);
     const normalizedPathname = pathLocale ? pathname.replace(`/${pathLocale}`, "") || "/" : pathname;
-    const localePrefixEnabled = Boolean(pathLocale);
 
     // Backwards-compatible redirect: `/student-auth/*` → `/student/*`
     if (normalizedPathname === "/student-auth" || normalizedPathname.startsWith("/student-auth/")) {
-      const url = request.nextUrl.clone();
-      url.pathname = normalizedPathname.replace(/^\/student-auth(?=\/|$)/, "/student");
-      return NextResponse.redirect(url);
+      const redirectUrl = new URL(request.url);
+      redirectUrl.pathname = normalizedPathname.replace(/^\/student-auth(?=\/|$)/, "/student");
+      return redirectResponse(redirectUrl);
     }
 
     // Password gate check - blocks entire site until password is entered
-    const gateEnabled = process.env.SITE_GATE_ENABLED === "true";
+    const gateEnabled =
+      typeof process !== "undefined" &&
+      typeof process.env !== "undefined" &&
+      process.env.SITE_GATE_ENABLED === "true";
     if (gateEnabled) {
       const isGateWhitelisted =
         normalizedPathname === "/password-gate" ||
@@ -145,32 +156,32 @@ export async function middleware(request: NextRequest) {
         normalizedPathname.startsWith("/brand");
 
       if (!isGateWhitelisted) {
-        const gateSession = request.cookies.get(GATE_SESSION_COOKIE)?.value;
+        const gateSession = getCookieValue(request, GATE_SESSION_COOKIE);
         if (!gateSession) {
-          return NextResponse.redirect(new URL("/password-gate", request.url));
+          return redirectResponse(new URL("/password-gate", request.url));
         }
       }
     }
 
     if (pathname === "/") {
       // Keep "/" canonical; let next-intl use cookie/header to pick the locale.
-      const response = NextResponse.next();
-      setLocaleCookie(response, preferredLocale);
-      return response;
+      const headers = new Headers();
+      appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+      return nextResponse(headers);
     }
 
     // Locale-prefixed landing page: redirect to "/" and persist locale in cookie.
     if (pathLocale && (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)) {
-      const response = NextResponse.redirect(new URL("/", request.url));
-      setLocaleCookie(response, pathLocale);
-      return response;
+      const headers = new Headers();
+      appendMiddlewareCookie(headers, buildLocaleCookie(pathLocale, request.url));
+      return redirectResponse(new URL("/", request.url), headers);
     }
 
     if (pathLocale === defaultLocale && normalizedPathname !== "/") {
       const redirectUrl = new URL(normalizedPathname || "/", request.url);
-      const response = NextResponse.redirect(redirectUrl);
-      setLocaleCookie(response, pathLocale);
-      return response;
+      const headers = new Headers();
+      appendMiddlewareCookie(headers, buildLocaleCookie(pathLocale, request.url));
+      return redirectResponse(redirectUrl, headers);
     }
 
     if (
@@ -180,38 +191,38 @@ export async function middleware(request: NextRequest) {
       !LOCALE_SPECIFIC_PATHS.some((prefix) => normalizedPathname.startsWith(prefix))
     ) {
       const redirectUrl = new URL(normalizedPathname || "/", request.url);
-      const response = NextResponse.redirect(redirectUrl);
-      setLocaleCookie(response, pathLocale);
-      return response;
+      const headers = new Headers();
+      appendMiddlewareCookie(headers, buildLocaleCookie(pathLocale, request.url));
+      return redirectResponse(redirectUrl, headers);
     }
 
     if (normalizedPathname.startsWith("/api") || normalizedPathname.startsWith("/app/api")) {
-      return NextResponse.next();
+      return nextResponse();
     }
 
     // Handle admin routes separately
     if (normalizedPathname.startsWith("/admin")) {
       // Allow public admin routes (login page)
       if (ADMIN_PUBLIC_ROUTES.some((route) => normalizedPathname === route)) {
-        return NextResponse.next();
+        return nextResponse();
       }
 
       // Check for admin session cookie
-      const adminSession = request.cookies.get(ADMIN_SESSION_COOKIE);
-      if (!adminSession?.value) {
-        return NextResponse.redirect(new URL("/admin/login", request.url));
+      const adminSession = getCookieValue(request, ADMIN_SESSION_COOKIE);
+      if (!adminSession) {
+        return redirectResponse(new URL("/admin/login", request.url));
       }
 
       // Admin is authenticated, allow access
-      return NextResponse.next();
+      return nextResponse();
     }
 
-    const response = NextResponse.next();
-    setLocaleCookie(response, preferredLocale);
-    return response;
+    const headers = new Headers();
+    appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+    return nextResponse(headers);
   } catch (error) {
-    console.error("[middleware] Invocation failed", error);
-    return new Response(null, { headers: { "x-middleware-next": "1" } });
+    console.error("[proxy] Invocation failed", error);
+    return nextResponse();
   }
 }
 

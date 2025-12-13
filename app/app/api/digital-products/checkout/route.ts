@@ -9,10 +9,7 @@ export async function POST(request: NextRequest) {
   // SECURITY: Rate limit public checkout endpoint
   const rateLimitResult = await RateLimiters.booking(request);
   if (!rateLimitResult.success) {
-    return NextResponse.json(
-      { error: rateLimitResult.error },
-      { status: 429 }
-    );
+    return NextResponse.json({ error: rateLimitResult.error }, { status: 429 });
   }
 
   const body = await request.json();
@@ -25,9 +22,7 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: product, error } = await supabase
     .from("digital_products")
-    .select(
-      "id, tutor_id, title, price_cents, currency, stripe_price_id, published, slug"
-    )
+    .select("id, tutor_id, title, price_cents, currency, stripe_price_id, published, slug")
     .eq("id", productId)
     .single();
 
@@ -66,8 +61,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unable to create purchase." }, { status: 500 });
   }
 
-  const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/products/${tutorUsername}?success=1`;
-  const cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/products/${tutorUsername}?canceled=1`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co";
+  const successUrl = `${appUrl}/products/${tutorUsername}?success=1`;
+  const cancelUrl = `${appUrl}/products/${tutorUsername}?canceled=1`;
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -94,3 +90,4 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ url: session.url });
 }
+

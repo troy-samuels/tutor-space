@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 
 const SITE_MEDIA_BUCKET = "site-media";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData();
+    const formData = await request.formData();
     const file = formData.get("file");
 
     if (!(file instanceof File) || file.size === 0) {
@@ -58,3 +58,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to upload image." }, { status: 500 });
   }
 }
+

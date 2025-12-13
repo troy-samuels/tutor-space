@@ -120,3 +120,4 @@ export async function GET(
 
   return NextResponse.redirect(signedUrlData.signedUrl, { status: 302 });
 }
+

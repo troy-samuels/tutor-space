@@ -3,15 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createCheckoutSession } from "@/lib/stripe";
 import { RateLimiters } from "@/lib/middleware/rate-limit";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     // SECURITY: Rate limit checkout session creation
-    const rateLimitResult = await RateLimiters.api(req);
+    const rateLimitResult = await RateLimiters.api(request);
     if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: rateLimitResult.error },
-        { status: 429 }
-      );
+      return NextResponse.json({ error: rateLimitResult.error }, { status: 429 });
     }
 
     const supabase = await createClient();
@@ -27,14 +24,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse request body
-    const body = await req.json();
+    const body = await request.json();
     const { bookingId, amount, serviceName, serviceDescription, currency } = body;
 
     if (!bookingId || !amount || !serviceName) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Get user profile with Stripe customer ID
@@ -45,17 +39,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (profileError || !profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     if (!profile.stripe_customer_id) {
-      return NextResponse.json(
-        { error: "No Stripe customer found. Please contact support." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No Stripe customer found. Please contact support." }, { status: 400 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -87,9 +75,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating checkout session:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

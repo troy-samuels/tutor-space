@@ -34,7 +34,7 @@ const FEATURES = [
 const TESTIMONIALS = {
   trial: {
     quote: "Saved me $7,500 in commissions this year.",
-    author: "Sarai A.",
+    author: "Alba GB.",
     role: "Spanish Teacher",
   },
   expired: {

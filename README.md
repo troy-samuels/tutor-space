@@ -11,7 +11,7 @@ TutorLingua is the operating system for independent language tutors: direct book
 - **Analytics & admin:** Revenue/booking/student analytics, demand heatmap, calendar smart management, onboarding wizard and upgrade gates, admin health dashboard, moderation queue, support tickets.
 
 ## Tech Stack
-- Next.js 15.5.4 (App Router + Turbopack), React 19, TypeScript 5, Tailwind CSS 4, shadcn/ui, Lucide, Framer Motion.
+- Next.js 16.0.10 (App Router), React 19, TypeScript 5, Tailwind CSS 4, shadcn/ui, Lucide, Framer Motion.
 - Supabase (PostgreSQL, Auth, Storage, Realtime, RLS) with encrypted OAuth tokens.
 - Stripe + Stripe Connect; Resend for email.
 - OpenAI (AI practice), LiveKit (video), Deepgram (transcription).
@@ -76,6 +76,10 @@ cp .env.example .env.local   # fill in your credentials
 # supabase db push           # apply migrations to local Supabase (optional for local DB)
 npm run dev
 ```
+
+## Vercel Deployment
+- In Vercel Project Settings, set **Root Directory** to `app` and **Framework Preset** to `Next.js` (not `Other`).
+- Add required environment variables in Vercel, then redeploy.
 
 ## Environment Variables
 ### Required
