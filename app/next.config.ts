@@ -1,5 +1,4 @@
 import path from "path";
-import * as webpack from "next/dist/compiled/webpack/webpack";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -28,13 +27,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  webpack: (config, { nextRuntime }) => {
+  webpack: (config, { nextRuntime, webpack }) => {
     // Ensure edge bundles (middleware) have a defined __dirname to satisfy CJS helpers
     if (nextRuntime === "edge") {
-      const { webpack: webpackLib } = webpack;
-      if (webpackLib?.DefinePlugin) {
-        config.plugins.push(new webpackLib.DefinePlugin({ __dirname: JSON.stringify("/") }));
-      }
+      // Replace __dirname at compile-time
+      config.plugins.push(new webpack.DefinePlugin({ __dirname: JSON.stringify("/") }));
+      // Add runtime guard in case any helper still expects __dirname
+      config.plugins.push(
+        new webpack.BannerPlugin({
+          banner: 'if(typeof __dirname==="undefined"){globalThis.__dirname="/";}',
+          raw: true,
+          entryOnly: false,
+        })
+      );
     }
     return config;
   },

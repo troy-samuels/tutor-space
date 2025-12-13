@@ -1,12 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { defaultLocale, locales, type Locale } from "./lib/i18n/edge-config";
 
-// Edge runtime doesn't provide __dirname; define a harmless shim to avoid runtime ReferenceError
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const __dirname = "/";
-// Ensure any bundled helper looking for a global __dirname can fall back safely
-(globalThis as Record<string, unknown>).__dirname ??= __dirname;
-
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
 const GATE_SESSION_COOKIE = "tl_site_gate";
 const ADMIN_PUBLIC_ROUTES = ["/admin/login"];
