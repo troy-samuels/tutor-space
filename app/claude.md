@@ -1986,9 +1986,14 @@ RESEND_API_KEY=re_...
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Stripe Subscription (All-Access Plan)
-STRIPE_ALL_ACCESS_PRICE_ID=price_...
-STRIPE_LIFETIME_PRICE_ID=price_...
+# Stripe - Pro Tier ($39/mo, $299/yr)
+STRIPE_PRO_MONTHLY_PRICE_ID=price_...
+STRIPE_PRO_ANNUAL_PRICE_ID=price_...
+
+# Stripe - Studio Tier ($69/mo, $499/yr, $99 lifetime)
+STRIPE_STUDIO_MONTHLY_PRICE_ID=price_...
+STRIPE_STUDIO_ANNUAL_PRICE_ID=price_...
+STRIPE_STUDIO_LIFETIME_PRICE_ID=price_...
 
 # AI Features (Required for AI Practice Companion)
 OPENAI_API_KEY=sk-...
@@ -2114,11 +2119,11 @@ Located in `/app/docs/blog/`:
 |---------|--------------|-------|------|-------------|
 | `professional` | Free | $0 | Free | Default for new signups / trial expired |
 | `pro_monthly` | Pro Monthly | $39/month | Pro | Full platform access |
-| `pro_annual` | Pro Annual | $351/year | Pro | 25% off ($29.25/mo effective) |
-| `tutor_life` | Pro Lifetime | $299 one-time | Pro | Lifetime Pro access (launch pricing) |
-| `studio_monthly` | Studio Monthly | $79/month | Studio | Pro + LiveKit video, transcription, drills, clips |
-| `studio_annual` | Studio Annual | $711/year | Studio | 25% off ($59.25/mo effective) |
-| `studio_life` | Studio Lifetime | $499 one-time | Studio | Lifetime Studio access (launch pricing) |
+| `pro_annual` | Pro Annual | $299/year | Pro | 36% off (~$25/mo effective) |
+| `tutor_life` | Pro Lifetime | $99 one-time | Pro | Lifetime deal (unlocks Studio tier) |
+| `studio_monthly` | Studio Monthly | $69/month | Studio | Pro + LiveKit video, transcription, drills, clips |
+| `studio_annual` | Studio Annual | $499/year | Studio | 40% off (~$42/mo effective) |
+| `studio_life` | Studio Lifetime | $99 one-time | Studio | Lifetime Studio access (all features) |
 | `founder_lifetime` | Founder Lifetime | $49 one-time | Pro | Legacy grandfathered lifetime deal |
 | `all_access` | Pro (Legacy) | $39/month | Pro | Legacy plan, maps to pro_monthly |
 
