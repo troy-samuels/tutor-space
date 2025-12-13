@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
   },
   webpack: (config, { nextRuntime, webpack }) => {
     if (nextRuntime === "edge") {
-      // 1. UNSHIFT DefinePlugin to run FIRST - replaces __dirname at compile time
+      // 1. Replace __dirname/__filename at compile time (when supported)
       config.plugins.unshift(
         new webpack.DefinePlugin({
           __dirname: JSON.stringify("/"),
@@ -37,10 +37,11 @@ const nextConfig: NextConfig = {
         })
       );
 
-      // 2. UNSHIFT BannerPlugin to inject shim at very start of every file
+      // 2. Inject a lexical __dirname/__filename for edge runtime (defense-in-depth)
       config.plugins.unshift(
         new webpack.BannerPlugin({
-          banner: 'var __dirname="/",__filename="/index.js";',
+          banner:
+            'var __dirname="/",__filename="/";try{globalThis.__dirname=__dirname;globalThis.__filename=__filename;globalThis.__tl_edge_dirname_shim=1;}catch{};',
           raw: true,
           entryOnly: false,
         })
