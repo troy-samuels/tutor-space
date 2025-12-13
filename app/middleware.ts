@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { defaultLocale, locales, type Locale } from "@/lib/i18n/config";
+import { defaultLocale, locales, type Locale } from "@/lib/i18n/edge-config";
 
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
 const GATE_SESSION_COOKIE = "tl_site_gate";
