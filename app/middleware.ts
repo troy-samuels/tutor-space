@@ -211,7 +211,7 @@ export async function middleware(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("[middleware] Invocation failed", error);
-    return NextResponse.next();
+    return new Response(null, { headers: { "x-middleware-next": "1" } });
   }
 }
 
