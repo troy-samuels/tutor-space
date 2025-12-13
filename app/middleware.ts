@@ -43,6 +43,12 @@ function getPathLocale(pathname: string): Locale | null {
 }
 
 function getPreferredLocale(request: NextRequest): Locale {
+  // 0. Internal rewrite header (set by this middleware)
+  const forcedLocale = request.headers.get("x-locale");
+  if (forcedLocale && SUPPORTED_LOCALES.has(forcedLocale as Locale)) {
+    return forcedLocale as Locale;
+  }
+
   // 1. Check stored cookie preference (user's explicit choice)
   const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
   if (cookieLocale && SUPPORTED_LOCALES.has(cookieLocale as Locale)) {
@@ -91,103 +97,120 @@ function withLocalePath(pathname: string, locale: Locale) {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const pathLocale = getPathLocale(pathname);
-  const preferredLocale = pathLocale ?? getPreferredLocale(request);
-  const normalizedPathname = pathLocale ? pathname.replace(`/${pathLocale}`, "") || "/" : pathname;
-  const localePrefixEnabled = Boolean(pathLocale);
+  try {
+    const { pathname } = request.nextUrl;
+    const pathLocale = getPathLocale(pathname);
+    const preferredLocale = pathLocale ?? getPreferredLocale(request);
+    const normalizedPathname = pathLocale ? pathname.replace(`/${pathLocale}`, "") || "/" : pathname;
+    const localePrefixEnabled = Boolean(pathLocale);
 
-  // Backwards-compatible redirect: `/student-auth/*` → `/student/*`
-  if (normalizedPathname === "/student-auth" || normalizedPathname.startsWith("/student-auth/")) {
-    const url = request.nextUrl.clone();
-    url.pathname = normalizedPathname.replace(/^\/student-auth(?=\/|$)/, "/student");
-    return NextResponse.redirect(url);
-  }
+    // Backwards-compatible redirect: `/student-auth/*` → `/student/*`
+    if (normalizedPathname === "/student-auth" || normalizedPathname.startsWith("/student-auth/")) {
+      const url = request.nextUrl.clone();
+      url.pathname = normalizedPathname.replace(/^\/student-auth(?=\/|$)/, "/student");
+      return NextResponse.redirect(url);
+    }
 
-  // Password gate check - blocks entire site until password is entered
-  const gateEnabled = process.env.SITE_GATE_ENABLED === "true";
-  if (gateEnabled) {
-    const isGateWhitelisted =
-      normalizedPathname === "/password-gate" ||
-      normalizedPathname.startsWith("/api/password-gate") ||
-      normalizedPathname.startsWith("/api") ||
-      normalizedPathname.startsWith("/_next") ||
-      normalizedPathname.startsWith("/brand");
+    // Password gate check - blocks entire site until password is entered
+    const gateEnabled = process.env.SITE_GATE_ENABLED === "true";
+    if (gateEnabled) {
+      const isGateWhitelisted =
+        normalizedPathname === "/password-gate" ||
+        normalizedPathname.startsWith("/api/password-gate") ||
+        normalizedPathname.startsWith("/api") ||
+        normalizedPathname.startsWith("/_next") ||
+        normalizedPathname.startsWith("/brand");
 
-    if (!isGateWhitelisted) {
-      const gateSession = request.cookies.get(GATE_SESSION_COOKIE)?.value;
-      if (!gateSession) {
-        return NextResponse.redirect(new URL("/password-gate", request.url));
+      if (!isGateWhitelisted) {
+        const gateSession = request.cookies.get(GATE_SESSION_COOKIE)?.value;
+        if (!gateSession) {
+          return NextResponse.redirect(new URL("/password-gate", request.url));
+        }
       }
     }
-  }
 
-  if (pathname === "/") {
-    // For default locale (English), stay at "/" instead of redirecting to "/en/"
-    if (preferredLocale === defaultLocale) {
+    // Internal rewrite guard: when we rewrite `/{locale}` → `/`, avoid bouncing back to `/{locale}`.
+    if (pathname === "/" && request.headers.get("x-tl-locale-rewrite") === "1") {
       const response = NextResponse.next();
       setLocaleCookie(response, preferredLocale);
       return response;
     }
-    // For other locales, redirect to /{locale}/
-    const redirectUrl = new URL(withLocalePath("/", preferredLocale), request.url);
-    const response = NextResponse.redirect(redirectUrl);
-    setLocaleCookie(response, preferredLocale);
-    return response;
-  }
 
-  // Allow locale-prefixed landing pages while serving the root content (avoids FOUC)
-  if (pathLocale && (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    const response = NextResponse.rewrite(url);
-    setLocaleCookie(response, pathLocale);
-    return response;
-  }
+    if (pathname === "/") {
+      // For default locale (English), stay at "/" instead of redirecting to "/en/"
+      if (preferredLocale === defaultLocale) {
+        const response = NextResponse.next();
+        setLocaleCookie(response, preferredLocale);
+        return response;
+      }
+      // For other locales, redirect to /{locale}/
+      const redirectUrl = new URL(withLocalePath("/", preferredLocale), request.url);
+      const response = NextResponse.redirect(redirectUrl);
+      setLocaleCookie(response, preferredLocale);
+      return response;
+    }
 
-  if (pathLocale === defaultLocale && normalizedPathname !== "/") {
-    const redirectUrl = new URL(normalizedPathname || "/", request.url);
-    const response = NextResponse.redirect(redirectUrl);
-    setLocaleCookie(response, pathLocale);
-    return response;
-  }
+    // Allow locale-prefixed landing pages while serving the root content (avoids FOUC)
+    if (pathLocale && (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
 
-  if (
-    pathLocale &&
-    pathLocale !== defaultLocale &&
-    normalizedPathname !== "/" &&
-    !LOCALE_SPECIFIC_PATHS.some((prefix) => normalizedPathname.startsWith(prefix))
-  ) {
-    const redirectUrl = new URL(normalizedPathname || "/", request.url);
-    const response = NextResponse.redirect(redirectUrl);
-    setLocaleCookie(response, pathLocale);
-    return response;
-  }
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-locale", pathLocale);
+      requestHeaders.set("x-tl-locale-rewrite", "1");
 
-  if (normalizedPathname.startsWith("/api") || normalizedPathname.startsWith("/app/api")) {
-    return NextResponse.next();
-  }
+      const response = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+      setLocaleCookie(response, pathLocale);
+      return response;
+    }
 
-  // Handle admin routes separately
-  if (normalizedPathname.startsWith("/admin")) {
-    // Allow public admin routes (login page)
-    if (ADMIN_PUBLIC_ROUTES.some((route) => normalizedPathname === route)) {
+    if (pathLocale === defaultLocale && normalizedPathname !== "/") {
+      const redirectUrl = new URL(normalizedPathname || "/", request.url);
+      const response = NextResponse.redirect(redirectUrl);
+      setLocaleCookie(response, pathLocale);
+      return response;
+    }
+
+    if (
+      pathLocale &&
+      pathLocale !== defaultLocale &&
+      normalizedPathname !== "/" &&
+      !LOCALE_SPECIFIC_PATHS.some((prefix) => normalizedPathname.startsWith(prefix))
+    ) {
+      const redirectUrl = new URL(normalizedPathname || "/", request.url);
+      const response = NextResponse.redirect(redirectUrl);
+      setLocaleCookie(response, pathLocale);
+      return response;
+    }
+
+    if (normalizedPathname.startsWith("/api") || normalizedPathname.startsWith("/app/api")) {
       return NextResponse.next();
     }
 
-    // Check for admin session cookie
-    const adminSession = request.cookies.get(ADMIN_SESSION_COOKIE);
-    if (!adminSession?.value) {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+    // Handle admin routes separately
+    if (normalizedPathname.startsWith("/admin")) {
+      // Allow public admin routes (login page)
+      if (ADMIN_PUBLIC_ROUTES.some((route) => normalizedPathname === route)) {
+        return NextResponse.next();
+      }
+
+      // Check for admin session cookie
+      const adminSession = request.cookies.get(ADMIN_SESSION_COOKIE);
+      if (!adminSession?.value) {
+        return NextResponse.redirect(new URL("/admin/login", request.url));
+      }
+
+      // Admin is authenticated, allow access
+      return NextResponse.next();
     }
 
-    // Admin is authenticated, allow access
+    const response = NextResponse.next();
+    setLocaleCookie(response, preferredLocale);
+    return response;
+  } catch (error) {
+    console.error("[middleware] Invocation failed", error);
     return NextResponse.next();
   }
-
-  const response = NextResponse.next();
-  setLocaleCookie(response, preferredLocale);
-  return response;
 }
 
 export const config = {
