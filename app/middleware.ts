@@ -129,37 +129,16 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Internal rewrite guard: when we rewrite `/{locale}` → `/`, avoid bouncing back to `/{locale}`.
-    if (pathname === "/" && request.headers.get("x-tl-locale-rewrite") === "1") {
+    if (pathname === "/") {
+      // Keep "/" canonical; let next-intl use cookie/header to pick the locale.
       const response = NextResponse.next();
       setLocaleCookie(response, preferredLocale);
       return response;
     }
 
-    if (pathname === "/") {
-      // For default locale (English), stay at "/" instead of redirecting to "/en/"
-      if (preferredLocale === defaultLocale) {
-        const response = NextResponse.next();
-        setLocaleCookie(response, preferredLocale);
-        return response;
-      }
-      // For other locales, redirect to /{locale}/
-      const redirectUrl = new URL(withLocalePath("/", preferredLocale), request.url);
-      const response = NextResponse.redirect(redirectUrl);
-      setLocaleCookie(response, preferredLocale);
-      return response;
-    }
-
-    // Allow locale-prefixed landing pages while serving the root content (avoids FOUC)
+    // Locale-prefixed landing page: redirect to "/" and persist locale in cookie.
     if (pathLocale && (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-
-      const requestHeaders = new Headers(request.headers);
-      requestHeaders.set("x-locale", pathLocale);
-      requestHeaders.set("x-tl-locale-rewrite", "1");
-
-      const response = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+      const response = NextResponse.redirect(new URL("/", request.url));
       setLocaleCookie(response, pathLocale);
       return response;
     }

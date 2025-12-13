@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "next-intl/server";
 import { getLandingCopy } from "@/lib/constants/landing-copy";
+import { defaultLocale, locales, type Locale } from "@/lib/i18n/config";
 import { Navigation } from "@/components/landing/Navigation";
 import { Hero } from "@/components/landing/Hero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
@@ -35,7 +36,17 @@ export default async function LandingPage() {
     redirect("/dashboard");
   }
 
-  const locale = await getLocale();
+  let locale: Locale = defaultLocale;
+  try {
+    const detected = await getLocale();
+    const normalized = detected?.toLowerCase?.() ?? "";
+    if ((locales as readonly string[]).includes(normalized)) {
+      locale = normalized as Locale;
+    }
+  } catch (error) {
+    console.error("[LandingPage] Failed to resolve locale", error);
+  }
+
   const copy = getLandingCopy(locale);
 
   return (
