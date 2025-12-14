@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import { getDashboardSummary, getDashboardSummaryFallback } from "@/lib/data/dashboard-summary";
@@ -10,6 +10,8 @@ import { UpcomingSessions, type UpcomingSession } from "@/components/dashboard/u
 import { RecentActivityList } from "@/components/analytics/premium/RecentActivityList";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { STUDIO_FEATURES } from "@/components/studio/StudioFeatureInfo";
+import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export default async function DashboardPage() {
@@ -108,6 +110,7 @@ export default async function DashboardPage() {
 
   const planName: PlatformBillingPlan =
     (profile?.plan as PlatformBillingPlan | null) ?? "professional";
+  const showStudioDiscovery = !hasStudioAccess(planName);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -187,6 +190,56 @@ export default async function DashboardPage() {
           <RecentActivityList data={recentActivity} />
         </div>
       </div>
+
+      {showStudioDiscovery && (
+        <section className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 p-6 sm:rounded-3xl sm:p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                Unlock Studio Intelligence
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Take your tutoring to the next level with AI-powered tools.
+              </p>
+            </div>
+            <Link
+              href="/settings/billing?upgrade=studio"
+              className="hidden text-sm font-medium text-purple-600 hover:text-purple-800 sm:inline-flex sm:items-center sm:gap-1"
+            >
+              View all features
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {STUDIO_FEATURES.slice(0, 3).map((feature) => (
+              <div
+                key={feature.id}
+                className="relative overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 transition-transform hover:scale-[1.02]"
+              >
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="rounded-lg bg-purple-100 p-2">
+                    <feature.icon className="h-5 w-5 text-purple-600" />
+                  </div>
+                </div>
+                <h4 className="font-semibold text-gray-900">{feature.title}</h4>
+                <p className="mt-1 line-clamp-2 text-sm text-gray-600">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 text-center sm:hidden">
+            <Link
+              href="/settings/billing?upgrade=studio"
+              className="inline-flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-purple-700"
+            >
+              <Sparkles className="h-4 w-4" />
+              Upgrade to Studio
+            </Link>
+          </div>
+        </section>
+      )}
 
       <DashboardBookingCalendarSlot signupDate={profile?.created_at ?? null} />
     </div>

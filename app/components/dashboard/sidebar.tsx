@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles, Lock } from "lucide-react";
 import {
   NAV_SECTIONS,
   type NavSection,
   type NavItem,
 } from "@/components/dashboard/nav-config";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 type SidebarProps = {
   className?: string;
@@ -19,6 +20,8 @@ type SidebarProps = {
 export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const { entitlements } = useAuth();
+  const hasStudioAccess = entitlements?.hasStudioAccess ?? false;
 
   const navItemMap = useMemo(() => {
     const entries = new Map<
@@ -72,6 +75,12 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
       >
         <item.icon className={cn("h-4 w-4", disabled ? "text-muted-foreground/70" : undefined)} />
         <span className="flex-1 truncate">{item.label}</span>
+        {item.studioFeature && (
+          <span className="flex items-center gap-1">
+            <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+            {!hasStudioAccess && <Lock className="h-3 w-3 text-muted-foreground" />}
+          </span>
+        )}
       </Link>
     );
   };
