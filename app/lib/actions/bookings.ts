@@ -176,6 +176,11 @@ export async function createBooking(input: CreateBookingInput) {
     return { error: "You need to be signed in to create bookings." };
   }
 
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    return { error: "Service unavailable. Please try again." };
+  }
+
   // CONFLICT VALIDATION: Check for overlapping bookings before insert
   // This prevents double-booking the same timeslot
   const { data: existingBookings } = await supabase
@@ -217,31 +222,83 @@ export async function createBooking(input: CreateBookingInput) {
     };
   }
 
-  const { data, error } = await supabase
-    .from("bookings")
-    .insert({
-      tutor_id: user.id,
-      service_id: input.service_id,
-      student_id: input.student_id,
-      scheduled_at: input.scheduled_at,
-      duration_minutes: input.duration_minutes,
-      timezone: input.timezone,
-      status: "confirmed",
-      payment_status: "unpaid",
-      student_notes: input.notes ?? null,
-    })
-    .select("*, students(full_name, email), services(name)")
-    .single<BookingRecord>();
+  // Create the booking atomically to avoid race conditions
+  const { data: bookingResult, error: bookingError } = await adminClient.rpc(
+    "create_booking_atomic",
+    {
+      p_tutor_id: user.id,
+      p_student_id: input.student_id,
+      p_service_id: input.service_id,
+      p_scheduled_at: input.scheduled_at,
+      p_duration_minutes: input.duration_minutes,
+      p_timezone: input.timezone,
+      p_status: "confirmed",
+      p_payment_status: "unpaid",
+      p_payment_amount: 0,
+      p_currency: null,
+      p_student_notes: input.notes ?? null,
+    }
+  );
 
-  if (error) {
-    // Check if error is due to the exclusion constraint (conflict at DB level)
-    if (error.code === "23P01") {
+  const booking = Array.isArray(bookingResult)
+    ? bookingResult[0]
+    : (bookingResult as { id: string; created_at: string } | null);
+
+  if (bookingError || !booking) {
+    if (bookingError?.code === "P0001" || bookingError?.code === "23P01") {
       return {
         error:
           "This time slot was just booked. Please refresh and select a different time.",
       };
     }
+
+    if (bookingError?.code === "P0002") {
+      return { error: "This time window is blocked by the tutor." };
+    }
+
+    if (bookingError?.code === "55P03") {
+      return { error: "Please retry booking; the tutor calendar is busy right now." };
+    }
+
+    console.error("Booking RPC failed:", bookingError);
     return { error: "We couldn't save that booking. Please try again." };
+  }
+
+  // Post-insert conflict check (first-come-first-serve) in case of concurrent inserts
+  const bookingStart = new Date(input.scheduled_at);
+  const bookingEnd = new Date(bookingStart.getTime() + input.duration_minutes * 60 * 1000);
+
+  const { data: conflictingBookings } = await adminClient
+    .from("bookings")
+    .select("id, scheduled_at, duration_minutes, created_at")
+    .eq("tutor_id", user.id)
+    .in("status", ["pending", "confirmed"])
+    .neq("id", booking.id)
+    .lte("scheduled_at", bookingEnd.toISOString())
+    .order("created_at", { ascending: true });
+
+  const hasConflict = conflictingBookings?.some((existing) => {
+    const existingStart = new Date(existing.scheduled_at);
+    const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
+    return bookingStart < existingEnd && bookingEnd > existingStart && new Date(existing.created_at) < new Date(booking.created_at);
+  });
+
+  if (hasConflict) {
+    await adminClient.from("bookings").delete().eq("id", booking.id).eq("tutor_id", user.id);
+    return {
+      error:
+        "This time slot was just booked. Please refresh and select a different time.",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*, students(full_name, email), services(name)")
+    .eq("id", booking.id)
+    .single<BookingRecord>();
+
+  if (error) {
+    return { error: "We couldn't load the new booking. Please try again." };
   }
 
   return { data };

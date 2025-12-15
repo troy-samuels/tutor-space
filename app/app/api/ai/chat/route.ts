@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { addMessage } from "@/lib/actions/ai-assistant";
+import { parseSanitizedJson } from "@/lib/utils/sanitize";
 
 // Simple AI response generation (placeholder for actual AI integration)
 // In production, this would call OpenAI, Anthropic, or similar
@@ -69,8 +70,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { conversationId, message, contextType = "general" } = body;
+    const body = await parseSanitizedJson<Record<string, unknown>>(request);
+    const { conversationId, message, contextType = "general" } = body || {};
 
     if (!conversationId || !message) {
       return NextResponse.json(

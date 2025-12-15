@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { RateLimiters, addRateLimitHeaders } from "@/lib/middleware/rate-limit";
 import { createHash } from "crypto";
+import { parseSanitizedJson } from "@/lib/utils/sanitize";
 
 function parseDeviceType(userAgent: string | null): string {
   if (!userAgent) return "unknown";
@@ -57,15 +58,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false });
     }
 
-    let body: unknown = null;
-    try {
-      body = await request.json();
-    } catch {
+    const payload = await parseSanitizedJson<Record<string, unknown>>(request);
+
+    if (!payload) {
       // Fail silently - analytics shouldn't break the app
       return NextResponse.json({ success: false });
     }
-    const payload =
-      body && typeof body === "object" ? (body as Record<string, unknown>) : ({} as Record<string, unknown>);
     const path = payload.path;
     const sessionId = payload.sessionId;
     const referrer = payload.referrer;
