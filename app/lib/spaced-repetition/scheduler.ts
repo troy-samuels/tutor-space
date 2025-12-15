@@ -21,6 +21,9 @@ import {
   type SM2ItemData,
 } from "./sm2";
 
+// Re-export types for external consumers
+export type { QualityRating, SM2Result, SM2ItemData };
+
 // =============================================================================
 // TYPES
 // =============================================================================

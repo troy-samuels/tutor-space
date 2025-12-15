@@ -652,11 +652,11 @@ function generateGrammarWritingDrill(
   let template: PromptTemplate | null = null;
 
   if (mainGrammar.includes("past") || mainGrammar.includes("preterite")) {
-    template = templates.find((t) => t.title.includes("Yesterday"));
+    template = templates.find((t) => t.title.includes("Yesterday")) ?? null;
   } else if (mainGrammar.includes("future") || mainGrammar.includes("will") || mainGrammar.includes("going")) {
-    template = templates.find((t) => t.title.includes("Future"));
+    template = templates.find((t) => t.title.includes("Future")) ?? null;
   } else if (mainGrammar.includes("conditional") || mainGrammar.includes("would")) {
-    template = templates.find((t) => t.title.includes("If"));
+    template = templates.find((t) => t.title.includes("If")) ?? null;
   }
 
   if (!template) {

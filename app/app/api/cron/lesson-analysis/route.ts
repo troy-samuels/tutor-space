@@ -259,8 +259,13 @@ async function processRecording(client: AdminClient, recording: {
       const aiDrills = generateDrillsFromErrors(grammarErrors, vocabGaps);
 
       allDrills = [...basicAnalysis.drills, ...aiDrills];
-      keyPoints = basicAnalysis.keyPoints;
-      fluencyFlags = basicAnalysis.fluencyFlags;
+      keyPoints = basicAnalysis.keyPoints.map(kp => kp.text);
+      fluencyFlags = {
+        flags: basicAnalysis.fluencyFlags,
+        filler_count: basicAnalysis.fluencyFlags.filter(f => f.type === 'filler').length,
+        pause_count: basicAnalysis.fluencyFlags.filter(f => f.type === 'pause').length,
+        stutter_count: basicAnalysis.fluencyFlags.filter(f => f.type === 'stutter').length,
+      };
 
       finalSummary = aiSummary && aiSummary.length > 0
         ? `### AI Analysis\n${aiSummary}\n\n${basicAnalysis.summaryMd}`

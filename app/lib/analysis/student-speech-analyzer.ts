@@ -58,6 +58,9 @@ export interface StudentLanguageProfile {
     frequency: number;
     improving: boolean;
   }>;
+  proficiencyLevel?: "beginner" | "elementary" | "intermediate" | "upper_intermediate" | "advanced" | "proficient";
+  vocabularyStyle?: Record<string, unknown>;
+  lessonsAnalyzed?: number;
 }
 
 export interface L1InterferencePattern {

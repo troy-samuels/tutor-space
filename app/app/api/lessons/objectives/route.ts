@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { createBrowserClient } from "@/lib/supabase/client";
 
 /**
  * POST /api/lessons/objectives

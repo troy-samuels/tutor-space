@@ -532,7 +532,7 @@ export function calculateTurnTaking(segments: SpeakerSegment[]): {
     turnCount,
     avgTurnDuration: turnCount > 0 ? totalTurnDuration / turnCount : 0,
     avgGapBetweenTurns: gapCount > 0 ? totalGap / gapCount : 0,
-    turnsByPlayer: turnsByPlayer,
+    turnsBySpeaker: turnsByPlayer,
   };
 }
 

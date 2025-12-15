@@ -345,11 +345,15 @@ async function updateLanguageProfileFromAnalysis(
   }
 
   // Build update data
+  // Derive speaking pace from WPM
+  const wpm = studentAnalysis.fluencyMetrics?.wordsPerMinute || 0;
+  const derivedPace = wpm < 100 ? "slow" : wpm > 150 ? "fast" : "moderate";
+
   const updateData: Record<string, unknown> = {
     lessons_analyzed: 1, // Will be incremented
     last_updated_at: new Date().toISOString(),
-    speaking_pace: studentAnalysis.fluencyMetrics?.speakingPace || "moderate",
-    filler_words_used: studentAnalysis.fluencyMetrics?.fillerWords?.map((f) => f.word) || [],
+    speaking_pace: derivedPace,
+    filler_words_used: studentAnalysis.fluencyMetrics?.fillerWords || [],
   };
 
   // Update L1 interference patterns
@@ -622,10 +626,10 @@ function getFocusArea(drill: AnyDrill): string {
   if ("targetPhonemes" in drill) {
     return "pronunciation";
   }
-  if (drill.type === "conversation_simulation") {
+  if ((drill.type as string) === "conversation_simulation") {
     return "conversation";
   }
-  if (drill.type === "contextual_writing") {
+  if ((drill.type as string) === "contextual_writing") {
     return "writing";
   }
   return drill.type;
