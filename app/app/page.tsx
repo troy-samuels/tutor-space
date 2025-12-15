@@ -52,7 +52,9 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-brand-white">
       <StructuredData faq={copy.faq} />
-      <Navigation navigation={copy.navigation} />
+      {/* User reaching this point is definitively NOT authenticated (redirected otherwise).
+          Pass isAuthenticated={false} to skip loading state entirely. */}
+      <Navigation navigation={copy.navigation} isAuthenticated={false} />
       <Hero hero={copy.hero} socialProof={copy.socialProof} />
       <ProblemSection problems={copy.problems} />
       <PhoneMockupSection copy={copy.phoneMockup} />

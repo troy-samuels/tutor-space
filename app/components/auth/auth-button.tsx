@@ -5,9 +5,44 @@ import { useTransition } from "react";
 import { signOut } from "@/lib/actions/auth";
 import { useAuth } from "@/lib/hooks/useAuth";
 
-export function AuthButton() {
+type AuthButtonProps = {
+  /**
+   * Optional override for authentication state.
+   * When explicitly set to `false`, skips loading state entirely.
+   * Used by landing page where server already determined auth status.
+   */
+  isAuthenticated?: boolean;
+};
+
+/** Unauthenticated state buttons - extracted for reuse */
+function UnauthenticatedButtons() {
+  return (
+    <div className="flex items-center gap-3">
+      <Link
+        href="/login"
+        className="inline-flex h-9 items-center rounded-full px-4 text-sm font-medium text-foreground transition hover:bg-stone-100"
+      >
+        Log in
+      </Link>
+      <Link
+        href="/signup"
+        className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+      >
+        Sign up
+      </Link>
+    </div>
+  );
+}
+
+export function AuthButton({ isAuthenticated }: AuthButtonProps = {}) {
   const { user, loading } = useAuth();
   const [isPending, startTransition] = useTransition();
+
+  // Fast path: server explicitly told us user is NOT authenticated
+  // Skip loading state entirely - the answer is already known
+  if (isAuthenticated === false) {
+    return <UnauthenticatedButtons />;
+  }
 
   if (loading) {
     return (
@@ -18,22 +53,7 @@ export function AuthButton() {
   }
 
   if (!user) {
-    return (
-      <div className="flex items-center gap-3">
-        <Link
-          href="/login"
-          className="inline-flex h-9 items-center rounded-full px-4 text-sm font-medium text-foreground transition hover:bg-stone-100"
-        >
-          Log in
-        </Link>
-        <Link
-          href="/signup"
-          className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
-        >
-          Sign up
-        </Link>
-      </div>
-    );
+    return <UnauthenticatedButtons />;
   }
 
   return (

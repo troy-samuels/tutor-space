@@ -12,12 +12,20 @@ import { Logo } from "@/components/Logo";
 
 type NavigationProps = {
   navigation: LandingCopy["navigation"];
+  /**
+   * Server-determined auth state.
+   * When false, user is definitively NOT authenticated.
+   * When undefined, falls back to client-side context.
+   */
+  isAuthenticated?: boolean;
 };
 
-export function Navigation({ navigation }: NavigationProps) {
+export function Navigation({ navigation, isAuthenticated }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
-  const brandHref = user ? "/dashboard" : "/";
+  // When server says not authenticated, don't use context user
+  const effectiveUser = isAuthenticated === false ? null : user;
+  const brandHref = effectiveUser ? "/dashboard" : "/";
 
   return (
     <>
@@ -50,7 +58,7 @@ export function Navigation({ navigation }: NavigationProps) {
             {/* Auth actions */}
             <div className="flex items-center gap-x-3">
               <LanguageSwitcher />
-              <AuthButton />
+              <AuthButton isAuthenticated={isAuthenticated} />
             </div>
           </div>
         </div>

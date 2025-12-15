@@ -8,19 +8,50 @@ import { useCampaignTimer } from "@/lib/hooks/useCampaignTimer";
 // ============================================
 // Campaign Configuration - Edit dates here
 // ============================================
-// 12:00 PM London in December = UTC+0 (no daylight saving)
 // Format: ISO 8601 with Z suffix for UTC
 export const CAMPAIGN_CONFIG = {
-  startDate: "2025-12-12T12:00:00Z", // Friday Dec 12, 12:00 PM London
-  endDate: "2025-12-15T12:00:00Z", // Monday Dec 15, 12:00 PM London (72 hours)
+  startDate: "2025-12-15T09:00:00Z", // Monday Dec 15, 09:00 AM UTC
+  endDate: "2025-12-22T18:00:00Z", // Sunday Dec 22, 18:00 PM UTC (7 days)
 } as const;
 
 // Launch offer configuration
 const LAUNCH_CONFIG = {
   spotsTotal: 100,
-  spotsRemaining: 87, // Static - update manually if needed
+  startSlots: 94,
+  endSlots: 8,
   lifetimePrice: 99,
 } as const;
+
+// Calculate remaining slots based on campaign progress (deterministic)
+function calculateRemainingSlots(): number {
+  const start = new Date(CAMPAIGN_CONFIG.startDate);
+  const end = new Date(CAMPAIGN_CONFIG.endDate);
+  const now = new Date();
+
+  // Before campaign starts
+  if (now < start) return LAUNCH_CONFIG.startSlots;
+
+  // After campaign ends
+  if (now >= end) return LAUNCH_CONFIG.endSlots;
+
+  const totalDuration = end.getTime() - start.getTime();
+  const elapsed = now.getTime() - start.getTime();
+  const progress = elapsed / totalDuration;
+
+  // Linear decrease from startSlots to endSlots
+  const baseRemaining =
+    LAUNCH_CONFIG.startSlots -
+    (LAUNCH_CONFIG.startSlots - LAUNCH_CONFIG.endSlots) * progress;
+
+  // Add small deterministic variation based on hour (all users see same number)
+  const hourSeed = new Date().getUTCHours();
+  const variation = (hourSeed % 3) - 1; // -1 to +1 variation
+
+  return Math.max(
+    LAUNCH_CONFIG.endSlots,
+    Math.round(baseRemaining + variation)
+  );
+}
 
 export function CampaignBanner() {
   const { timeLeft, phase, isMounted } = useCampaignTimer(
@@ -72,12 +103,17 @@ export function CampaignBanner() {
   }
 
   const isUpcoming = phase === "UPCOMING";
-  const totalHours = timeLeft.days * 24 + timeLeft.hours;
-  const timeSegments = [
-    Math.max(0, totalHours),
-    timeLeft.minutes,
-    timeLeft.seconds,
-  ].map((segment) => String(segment).padStart(2, "0"));
+  const spotsRemaining = calculateRemainingSlots();
+
+  // Format time as "6d 23h 34m 12s" for clarity
+  const formatTimeDisplay = () => {
+    const parts: string[] = [];
+    if (timeLeft.days > 0) parts.push(`${timeLeft.days}d`);
+    if (timeLeft.hours > 0 || timeLeft.days > 0) parts.push(`${timeLeft.hours}h`);
+    parts.push(`${timeLeft.minutes}m`);
+    parts.push(`${timeLeft.seconds}s`);
+    return parts.join(" ");
+  };
 
   return (
     <motion.div
@@ -85,7 +121,7 @@ export function CampaignBanner() {
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      aria-label={`Get lifetime access for $${LAUNCH_CONFIG.lifetimePrice}. ${LAUNCH_CONFIG.spotsRemaining} spots remaining.`}
+      aria-label={`Get lifetime access for $${LAUNCH_CONFIG.lifetimePrice}. ${spotsRemaining} spots remaining.`}
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       className={`w-full bg-amber-600 hover:bg-amber-500 transition-colors duration-200 cursor-pointer text-white ${
@@ -112,7 +148,7 @@ export function CampaignBanner() {
 
           {/* Scarcity */}
           <span className="text-xs sm:text-sm font-medium whitespace-nowrap">
-            {LAUNCH_CONFIG.spotsRemaining}/{LAUNCH_CONFIG.spotsTotal} left
+            {spotsRemaining}/{LAUNCH_CONFIG.spotsTotal} left
           </span>
 
           {/* Separator - hidden on mobile */}
@@ -120,7 +156,7 @@ export function CampaignBanner() {
 
           {/* Timer */}
           <span className="font-mono tabular-nums text-xs sm:text-sm font-semibold whitespace-nowrap">
-            {timeSegments[0]}:{timeSegments[1]}:{timeSegments[2]}
+            {formatTimeDisplay()}
           </span>
 
           {/* Loading indicator or arrow hint */}

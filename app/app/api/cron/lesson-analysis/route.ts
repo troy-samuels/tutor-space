@@ -6,6 +6,7 @@ import {
   analyzeWithOpenAI,
   generateDrillsFromErrors,
 } from "@/lib/analysis/lesson-insights";
+import { processEnhancedAnalysis } from "@/lib/analysis/enhanced-processor";
 import { notifyDrillsAssigned } from "@/lib/actions/notifications";
 import { recordSystemEvent, recordSystemMetric, startDuration } from "@/lib/monitoring";
 
@@ -179,37 +180,98 @@ async function processRecording(client: AdminClient, recording: {
     .eq("id", recordingId);
 
   try {
-    // Fetch tutor's approval preference
+    // Fetch tutor's approval preference and name
     const { data: tutorProfile } = await client
       .from("profiles")
-      .select("auto_homework_approval")
+      .select("auto_homework_approval, full_name")
       .eq("id", recording.tutor_id)
       .single();
 
     const approvalPreference: TutorApprovalPreference =
       (tutorProfile?.auto_homework_approval as TutorApprovalPreference) ?? "require_approval";
+    const tutorName = tutorProfile?.full_name || undefined;
 
-    // Step 1: Basic fluency analysis (synchronous, fast)
-    const { summaryMd, keyPoints, fluencyFlags, drills } = analyzeTranscript(recording.transcript_json);
+    // Try enhanced analysis first
+    let useEnhancedAnalysis = true;
+    let enhancedResult = null;
 
-    // Step 2: OpenAI analysis for grammar/vocab (async, may fail gracefully)
-    const transcriptText = extractPlainText(recording.transcript_json);
-    const { grammarErrors, vocabGaps, summary: aiSummary } = await analyzeWithOpenAI(transcriptText);
-    const aiDrills = generateDrillsFromErrors(grammarErrors, vocabGaps);
+    try {
+      enhancedResult = await processEnhancedAnalysis({
+        recordingId,
+        transcriptJson: recording.transcript_json,
+        tutorId: recording.tutor_id,
+        studentId: recording.student_id,
+        bookingId: recording.booking_id,
+        tutorName,
+      });
 
-    // Merge all drills: fluency + grammar + vocabulary
-    const allDrills = [...drills, ...aiDrills];
+      await logProcessing(client, {
+        entityType: "lesson_recording",
+        entityId: recordingId,
+        level: "info",
+        message: "Enhanced analysis completed",
+        meta: {
+          objectives_found: enhancedResult.lessonObjectives.length,
+          drills_generated: enhancedResult.drillPackage.drillCount,
+          engagement_score: enhancedResult.engagementScore,
+          l1_interference_level: enhancedResult.l1InterferenceAnalysis.overallLevel,
+        },
+      });
+    } catch (enhancedError) {
+      console.warn("[Lesson Analysis] Enhanced analysis failed, falling back to basic:", enhancedError);
+      useEnhancedAnalysis = false;
+      await logProcessing(client, {
+        entityType: "lesson_recording",
+        entityId: recordingId,
+        level: "warn",
+        message: "Enhanced analysis failed, using basic analysis",
+        meta: { error: (enhancedError as Error).message },
+      });
+    }
 
-    // Use AI summary if available, otherwise use basic summary
-    const finalSummary = aiSummary && aiSummary.length > 0
-      ? `### AI Analysis\n${aiSummary}\n\n${summaryMd}`
-      : summaryMd;
+    let finalSummary: string;
+    let keyPoints: string[];
+    let fluencyFlags: Record<string, unknown>;
+    let allDrills: Array<{
+      content: Record<string, unknown>;
+      focus_area?: string | null;
+      source_timestamp_seconds?: number | null;
+      drill_type?: string;
+    }>;
+
+    if (useEnhancedAnalysis && enhancedResult) {
+      // Use enhanced analysis results
+      finalSummary = enhancedResult.summaryMd;
+      keyPoints = enhancedResult.keyPoints;
+      fluencyFlags = {
+        engagement_score: enhancedResult.engagementScore,
+        speaking_ratio: enhancedResult.interactionMetrics.speakingRatio,
+        turn_count: enhancedResult.interactionMetrics.turnCount,
+        confusion_count: enhancedResult.interactionMetrics.confusionIndicators.length,
+        l1_interference_level: enhancedResult.l1InterferenceAnalysis.overallLevel,
+      };
+      allDrills = enhancedResult.legacyDrills;
+    } else {
+      // Fall back to basic analysis
+      const basicAnalysis = analyzeTranscript(recording.transcript_json);
+      const transcriptText = extractPlainText(recording.transcript_json);
+      const { grammarErrors, vocabGaps, summary: aiSummary } = await analyzeWithOpenAI(transcriptText);
+      const aiDrills = generateDrillsFromErrors(grammarErrors, vocabGaps);
+
+      allDrills = [...basicAnalysis.drills, ...aiDrills];
+      keyPoints = basicAnalysis.keyPoints;
+      fluencyFlags = basicAnalysis.fluencyFlags;
+
+      finalSummary = aiSummary && aiSummary.length > 0
+        ? `### AI Analysis\n${aiSummary}\n\n${basicAnalysis.summaryMd}`
+        : basicAnalysis.summaryMd;
+    }
 
     await client
       .from("lesson_recordings")
       .update({
         ai_summary_md: finalSummary,
-        ai_summary: aiSummary || null,
+        ai_summary: finalSummary,
         key_points: keyPoints,
         fluency_flags: fluencyFlags,
         status: "completed",
@@ -245,12 +307,10 @@ async function processRecording(client: AdminClient, recording: {
       message: "Analysis completed",
       meta: {
         key_points: keyPoints?.length ?? 0,
-        fluency_drills: drills?.length ?? 0,
-        grammar_errors: grammarErrors?.length ?? 0,
-        vocab_gaps: vocabGaps?.length ?? 0,
         total_drills: allDrills?.length ?? 0,
         notification_sent: !!drillResult?.studentUserId && approvalPreference === "auto_send",
         approval_preference: approvalPreference,
+        used_enhanced_analysis: useEnhancedAnalysis,
       },
     });
   } catch (error) {
