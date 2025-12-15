@@ -357,35 +357,61 @@ async function fetchGoogleBusyWindows(
   timeMin: string,
   timeMax: string
 ): Promise<TimeWindow[]> {
-  const response = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      timeMin,
-      timeMax,
-      items: [{ id: "primary" }],
-    }),
-  });
+  const windows: TimeWindow[] = [];
+  let pageToken: string | undefined;
 
-  if (!response.ok) {
-    throw new Error(`Google freeBusy failed with status ${response.status}`);
-  }
-
-  const data = await response.json();
-  const busySlots = data?.calendars?.primary?.busy ?? [];
-
-  return busySlots
-    .map((slot: { start?: string; end?: string }) => ({
-      start: slot.start,
-      end: slot.end,
-    }))
-    .filter(
-      (slot: { start?: string; end?: string }): slot is TimeWindow =>
-        Boolean(slot.start && slot.end)
+  do {
+    // Use events.list so calendar.events scope (events-only) is sufficient
+    const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+    url.searchParams.set("timeMin", timeMin);
+    url.searchParams.set("timeMax", timeMax);
+    url.searchParams.set("singleEvents", "true");
+    url.searchParams.set("orderBy", "startTime");
+    url.searchParams.set("showDeleted", "false");
+    url.searchParams.set("maxResults", "2500"); // high cap to minimize pagination
+    url.searchParams.set(
+      "fields",
+      "items(id,start,end,status,transparency),nextPageToken"
     );
+
+    if (pageToken) {
+      url.searchParams.set("pageToken", pageToken);
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google events failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data?.items) ? data.items : [];
+
+    for (const item of items as Array<{
+      id?: string;
+      start?: { dateTime?: string; date?: string };
+      end?: { dateTime?: string; date?: string };
+      status?: string;
+      transparency?: string;
+    }>) {
+      if (item.status === "cancelled") continue;
+      if (item.transparency === "transparent") continue; // treat free blocks as available
+
+      const startIso = googleDateToIso(item.start);
+      const endIso = googleDateToIso(item.end);
+      if (!startIso || !endIso) continue;
+
+      windows.push({ start: startIso, end: endIso });
+    }
+
+    pageToken = typeof data?.nextPageToken === "string" ? data.nextPageToken : undefined;
+  } while (pageToken);
+
+  return windows;
 }
 
 async function fetchOutlookBusyWindows(
@@ -471,6 +497,16 @@ function graphDateTimeToIso(value?: { dateTime?: string; timeZone?: string } | n
     const parsed = Date.parse(value.dateTime);
     return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
   }
+}
+
+function googleDateToIso(value?: { dateTime?: string; date?: string } | null): string | null {
+  const raw = value?.dateTime || value?.date;
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
 }
 
 // Calendar event creation params
@@ -891,49 +927,69 @@ async function fetchGoogleEvents(
   timeMin: string,
   timeMax: string
 ): Promise<CalendarEvent[]> {
-  const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
-  url.searchParams.set("timeMin", timeMin);
-  url.searchParams.set("timeMax", timeMax);
-  url.searchParams.set("singleEvents", "true");
-  url.searchParams.set("orderBy", "startTime");
+  const events: CalendarEvent[] = [];
+  let pageToken: string | undefined;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  do {
+    const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+    url.searchParams.set("timeMin", timeMin);
+    url.searchParams.set("timeMax", timeMax);
+    url.searchParams.set("singleEvents", "true");
+    url.searchParams.set("orderBy", "startTime");
+    url.searchParams.set("showDeleted", "false");
+    url.searchParams.set("maxResults", "2500");
+    url.searchParams.set(
+      "fields",
+      "items(id,summary,start,end,status,transparency),nextPageToken"
+    );
 
-  if (!response.ok) {
-    throw new Error(`Google events failed with status ${response.status}`);
-  }
+    if (pageToken) {
+      url.searchParams.set("pageToken", pageToken);
+    }
 
-  const data = await response.json();
-  const items = Array.isArray(data?.items) ? data.items : [];
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
 
-  return items
-    .filter((item: { status?: string }) => item.status !== "cancelled")
-    .map((item: {
+    if (!response.ok) {
+      throw new Error(`Google events failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data?.items) ? data.items : [];
+
+    for (const item of items as Array<{
       id?: string;
       summary?: string;
       start?: { dateTime?: string; date?: string };
       end?: { dateTime?: string; date?: string };
-    }) => {
-      const startIso = item.start?.dateTime || item.start?.date;
-      const endIso = item.end?.dateTime || item.end?.date;
+      status?: string;
+      transparency?: string;
+    }>) {
+      if (item.status === "cancelled") continue;
+      if (item.transparency === "transparent") continue;
 
-      if (!startIso || !endIso) return null;
+      const startIso = googleDateToIso(item.start);
+      const endIso = googleDateToIso(item.end);
+      if (!startIso || !endIso) continue;
 
-      return {
+      events.push({
         id: `google-${item.id}`,
         title: item.summary || "Busy",
-        start: new Date(startIso).toISOString(),
-        end: new Date(endIso).toISOString(),
+        start: startIso,
+        end: endIso,
         type: "google" as const,
         source: "Google Calendar",
         packageType: "external" as const,
-      };
-    })
-    .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
+      });
+    }
+
+    pageToken = typeof data?.nextPageToken === "string" ? data.nextPageToken : undefined;
+  } while (pageToken);
+
+  return events;
 }
 
 async function fetchOutlookEvents(

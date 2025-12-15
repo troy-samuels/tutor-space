@@ -6,7 +6,7 @@ export default function AuthErrorPage() {
       <div className="w-full max-w-md rounded-2xl bg-background p-8 text-center shadow-lg">
         <h1 className="text-2xl font-semibold text-foreground">Authentication issue</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          We couldn&apos;t complete the sign-in process. Please try again or contact support if the problem persists.
+          We couldn&apos;t complete the sign-in process. Please try again or contact support at support@tutorlingua.co if the problem persists.
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <Link

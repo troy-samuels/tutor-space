@@ -13,8 +13,82 @@ import {
   getRevenueSourceBreakdown,
   getRecentActivity,
 } from "@/lib/data/analytics-metrics";
+import type {
+  RevenueDataPoint,
+  StudentMetrics,
+  BookingMetrics,
+  ServicePopularity,
+  BookingsByPeriod,
+  PaymentHealth,
+  EngagementDataPoint,
+  ProfileViewStats,
+} from "@/lib/data/analytics-metrics";
+import type {
+  StripeBalanceData,
+  RevenueSourceBreakdown,
+  RecentActivityItem,
+} from "@/lib/types/analytics-premium";
 
 export const dynamic = "force-dynamic";
+
+// Default fallback values for graceful degradation
+const defaultStudentMetrics: StudentMetrics = {
+  totalStudents: 0,
+  newStudents: 0,
+  returningStudents: 0,
+  churnRiskStudents: 0,
+  retentionRate: 0,
+  avgLessonsPerStudent: 0,
+};
+
+const defaultBookingMetrics: BookingMetrics = {
+  totalBookings: 0,
+  completedBookings: 0,
+  cancelledBookings: 0,
+  pendingBookings: 0,
+  completionRate: 0,
+  cancellationRate: 0,
+  avgSessionValue: 0,
+};
+
+const defaultPaymentHealth: PaymentHealth = {
+  grossVolume: 0,
+  netEarnings: 0,
+  refunds: 0,
+  fees: 0,
+};
+
+const defaultProfileViews: ProfileViewStats = {
+  totalViews: 0,
+  trend: [],
+};
+
+const defaultRevenueBreakdown: RevenueSourceBreakdown = {
+  subscriptionCount: 0,
+  packageCount: 0,
+  adHocCount: 0,
+  totalActiveStudents: 0,
+  subscriptionPercentage: 0,
+  packagePercentage: 0,
+  adHocPercentage: 0,
+  estimatedMRR: 0,
+};
+
+/**
+ * Safe metric fetcher - prevents one failing metric from breaking entire response
+ */
+async function safeMetricFetch<T>(
+  fetcher: () => Promise<T>,
+  fallback: T,
+  metricName: string
+): Promise<T> {
+  try {
+    return await fetcher();
+  } catch (error) {
+    console.error(`[Analytics] Failed to fetch ${metricName}:`, error);
+    return fallback;
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +108,7 @@ export async function GET(req: NextRequest) {
     // Only allow tutors to see their own data (or allow admin to see any)
     const tutorId = tutorIdParam === user.id ? tutorIdParam : user.id;
 
-    // Fetch all metrics in parallel
+    // Fetch all metrics in parallel with error boundaries
     const [
       revenue,
       studentMetrics,
@@ -48,34 +122,88 @@ export async function GET(req: NextRequest) {
       revenueBreakdown,
       recentActivity,
     ] = await Promise.all([
-      getRevenueOverTime(tutorId, days, supabase),
-      getStudentMetrics(tutorId, days, supabase),
-      getBookingMetrics(tutorId, days, supabase),
-      getServicePopularity(tutorId, days, supabase),
-      getBookingsByPeriod(tutorId, days, supabase),
-      getTotalRevenue(tutorId, days, supabase),
-      getEngagementOverTime(tutorId, days, supabase),
-      getProfileViews(tutorId, days, supabase),
-      getStripeBalance(tutorId, supabase),
-      getRevenueSourceBreakdown(tutorId, supabase),
-      getRecentActivity(tutorId, 10, supabase),
+      safeMetricFetch<RevenueDataPoint[]>(
+        () => getRevenueOverTime(tutorId, days, supabase),
+        [],
+        "revenue"
+      ),
+      safeMetricFetch<StudentMetrics>(
+        () => getStudentMetrics(tutorId, days, supabase),
+        defaultStudentMetrics,
+        "studentMetrics"
+      ),
+      safeMetricFetch<BookingMetrics>(
+        () => getBookingMetrics(tutorId, days, supabase),
+        defaultBookingMetrics,
+        "bookingMetrics"
+      ),
+      safeMetricFetch<ServicePopularity[]>(
+        () => getServicePopularity(tutorId, days, supabase),
+        [],
+        "servicePopularity"
+      ),
+      safeMetricFetch<BookingsByPeriod[]>(
+        () => getBookingsByPeriod(tutorId, days, supabase),
+        [],
+        "bookingsByPeriod"
+      ),
+      safeMetricFetch<PaymentHealth>(
+        () => getTotalRevenue(tutorId, days, supabase),
+        defaultPaymentHealth,
+        "totalRevenue"
+      ),
+      safeMetricFetch<EngagementDataPoint[]>(
+        () => getEngagementOverTime(tutorId, days, supabase),
+        [],
+        "engagementTrend"
+      ),
+      safeMetricFetch<ProfileViewStats>(
+        () => getProfileViews(tutorId, days, supabase),
+        defaultProfileViews,
+        "profileViews"
+      ),
+      safeMetricFetch<StripeBalanceData | null>(
+        () => getStripeBalance(tutorId, supabase),
+        null,
+        "stripeBalance"
+      ),
+      safeMetricFetch<RevenueSourceBreakdown>(
+        () => getRevenueSourceBreakdown(tutorId, supabase),
+        defaultRevenueBreakdown,
+        "revenueBreakdown"
+      ),
+      safeMetricFetch<RecentActivityItem[]>(
+        () => getRecentActivity(tutorId, 10, supabase),
+        [],
+        "recentActivity"
+      ),
     ]);
 
-    return NextResponse.json({
-      revenue,
-      studentMetrics,
-      bookingMetrics,
-      servicePopularity,
-      bookingsByPeriod,
-      totalRevenue,
-      engagementTrend,
-      profileViews,
-      stripeBalance,
-      revenueBreakdown,
-      recentActivity,
-    });
+    return NextResponse.json(
+      {
+        revenue,
+        studentMetrics,
+        bookingMetrics,
+        servicePopularity,
+        bookingsByPeriod,
+        totalRevenue,
+        engagementTrend,
+        profileViews,
+        stripeBalance,
+        revenueBreakdown,
+        recentActivity,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching tutor metrics:", error);
-    return NextResponse.json({ error: "Failed to fetch analytics" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch analytics" },
+      { status: 500 }
+    );
   }
 }

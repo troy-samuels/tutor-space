@@ -5,7 +5,7 @@
  * and adaptive drill generation into a unified processing pipeline.
  */
 
-import { parseDiarization, identifyTutorSpeaker, separateSpeakers, extractTextFromSegments } from "./speaker-diarization";
+import { parseDiarization, identifyTutorSpeaker, separateSpeakers } from "./speaker-diarization";
 import { analyzeTutorSpeech, mergeObjectives, type TutorAnalysis, type InferredObjective } from "./tutor-speech-analyzer";
 import { analyzeStudentSpeech, type StudentAnalysis, type StudentLanguageProfile } from "./student-speech-analyzer";
 import { detectL1Interference, getL1PatternsForPair, matchErrorsToL1Patterns, type L1InterferenceAnalysis } from "./l1-interference";
@@ -82,15 +82,13 @@ export async function processEnhancedAnalysis(
   const tutorSpeakerId = identifyTutorSpeaker(segments, tutorName);
   const { tutorSegments, studentSegments, studentSpeakerId } = separateSpeakers(segments, tutorSpeakerId);
 
-  const tutorText = extractTextFromSegments(tutorSegments);
-  const studentText = extractTextFromSegments(studentSegments);
-
   // -------------------------------------------------------------------------
   // Step 2: Load student language profile
   // -------------------------------------------------------------------------
   let languageProfile = await getOrCreateLanguageProfile(studentId);
   const targetLanguage = languageProfile.targetLanguage || "en";
   const nativeLanguage = languageProfile.nativeLanguage;
+  const proficiencyLevel = languageProfile.proficiencyLevel || "intermediate";
 
   // -------------------------------------------------------------------------
   // Step 3: Load L1 interference patterns
@@ -101,11 +99,21 @@ export async function processEnhancedAnalysis(
   }
 
   // -------------------------------------------------------------------------
+  // Step 3b: Load pre-defined objectives (if any)
+  // -------------------------------------------------------------------------
+  const preDefinedObjectives = await getPreDefinedObjectives(bookingId);
+
+  // -------------------------------------------------------------------------
   // Step 4: Parallel analysis
   // -------------------------------------------------------------------------
   const [tutorAnalysis, rawStudentAnalysis, interactionMetrics] = await Promise.all([
-    analyzeTutorSpeech(tutorSegments),
-    analyzeStudentSpeech(studentSegments, languageProfile),
+    analyzeTutorSpeech(tutorSegments, {
+      nativeLanguage,
+      targetLanguage,
+      proficiencyLevel,
+      preDefinedObjectives,
+    }),
+    analyzeStudentSpeech(studentSegments, languageProfile, l1Patterns),
     Promise.resolve(analyzeInteraction(segments, tutorSpeakerId)),
   ]);
 
@@ -139,15 +147,13 @@ export async function processEnhancedAnalysis(
   // -------------------------------------------------------------------------
   // Step 6: Merge lesson objectives
   // -------------------------------------------------------------------------
-  const preDefinedObjectives = await getPreDefinedObjectives(bookingId);
   const lessonObjectives = mergeObjectives(preDefinedObjectives, tutorAnalysis.inferredObjectives);
 
   // -------------------------------------------------------------------------
   // Step 7: Update student language profile
   // -------------------------------------------------------------------------
   languageProfile = await updateLanguageProfileFromAnalysis(
-    studentId,
-    targetLanguage,
+    languageProfile,
     studentAnalysis,
     l1InterferenceAnalysis
   );
@@ -166,7 +172,7 @@ export async function processEnhancedAnalysis(
     tutorId,
     targetLanguage,
     nativeLanguage,
-    proficiencyLevel: languageProfile.proficiencyLevel || "intermediate",
+    proficiencyLevel: languageProfile.proficiencyLevel || proficiencyLevel,
   });
 
   // -------------------------------------------------------------------------
@@ -248,6 +254,12 @@ async function getOrCreateLanguageProfile(studentId: string): Promise<StudentLan
     return createDefaultProfile(studentId);
   }
 
+  const { data: student } = await supabase
+    .from("students")
+    .select("native_language, proficiency_level")
+    .eq("id", studentId)
+    .maybeSingle();
+
   // Try to get existing profile
   const { data, error } = await supabase
     .from("student_language_profiles")
@@ -258,22 +270,26 @@ async function getOrCreateLanguageProfile(studentId: string): Promise<StudentLan
     .single();
 
   if (error || !data) {
-    // Create new profile
-    return createDefaultProfile(studentId);
+    const defaultProfile = createDefaultProfile(studentId);
+    return {
+      ...defaultProfile,
+      nativeLanguage: typeof student?.native_language === "string" ? student.native_language : defaultProfile.nativeLanguage,
+      proficiencyLevel: normalizeProficiencyLevel(student?.proficiency_level) || defaultProfile.proficiencyLevel,
+    };
   }
 
   return {
     studentId: data.student_id,
     targetLanguage: data.target_language,
-    nativeLanguage: data.native_language,
+    nativeLanguage: data.native_language || student?.native_language || undefined,
     dialectVariant: data.dialect_variant,
     formalityPreference: data.formality_preference,
     vocabularyStyle: data.vocabulary_style,
-    l1InterferencePatterns: data.l1_interference_patterns,
+    l1InterferencePatterns: normalizeStoredL1Patterns(data.l1_interference_patterns),
     speakingPace: data.speaking_pace,
     fillerWordsUsed: data.filler_words_used,
     lessonsAnalyzed: data.lessons_analyzed,
-    proficiencyLevel: "intermediate", // Get from student record if available
+    proficiencyLevel: normalizeProficiencyLevel(student?.proficiency_level) || "intermediate",
   };
 }
 
@@ -291,6 +307,68 @@ function createDefaultProfile(studentId: string): StudentLanguageProfile {
     lessonsAnalyzed: 0,
     proficiencyLevel: "intermediate",
   };
+}
+
+function normalizeProficiencyLevel(
+  input: unknown
+): StudentLanguageProfile["proficiencyLevel"] | undefined {
+  if (typeof input !== "string") return undefined;
+  const normalized = input.trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+
+  const direct = [
+    "beginner",
+    "elementary",
+    "intermediate",
+    "upper_intermediate",
+    "advanced",
+    "proficient",
+  ] as const;
+  if ((direct as readonly string[]).includes(normalized)) {
+    return normalized as StudentLanguageProfile["proficiencyLevel"];
+  }
+
+  const cefr = normalized.replace(/^cefr_/, "");
+  switch (cefr) {
+    case "a1":
+      return "beginner";
+    case "a2":
+      return "elementary";
+    case "b1":
+      return "intermediate";
+    case "b2":
+      return "upper_intermediate";
+    case "c1":
+      return "advanced";
+    case "c2":
+      return "proficient";
+    default:
+      return undefined;
+  }
+}
+
+function normalizeStoredL1Patterns(
+  value: unknown
+): StudentLanguageProfile["l1InterferencePatterns"] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Record<string, unknown>;
+
+      const pattern = typeof record.pattern === "string" ? record.pattern : "";
+      const frequency = Number(record.frequency);
+      const improving = Boolean(record.improving);
+
+      if (!pattern) return null;
+      return {
+        pattern,
+        frequency: Number.isFinite(frequency) ? frequency : 0,
+        improving,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .slice(0, 25);
 }
 
 /**
@@ -333,37 +411,51 @@ async function getPreDefinedObjectives(bookingId?: string): Promise<InferredObje
  * Update student language profile based on analysis
  */
 async function updateLanguageProfileFromAnalysis(
-  studentId: string,
-  targetLanguage: string,
+  existingProfile: StudentLanguageProfile,
   studentAnalysis: StudentAnalysis,
   l1Interference: L1InterferenceAnalysis
 ): Promise<StudentLanguageProfile> {
   const supabase = createServiceRoleClient();
 
   if (!supabase) {
-    return createDefaultProfile(studentId);
+    return existingProfile;
   }
+
+  const studentId = existingProfile.studentId;
+  const targetLanguage = existingProfile.targetLanguage || "en";
 
   // Build update data
   // Derive speaking pace from WPM
   const wpm = studentAnalysis.fluencyMetrics?.wordsPerMinute || 0;
   const derivedPace = wpm < 100 ? "slow" : wpm > 150 ? "fast" : "moderate";
 
+  const mergedFillers = [
+    ...new Set([
+      ...(existingProfile.fillerWordsUsed || []),
+      ...(studentAnalysis.fluencyMetrics?.fillerWords || []),
+    ]),
+  ].slice(0, 10);
+
+  const lessonsAnalyzed = (existingProfile.lessonsAnalyzed ?? 0) + 1;
+  const l1InterferencePatterns = mergeL1InterferencePatterns(
+    existingProfile.l1InterferencePatterns || [],
+    l1Interference
+  );
+
   const updateData: Record<string, unknown> = {
-    lessons_analyzed: 1, // Will be incremented
+    lessons_analyzed: lessonsAnalyzed,
     last_updated_at: new Date().toISOString(),
     speaking_pace: derivedPace,
-    filler_words_used: studentAnalysis.fluencyMetrics?.fillerWords || [],
+    filler_words_used: mergedFillers,
   };
 
   // Update L1 interference patterns
-  if (l1Interference.patterns.length > 0) {
-    updateData.l1_interference_patterns = l1Interference.patterns.map((p) => ({
-      pattern: p.pattern,
-      frequency: p.count,
-      lastSeen: new Date().toISOString(),
-    }));
-  }
+  updateData.l1_interference_patterns = l1InterferencePatterns;
+
+  if (existingProfile.nativeLanguage) updateData.native_language = existingProfile.nativeLanguage;
+  if (existingProfile.dialectVariant) updateData.dialect_variant = existingProfile.dialectVariant;
+  if (existingProfile.formalityPreference) updateData.formality_preference = existingProfile.formalityPreference;
+  if (existingProfile.vocabularyStyle) updateData.vocabulary_style = existingProfile.vocabularyStyle;
 
   // Upsert the profile
   const { data, error } = await supabase
@@ -380,7 +472,13 @@ async function updateLanguageProfileFromAnalysis(
 
   if (error || !data) {
     console.error("[EnhancedProcessor] Error updating language profile:", error);
-    return createDefaultProfile(studentId);
+    return {
+      ...existingProfile,
+      speakingPace: derivedPace,
+      fillerWordsUsed: mergedFillers,
+      lessonsAnalyzed,
+      l1InterferencePatterns,
+    };
   }
 
   return {
@@ -390,12 +488,43 @@ async function updateLanguageProfileFromAnalysis(
     dialectVariant: data.dialect_variant,
     formalityPreference: data.formality_preference || "neutral",
     vocabularyStyle: data.vocabulary_style || {},
-    l1InterferencePatterns: data.l1_interference_patterns || [],
+    l1InterferencePatterns: normalizeStoredL1Patterns(data.l1_interference_patterns) || l1InterferencePatterns,
     speakingPace: data.speaking_pace || "moderate",
     fillerWordsUsed: data.filler_words_used || [],
-    lessonsAnalyzed: data.lessons_analyzed || 1,
-    proficiencyLevel: "intermediate",
+    lessonsAnalyzed: data.lessons_analyzed || lessonsAnalyzed,
+    proficiencyLevel: existingProfile.proficiencyLevel || "intermediate",
   };
+}
+
+function mergeL1InterferencePatterns(
+  existingPatterns: NonNullable<StudentLanguageProfile["l1InterferencePatterns"]>,
+  l1Interference: L1InterferenceAnalysis
+): NonNullable<StudentLanguageProfile["l1InterferencePatterns"]> {
+  const byPattern = new Map<string, { pattern: string; frequency: number; improving: boolean }>();
+
+  for (const existing of existingPatterns) {
+    if (!existing?.pattern) continue;
+    byPattern.set(existing.pattern, {
+      pattern: existing.pattern,
+      frequency: Number.isFinite(existing.frequency) ? existing.frequency : 0,
+      improving: Boolean(existing.improving),
+    });
+  }
+
+  for (const detected of l1Interference.patterns) {
+    if (!detected?.pattern) continue;
+    const current = byPattern.get(detected.pattern);
+    const nextFrequency = (current?.frequency ?? 0) + (Number.isFinite(detected.count) ? detected.count : 0);
+    byPattern.set(detected.pattern, {
+      pattern: detected.pattern,
+      frequency: nextFrequency,
+      improving: current?.improving ?? false,
+    });
+  }
+
+  return Array.from(byPattern.values())
+    .sort((a, b) => b.frequency - a.frequency)
+    .slice(0, 25);
 }
 
 /**

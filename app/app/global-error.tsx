@@ -34,8 +34,8 @@ export default function GlobalError({
             <h1 className="text-3xl font-semibold">We could not load this page</h1>
             <p className="text-muted-foreground">
               {isServerError
-                ? "It looks like something went wrong on our end. Try again, and if it keeps happening, please let us know."
-                : "An unexpected issue occurred while loading this page. You can retry or return home."}
+                ? "It looks like something went wrong on our end. Try again, and if it keeps happening, contact support at support@tutorlingua.co."
+                : "An unexpected issue occurred while loading this page. You can retry or return home. Need help? Contact support@tutorlingua.co."}
             </p>
             {error.digest ? (
               <p className="text-xs text-muted-foreground">Reference: {error.digest}</p>

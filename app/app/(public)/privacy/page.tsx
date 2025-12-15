@@ -73,11 +73,80 @@ export default function PrivacyPolicyPage() {
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">2.3 Information from Third Parties</h3>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
-              <li><strong>Calendar Data:</strong> If you connect Google Calendar or Microsoft Outlook, we access your calendar events to prevent double-bookings and display availability</li>
+              <li><strong>Calendar Data:</strong> If you connect Google Calendar or Microsoft Outlook, we access your calendar events to prevent double-bookings and display availability. See Section 2.4 for detailed information about our Google Calendar integration.</li>
               <li><strong>Social Media:</strong> If you interact with our social media pages, we may receive information made available through those platforms</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">2.4 AI Processing and Learning Data</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">2.4 Google Calendar Integration</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua offers optional integration with Google Calendar to help tutors manage their scheduling. This section describes in detail how we access, use, and protect your Google Calendar data.
+            </p>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Data We Access</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              When you connect your Google Calendar, we request access using the <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">calendar.events</code> scope, which allows us to:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Read your calendar events, including event titles, start and end times, dates, and busy/free status</li>
+              <li>Create new calendar events for confirmed TutorLingua lesson bookings</li>
+              <li>View event attendee information to identify scheduling conflicts</li>
+            </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">How We Use This Data</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua&apos;s use of Google Calendar data is limited to the following purposes:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Preventing Double-Bookings:</strong> We read your existing calendar events to determine when you are busy, ensuring students can only book lessons during your available times</li>
+              <li><strong>Displaying Availability:</strong> Your calendar busy times are used to show accurate availability on your public booking page</li>
+              <li><strong>Creating Lesson Events:</strong> When a student books a lesson with you, we create a calendar event on your Google Calendar with the lesson details</li>
+              <li><strong>Calendar View:</strong> We display your calendar events within the TutorLingua dashboard for unified scheduling management</li>
+            </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Data Storage and Retention</h4>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>OAuth Tokens:</strong> Your Google OAuth access and refresh tokens are stored encrypted in our database. These tokens allow TutorLingua to access your calendar on your behalf.</li>
+              <li><strong>Calendar Events:</strong> We do not permanently store your Google Calendar event data. Events are fetched on-demand when displaying your calendar or checking availability.</li>
+              <li><strong>Created Events:</strong> Lesson booking events created by TutorLingua on your Google Calendar are stored on Google&apos;s servers, not ours, and remain on your calendar after you disconnect from TutorLingua.</li>
+              <li><strong>Token Retention:</strong> OAuth tokens are retained until you disconnect your Google Calendar from TutorLingua. Upon disconnection, tokens are immediately deleted from our systems.</li>
+            </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Data Sharing</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>We do not sell, share, or transfer your Google Calendar data to any third parties.</strong> Your calendar data is used exclusively within the TutorLingua platform for the purposes described above. We do not use your calendar data for advertising, marketing, or any purpose other than providing our scheduling services.
+            </p>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Your Rights and Controls</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">You have full control over your Google Calendar connection:</p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Disconnect Anytime:</strong> You can disconnect your Google Calendar from TutorLingua at any time through your Settings &gt; Calendar page. This immediately revokes our access.</li>
+              <li><strong>Revoke via Google:</strong> You can also revoke TutorLingua&apos;s access directly from your Google Account at{" "}
+                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                  myaccount.google.com/permissions
+                </a>
+              </li>
+              <li><strong>Request Token Deletion:</strong> You may request deletion of stored OAuth tokens by contacting{" "}
+                <a href="mailto:privacy@tutorlingua.co" className="text-primary font-semibold hover:underline">
+                  privacy@tutorlingua.co
+                </a>
+              </li>
+            </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Google API Services Compliance</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua&apos;s use and transfer of information received from Google APIs adheres to the{" "}
+              <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                Google API Services User Data Policy
+              </a>, including the Limited Use requirements. Specifically:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>We only use Google Calendar data to provide and improve the scheduling features described in this policy</li>
+              <li>We do not use Google Calendar data to serve advertisements</li>
+              <li>We do not allow humans to read your calendar data except where necessary for security purposes, to comply with applicable law, or with your explicit consent</li>
+              <li>We do not transfer Google Calendar data to third parties except as necessary to provide our services, comply with applicable laws, or as part of a merger, acquisition, or sale of assets (with notice to you)</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">2.5 AI Processing and Learning Data</h3>
             <p className="text-gray-700 leading-relaxed mb-4">When you use our AI-powered learning features, we collect additional data to provide personalized educational services:</p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700">
               <li><strong>Audio Data:</strong> Voice recordings submitted for pronunciation assessment, audio homework submissions, and audio messages between tutors and students</li>
@@ -186,6 +255,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Video Conferencing:</strong> Zoom, Google Meet (if integrated by tutor)</li>
               <li><strong>Database & Hosting:</strong> Supabase, Vercel</li>
               <li><strong>Analytics:</strong> Usage analytics and performance monitoring services</li>
+              <li><strong>Google Calendar:</strong> When you connect your Google Calendar, we access your calendar data through Google&apos;s APIs solely to provide scheduling features. <strong>We do not share, sell, or transfer your Google Calendar data to any third parties.</strong> See Section 2.4 for complete details on our Google Calendar integration.</li>
             </ul>
 
             <h4 className="text-lg font-semibold text-gray-900 mb-3">AI and Machine Learning Service Providers</h4>

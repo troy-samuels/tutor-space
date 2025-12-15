@@ -119,7 +119,12 @@ export async function POST(request: NextRequest) {
         {
           model: "nova-2",
           smart_format: true,
+          punctuate: true,
           diarize: true,
+          utterances: true,
+          paragraphs: true,
+          filler_words: true,
+          detect_language: true,
         }
       );
 

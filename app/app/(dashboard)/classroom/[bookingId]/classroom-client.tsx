@@ -188,7 +188,7 @@ export default function ClassroomClient() {
             Configuration Error
           </h1>
           <p className="text-muted-foreground">
-            Video service is not configured. Please contact support.
+            Video service is not configured. Please contact support at support@tutorlingua.co.
           </p>
         </div>
       </div>

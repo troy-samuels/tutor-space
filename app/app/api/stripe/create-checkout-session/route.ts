@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!profile.stripe_customer_id) {
-      return NextResponse.json({ error: "No Stripe customer found. Please contact support." }, { status: 400 });
+      return NextResponse.json({ error: "No Stripe customer found. Please contact support at support@tutorlingua.co." }, { status: 400 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

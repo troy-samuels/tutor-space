@@ -317,6 +317,51 @@ export default function TermsOfServicePage() {
               </Link>{" "}
               explains how we collect, use, and protect your personal information. By using TutorLingua, you consent to our data practices as described in the Privacy Policy.
             </p>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">10.1 Google Calendar Integration</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua offers optional integration with Google Calendar to help tutors manage their scheduling. By connecting your Google Calendar:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>You Consent:</strong> You authorize TutorLingua to access your Google Calendar data to read events, display availability, and create lesson booking events on your behalf.</li>
+              <li><strong>Data Access:</strong> We use the <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">calendar.events</code> scope to read and write calendar events. We do not access other Google services or data.</li>
+              <li><strong>Purpose:</strong> Calendar access is used solely to prevent double-bookings, display your availability to students, and sync lesson bookings to your calendar.</li>
+              <li><strong>Your Control:</strong> You may disconnect your Google Calendar at any time from your TutorLingua Settings, which immediately revokes our access.</li>
+            </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Google API Services Compliance</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{" "}
+              <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                Google API Services User Data Policy
+              </a>, including the Limited Use requirements.
+            </p>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Limited Use Disclosure:</strong> TutorLingua&apos;s use of Google Calendar data is limited to providing and improving the scheduling features described in this section and our{" "}
+              <Link href="/privacy#google-calendar" className="text-primary font-semibold hover:underline">
+                Privacy Policy
+              </Link>. Specifically:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>We do not use Google Calendar data for advertising purposes</li>
+              <li>We do not sell Google Calendar data to third parties</li>
+              <li>We do not use Google Calendar data for purposes unrelated to the core scheduling functionality</li>
+              <li>We do not allow humans to read your calendar data except where necessary for security purposes, to comply with applicable law, or with your explicit consent</li>
+            </ul>
+
+            <h4 className="text-lg font-semibold text-gray-900 mb-3">Disclaimer</h4>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              TutorLingua is not responsible for:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Calendar sync issues caused by Google API changes, outages, or rate limits</li>
+              <li>Data loss or corruption within your Google Calendar</li>
+              <li>Scheduling conflicts that arise from delays in calendar synchronization</li>
+              <li>Changes to Google&apos;s terms of service or API availability</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed">
+              You are responsible for regularly verifying that your calendar data is syncing correctly and for disconnecting the integration if you no longer wish to use it.
+            </p>
           </section>
 
           {/* Studio Features & AI Services */}

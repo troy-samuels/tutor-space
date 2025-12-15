@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
     if (!usagePeriod) {
       return NextResponse.json(
-        { error: "Unable to track usage. Please contact support." },
+        { error: "Unable to track usage. Please contact support at support@tutorlingua.co." },
         { status: 500 }
       );
     }

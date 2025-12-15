@@ -97,12 +97,20 @@ export async function getRevenueOverTime(
   }
 
   // Fill in missing dates with 0
+  // Normalize to local midnight for consistent date iteration across timezones
   const result: RevenueDataPoint[] = [];
   const startDate = new Date(since);
+  startDate.setHours(0, 0, 0, 0);
+
   const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999); // End of today
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0];
+    // Use local date format instead of toISOString() to avoid timezone shifts
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
     result.push({
       date: dateStr,
       revenue: (revenueByDate.get(dateStr) ?? 0) / 100, // Convert cents to dollars
@@ -433,12 +441,20 @@ export async function getEngagementOverTime(
   }
 
   // Fill in missing dates with zeros
+  // Normalize to local midnight for consistent date iteration across timezones
   const result: EngagementDataPoint[] = [];
   const startDate = new Date(since);
+  startDate.setHours(0, 0, 0, 0);
+
   const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999); // End of today
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0];
+    // Use local date format instead of toISOString() to avoid timezone shifts
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
     const dayData = engagementByDate.get(dateStr);
     result.push({
       date: dateStr,
@@ -495,12 +511,20 @@ export async function getProfileViews(
   }
 
   // Fill in missing dates with zeros
+  // Normalize to local midnight for consistent date iteration across timezones
   const trend: { date: string; views: number }[] = [];
   const startDate = new Date(since);
+  startDate.setHours(0, 0, 0, 0);
+
   const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999); // End of today
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0];
+    // Use local date format instead of toISOString() to avoid timezone shifts
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
     trend.push({
       date: dateStr,
       views: viewsByDate.get(dateStr) ?? 0,
@@ -564,55 +588,98 @@ export async function getStripeBalance(
 
 /**
  * Get revenue source breakdown (subscriptions, packages, ad-hoc)
+ *
+ * Key semantics:
+ * - A student is counted as "subscription" if they have an active subscription
+ * - A student is counted as "package" if they have an active package with remaining minutes
+ * - A student is counted as "ad-hoc" if they have neither subscription nor package
+ * - Students with BOTH subscription AND package are counted in subscription (primary) only
+ * - Only students with recent activity (30 days) or active plans are considered "active"
  */
 export async function getRevenueSourceBreakdown(
   tutorId: string,
   client?: SupabaseClient
 ): Promise<RevenueSourceBreakdown> {
   const supabase = client ?? (await createClient());
+  const thirtyDaysAgo = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000
+  ).toISOString();
 
-  // Query active lesson subscriptions
+  // 1. Query active subscriptions with student_id
   const { data: subscriptions } = await supabase
     .from("lesson_subscriptions")
-    .select("id, template_id, lesson_subscription_templates(price_cents)")
+    .select(
+      "id, student_id, template_id, lesson_subscription_templates(price_cents)"
+    )
     .eq("tutor_id", tutorId)
     .in("status", ["active", "trialing"]);
 
-  const subscriptionCount = subscriptions?.length ?? 0;
+  // Extract UNIQUE student IDs with subscriptions
+  const subscriptionStudentIds = new Set<string>(
+    (subscriptions ?? [])
+      .map((s) => s.student_id)
+      .filter((id): id is string => id != null)
+  );
 
   // Calculate MRR from active subscriptions
   const estimatedMRR =
     subscriptions?.reduce((sum, sub) => {
-      const template = sub.lesson_subscription_templates as { price_cents?: number } | null;
+      const template = sub.lesson_subscription_templates as {
+        price_cents?: number;
+      } | null;
       return sum + (template?.price_cents ?? 0);
     }, 0) ?? 0;
 
-  // Query active session packages
+  // 2. Query active packages with student_id
   const { data: packages } = await supabase
     .from("session_package_purchases")
-    .select("id, session_package_templates!inner(tutor_id)")
+    .select("id, student_id, session_package_templates!inner(tutor_id)")
     .eq("session_package_templates.tutor_id", tutorId)
     .eq("status", "active")
     .gt("remaining_minutes", 0);
 
-  const packageCount = packages?.length ?? 0;
+  // Package students EXCLUDING those with subscriptions (no double-count)
+  const packageOnlyStudentIds = new Set<string>(
+    (packages ?? [])
+      .map((p) => p.student_id)
+      .filter(
+        (id): id is string => id != null && !subscriptionStudentIds.has(id)
+      )
+  );
 
-  // Get total students
-  const { count: totalStudents } = await supabase
-    .from("students")
-    .select("id", { count: "exact", head: true })
-    .eq("tutor_id", tutorId);
+  // 3. Get students with recent activity (30 days)
+  const { data: recentBookingStudents } = await supabase
+    .from("bookings")
+    .select("student_id")
+    .eq("tutor_id", tutorId)
+    .gte("scheduled_at", thirtyDaysAgo)
+    .not("student_id", "is", null);
 
-  const totalActiveStudents = totalStudents ?? 0;
+  // All active students = union of subscription + package + recent bookings
+  const allActiveStudentIds = new Set<string>([
+    ...subscriptionStudentIds,
+    ...packageOnlyStudentIds,
+    ...(recentBookingStudents ?? [])
+      .map((b) => b.student_id)
+      .filter((id): id is string => id != null),
+  ]);
 
-  // Calculate ad-hoc (students not on subscription or package)
-  const adHocCount = Math.max(0, totalActiveStudents - subscriptionCount - packageCount);
+  const totalActiveStudents = allActiveStudentIds.size;
+  const subscriptionCount = subscriptionStudentIds.size;
+  const packageCount = packageOnlyStudentIds.size;
+  const adHocCount = Math.max(
+    0,
+    totalActiveStudents - subscriptionCount - packageCount
+  );
 
-  // Calculate percentages
-  const total = subscriptionCount + packageCount + adHocCount;
-  const subscriptionPercentage = total > 0 ? Math.round((subscriptionCount / total) * 100) : 0;
-  const packagePercentage = total > 0 ? Math.round((packageCount / total) * 100) : 0;
-  const adHocPercentage = total > 0 ? 100 - subscriptionPercentage - packagePercentage : 0;
+  // Calculate percentages (remainder goes to ad-hoc to ensure 100%)
+  const total = totalActiveStudents;
+  const subscriptionPercentage =
+    total > 0 ? Math.round((subscriptionCount / total) * 100) : 0;
+  const packagePercentage =
+    total > 0 ? Math.round((packageCount / total) * 100) : 0;
+  const adHocPercentage =
+    total > 0 ? 100 - subscriptionPercentage - packagePercentage : 0;
 
   return {
     subscriptionCount,

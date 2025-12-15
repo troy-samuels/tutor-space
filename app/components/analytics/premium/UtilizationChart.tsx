@@ -99,6 +99,7 @@ export function UtilizationChart({
               tickLine={false}
               tick={{ fontSize: 11, fill: axisColor }}
               interval="preserveStartEnd"
+              minTickGap={40}
             />
             <YAxis
               yAxisId="left"

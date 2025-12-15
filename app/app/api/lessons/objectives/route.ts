@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * POST /api/lessons/objectives
@@ -35,13 +35,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection unavailable" },
-        { status: 503 }
-      );
-    }
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // Get booking details to verify tutor ownership
     const { data: booking, error: bookingError } = await supabase
@@ -51,10 +47,17 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (bookingError || !booking) {
+      if (bookingError?.code === "42501") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         { error: "Booking not found" },
         { status: 404 }
       );
+    }
+
+    if (booking.tutor_id !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Upsert lesson objectives
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
         {
           booking_id: bookingId,
           recording_id: recordingId || null,
-          tutor_id: booking.tutor_id,
+          tutor_id: user.id,
           student_id: booking.student_id,
           source: "tutor_defined",
           tutor_objectives: objectives,
@@ -80,6 +83,9 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[Lesson Objectives] Error:", error);
+      if (error.code === "42501") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         { error: "Failed to save objectives" },
         { status: 500 }
@@ -116,23 +122,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection unavailable" },
-        { status: 503 }
-      );
-    }
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { data, error } = await supabase
       .from("lesson_objectives")
       .select("*")
       .eq("booking_id", bookingId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 = no rows returned
+    if (error) {
       console.error("[Lesson Objectives] Error:", error);
+      if (error.code === "42501") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         { error: "Failed to fetch objectives" },
         { status: 500 }

@@ -1597,16 +1597,16 @@ CREATE POLICY "Public view published sites"
 
 ### Google Calendar OAuth
 
-**Scopes**: `https://www.googleapis.com/auth/calendar`
+**Scopes**: `https://www.googleapis.com/auth/calendar.events` (events only)
 
 **Provider**: Google OAuth 2.0
 
 **Flow**: Authorization code grant with refresh tokens (popup-based)
 
 **Features**:
-- Fetches events with titles (not just busy times)
+- Reads busy times/events to prevent double-booking
+- Creates booking events (optionally with attendee email)
 - Displays in calendar with color coding
-- Prevents double-booking
 - Auto-refresh tokens before expiration
 
 ### Microsoft Outlook OAuth

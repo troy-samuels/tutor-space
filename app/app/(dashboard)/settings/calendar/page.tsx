@@ -29,7 +29,7 @@ const ERROR_MAP: Record<string, string> = {
   token_exchange_failed: "We couldn’t finish the OAuth handshake. Try again in a moment.",
   missing_access_token: "Google or Microsoft did not return an access token. Try again.",
   encryption_failed: "We couldn’t encrypt the calendar token securely. Try again.",
-  persist_failed: "We couldn’t save the connection. Try again or contact hello@tutorlingua.co.",
+  persist_failed: "We couldn't save the connection. Try again or contact support@tutorlingua.co.",
 };
 
 export default async function CalendarSettingsPage({

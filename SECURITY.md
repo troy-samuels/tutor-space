@@ -65,6 +65,7 @@ This document defines baseline security practices for the TutorLingua platform. 
 - Rotate secrets periodically
 - Distinct keys per environment (dev, staging, prod)
 - Only `NEXT_PUBLIC_*` variables exposed to client
+- AI provider keys (`OPENAI_API_KEY`) must stay server-side only; avoid logging payloads with the key and rotate if any exposure is suspected.
 
 ### Required Secrets
 ```
@@ -72,6 +73,7 @@ SUPABASE_SERVICE_ROLE_KEY
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
 RESEND_API_KEY
+OPENAI_API_KEY
 GOOGLE_CLIENT_SECRET
 MICROSOFT_CLIENT_SECRET
 ```
@@ -96,7 +98,8 @@ MICROSOFT_CLIENT_SECRET
 ## 7. Calendar Integrations
 
 ### Google Calendar OAuth
-- Scopes: `https://www.googleapis.com/auth/calendar`
+- Scopes: `https://www.googleapis.com/auth/calendar.events` (read/write events only)
+- Only used to read busy times for conflict checks and create/update booking events
 - Access/refresh tokens stored encrypted in `calendar_connections`
 - Auto-refresh tokens before expiration
 

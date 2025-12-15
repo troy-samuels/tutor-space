@@ -6,7 +6,7 @@ import { useFormState } from "react-dom";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { submitTutorSiteReview, type SubmitReviewState } from "@/lib/actions/reviews";
+import { submitTutorSiteReview, type SubmitReviewState, type ExistingReview } from "@/lib/actions/reviews";
 import { cn } from "@/lib/utils";
 
 export type StudentReviewFormProps = {
@@ -18,6 +18,10 @@ export type StudentReviewFormProps = {
   canSubmit: boolean;
   defaultDisplayName?: string | null;
   onSubmitted?: (review: { author: string; quote: string; rating?: number | null }) => void;
+  /** If provided, form operates in edit mode with pre-populated values */
+  existingReview?: ExistingReview;
+  /** Optional: render as compact form without outer card styling */
+  compact?: boolean;
 };
 
 const initialState: SubmitReviewState = { status: "idle" };
@@ -31,9 +35,13 @@ export function StudentReviewForm({
   canSubmit,
   defaultDisplayName,
   onSubmitted,
+  existingReview,
+  compact = false,
 }: StudentReviewFormProps) {
   const [state, formAction] = useFormState(submitTutorSiteReview, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const isEditMode = !!existingReview;
 
   useEffect(() => {
     if (state.status === "success") {
@@ -46,18 +54,25 @@ export function StudentReviewForm({
 
   const disabled = !isLoggedIn || !canSubmit || state.status === "success";
 
-  return (
-    <div className="mt-8 rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
+  // Use existing review's display name if in edit mode
+  const displayNameDefault = existingReview?.displayName ?? defaultDisplayName ?? "";
+
+  const formContent = (
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Share your experience with {tutorName}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {isEditMode ? `Update your review for ${tutorName}` : `Share your experience with ${tutorName}`}
+          </p>
           <p className="text-xs text-muted-foreground">
-            Your review helps other students decide if this tutor is right for them.
+            {isEditMode
+              ? "You can update your review at any time."
+              : "Your review helps other students decide if this tutor is right for them."}
           </p>
         </div>
         {state.status === "success" ? (
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            Thanks for your review!
+            {isEditMode ? "Review updated!" : "Thanks for your review!"}
           </span>
         ) : null}
       </div>
@@ -97,7 +112,7 @@ export function StudentReviewForm({
             <Input
               name="displayName"
               placeholder="How you'd like your name to appear"
-              defaultValue={defaultDisplayName ?? ""}
+              defaultValue={displayNameDefault}
               disabled={disabled}
               required
             />
@@ -117,7 +132,7 @@ export function StudentReviewForm({
                     type="radio"
                     name="rating"
                     value={value}
-                    defaultChecked={value === 5}
+                    defaultChecked={existingReview ? value === existingReview.rating : value === 5}
                     className="sr-only"
                     disabled={disabled}
                   />
@@ -134,6 +149,7 @@ export function StudentReviewForm({
           <Input
             name="title"
             placeholder="What changed after lessons?"
+            defaultValue={existingReview?.title ?? ""}
             disabled={disabled}
             maxLength={120}
           />
@@ -146,9 +162,10 @@ export function StudentReviewForm({
             minLength={20}
             maxLength={800}
             placeholder="Share what you worked on, what improved, and who this tutor is best for."
-            className="mt-1 w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm leading-6 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="mt-1 w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm leading-6 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             rows={5}
             disabled={disabled}
+            defaultValue={existingReview?.body ?? ""}
             required
           />
           <p className="mt-1 text-xs text-muted-foreground">200-300 characters usually works best.</p>
@@ -169,13 +186,33 @@ export function StudentReviewForm({
 
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={disabled}>
-            {state.status === "success" ? "Submitted" : "Submit review"}
+            {state.status === "success"
+              ? isEditMode
+                ? "Updated"
+                : "Submitted"
+              : isEditMode
+                ? "Update review"
+                : "Submit review"}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Reviews are added to the tutor&apos;s mini-site once submitted.
+            {isEditMode
+              ? "Your updated review will appear on the tutor's site."
+              : "Reviews are added to the tutor's mini-site once submitted."}
           </p>
         </div>
       </form>
+    </>
+  );
+
+  // Compact mode: render without outer card wrapper
+  if (compact) {
+    return <div className="space-y-4">{formContent}</div>;
+  }
+
+  // Default: render with card wrapper
+  return (
+    <div className="mt-8 rounded-3xl border border-border/60 bg-background/90 p-6 shadow-sm backdrop-blur">
+      {formContent}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default async function SubscriptionSuccessPage({
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-bold mb-4">Session Not Found</h1>
           <p className="text-gray-600">
-            We couldn&apos;t find your subscription session. Please try again or contact support.
+            We couldn&apos;t find your subscription session. Please try again or contact support at support@tutorlingua.co.
           </p>
           <Link
             href="/"

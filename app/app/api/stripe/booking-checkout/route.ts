@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     if (!expectedAmountCents) {
       return NextResponse.json(
-        { error: "Booking price not available. Please contact support." },
+        { error: "Booking price not available. Please contact support at support@tutorlingua.co." },
         { status: 400 }
       );
     }
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
 
     if (tutorStatus?.stripe_onboarding_status === "restricted") {
       return NextResponse.json(
-        { error: "Tutor's payment account is currently restricted. Please contact the tutor or support." },
+        { error: "Tutor's payment account is currently restricted. Please contact the tutor or support at support@tutorlingua.co." },
         { status: 400 }
       );
     }

@@ -6,6 +6,7 @@ import { getStudentProgress, getStudentPracticeData } from "@/lib/actions/progre
 import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
 import { getDrillCounts, getStudentDrills } from "@/lib/actions/drills";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getTutorsAvailableForReview } from "@/lib/actions/reviews";
 
 export const metadata = {
   title: "My Progress | TutorLingua",
@@ -20,14 +21,15 @@ export default async function StudentProgressPage() {
     redirect("/student/login");
   }
 
-  // Fetch progress, practice data, and drills in parallel
-  const [progressData, practiceData, drillCounts, drillsData, { data: subscriptionSummary }, avatarUrl] = await Promise.all([
+  // Fetch progress, practice data, drills, and reviewable tutors in parallel
+  const [progressData, practiceData, drillCounts, drillsData, { data: subscriptionSummary }, avatarUrl, reviewableTutorsResult] = await Promise.all([
     getStudentProgress(),
     getStudentPracticeData(),
     getDrillCounts(user.id),
     getStudentDrills(user.id),
     getStudentSubscriptionSummary(),
     getStudentAvatarUrl(),
+    getTutorsAvailableForReview(),
   ]);
   const openHomeworkCount = progressData.homework.filter(
     (item) => item.status !== "completed" && item.status !== "cancelled"
@@ -49,6 +51,7 @@ export default async function StudentProgressPage() {
         practiceData={practiceData}
         drillCounts={drillCounts}
         pendingDrills={drillsData.pending}
+        reviewableTutors={reviewableTutorsResult.tutors || []}
       />
     </StudentPortalLayout>
   );

@@ -112,5 +112,5 @@ function getErrorMessage(error: string): string {
     access_denied: "Calendar access was denied.",
   };
 
-  return messages[error] || "An unexpected error occurred. Please try again.";
+  return messages[error] || "An unexpected error occurred. Please try again or contact support at support@tutorlingua.co.";
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,13 +23,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection unavailable" },
-        { status: 503 }
-      );
-    }
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     let query = supabase
       .from("student_language_profiles")
@@ -44,6 +40,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (error) {
       console.error("[Language Profile] Error:", error);
+      if (error.code === "42501") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         { error: "Failed to fetch language profile" },
         { status: 500 }
@@ -106,13 +105,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection unavailable" },
-        { status: 503 }
-      );
-    }
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // Validate formality preference
     const validFormality = ["formal", "neutral", "informal"];
@@ -156,6 +151,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (error) {
       console.error("[Language Profile] Error:", error);
+      if (error.code === "42501") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         { error: "Failed to update language profile" },
         { status: 500 }

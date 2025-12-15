@@ -71,7 +71,7 @@ export default async function PagesBuilder() {
 
   const initialConfig = normalizeSiteConfig(siteRow?.config);
   const siteId = siteRow?.id ?? null;
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://app.tutorlingua.com";
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://app.tutorlingua.co";
   const shareHandleRaw = profile?.username ?? user.user_metadata?.user_name ?? user.email ?? "";
   const shareHandle = normalizeUsernameSlug(shareHandleRaw) || shareHandleRaw;
   const shareUrl = shareHandle ? `${appBaseUrl}/${shareHandle}` : appBaseUrl;

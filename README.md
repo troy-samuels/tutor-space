@@ -7,7 +7,7 @@ TutorLingua is the operating system for independent language tutors: direct book
 - **Student CRM & portal:** Labels, notes, lesson history, access requests, learning goals, proficiency assessments, homework assignments and submissions (text/audio/files), student portal for bookings/messages/practice/subscriptions/progress.
 - **Messaging & notifications:** Realtime tutor-student messaging with attachments and voice notes, notification center with 14+ event types and read states.
 - **Marketing & sales:** Tutor sites with cultural archetypes and page builder, link-in-bio, digital products marketplace with tiered commissions, email campaigns, SEO blog content.
-- **AI & Studio:** AI Practice companion with scenario builder, grammar/pronunciation tracking, usage-based billing; AI drills (match, gap-fill, scramble); LiveKit classroom with recording and Deepgram transcription for Studio tier.
+- **AI & Studio:** AI Practice companion with scenario builder, grammar/pronunciation tracking, usage-based billing; AI drills (match, gap-fill, scramble); LiveKit classroom with recording and Deepgram transcription; Enterprise lesson analysis with L1 interference detection and adaptive drills for Studio tier.
 - **Analytics & admin:** Revenue/booking/student analytics, demand heatmap, calendar smart management, onboarding wizard and upgrade gates, admin health dashboard, moderation queue, support tickets.
 
 ## Tech Stack
@@ -29,7 +29,7 @@ TutorLingua is the operating system for independent language tutors: direct book
 - **Calendar sync:** OAuth popups for Google and Outlook, encrypted tokens, busy event import into week/day/month views, manual blocked times.
 - **Student CRM:** Access requests and approvals, CSV import, labels, connection requests, notes, lesson history, goals, proficiency assessments, homework planner and submissions.
 - **AI practice & drills:** Practice scenario builder, grammar issue tracking, audio pronunciation scoring, metered billing periods with add-on blocks, student/tutor analytics, interactive drills.
-- **Studio tier:** LiveKit classroom with consented recording to S3, Deepgram transcription, AI-generated drills from recordings, post-lesson review with video replay and AI insights.
+- **Studio tier:** LiveKit classroom with consented recording to S3, Deepgram transcription, AI-generated drills from recordings, post-lesson review with video replay and AI insights, L1 interference detection, and adaptive drill generation based on native language patterns.
 - **Marketplace & marketing:** Tutor sites with cultural archetypes, link-in-bio, digital products with download tokens and tiered commissions, email campaigns, SEO blog, niche landing pages (`/for/spanish-conversation`, etc.).
 - **Help center:** Categorized help articles with search and i18n support (`/help`, `/es/help`).
 - **Analytics:** Revenue, bookings, student metrics, service mix, payments summary; PostHog optional.
@@ -80,6 +80,7 @@ npm run dev
 ## Vercel Deployment
 - In Vercel Project Settings, set **Root Directory** to `app` and **Framework Preset** to `Next.js` (not `Other`).
 - Add required environment variables in Vercel, then redeploy.
+- Set `OPENAI_API_KEY` as a server-side env var only (Studio AI, lesson analysis) and keep it out of `NEXT_PUBLIC_*` to avoid exposing it to the client.
 
 ## Environment Variables
 ### Required
@@ -176,4 +177,4 @@ Supports English, Spanish, French, Portuguese, German, Italian, Japanese, Korean
 ## License
 Proprietary — All rights reserved
 
-*Last updated: December 13, 2025*
+*Last updated: December 15, 2025*

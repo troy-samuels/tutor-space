@@ -1429,6 +1429,55 @@ SUPABASE_S3_BUCKET=recordings
 
 ---
 
+### Feature: Enterprise Lesson Analysis with L1 Interference Detection
+
+**What it does**: Enhanced post-lesson analysis pipeline that is diarization-aware, dialect/register-aware, detects native language (L1) interference patterns, and generates adaptive drills tailored to the student.
+
+**Where the code lives**:
+- Cron: `/app/api/cron/lesson-analysis/route.ts`
+- Processor: `/lib/analysis/enhanced-processor.ts`
+- Diarization: `/lib/analysis/speaker-diarization.ts`
+- Tutor analysis: `/lib/analysis/tutor-speech-analyzer.ts`
+- Student analysis: `/lib/analysis/student-speech-analyzer.ts`
+- L1 patterns: `/lib/analysis/l1-interference.ts`
+- Interaction metrics: `/lib/analysis/interaction-analyzer.ts`
+- Drill generation: `/lib/drills/adaptive-generator.ts`
+
+**How it works**:
+
+1. Deepgram transcribes the recording (with diarization) and stores the full payload in `lesson_recordings.transcript_json`.
+2. Cron `/api/cron/lesson-analysis` claims pending recordings and runs `processEnhancedAnalysis(...)`.
+3. The processor parses diarization, separates tutor/student speech, and computes interaction metrics.
+4. Student analysis uses the student's language profile (`student_language_profiles`) including:
+   - `dialect_variant` (e.g., `en-GB`)
+   - `formality_preference` (`formal|neutral|informal`)
+   - `vocabulary_style` (preferred spellings/wording)
+5. L1 interference detection matches student errors against `l1_interference_patterns` (DB) and built-in fallbacks.
+6. Adaptive drills are generated and saved to `lesson_drills`; spaced repetition items are created when applicable.
+7. Results are written back to `lesson_recordings` (speaker segments, analyses, engagement, detected patterns) and summarized for the review UI.
+
+**Key functions**:
+- `processEnhancedAnalysis(input)` - Runs diarization-aware analysis
+- `detectL1Interference(studentAnalysis, nativeLanguage, targetLanguage)` - Identifies L1 interference patterns
+- `matchErrorsToL1Patterns(errors, patterns)` - Enriches detected errors with L1 pattern metadata
+- `generateAdaptiveDrills(input)` - Creates targeted exercises
+
+---
+
+### Feature: Studio Tier Discovery UI & Feature Gating
+
+**What it does**: Studio feature gating and locked-state UI for users without Studio access.
+
+**Where the code lives**:
+- Components: `/components/studio/StudioFeatureGate.tsx`, `/components/studio/LockedFeatureCard.tsx`, `/components/studio/StudioFeatureInfo.ts`
+
+**How it works**:
+
+1. Studio-only surfaces wrap content in `StudioFeatureGate`.
+2. Non-Studio users see a locked card with Studio feature descriptions and an upgrade CTA.
+
+---
+
 ## 5. API ROUTES
 
 **Authentication**:
@@ -1597,16 +1646,16 @@ CREATE POLICY "Public view published sites"
 
 ### Google Calendar OAuth
 
-**Scopes**: `https://www.googleapis.com/auth/calendar`
+**Scopes**: `https://www.googleapis.com/auth/calendar.events` (events only)
 
 **Provider**: Google OAuth 2.0
 
 **Flow**: Authorization code grant with refresh tokens (popup-based)
 
 **Features**:
-- Fetches events with titles (not just busy times)
+- Reads busy times/events to prevent double-booking
+- Creates booking events (optionally with attendee email)
 - Displays in calendar with color coding
-- Prevents double-booking
 - Auto-refresh tokens before expiration
 
 ### Microsoft Outlook OAuth
@@ -2137,6 +2186,8 @@ Located in `/app/docs/blog/`:
 | LiveKit Native Video | - | - | Yes |
 | Lesson Transcription | - | - | Yes |
 | AI Drill Generation | - | - | Yes |
+| L1 Interference Detection | - | - | Yes |
+| Adaptive Drills | - | - | Yes |
 | Marketing Clips | - | - | Yes |
 | Learning Roadmaps | - | - | Yes |
 
@@ -2226,6 +2277,22 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 ---
 
 ## IMPLEMENTATION LOG
+
+### 15 December 2025: Enterprise Lesson Analysis Hardening
+
+**Dialect & register aware analysis**:
+- Student analysis prompt now includes `dialect_variant`, `formality_preference`, and `vocabulary_style` from `student_language_profiles`.
+- Tutor/student analyzers now sample long transcripts to avoid token blowups while still covering the full lesson.
+
+**Pipeline reliability & security**:
+- `/api/cron/lesson-analysis` is protected by `CRON_SECRET` and claims `lesson_recordings` to avoid double-processing.
+- LiveKit webhook now starts Deepgram with diarization + utterances/paragraphs, uses async callbacks in production, and avoids in-webhook analysis (cron handles analysis).
+- Studio endpoints `/api/students/[id]/language-profile` and `/api/lessons/objectives` now require auth and rely on RLS instead of service-role writes.
+
+**Quality improvements**:
+- Student language profiles now increment `lessons_analyzed` correctly and merge learned attributes (filler words, L1 pattern frequency).
+
+---
 
 ### 13 December 2025: Calendar & Booking Infrastructure Enhancements
 
@@ -2356,4 +2423,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 13 December 2025*
+*Last updated: 15 December 2025*

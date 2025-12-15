@@ -14,6 +14,11 @@ type AdminClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 type TutorApprovalPreference = "require_approval" | "auto_send";
 
 const BATCH_LIMIT = 5;
+const STALE_ANALYZING_MINUTES = 120;
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 async function logProcessing(client: ReturnType<typeof createServiceRoleClient>, params: {
   entityType: string;
@@ -164,8 +169,29 @@ async function processRecording(client: AdminClient, recording: {
   booking_id?: string;
   transcript_json: unknown;
   created_at?: string;
+  status?: string;
 }) {
   const recordingId = recording.id;
+
+  if (recording.status === "completed") {
+    const { data: claimed, error: claimError } = await client
+      .from("lesson_recordings")
+      .update({ status: "analyzing" })
+      .eq("id", recordingId)
+      .eq("status", "completed")
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      console.error("[Lesson Analysis] Failed to claim recording", recordingId, claimError);
+      return;
+    }
+
+    if (!claimed) {
+      // Another worker claimed this recording.
+      return;
+    }
+  }
 
   await logProcessing(client, {
     entityType: "lesson_recording",
@@ -173,11 +199,6 @@ async function processRecording(client: AdminClient, recording: {
     level: "info",
     message: "Analysis started",
   });
-
-  await client
-    .from("lesson_recordings")
-    .update({ status: "analyzing" })
-    .eq("id", recordingId);
 
   try {
     // Fetch tutor's approval preference and name
@@ -377,8 +398,27 @@ async function notifyTutorAnalysisReady(
   console.log(`[Lesson Analysis] Notified tutor ${tutorId} about analysis ready for recording ${recordingId}`);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Adapter for older callers; keep implementation in GET_INTERNAL.
+  return GET_INTERNAL(request);
+}
+
+async function GET_INTERNAL(request: Request) {
   const endTimer = startDuration("cron:lesson-analysis");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    console.error("[Cron] CRON_SECRET is not configured. Aborting job.");
+    endTimer();
+    return NextResponse.json({ error: "Cron secret not configured" }, { status: 500 });
+  }
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    endTimer();
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const adminClient = createServiceRoleClient();
   if (!adminClient) {
     void recordSystemEvent({
@@ -386,17 +426,39 @@ export async function GET() {
       message: "Service role client unavailable",
       meta: { stage: "init" },
     });
+    endTimer();
     return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
   }
 
-  // Find recordings that need analysis
-  const { data: recordings, error } = await adminClient
+  const needsAnalysisFilter = "ai_summary_md.is.null,key_points.is.null,fluency_flags.is.null";
+
+  const { data: completedRecordings, error: completedError } = await adminClient
     .from("lesson_recordings")
     .select("id, tutor_id, student_id, booking_id, transcript_json, status, created_at")
-    .in("status", ["completed", "analyzing"])
-    .or("ai_summary_md.is.null,key_points.is.null,fluency_flags.is.null")
+    .eq("status", "completed")
+    .not("transcript_json", "is", null)
+    .or(needsAnalysisFilter)
     .order("created_at", { ascending: false })
     .limit(BATCH_LIMIT);
+
+  let recordings = completedRecordings;
+  let error = completedError;
+
+  if (!error && (!recordings || recordings.length === 0)) {
+    const staleBefore = new Date(Date.now() - STALE_ANALYZING_MINUTES * 60 * 1000).toISOString();
+    const { data: staleRecordings, error: staleError } = await adminClient
+      .from("lesson_recordings")
+      .select("id, tutor_id, student_id, booking_id, transcript_json, status, created_at")
+      .eq("status", "analyzing")
+      .lt("created_at", staleBefore)
+      .not("transcript_json", "is", null)
+      .or(needsAnalysisFilter)
+      .order("created_at", { ascending: false })
+      .limit(BATCH_LIMIT);
+
+    recordings = staleRecordings;
+    error = staleError;
+  }
 
   if (error) {
     console.error("[Lesson Analysis] Fetch error", error);
@@ -426,6 +488,6 @@ export async function GET() {
   return NextResponse.json({ processed: recordings.length, duration_ms: durationMs });
 }
 
-export async function POST() {
-  return GET();
+export async function POST(request: Request) {
+  return GET_INTERNAL(request);
 }

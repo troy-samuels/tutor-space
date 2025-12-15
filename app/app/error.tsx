@@ -66,8 +66,8 @@ export default function Error({
           <h1 className="text-2xl font-semibold">We hit a snag</h1>
           <p className="text-muted-foreground">
             {isServerError
-              ? "Our servers had a moment. Please try again in a few seconds."
-              : "An unexpected error occurred. You can retry or head back to the dashboard."}
+              ? "Our servers had a moment. Please try again in a few seconds. If the issue persists, contact support at support@tutorlingua.co."
+              : "An unexpected error occurred. You can retry or head back to the dashboard. Need help? Contact support@tutorlingua.co."}
           </p>
           {error.digest ? (
             <p className="text-xs text-muted-foreground">Reference: {error.digest}</p>

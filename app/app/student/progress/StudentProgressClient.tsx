@@ -31,6 +31,7 @@ import {
 import { AIPracticeCard } from "@/components/student/AIPracticeCard";
 import { DrillProgressCard } from "@/components/student-auth/DrillProgressCard";
 import type { DrillWithContext } from "@/lib/actions/drills";
+import type { TutorForReview } from "@/lib/actions/reviews";
 import {
   LEVEL_LABELS,
   SKILL_LABELS,
@@ -38,6 +39,7 @@ import {
 } from "@/lib/constants/progress-labels";
 import { format, formatDistanceToNow } from "date-fns";
 import { HomeworkList } from "@/components/student/HomeworkList";
+import { ReviewPromptSection } from "@/components/student/ReviewPromptSection";
 
 interface StudentProgressClientProps {
   stats: LearningStats | null;
@@ -48,6 +50,7 @@ interface StudentProgressClientProps {
   practiceData?: StudentPracticeData;
   drillCounts?: { pending: number; completed: number; total: number };
   pendingDrills?: DrillWithContext[];
+  reviewableTutors?: TutorForReview[];
 }
 
 export function StudentProgressClient({
@@ -59,6 +62,7 @@ export function StudentProgressClient({
   practiceData,
   drillCounts,
   pendingDrills,
+  reviewableTutors,
 }: StudentProgressClientProps) {
   const activeGoals = goals.filter((g) => g.status === "active");
   const completedGoals = goals.filter((g) => g.status === "completed");
@@ -155,6 +159,11 @@ export function StudentProgressClient({
           </CardContent>
         </Card>
       </div>
+
+      {/* Review Your Tutors */}
+      {reviewableTutors && reviewableTutors.length > 0 && (
+        <ReviewPromptSection tutors={reviewableTutors} />
+      )}
 
       <HomeworkList homework={homework} practiceData={practiceData} />
 

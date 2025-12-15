@@ -26,7 +26,8 @@ export function getProviderConfig(provider: CalendarProvider): ProviderConfig | 
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenUrl: "https://oauth2.googleapis.com/token",
       userInfoUrl: "https://www.googleapis.com/oauth2/v2/userinfo",
-      scopes: ["https://www.googleapis.com/auth/calendar"],
+      // Request the narrowest scope needed: read/write events only (no calendar settings access)
+      scopes: ["https://www.googleapis.com/auth/calendar.events"],
       clientId,
       clientSecret,
       redirectUri,
