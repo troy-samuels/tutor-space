@@ -201,9 +201,9 @@ export async function createBooking(input: CreateBookingInput) {
       ).toISOString()
     );
 
-  const bookingStart = new Date(input.scheduled_at);
-  const bookingEnd = new Date(
-    bookingStart.getTime() + input.duration_minutes * 60 * 1000
+  const initialBookingStart = new Date(input.scheduled_at);
+  const initialBookingEnd = new Date(
+    initialBookingStart.getTime() + input.duration_minutes * 60 * 1000
   );
 
   const hasConflict = existingBookings?.some((existing) => {
@@ -212,7 +212,7 @@ export async function createBooking(input: CreateBookingInput) {
       existingStart.getTime() + existing.duration_minutes * 60 * 1000
     );
     // Check if time ranges overlap
-    return bookingStart < existingEnd && bookingEnd > existingStart;
+    return initialBookingStart < existingEnd && initialBookingEnd > existingStart;
   });
 
   if (hasConflict) {
@@ -265,8 +265,8 @@ export async function createBooking(input: CreateBookingInput) {
   }
 
   // Post-insert conflict check (first-come-first-serve) in case of concurrent inserts
-  const bookingStart = new Date(input.scheduled_at);
-  const bookingEnd = new Date(bookingStart.getTime() + input.duration_minutes * 60 * 1000);
+  const postInsertStart = new Date(input.scheduled_at);
+  const postInsertEnd = new Date(postInsertStart.getTime() + input.duration_minutes * 60 * 1000);
 
   const { data: conflictingBookings } = await adminClient
     .from("bookings")
@@ -280,7 +280,7 @@ export async function createBooking(input: CreateBookingInput) {
   const hasConflict = conflictingBookings?.some((existing) => {
     const existingStart = new Date(existing.scheduled_at);
     const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
-    return bookingStart < existingEnd && bookingEnd > existingStart && new Date(existing.created_at) < new Date(booking.created_at);
+    return postInsertStart < existingEnd && postInsertEnd > existingStart && new Date(existing.created_at) < new Date(booking.created_at);
   });
 
   if (hasConflict) {
