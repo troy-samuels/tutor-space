@@ -198,4 +198,4 @@ Los tutores que luchan para encontrar estudiantes no están creando contenido. L
 
 Tus estudiantes ideales están ahí afuera buscando ayuda con los problemas exactos que resuelves. Tu trabajo es crear contenido que los ayude a encontrarte, confiar en ti y reservar contigo.
 
-¿Listo para atraer tus estudiantes ideales más allá del contenido solo? [Comienza con TutorLingua](https://tutorlingua.com/signup) y crea una plataforma completa de negocio de tutor que convierta tu tráfico de contenido en reservas sin problemas.
+¿Listo para atraer tus estudiantes ideales más allá del contenido solo? [Comienza con TutorLingua](https://tutorlingua.co/signup) y crea una plataforma completa de negocio de tutor que convierta tu tráfico de contenido en reservas sin problemas.

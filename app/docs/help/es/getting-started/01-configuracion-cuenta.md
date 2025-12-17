@@ -15,7 +15,7 @@ alternateLocale:
 
 Empezar con TutorLingua solo toma unos minutos. Así es como configuras tu cuenta:
 
-1. **Visita la página de registro** en [tutorlingua.com/signup](/signup)
+1. **Visita la página de registro** en [tutorlingua.co/signup](/signup)
 2. **Ingresa tu correo electrónico** y crea una contraseña segura
 3. **Verifica tu correo** haciendo clic en el enlace que te enviamos
 
@@ -30,7 +30,7 @@ El asistente de incorporación de TutorLingua te ayuda a configurar todo lo que 
 Completa tu información básica:
 
 - **Nombre completo** - Cómo te verán los estudiantes
-- **Nombre de usuario** - Tu URL única de reservas (ej., tutorlingua.com/book/tunombre)
+- **Nombre de usuario** - Tu URL única de reservas (ej., tutorlingua.co/book/tunombre)
 - **Zona horaria** - Asegura que las reservas se muestren en la hora correcta
 - **Foto de perfil** - Una foto profesional ayuda a generar confianza
 

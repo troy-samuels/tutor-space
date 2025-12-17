@@ -67,7 +67,7 @@ Your digital presence is your 24/7 marketing machine. When students Google your 
 
 **The complete presence:** Ideally, you'll also have your [own tutor website](/blog/create-tutor-website-no-coding) that you control, consistent branding across all platforms, and a content strategy that demonstrates your expertise.
 
-[TutorLingua](https://tutorlingua.com) makes this easy by providing everything you need in one platform: a professional booking site, bio link page, payment processing, and student management tools. Instead of juggling multiple services, you can focus on what matters—teaching and marketing.
+[TutorLingua](https://tutorlingua.co) makes this easy by providing everything you need in one platform: a professional booking site, bio link page, payment processing, and student management tools. Instead of juggling multiple services, you can focus on what matters—teaching and marketing.
 
 **Consistency is credibility:** Your name, photo, tagline, and messaging should be consistent everywhere students might find you. Inconsistency creates doubt. If your Preply bio says one thing, your Instagram says another, and your website presents a third version, students won't trust any of them.
 
@@ -197,7 +197,7 @@ That's it. Those five actions will generate more student inquiries than 90% of t
 
 ## Tools That Make Marketing Easier
 
-You don't need a dozen different tools. Start with essentials: [TutorLingua](https://tutorlingua.com) for your booking site, payments, and student management; Canva for creating graphics and visual content; a scheduling tool like Calendly or built-in TutorLingua calendar; and one email marketing platform like ConvertKit or Mailchimp.
+You don't need a dozen different tools. Start with essentials: [TutorLingua](https://tutorlingua.co) for your booking site, payments, and student management; Canva for creating graphics and visual content; a scheduling tool like Calendly or built-in TutorLingua calendar; and one email marketing platform like ConvertKit or Mailchimp.
 
 The best marketing tool is consistency. Simple systems executed reliably outperform complex strategies implemented sporadically.
 
@@ -215,4 +215,4 @@ The tutors struggling to fill their schedule aren't better or worse teachers tha
 
 ---
 
-Ready to simplify your marketing and grow your tutoring business? [Get started with TutorLingua](https://tutorlingua.com/signup) and create a professional tutor site that attracts and converts your ideal students—all in one platform.
+Ready to simplify your marketing and grow your tutoring business? [Get started with TutorLingua](https://tutorlingua.co/signup) and create a professional tutor site that attracts and converts your ideal students—all in one platform.

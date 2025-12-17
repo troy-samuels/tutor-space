@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+    <context>
+        <name>TutorLingua-Auth</name>
+        <desc>Authentication context for TutorLingua CASA DAST scan</desc>
+        <inscope>true</inscope>
+        <incregexes>https://tutorlingua\.co.*</incregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/webhook.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/connect/webhook.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/webhooks/.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/cron/.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/admin/.*</excregexes>
+        <excregexes>https://tutorlingua\.co/_next/.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/booking-checkout.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/subscription-checkout.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/create-checkout-session.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/lifetime.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/stripe/billing-portal.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/digital-products/checkout.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/practice/subscribe.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/upload.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/email/.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/refunds/.*</excregexes>
+        <excregexes>https://tutorlingua\.co/api/livekit/recording.*</excregexes>
+        <tech>
+            <include>Db.PostgreSQL</include>
+            <include>Language.JavaScript</include>
+            <include>OS.MacOS</include>
+            <include>OS.Linux</include>
+            <include>SCM.Git</include>
+            <include>WS.Node</include>
+        </tech>
+        <urlparser>
+            <class>org.zaproxy.zap.model.StandardParameterParser</class>
+            <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
+        </urlparser>
+        <postparser>
+            <class>org.zaproxy.zap.model.StandardParameterParser</class>
+            <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
+        </postparser>
+        <authentication>
+            <type>2</type>
+            <strategy>EACH_RESP</strategy>
+            <pollurl></pollurl>
+            <polldata></polldata>
+            <pollheaders></pollheaders>
+            <pollfreq>60</pollfreq>
+            <pollunits>REQUESTS</pollunits>
+            <form>
+                <loginurl>https://tutorlingua.co/login</loginurl>
+                <loginbody>email={%username%}&amp;password={%password%}</loginbody>
+                <loginpageurl>https://tutorlingua.co/login</loginpageurl>
+            </form>
+            <loggedin>\Qdashboard\E|\QLog out\E|\QSign out\E</loggedin>
+            <loggedout>\QLog in\E|\QSign up\E|\Qlogin\E</loggedout>
+        </authentication>
+        <users>
+            <user>
+                <name>casa-test-user</name>
+                <credentials>username=${env:CASA_TEST_EMAIL}&amp;password=${env:CASA_TEST_PASSWORD}</credentials>
+                <enabled>true</enabled>
+            </user>
+        </users>
+        <session>
+            <type>0</type>
+        </session>
+        <authorization>
+            <type>0</type>
+        </authorization>
+    </context>
+</configuration>

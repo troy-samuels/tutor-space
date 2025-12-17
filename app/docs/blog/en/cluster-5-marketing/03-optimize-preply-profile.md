@@ -253,7 +253,7 @@ While optimizing your Preply profile maximizes your platform success, remember t
 
 The smartest tutors use Preply for what it does best—discovery and initial credibility—then [convert students to direct booking](/blog/convert-students-direct-booking) after building rapport. This avoids Preply's commission fees and gives you full control over pricing, scheduling, and student relationships.
 
-Include your bio link in your Preply profile description (if allowed) or share it naturally in messages once relationships develop. [TutorLingua](https://tutorlingua.com) makes this transition seamless with professional booking pages, payment processing, and student management tools.
+Include your bio link in your Preply profile description (if allowed) or share it naturally in messages once relationships develop. [TutorLingua](https://tutorlingua.co) makes this transition seamless with professional booking pages, payment processing, and student management tools.
 
 Also promote your Preply profile through your [Instagram](/blog/instagram-language-tutors) and other social media, encouraging engaged followers to book trial lessons. This creates a virtuous cycle—social media builds trust, Preply provides credibility through reviews, and students eventually move to direct booking.
 
@@ -313,4 +313,4 @@ That choice is yours.
 
 ---
 
-Ready to take full control of your tutoring business beyond platform limitations? [Start with TutorLingua](https://tutorlingua.com/signup) to create your own professional booking site and transition students to direct booking—keeping 100% of your earnings.
+Ready to take full control of your tutoring business beyond platform limitations? [Start with TutorLingua](https://tutorlingua.co/signup) to create your own professional booking site and transition students to direct booking—keeping 100% of your earnings.

@@ -142,7 +142,7 @@ Views mean nothing without conversions. Here's how to move viewers from passive 
 
 **Optimize your bio:** Include clear positioning ("IELTS Coach | 95% of students hit target score"), call-to-action ("Book trial lesson"), and clickable link to your [booking page or link-in-bio](/blog/best-link-in-bio-tutors).
 
-[TutorLingua](https://tutorlingua.com) provides an integrated bio link page with your booking calendar, making it seamless for TikTok viewers to book lessons with one click.
+[TutorLingua](https://tutorlingua.co) provides an integrated bio link page with your booking calendar, making it seamless for TikTok viewers to book lessons with one click.
 
 **Call-to-action in every video:** Verbally invite viewers to "check the link in bio for a free trial lesson" or "DM me if you want personalized help with this." Don't assume they'll seek you out—ask explicitly.
 
@@ -225,4 +225,4 @@ TikTok isn't essential for tutoring success, but it can be a powerful amplifier 
 
 Remember, TikTok is one tool in your marketing toolkit, not the entire strategy. The best approach combines [marketplace optimization](/blog/optimize-preply-profile), strategic social media presence, [compelling content](/blog/content-attract-ideal-students), and [referral systems](/blog/word-of-mouth-referrals-tutoring).
 
-Ready to streamline your tutoring business so you have more time for marketing? [Get started with TutorLingua](https://tutorlingua.com/signup) to manage bookings, payments, and students in one place—freeing you up to create content that grows your brand.
+Ready to streamline your tutoring business so you have more time for marketing? [Get started with TutorLingua](https://tutorlingua.co/signup) to manage bookings, payments, and students in one place—freeing you up to create content that grows your brand.

@@ -2,23 +2,35 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import {
-  AI_PRACTICE_BASE_PRICE_CENTS,
   AI_PRACTICE_BLOCK_PRICE_CENTS,
-  BASE_AUDIO_MINUTES,
-  BASE_TEXT_TURNS,
   BLOCK_AUDIO_MINUTES,
   BLOCK_TEXT_TURNS,
+  FREE_AUDIO_MINUTES,
+  FREE_TEXT_TURNS,
 } from "@/lib/practice/constants";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
+import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 
-// Platform fees
-const PLATFORM_FIXED_FEE_CENTS = 300; // Target ~$3 platform fee
-const PLATFORM_VARIABLE_FEE_PERCENT = 1; // Extra 1% platform fee
+// Platform fees for block purchases
+// With $5/block, we take ~38.5% ($1.93) for platform, tutor gets ~61.5% ($3.07)
+const PLATFORM_FIXED_FEE_CENTS = 193; // ~$1.93 platform fee on $5 block
+const PLATFORM_VARIABLE_FEE_PERCENT = 0;
+const APPLICATION_FEE_PERCENT =
+  (PLATFORM_FIXED_FEE_CENTS / AI_PRACTICE_BLOCK_PRICE_CENTS) * 100 + PLATFORM_VARIABLE_FEE_PERCENT; // ~38.6%
 
-// Effective application fee percent to cover fixed + variable
-const APPLICATION_FEE_PERCENT = (PLATFORM_FIXED_FEE_CENTS / AI_PRACTICE_BASE_PRICE_CENTS) * 100 + PLATFORM_VARIABLE_FEE_PERCENT; // 38.5%
-
+/**
+ * FREEMIUM MODEL: Buy Credits Flow
+ *
+ * POST /api/practice/subscribe (or /api/practice/buy-credits)
+ *
+ * Creates a metered subscription for blocks ONLY (no base subscription).
+ * This is optional - students can use the free tier (45 min audio + 600 text)
+ * without ever setting up this subscription.
+ *
+ * When free tier is exhausted and student continues using the service,
+ * blocks are auto-charged via Stripe metered billing.
+ */
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -38,7 +50,7 @@ export async function POST(request: Request) {
       supabaseAdmin,
       userId: user.id,
       req: request,
-      keyPrefix: "checkout:ai_practice",
+      keyPrefix: "checkout:ai_practice_blocks",
       limit: 5,
       windowSeconds: 60,
     });
@@ -50,11 +62,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { studentId, tutorId } = await request.json();
+    const { studentId } = await request.json();
 
-    if (!studentId || !tutorId) {
+    if (!studentId) {
       return NextResponse.json(
-        { error: "Student ID and tutor ID are required" },
+        { error: "Student ID is required" },
         { status: 400 }
       );
     }
@@ -62,7 +74,7 @@ export async function POST(request: Request) {
     // Verify student belongs to user and fetch assigned tutor
     const { data: student } = await supabase
       .from("students")
-      .select("id, email, full_name, ai_practice_customer_id, tutor_id")
+      .select("id, email, full_name, ai_practice_customer_id, tutor_id, ai_practice_free_tier_enabled, ai_practice_block_subscription_item_id")
       .eq("id", studentId)
       .eq("user_id", user.id)
       .single();
@@ -74,19 +86,36 @@ export async function POST(request: Request) {
       );
     }
 
-    // Lock checkout to the student's assigned tutor to prevent misrouted payouts
-    const assignedTutorId = student.tutor_id;
-    if (!assignedTutorId) {
+    // Check if already has block subscription
+    if (student.ai_practice_block_subscription_item_id) {
       return NextResponse.json(
-        { error: "Student must have an assigned tutor before subscribing" },
+        {
+          error: "Already has block subscription",
+          code: "ALREADY_SUBSCRIBED",
+          message: "You already have a credits subscription set up. Blocks will be charged automatically when you exceed your free allowance.",
+        },
         { status: 400 }
       );
     }
 
-    if (tutorId && tutorId !== assignedTutorId) {
+    // FREEMIUM: Require assigned tutor with Studio tier
+    const assignedTutorId = student.tutor_id;
+    if (!assignedTutorId) {
       return NextResponse.json(
-        { error: "Subscription must be started with the student's assigned tutor" },
+        { error: "Student must have an assigned tutor to buy credits" },
         { status: 400 }
+      );
+    }
+
+    // Check tutor has Studio tier
+    const tutorHasStudio = await getTutorHasPracticeAccess(supabaseAdmin, assignedTutorId);
+    if (!tutorHasStudio) {
+      return NextResponse.json(
+        {
+          error: "Your tutor needs a Studio subscription for AI Practice",
+          code: "TUTOR_NOT_STUDIO",
+        },
+        { status: 403 }
       );
     }
 
@@ -126,21 +155,15 @@ export async function POST(request: Request) {
         .eq("id", studentId);
     }
 
-    // Get or create AI Practice products and prices
-    const baseProduct = await getOrCreateBaseProduct();
-    const basePrice = await getOrCreateBasePrice(baseProduct.id);
+    // Get or create AI Practice BLOCK product and price (no base product needed)
     const blockProduct = await getOrCreateBlockProduct();
     const blockPrice = await getOrCreateBlockPrice(blockProduct.id);
 
-    // Create checkout session with both base subscription and metered block pricing
+    // FREEMIUM: Create checkout session with BLOCKS ONLY (no base subscription)
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [
-        {
-          price: basePrice.id,
-          quantity: 1,
-        },
         {
           price: blockPrice.id,
           // Metered prices don't need quantity - usage is reported separately
@@ -156,27 +179,30 @@ export async function POST(request: Request) {
         metadata: {
           studentId,
           tutorId: assignedTutorId,
-          type: "ai_practice",
-          platform_fixed_fee_cents: String(PLATFORM_FIXED_FEE_CENTS),
-          platform_variable_fee_percent: String(PLATFORM_VARIABLE_FEE_PERCENT),
-          base_audio_minutes: String(BASE_AUDIO_MINUTES),
-          base_text_turns: String(BASE_TEXT_TURNS),
+          type: "ai_practice_blocks", // NEW: blocks-only subscription
+          is_blocks_only: "true",
+          block_price_cents: String(AI_PRACTICE_BLOCK_PRICE_CENTS),
           block_audio_minutes: String(BLOCK_AUDIO_MINUTES),
           block_text_turns: String(BLOCK_TEXT_TURNS),
+          free_audio_minutes: String(FREE_AUDIO_MINUTES),
+          free_text_turns: String(FREE_TEXT_TURNS),
         },
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/credits-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/subscribe`,
       metadata: {
         studentId,
         tutorId: assignedTutorId,
-        type: "ai_practice_subscription",
+        type: "ai_practice_blocks",
       },
     });
 
-    return NextResponse.json({ checkoutUrl: session.url });
+    return NextResponse.json({
+      checkoutUrl: session.url,
+      message: "Set up automatic credits billing. You'll only be charged ($5/block) when you exceed your free allowance.",
+    });
   } catch (error) {
-    console.error("[Practice Subscribe] Error:", error);
+    console.error("[Practice Buy Credits] Error:", error);
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }
@@ -184,58 +210,54 @@ export async function POST(request: Request) {
   }
 }
 
-async function getOrCreateBaseProduct() {
-  const existingProducts = await stripe.products.list({
-    limit: 10,
-    active: true,
-  });
+/**
+ * GET /api/practice/subscribe
+ * Returns current subscription status for the student
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient();
 
-  const product = existingProducts.data.find(
-    (p) => p.metadata?.type === "ai_practice_base"
-  );
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (product) {
-    return product;
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get student record
+    const { data: student } = await supabase
+      .from("students")
+      .select("id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_practice_subscription_id, ai_practice_block_subscription_item_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!student) {
+      return NextResponse.json({
+        hasAccess: false,
+        isFreeUser: false,
+        hasBlockSubscription: false,
+      });
+    }
+
+    return NextResponse.json({
+      hasAccess: student.ai_practice_enabled || student.ai_practice_free_tier_enabled,
+      isFreeUser: student.ai_practice_free_tier_enabled === true,
+      hasBlockSubscription: !!student.ai_practice_block_subscription_item_id,
+      // Legacy subscription (for backwards compatibility)
+      hasLegacySubscription: !!student.ai_practice_subscription_id,
+    });
+  } catch (error) {
+    console.error("[Practice Subscription Status] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to get subscription status" },
+      { status: 500 }
+    );
   }
-
-  return stripe.products.create({
-    name: "AI Practice Companion - Base",
-    description: `${BASE_AUDIO_MINUTES} audio minutes + ${BASE_TEXT_TURNS} text turns per month`,
-    metadata: {
-      type: "ai_practice_base",
-      audio_minutes: String(BASE_AUDIO_MINUTES),
-      text_turns: String(BASE_TEXT_TURNS),
-    },
-  });
 }
 
-async function getOrCreateBasePrice(productId: string) {
-  const existingPrices = await stripe.prices.list({
-    product: productId,
-    active: true,
-    limit: 10,
-  });
-
-  const price = existingPrices.data.find(
-    (p) => p.unit_amount === AI_PRACTICE_BASE_PRICE_CENTS && p.recurring?.interval === "month"
-  );
-
-  if (price) {
-    return price;
-  }
-
-  return stripe.prices.create({
-    product: productId,
-    unit_amount: AI_PRACTICE_BASE_PRICE_CENTS,
-    currency: "usd",
-    recurring: {
-      interval: "month",
-    },
-    metadata: {
-      type: "ai_practice_base",
-    },
-  });
-}
+// Note: getOrCreateBaseProduct and getOrCreateBasePrice removed for freemium model
+// Base subscription ($8/month) is no longer used
 
 async function getOrCreateBlockProduct() {
   const existingProducts = await stripe.products.list({
@@ -252,12 +274,13 @@ async function getOrCreateBlockProduct() {
   }
 
   return stripe.products.create({
-    name: "AI Practice Block",
-    description: `+${BLOCK_AUDIO_MINUTES} audio minutes + ${BLOCK_TEXT_TURNS} text turns`,
+    name: "AI Practice Credits",
+    description: `Additional practice credits - $${AI_PRACTICE_BLOCK_PRICE_CENTS / 100} adds ${BLOCK_AUDIO_MINUTES} audio minutes + ${BLOCK_TEXT_TURNS} text turns`,
     metadata: {
       type: "ai_practice_block",
       audio_minutes: String(BLOCK_AUDIO_MINUTES),
       text_turns: String(BLOCK_TEXT_TURNS),
+      price_cents: String(AI_PRACTICE_BLOCK_PRICE_CENTS),
     },
   });
 }

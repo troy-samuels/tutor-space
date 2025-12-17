@@ -104,7 +104,7 @@ El SEO on-page es lo que controlas directamente en tu sitio web.
 
 **Etiquetas de encabezado (H1, H2, H3):** Estructura tu contenido con encabezados. Un H1 por página (usualmente tu titular principal). Usa H2s para secciones principales, H3s para subsecciones. Incluye palabras clave naturalmente en encabezados.
 
-**Estructura de URL:** Mantén URLs cortas, descriptivas, ricas en palabras clave. Usa guiones, no guiones bajos. Bueno: tutorlingua.com/tutor-espanol-boston. Malo: tutorlingua.com/page?id=12345
+**Estructura de URL:** Mantén URLs cortas, descriptivas, ricas en palabras clave. Usa guiones, no guiones bajos. Bueno: tutorlingua.co/tutor-espanol-boston. Malo: tutorlingua.co/page?id=12345
 
 **Optimización de contenido:** Incluye tu palabra clave objetivo en las primeras 100 palabras, encabezados, naturalmente a lo largo del contenido (no la rellenes) y texto alternativo de imágenes. Escribe para humanos primero, motores de búsqueda segundo. Si lee antinaturalmente, has sobre-optimizado.
 
@@ -128,7 +128,7 @@ Cada sitio web de tutor necesita estas páginas fundamentales:
 
 **Página de testimonios/Historias de éxito:** Testimonios detallados de estudiantes con resultados específicos. Ejemplos antes/después si es relevante. Testimonios en video si es posible. Organizados por objetivo o tipo de estudiante. Palabra clave objetivo: "Reseñas de tutor de [idioma] [ciudad]"
 
-**Página de reserva/Contacto:** Haz fácil reservar. Calendario integrado (como el sistema de reservas de [TutorLingua](https://tutorlingua.com)). Formulario de contacto como respaldo. FAQ sobre proceso de reserva. Tu disponibilidad y tarifas. Palabra clave objetivo: "Reservar lección de [idioma] [ciudad]"
+**Página de reserva/Contacto:** Haz fácil reservar. Calendario integrado (como el sistema de reservas de [TutorLingua](https://tutorlingua.co)). Formulario de contacto como respaldo. FAQ sobre proceso de reserva. Tu disponibilidad y tarifas. Palabra clave objetivo: "Reservar lección de [idioma] [ciudad]"
 
 **Blog (si haces marketing de contenido):** Publicaciones individuales dirigidas a palabras clave educativas. Enlaces a páginas de servicio relevantes desde cada publicación.
 
@@ -232,7 +232,7 @@ El SEO técnico asegura que Google pueda rastrear, indexar y entender tu sitio.
 
 **Corrige enlaces rotos:** Revisa regularmente errores 404 y corrígelos.
 
-La mayoría de estos se manejan automáticamente si usas [TutorLingua](https://tutorlingua.com) o plataformas como WordPress con plugins SEO (Yoast, Rank Math).
+La mayoría de estos se manejan automáticamente si usas [TutorLingua](https://tutorlingua.co) o plataformas como WordPress con plugins SEO (Yoast, Rank Math).
 
 ## Midiendo el Éxito de SEO
 
@@ -276,7 +276,7 @@ La mayoría de los tutores renuncian en meses 2-4 cuando no ven resultados inmed
 
 No te abrumes. Comienza con estas acciones:
 
-1. Si no tienes un sitio web, [crea uno con TutorLingua](https://tutorlingua.com/signup) o plataforma similar. Pon algo en vivo.
+1. Si no tienes un sitio web, [crea uno con TutorLingua](https://tutorlingua.co/signup) o plataforma similar. Pon algo en vivo.
 
 2. Crea o reclama tu Perfil de Empresa de Google. Complétalo completamente.
 
@@ -325,4 +325,4 @@ El SEO no es glamoroso. No es instantáneo. Pero es uno de los pocos canales de 
 
 Tus estudiantes potenciales están buscando en Google ahora mismo. La pregunta es si te encuentran a ti o a tus competidores.
 
-¿Listo para construir tu sitio web de tutor con mejores prácticas de SEO integradas? [Comienza con TutorLingua](https://tutorlingua.com/signup) y crea un sitio profesional que atraiga estudiantes a través de búsqueda—sin experiencia técnica requerida.
+¿Listo para construir tu sitio web de tutor con mejores prácticas de SEO integradas? [Comienza con TutorLingua](https://tutorlingua.co/signup) y crea un sitio profesional que atraiga estudiantes a través de búsqueda—sin experiencia técnica requerida.

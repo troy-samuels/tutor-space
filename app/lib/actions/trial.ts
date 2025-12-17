@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 import { stripe, getOrCreateStripeCustomer } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
-const TRIAL_PERIOD_DAYS = 14;
+const TRIAL_PERIOD_DAYS = 7;
 
 type AutoTrialResult =
   | { success: true; subscriptionId: string }
@@ -12,7 +12,7 @@ type AutoTrialResult =
   | { success: false; error: string };
 
 /**
- * Automatically creates a Stripe subscription with a 14-day free trial.
+ * Automatically creates a Stripe subscription with a 7-day free trial.
  * No payment method is required upfront - subscription will pause when trial ends
  * if no payment method has been added.
  *

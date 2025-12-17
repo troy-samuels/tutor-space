@@ -214,7 +214,7 @@ export function Step1Essential({
         <div className="relative">
           <div className="flex">
             <span className="inline-flex items-center rounded-l-xl border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-muted-foreground">
-              tutorlingua.com/
+              tutorlingua.co/
             </span>
             <input
               id="username"

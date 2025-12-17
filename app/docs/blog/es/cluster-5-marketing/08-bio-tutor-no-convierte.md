@@ -311,4 +311,4 @@ Tu bio es uno de tus activos de marketing más importantes. Invertir unas pocas 
 
 Una gran bio es esencial, pero es solo una pieza de tu [estrategia de marketing general para tutores de idiomas](/es/blog/marketing-tutores-idiomas-2025). Combínala con [creación estratégica de contenido](/es/blog/contenido-atrae-estudiantes-ideales), [presencia en redes sociales](/es/blog/instagram-tutores-idiomas) y [sistemas de referencias](/es/blog/boca-a-boca-referidos-tutoria) para crecimiento comprensivo.
 
-¿Listo para crear una presencia profesional completa que convierte? [Comienza con TutorLingua](https://tutorlingua.com/signup) para construir un sitio pulido de tutor con bios optimizadas, sistemas de reserva y todo lo que necesitas para atraer y convertir a tus estudiantes ideales.
+¿Listo para crear una presencia profesional completa que convierte? [Comienza con TutorLingua](https://tutorlingua.co/signup) para construir un sitio pulido de tutor con bios optimizadas, sistemas de reserva y todo lo que necesitas para atraer y convertir a tus estudiantes ideales.

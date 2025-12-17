@@ -18,7 +18,7 @@ export function FounderOfferNotice({ className, variant = "card" }: FounderOffer
   return (
     <div className={cn(containerClasses, className)}>
       <p className={cn("font-semibold", textColor)}>
-        $39 a month. Full use of every tool.
+        $29 a month. Full use of every tool.
       </p>
       <p
         className={cn(

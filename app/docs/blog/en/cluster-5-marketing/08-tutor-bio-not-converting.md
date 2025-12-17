@@ -310,4 +310,4 @@ Your bio is one of your most important marketing assets. Investing a few hours t
 
 A great bio is essential, but it's just one piece of your overall [marketing strategy for language tutors](/blog/marketing-language-tutors-2025). Combine it with strategic [content creation](/blog/content-attract-ideal-students), [social media presence](/blog/instagram-language-tutors), and [referral systems](/blog/word-of-mouth-referrals-tutoring) for comprehensive growth.
 
-Ready to create a complete professional presence that converts? [Get started with TutorLingua](https://tutorlingua.com/signup) to build a polished tutor site with optimized bios, booking systems, and everything you need to attract and convert your ideal students.
+Ready to create a complete professional presence that converts? [Get started with TutorLingua](https://tutorlingua.co/signup) to build a polished tutor site with optimized bios, booking systems, and everything you need to attract and convert your ideal students.

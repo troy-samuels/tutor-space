@@ -197,4 +197,4 @@ The tutors struggling to find students aren't creating content. The tutors with 
 
 Your ideal students are out there searching for help with the exact problems you solve. Your job is creating content that helps them find you, trust you, and book with you.
 
-Ready to attract your ideal students beyond content alone? [Get started with TutorLingua](https://tutorlingua.com/signup) and create a complete tutor business platform that converts your content traffic into bookings seamlessly.
+Ready to attract your ideal students beyond content alone? [Get started with TutorLingua](https://tutorlingua.co/signup) and create a complete tutor business platform that converts your content traffic into bookings seamlessly.

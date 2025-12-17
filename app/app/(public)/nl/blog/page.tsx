@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "Expertgidsen voor zelfstandige taaldocenten. Verlaag commissies, werf leerlingen, laat je bedrijf groeien.",
     type: "website",
-    url: "https://tutorlingua.com/nl/blog",
+    url: "https://tutorlingua.co/nl/blog",
   },
   alternates: {
     languages: {
@@ -188,7 +188,7 @@ export default function BlogIndexPageNL() {
   const featuredPosts = posts.filter((post) => post.featured).slice(0, 3);
   const recentPosts = posts.slice(0, 12);
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   const blogSchema = generateBlogSchema(baseUrl, "nl");
   const itemListSchema = generateBlogItemListSchema(posts, baseUrl, "nl");

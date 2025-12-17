@@ -16,7 +16,7 @@ alternateLocale:
 Cada tutor de TutorLingua obtiene una página de reservas única en:
 
 ```
-tutorlingua.com/book/tunombredeusuario
+tutorlingua.co/book/tunombredeusuario
 ```
 
 Este es el enlace que compartes con los estudiantes para que reserven lecciones.
@@ -69,7 +69,7 @@ Después de reservar, los estudiantes reciben:
 
 Comparte tu URL de reservas directamente:
 ```
-tutorlingua.com/book/tunombredeusuario
+tutorlingua.co/book/tunombredeusuario
 ```
 
 ### Enlace en Bio

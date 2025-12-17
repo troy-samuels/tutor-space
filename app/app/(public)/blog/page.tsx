@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "Expert guides for independent language tutors. Reduce fees, get students, grow your business.",
     type: "website",
-    url: "https://tutorlingua.com/blog",
+    url: "https://tutorlingua.co/blog",
   },
   alternates: {
     languages: {
@@ -200,7 +200,7 @@ export default function BlogIndexPage() {
   const featuredPosts = posts.filter((post) => post.featured).slice(0, 3);
   const recentPosts = posts.slice(0, 12);
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   // Generate JSON-LD schemas
   const blogSchema = generateBlogSchema(baseUrl, "en");

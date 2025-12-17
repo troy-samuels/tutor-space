@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "独立語学講師のための専門ガイド。手数料削減、生徒獲得、事業拡大。",
     type: "website",
-    url: "https://tutorlingua.com/ja/blog",
+    url: "https://tutorlingua.co/ja/blog",
   },
   alternates: {
     languages: {
@@ -188,7 +188,7 @@ export default function BlogIndexPageJA() {
   const featuredPosts = posts.filter((post) => post.featured).slice(0, 3);
   const recentPosts = posts.slice(0, 12);
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   const blogSchema = generateBlogSchema(baseUrl, "ja");
   const itemListSchema = generateBlogItemListSchema(posts, baseUrl, "ja");

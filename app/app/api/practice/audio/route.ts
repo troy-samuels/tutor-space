@@ -4,20 +4,22 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import {
-  AI_PRACTICE_BASE_PRICE_CENTS,
   AI_PRACTICE_BLOCK_PRICE_CENTS,
-  BASE_AUDIO_SECONDS,
+  FREE_AUDIO_SECONDS,
+  FREE_TEXT_TURNS,
   BLOCK_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
-  BASE_TEXT_TURNS,
 } from "@/lib/practice/constants";
+import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 
 // Azure Speech Services pricing: ~$0.022/minute = ~$0.000367/second
 const AZURE_COST_PER_SECOND = 0.000367;
+const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 
 type ServiceRoleClient = SupabaseClient;
 
 export async function POST(request: Request) {
+  let studentId: string | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -50,10 +52,12 @@ export async function POST(request: Request) {
     // Get student record
     const { data: student } = await adminClient
       .from("students")
-      .select("id, tutor_id, ai_practice_enabled, ai_audio_enabled, ai_audio_seconds_limit, ai_practice_current_period_end, ai_practice_subscription_id, ai_practice_block_subscription_item_id")
+      .select("id, tutor_id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_audio_enabled, ai_audio_seconds_limit, ai_practice_current_period_end, ai_practice_subscription_id, ai_practice_block_subscription_item_id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
+
+    studentId = student?.id ?? null;
 
     if (!student) {
       return NextResponse.json(
@@ -62,34 +66,51 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!student.ai_practice_enabled) {
+    // Check if student has AI practice enabled (either free tier or legacy subscription)
+    if (!student.ai_practice_enabled && !student.ai_practice_free_tier_enabled) {
       return NextResponse.json(
-        { error: "AI Practice subscription required" },
+        { error: "AI Practice not enabled. Please enable it first." },
         { status: 403 }
       );
     }
 
-    if (!student.ai_practice_subscription_id) {
+    // FREEMIUM MODEL: Check if tutor has Studio tier (access gate)
+    if (!student.tutor_id) {
       return NextResponse.json(
-        { error: "AI Practice subscription not found" },
+        { error: "No tutor assigned", code: "NO_TUTOR" },
         { status: 403 }
       );
     }
 
-    // Get or create the current usage period (billing cycle)
-    const usagePeriod = await getOrCreateUsagePeriod(
-      adminClient,
-      student.id,
-      student.tutor_id,
-      student.ai_practice_subscription_id
+    const tutorHasStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
+    if (!tutorHasStudio) {
+      return NextResponse.json(
+        { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO" },
+        { status: 403 }
+      );
+    }
+
+    // FREEMIUM MODEL: Get or create FREE usage period (no Stripe subscription required)
+    const { data: usagePeriod, error: periodError } = await adminClient.rpc(
+      "get_or_create_free_usage_period",
+      {
+        p_student_id: student.id,
+        p_tutor_id: student.tutor_id,
+      }
     );
 
-    if (!usagePeriod) {
+    if (periodError || !usagePeriod) {
+      console.error("[Audio] Failed to get/create usage period:", periodError);
       return NextResponse.json(
-        { error: "Unable to track usage. Please contact support at support@tutorlingua.co." },
+        { error: "Unable to track usage. Please try again or contact support." },
         { status: 500 }
       );
     }
+
+    // Calculate current audio allowance (free tier + any purchased blocks)
+    const freeAudioSeconds = usagePeriod.free_audio_seconds ?? FREE_AUDIO_SECONDS;
+    const freeTextTurns = usagePeriod.free_text_turns ?? FREE_TEXT_TURNS;
+    const currentAudioAllowance = freeAudioSeconds + (usagePeriod.blocks_consumed * BLOCK_AUDIO_SECONDS);
 
     // Calculate audio duration (in seconds)
     // For simplicity, we estimate based on file size (rough approximation)
@@ -97,6 +118,24 @@ export async function POST(request: Request) {
     const estimatedDuration = Math.ceil(audioFile.size / 16000); // Rough estimate for 16kHz audio
     const maxDuration = 30; // Cap individual recordings at 30 seconds
     const audioDuration = Math.min(estimatedDuration, maxDuration);
+
+    // FREEMIUM MODEL: Check if this recording would exceed free allowance
+    const willExceed = (usagePeriod.audio_seconds_used + audioDuration) > currentAudioAllowance;
+    if (willExceed && !student.ai_practice_block_subscription_item_id) {
+      return NextResponse.json(
+        {
+          error: "Free audio allowance exhausted",
+          code: "FREE_TIER_EXHAUSTED",
+          usage: {
+            audio_seconds_used: usagePeriod.audio_seconds_used,
+            audio_seconds_allowance: currentAudioAllowance,
+            blocks_consumed: usagePeriod.blocks_consumed,
+          },
+          upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
+        },
+        { status: 402 } // Payment Required
+      );
+    }
 
     // Check if Azure Speech is configured
     const azureSpeechKey = process.env.AZURE_SPEECH_KEY;
@@ -126,15 +165,17 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      const { updatedUsage, blockPurchased } = await incrementAudioWithBilling({
+      const { updatedUsage, blockPurchased } = await incrementAudioWithBillingFreemium({
         adminClient,
         usagePeriodId: usagePeriod.id,
         seconds: audioDuration,
         blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+        freeAudioSeconds,
       });
 
-      const audioAllowance = BASE_AUDIO_SECONDS + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
-      const textAllowance = BASE_TEXT_TURNS + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
+      // FREEMIUM: Calculate allowances using free tier + blocks
+      const audioAllowance = freeAudioSeconds + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
+      const textAllowance = freeTextTurns + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
 
       return NextResponse.json({
         success: true,
@@ -145,10 +186,15 @@ export async function POST(request: Request) {
         usage: {
           audio_seconds_used: updatedUsage.audio_seconds_used,
           audio_seconds_allowance: audioAllowance,
+          audio_seconds_remaining: Math.max(0, audioAllowance - updatedUsage.audio_seconds_used),
           text_turns_used: updatedUsage.text_turns_used,
           text_turns_allowance: textAllowance,
+          text_turns_remaining: Math.max(0, textAllowance - updatedUsage.text_turns_used),
           blocks_consumed: updatedUsage.blocks_consumed,
           block_purchased: blockPurchased,
+          isFreeUser: updatedUsage.blocks_consumed === 0,
+          canBuyBlocks: true,
+          blockPriceCents: BLOCK_PRICE_CENTS,
         },
         cost_cents: costCents,
       });
@@ -190,15 +236,17 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    const { updatedUsage, blockPurchased } = await incrementAudioWithBilling({
+    const { updatedUsage, blockPurchased } = await incrementAudioWithBillingFreemium({
       adminClient,
       usagePeriodId: usagePeriod.id,
       seconds: audioDuration,
       blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+      freeAudioSeconds,
     });
 
-    const audioAllowance = BASE_AUDIO_SECONDS + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
-    const textAllowance = BASE_TEXT_TURNS + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
+    // FREEMIUM: Calculate allowances using free tier + blocks
+    const audioAllowance = freeAudioSeconds + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
+    const textAllowance = freeTextTurns + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
 
     return NextResponse.json({
       success: true,
@@ -217,10 +265,15 @@ export async function POST(request: Request) {
       usage: {
         audio_seconds_used: updatedUsage.audio_seconds_used,
         audio_seconds_allowance: audioAllowance,
+        audio_seconds_remaining: Math.max(0, audioAllowance - updatedUsage.audio_seconds_used),
         text_turns_used: updatedUsage.text_turns_used,
         text_turns_allowance: textAllowance,
+        text_turns_remaining: Math.max(0, textAllowance - updatedUsage.text_turns_used),
         blocks_consumed: updatedUsage.blocks_consumed,
         block_purchased: blockPurchased,
+        isFreeUser: updatedUsage.blocks_consumed === 0,
+        canBuyBlocks: true,
+        blockPriceCents: BLOCK_PRICE_CENTS,
       },
     });
   } catch (error) {
@@ -248,6 +301,18 @@ export async function POST(request: Request) {
       );
     }
 
+    if (errorCode === "BLOCK_REQUIRED") {
+      return NextResponse.json(
+        {
+          error: "Free audio allowance exhausted",
+          code: "FREE_TIER_EXHAUSTED",
+          usage: (error as any).usage,
+          upgradeUrl: `/student/practice/buy-credits?student=${studentId ?? ""}`,
+        },
+        { status: 402 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to process audio" },
       { status: 500 }
@@ -255,7 +320,7 @@ export async function POST(request: Request) {
   }
 }
 
-// Get current audio budget for a student
+// FREEMIUM MODEL: Get current audio budget for a student
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -273,35 +338,61 @@ export async function GET() {
       );
     }
 
-    // Get student record
+    // Get student record - check both free tier and legacy subscription
     const { data: student } = await adminClient
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_subscription_id, ai_practice_current_period_end, tutor_id")
+      .select("id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_practice_subscription_id, ai_practice_current_period_end, tutor_id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
 
-    if (!student || !student.ai_practice_enabled || !student.ai_practice_subscription_id) {
+    // FREEMIUM: Check if student has any form of access
+    if (!student || (!student.ai_practice_enabled && !student.ai_practice_free_tier_enabled)) {
       return NextResponse.json({
         enabled: false,
         remaining_seconds: 0,
         limit_seconds: 0,
+        isFreeUser: true,
       });
     }
 
-    const { data: usagePeriod } = await adminClient
-      .from("practice_usage_periods")
-      .select("audio_seconds_used, text_turns_used, blocks_consumed, period_end")
-      .eq("student_id", student.id)
-      .eq("subscription_id", student.ai_practice_subscription_id)
-      .gte("period_end", new Date().toISOString())
-      .lte("period_start", new Date().toISOString())
-      .maybeSingle();
+    // Check tutor has Studio access (required for freemium model)
+    if (!student.tutor_id) {
+      return NextResponse.json({
+        enabled: false,
+        remaining_seconds: 0,
+        limit_seconds: 0,
+        error: "No tutor assigned",
+      });
+    }
 
+    const tutorHasStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
+    if (!tutorHasStudio) {
+      return NextResponse.json({
+        enabled: false,
+        remaining_seconds: 0,
+        limit_seconds: 0,
+        error: "Tutor needs Studio subscription",
+      });
+    }
+
+    // FREEMIUM: Get or create FREE usage period
+    const { data: usagePeriod } = await adminClient.rpc(
+      "get_or_create_free_usage_period",
+      {
+        p_student_id: student.id,
+        p_tutor_id: student.tutor_id,
+      }
+    );
+
+    // Calculate allowances using free tier + blocks
+    const freeAudioSeconds = usagePeriod?.free_audio_seconds ?? FREE_AUDIO_SECONDS;
+    const freeTextTurns = usagePeriod?.free_text_turns ?? FREE_TEXT_TURNS;
     const blocks = usagePeriod?.blocks_consumed || 0;
-    const audioAllowance = BASE_AUDIO_SECONDS + (blocks * BLOCK_AUDIO_SECONDS);
-    const textAllowance = BASE_TEXT_TURNS + (blocks * BLOCK_TEXT_TURNS);
+    const audioAllowance = freeAudioSeconds + (blocks * BLOCK_AUDIO_SECONDS);
+    const textAllowance = freeTextTurns + (blocks * BLOCK_TEXT_TURNS);
     const usedSeconds = usagePeriod?.audio_seconds_used || 0;
+    const usedTurns = usagePeriod?.text_turns_used || 0;
 
     return NextResponse.json({
       enabled: true,
@@ -309,9 +400,14 @@ export async function GET() {
       limit_seconds: audioAllowance,
       used_seconds: usedSeconds,
       blocks_consumed: blocks,
-      text_turns_used: usagePeriod?.text_turns_used || 0,
+      text_turns_used: usedTurns,
       text_turns_allowance: textAllowance,
+      text_turns_remaining: Math.max(0, textAllowance - usedTurns),
       period_end: usagePeriod?.period_end || student.ai_practice_current_period_end,
+      // Freemium model additions
+      isFreeUser: blocks === 0,
+      canBuyBlocks: true,
+      blockPriceCents: BLOCK_PRICE_CENTS,
     });
   } catch (error) {
     console.error("[Audio Budget] Error:", error);
@@ -322,114 +418,96 @@ export async function GET() {
   }
 }
 
-async function incrementAudioWithBilling(params: {
+/**
+ * FREEMIUM MODEL: Increment audio seconds and handle block billing if needed
+ * - Uses increment_audio_seconds_freemium RPC which works with free tier allowances
+ * - Only charges blocks via Stripe if student has set up block subscription
+ * - Returns 402 at the API level if free tier exhausted without subscription
+ */
+async function incrementAudioWithBillingFreemium(params: {
   adminClient: ServiceRoleClient;
   usagePeriodId: string;
   seconds: number;
   blockSubscriptionItemId: string | null;
-}) {
+  freeAudioSeconds: number;
+}): Promise<{
+  updatedUsage: {
+    id: string;
+    audio_seconds_used: number;
+    text_turns_used: number;
+    blocks_consumed: number;
+    current_tier_price_cents: number;
+  };
+  blockPurchased: boolean;
+}> {
   const { adminClient, usagePeriodId, seconds, blockSubscriptionItemId } = params;
 
-  const { data: currentUsage, error: currentUsageError } = await adminClient
-    .from("practice_usage_periods")
-    .select("audio_seconds_used, text_turns_used, blocks_consumed")
-    .eq("id", usagePeriodId)
-    .single();
-
-  if (currentUsageError || !currentUsage) {
-    const err = new Error("Unable to load current usage");
-    (err as any).code = "AUDIO_INCREMENT_FAILED";
-    throw err;
-  }
-
-  const audioAllowance = BASE_AUDIO_SECONDS + (currentUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
-  const willUse = currentUsage.audio_seconds_used + seconds;
-  const blocksNeeded = willUse > audioAllowance
-    ? Math.ceil((willUse - audioAllowance) / BLOCK_AUDIO_SECONDS)
-    : 0;
-
-  if (blocksNeeded > 0 && !blockSubscriptionItemId) {
-    const err = new Error("Missing Stripe metered item for AI Practice blocks");
-    (err as any).code = "BLOCK_SUBSCRIPTION_ITEM_MISSING";
-    throw err;
-  }
-
-  const { data: incrementResult, error: incrementError } = await adminClient.rpc("increment_audio_seconds", {
-    p_usage_period_id: usagePeriodId,
-    p_seconds: seconds,
-    p_base_audio_seconds: BASE_AUDIO_SECONDS,
-    p_block_audio_seconds: BLOCK_AUDIO_SECONDS,
-  });
+  // Use the freemium RPC which enforces free/block allowance and can signal block requirements
+  const { data: incrementResult, error: incrementError } = await adminClient.rpc(
+    "increment_audio_seconds_freemium",
+    {
+      p_usage_period_id: usagePeriodId,
+      p_seconds: seconds,
+      p_allow_block_overage: !!blockSubscriptionItemId,
+    }
+  );
 
   if (incrementError || !incrementResult?.success) {
+    console.error("[Audio] increment_audio_seconds_freemium failed:", incrementError);
+
+    if (incrementResult?.error === "BLOCK_REQUIRED") {
+      const err = new Error("Block required");
+      (err as any).code = "BLOCK_REQUIRED";
+      (err as any).usage = {
+        audio_seconds_used: incrementResult.audio_seconds_used,
+        audio_seconds_allowance: incrementResult.audio_seconds_allowance,
+        blocks_consumed: incrementResult.blocks_consumed,
+      };
+      throw err;
+    }
     const err = new Error("Failed to increment audio seconds");
     (err as any).code = "AUDIO_INCREMENT_FAILED";
     throw err;
   }
 
-  const blockPurchased = !!incrementResult.block_purchased;
-  const blocksAdded = Number(incrementResult.blocks_added || 0);
+  let blockPurchased = false;
 
-  if (blockPurchased && !blockSubscriptionItemId) {
-      await adminClient
-        .from("practice_usage_periods")
-        .update({
-          audio_seconds_used: incrementResult.new_audio_seconds - seconds,
-          blocks_consumed: Math.max(0, incrementResult.new_blocks - (blocksAdded || 1)),
-          current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS +
-            (Math.max(0, incrementResult.new_blocks - (blocksAdded || 1)) * AI_PRACTICE_BLOCK_PRICE_CENTS),
-        })
-        .eq("id", usagePeriodId)
-        .eq("audio_seconds_used", incrementResult.new_audio_seconds);
-
-    const err = new Error("Missing Stripe metered item for AI Practice blocks");
-    (err as any).code = "BLOCK_SUBSCRIPTION_ITEM_MISSING";
-    throw err;
-  }
-
-  if (blockPurchased && blockSubscriptionItemId) {
+  // If needs_block is true and student has block subscription, purchase via Stripe
+  if (incrementResult.needs_block && blockSubscriptionItemId) {
     try {
+      // Record metered usage on Stripe
       const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
         blockSubscriptionItemId,
         {
-          quantity: Math.max(1, blocksAdded || 1),
+          quantity: 1,
           timestamp: Math.floor(Date.now() / 1000),
           action: "increment",
         }
       );
 
-      await adminClient.from("practice_block_ledger").insert({
-        usage_period_id: usagePeriodId,
-        blocks_consumed: Math.max(1, blocksAdded || 1),
-        trigger_type: "audio_overflow",
-        usage_at_trigger: {
-          audio_seconds: currentUsage.audio_seconds_used,
-          text_turns: currentUsage.text_turns_used,
-        },
-        stripe_usage_record_id: usageRecord.id,
+      // Record block purchase in our database
+      const { error: blockError } = await adminClient.rpc("record_block_purchase", {
+        p_usage_period_id: usagePeriodId,
+        p_trigger_type: "audio_overflow",
+        p_stripe_usage_record_id: usageRecord.id,
       });
-    } catch (stripeError) {
-      console.error("Stripe usage record failed", stripeError);
-      await adminClient
-        .from("practice_usage_periods")
-        .update({
-          audio_seconds_used: incrementResult.new_audio_seconds - seconds,
-          blocks_consumed: Math.max(0, incrementResult.new_blocks - (blocksAdded || 1)),
-          current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS +
-            (Math.max(0, incrementResult.new_blocks - (blocksAdded || 1)) * AI_PRACTICE_BLOCK_PRICE_CENTS),
-        })
-        .eq("id", usagePeriodId)
-        .eq("audio_seconds_used", incrementResult.new_audio_seconds);
 
-      const err = new Error("Stripe usage record failed");
-      (err as any).code = "STRIPE_USAGE_FAILED";
-      throw err;
+      if (blockError) {
+        console.error("[Audio] record_block_purchase failed:", blockError);
+      } else {
+        blockPurchased = true;
+      }
+    } catch (stripeError) {
+      console.error("[Audio] Stripe usage record failed for audio overflow:", stripeError);
+      // Don't throw - the increment already happened, just log the billing failure
+      // The student still gets to use the service, we'll reconcile billing later
     }
   }
 
+  // Fetch updated usage after increment (and possible block purchase)
   const { data: updatedUsage, error: fetchError } = await adminClient
     .from("practice_usage_periods")
-    .select("id, audio_seconds_used, text_turns_used, blocks_consumed, current_tier_price_cents, period_end")
+    .select("id, audio_seconds_used, text_turns_used, blocks_consumed, current_tier_price_cents")
     .eq("id", usagePeriodId)
     .single();
 
@@ -442,58 +520,8 @@ async function incrementAudioWithBilling(params: {
   return { updatedUsage, blockPurchased };
 }
 
-async function getOrCreateUsagePeriod(
-  adminClient: ServiceRoleClient,
-  studentId: string,
-  tutorId: string,
-  subscriptionId: string
-): Promise<{
-  id: string;
-  audio_seconds_used: number;
-  text_turns_used: number;
-  blocks_consumed: number;
-  period_end: string;
-} | null> {
-  try {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
-    const periodStart = new Date(subscription.current_period_start * 1000);
-    const periodEnd = new Date(subscription.current_period_end * 1000);
-
-    const { data: existingPeriod } = await adminClient
-      .from("practice_usage_periods")
-      .select("id, audio_seconds_used, text_turns_used, blocks_consumed, period_end")
-      .eq("student_id", studentId)
-      .eq("subscription_id", subscriptionId)
-      .gte("period_end", new Date().toISOString())
-      .lte("period_start", new Date().toISOString())
-      .maybeSingle();
-
-    if (existingPeriod) {
-      return existingPeriod;
-    }
-
-    const { data: newPeriod } = await adminClient
-      .from("practice_usage_periods")
-      .insert({
-        student_id: studentId,
-        tutor_id: tutorId,
-        subscription_id: subscriptionId,
-        period_start: periodStart.toISOString(),
-        period_end: periodEnd.toISOString(),
-        audio_seconds_used: 0,
-        text_turns_used: 0,
-        blocks_consumed: 0,
-        current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS,
-      })
-      .select("id, audio_seconds_used, text_turns_used, blocks_consumed, period_end")
-      .single();
-
-    return newPeriod;
-  } catch (error) {
-    console.error("[Audio] Error getting usage period:", error);
-    return null;
-  }
-}
+// Note: getOrCreateUsagePeriod has been replaced by the get_or_create_free_usage_period RPC
+// for the freemium model. The RPC is called directly in the POST and GET handlers above.
 
 /**
  * Call Azure Pronunciation Assessment API

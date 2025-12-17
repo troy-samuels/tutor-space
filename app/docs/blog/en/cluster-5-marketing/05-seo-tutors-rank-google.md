@@ -103,7 +103,7 @@ On-page SEO is what you control directly on your website.
 
 **Header tags (H1, H2, H3):** Structure your content with headers. One H1 per page (usually your main headline). Use H2s for main sections, H3s for subsections. Include keywords naturally in headers.
 
-**URL structure:** Keep URLs short, descriptive, keyword-rich. Use hyphens, not underscores. Good: tutorlingua.com/spanish-tutor-boston. Bad: tutorlingua.com/page?id=12345
+**URL structure:** Keep URLs short, descriptive, keyword-rich. Use hyphens, not underscores. Good: tutorlingua.co/spanish-tutor-boston. Bad: tutorlingua.co/page?id=12345
 
 **Content optimization:** Include your target keyword in the first 100 words, headers, naturally throughout the content (don't stuff it), and image alt text. Write for humans first, search engines second. If it reads unnaturally, you've over-optimized.
 
@@ -127,7 +127,7 @@ Every tutor website needs these foundational pages:
 
 **Testimonials/Success stories page:** Detailed student testimonials with specific results. Before/after examples if relevant. Video testimonials if possible. Organized by goal or student type. Target keyword: "[Language] tutor reviews [city]"
 
-**Booking/Contact page:** Make it easy to book. Embedded calendar (like [TutorLingua's](https://tutorlingua.com) booking system). Contact form as backup. FAQ about booking process. Your availability and rates. Target keyword: "Book [language] lesson [city]"
+**Booking/Contact page:** Make it easy to book. Embedded calendar (like [TutorLingua's](https://tutorlingua.co) booking system). Contact form as backup. FAQ about booking process. Your availability and rates. Target keyword: "Book [language] lesson [city]"
 
 **Blog (if doing content marketing):** Individual posts targeting educational keywords. Links to relevant service pages from each post.
 
@@ -231,7 +231,7 @@ Technical SEO ensures Google can crawl, index, and understand your site.
 
 **Fix broken links:** Regularly check for 404 errors and fix them.
 
-Most of these are handled automatically if you use [TutorLingua](https://tutorlingua.com) or platforms like WordPress with SEO plugins (Yoast, Rank Math).
+Most of these are handled automatically if you use [TutorLingua](https://tutorlingua.co) or platforms like WordPress with SEO plugins (Yoast, Rank Math).
 
 ## Measuring SEO Success
 
@@ -275,7 +275,7 @@ How does SEO compare to alternatives?
 
 Don't get overwhelmed. Start with these actions:
 
-1. If you don't have a website, [create one with TutorLingua](https://tutorlingua.com/signup) or similar platform. Get something live.
+1. If you don't have a website, [create one with TutorLingua](https://tutorlingua.co/signup) or similar platform. Get something live.
 
 2. Create or claim your Google Business Profile. Fill it out completely.
 
@@ -324,4 +324,4 @@ SEO isn't glamorous. It's not instant. But it's one of the few marketing channel
 
 Your potential students are searching Google right now. The question is whether they find you or your competitors.
 
-Ready to build your tutor website with built-in SEO best practices? [Get started with TutorLingua](https://tutorlingua.com/signup) and create a professional site that attracts students through search—no technical expertise required.
+Ready to build your tutor website with built-in SEO best practices? [Get started with TutorLingua](https://tutorlingua.co/signup) and create a professional site that attracts students through search—no technical expertise required.

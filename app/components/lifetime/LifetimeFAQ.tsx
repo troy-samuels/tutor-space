@@ -32,7 +32,7 @@ const faqs = [
   {
     question: "What happens after December 3rd, 2025?",
     answer:
-      "After the deadline, the $99 lifetime deal will no longer be available. We'll switch to our regular monthly pricing of $39/month.",
+      "After the deadline, the $99 lifetime deal will no longer be available. We'll switch to our regular monthly pricing of $29/month.",
   },
   {
     question: "I already have a TutorLingua account. Can I upgrade?",

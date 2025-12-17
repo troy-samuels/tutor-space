@@ -52,7 +52,7 @@ Tu perfil de Instagram es tu escaparate digital. Tienes segundos para convencer 
 
 Ejemplo: "Tutora de español para profesionales ocupados | Fluidez conversacional en 6 meses | 500+ estudiantes enseñados | Reserva tu lección de prueba abajo"
 
-**Link en bio:** Obtienes un enlace clicable, así que hazlo contar. Usa una [página link-in-bio](/es/blog/mejor-link-in-bio-tutores) que dirija a tu calendario de reservas, testimonios, recursos gratuitos y otro contenido. [TutorLingua](https://tutorlingua.com) proporciona una página bio link integrada que se conecta directamente con tu calendario de reservas y sistema de pagos.
+**Link en bio:** Obtienes un enlace clicable, así que hazlo contar. Usa una [página link-in-bio](/es/blog/mejor-link-in-bio-tutores) que dirija a tu calendario de reservas, testimonios, recursos gratuitos y otro contenido. [TutorLingua](https://tutorlingua.co) proporciona una página bio link integrada que se conecta directamente con tu calendario de reservas y sistema de pagos.
 
 **Destacados:** Crea Destacados de Historias de Instagram para temas clave: Sobre Mí, Testimonios, Lecciones/Consejos Gratuitos, Resultados de Estudiantes, FAQ, Precios/Paquetes. Estos actúan como una bio extendida que los visitantes pueden explorar para aprender más sobre ti.
 
@@ -162,7 +162,7 @@ No tengas miedo de pedir la reserva. Muchos tutores proporcionan toneladas de va
 
 Crea respuestas rápidas de DM para preguntas comunes (tarifas, disponibilidad, estilo de enseñanza) para que puedas responder rápida y consistentemente. Pero personaliza cada conversación: las respuestas de copiar y pegar se sienten impersonales.
 
-**Rastrea tus clics de enlace:** Usa rastreo de enlaces (integrado en herramientas como [TutorLingua](https://tutorlingua.com) o a través de servicios como Bitly) para ver cuántas personas hacen clic en tu enlace de bio y qué acciones toman. Esto muestra si tu contenido está realmente impulsando reservas o solo generando métricas de vanidad.
+**Rastrea tus clics de enlace:** Usa rastreo de enlaces (integrado en herramientas como [TutorLingua](https://tutorlingua.co) o a través de servicios como Bitly) para ver cuántas personas hacen clic en tu enlace de bio y qué acciones toman. Esto muestra si tu contenido está realmente impulsando reservas o solo generando métricas de vanidad.
 
 ## Mejores Prácticas de Instagram para Tutores
 
@@ -184,7 +184,7 @@ El mayor error es rendirse demasiado pronto. El crecimiento en Instagram es lent
 
 ## Herramientas para Hacer Instagram Más Fácil
 
-Gestionar Instagram junto con la enseñanza puede sentirse abrumador. Estas herramientas ayudan: Canva para crear gráficos profesionales y plantillas, Later, Planoly o Buffer para programar publicaciones con anticipación, CapCut o InShot para editar Reels en móvil y [TutorLingua](https://tutorlingua.com) para tu página bio link con reservas y pagos integrados.
+Gestionar Instagram junto con la enseñanza puede sentirse abrumador. Estas herramientas ayudan: Canva para crear gráficos profesionales y plantillas, Later, Planoly o Buffer para programar publicaciones con anticipación, CapCut o InShot para editar Reels en móvil y [TutorLingua](https://tutorlingua.co) para tu página bio link con reservas y pagos integrados.
 
 No lo compliques demasiado. Un smartphone, plan gratis de Canva y esfuerzo consistente son suficientes para construir una presencia exitosa de tutor en Instagram.
 
@@ -214,4 +214,4 @@ Los tutores que tienen éxito en Instagram no son necesariamente los mejores pro
 
 Tu experiencia de enseñanza merece ser vista. Instagram te da la plataforma. Lo que hagas con ella depende de ti.
 
-¿Listo para simplificar tu negocio de tutorías más allá de las redes sociales? [Comienza con TutorLingua](https://tutorlingua.com/signup) para gestionar reservas, pagos y relaciones con estudiantes, todo en un lugar, dejándote más tiempo para crear gran contenido.
+¿Listo para simplificar tu negocio de tutorías más allá de las redes sociales? [Comienza con TutorLingua](https://tutorlingua.co/signup) para gestionar reservas, pagos y relaciones con estudiantes, todo en un lugar, dejándote más tiempo para crear gran contenido.

@@ -375,7 +375,7 @@ export function SignupForm() {
           />
         </div>
         <p className="text-xs text-muted-foreground" id="signup-username-helper">
-          This becomes your public profile link: <span className="font-semibold">tutorlingua.com/@username</span>
+          This becomes your public profile link: <span className="font-semibold">tutorlingua.co/@username</span>
         </p>
         {usernameMessage && (
           <p

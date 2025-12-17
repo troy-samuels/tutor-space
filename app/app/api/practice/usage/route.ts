@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { stripe } from "@/lib/stripe";
 import {
-  BASE_AUDIO_SECONDS,
-  BASE_TEXT_TURNS,
+  FREE_AUDIO_SECONDS,
+  FREE_TEXT_TURNS,
   BLOCK_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
+  AI_PRACTICE_BLOCK_PRICE_CENTS,
 } from "@/lib/practice/constants";
+import {
+  getTutorHasPracticeAccess,
+  calculatePracticeAllowance,
+  getCurrentPracticePeriod,
+} from "@/lib/practice/access";
 
 export interface PracticeUsageStats {
   audioSecondsUsed: number;
@@ -20,11 +25,18 @@ export interface PracticeUsageStats {
   periodEnd: string;
   percentAudioUsed: number;
   percentTextUsed: number;
+  // Freemium model additions
+  isFreeUser: boolean;
+  audioSecondsRemaining: number;
+  textTurnsRemaining: number;
+  canBuyBlocks: boolean;
+  blockPriceCents: number;
 }
 
 /**
  * GET /api/practice/usage
  * Returns current usage and allowance for the authenticated student
+ * FREEMIUM MODEL: Works for both free tier and paid block users
  */
 export async function GET() {
   try {
@@ -38,7 +50,14 @@ export async function GET() {
     // Get the student record
     const { data: student } = await supabase
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_subscription_id, tutor_id")
+      .select(`
+        id,
+        tutor_id,
+        ai_practice_enabled,
+        ai_practice_free_tier_enabled,
+        ai_practice_subscription_id,
+        ai_practice_block_subscription_item_id
+      `)
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
@@ -50,13 +69,6 @@ export async function GET() {
       );
     }
 
-    if (!student.ai_practice_enabled || !student.ai_practice_subscription_id) {
-      return NextResponse.json(
-        { error: "AI Practice subscription not active" },
-        { status: 403 }
-      );
-    }
-
     const adminClient = createServiceRoleClient();
     if (!adminClient) {
       return NextResponse.json(
@@ -65,71 +77,90 @@ export async function GET() {
       );
     }
 
-    // Get subscription period from Stripe
-    let periodStart: Date;
-    let periodEnd: Date;
-
-    try {
-      const subscription = await stripe.subscriptions.retrieve(
-        student.ai_practice_subscription_id
-      ) as any;
-      periodStart = new Date(subscription.current_period_start * 1000);
-      periodEnd = new Date(subscription.current_period_end * 1000);
-    } catch (err) {
-      console.error("[Practice Usage] Stripe subscription lookup failed:", err);
-      // Fall back to stored period end
-      periodEnd = new Date();
-      periodStart = new Date(periodEnd);
-      periodStart.setDate(periodStart.getDate() - 30);
+    // Check tutor tier (freemium access gate)
+    if (!student.tutor_id) {
+      return NextResponse.json(
+        { error: "No tutor assigned", code: "NO_TUTOR" },
+        { status: 403 }
+      );
     }
 
-    // Get current usage period
-    const { data: usagePeriod } = await adminClient
-      .from("practice_usage_periods")
-      .select("*")
-      .eq("student_id", student.id)
-      .eq("subscription_id", student.ai_practice_subscription_id)
-      .gte("period_end", new Date().toISOString())
-      .lte("period_start", new Date().toISOString())
-      .maybeSingle();
+    const tutorHasStudio = await getTutorHasPracticeAccess(
+      adminClient,
+      student.tutor_id
+    );
 
-    // If no usage period exists, return default (fresh) values
-    if (!usagePeriod) {
+    if (!tutorHasStudio) {
+      return NextResponse.json(
+        {
+          error: "AI Practice requires tutor Studio subscription",
+          code: "TUTOR_NOT_STUDIO",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Get or create free usage period
+    const { data: usagePeriod, error: periodError } = await adminClient.rpc(
+      "get_or_create_free_usage_period",
+      {
+        p_student_id: student.id,
+        p_tutor_id: student.tutor_id,
+      }
+    );
+
+    if (periodError) {
+      console.error("[Practice Usage] Failed to get/create period:", periodError);
+      // Return default values if period creation fails
+      const { periodStart, periodEnd } = getCurrentPracticePeriod();
       const stats: PracticeUsageStats = {
         audioSecondsUsed: 0,
-        audioSecondsAllowance: BASE_AUDIO_SECONDS,
+        audioSecondsAllowance: FREE_AUDIO_SECONDS,
         textTurnsUsed: 0,
-        textTurnsAllowance: BASE_TEXT_TURNS,
+        textTurnsAllowance: FREE_TEXT_TURNS,
         blocksConsumed: 0,
-        currentTierPriceCents: 800,
+        currentTierPriceCents: 0,
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
         percentAudioUsed: 0,
         percentTextUsed: 0,
+        isFreeUser: true,
+        audioSecondsRemaining: FREE_AUDIO_SECONDS,
+        textTurnsRemaining: FREE_TEXT_TURNS,
+        canBuyBlocks: true,
+        blockPriceCents: AI_PRACTICE_BLOCK_PRICE_CENTS,
       };
-
       return NextResponse.json(stats);
     }
 
-    // Calculate allowances based on blocks consumed
-    const audioAllowance = BASE_AUDIO_SECONDS + (usagePeriod.blocks_consumed * BLOCK_AUDIO_SECONDS);
-    const textAllowance = BASE_TEXT_TURNS + (usagePeriod.blocks_consumed * BLOCK_TEXT_TURNS);
+    // Calculate allowances using the new helper
+    const allowance = calculatePracticeAllowance(usagePeriod);
 
     // Calculate percentages
-    const percentAudioUsed = Math.round((usagePeriod.audio_seconds_used / audioAllowance) * 100);
-    const percentTextUsed = Math.round((usagePeriod.text_turns_used / textAllowance) * 100);
+    const percentAudioUsed = allowance.audioSecondsAllowance > 0
+      ? Math.round((allowance.audioSecondsUsed / allowance.audioSecondsAllowance) * 100)
+      : 0;
+    const percentTextUsed = allowance.textTurnsAllowance > 0
+      ? Math.round((allowance.textTurnsUsed / allowance.textTurnsAllowance) * 100)
+      : 0;
 
     const stats: PracticeUsageStats = {
-      audioSecondsUsed: usagePeriod.audio_seconds_used,
-      audioSecondsAllowance: audioAllowance,
-      textTurnsUsed: usagePeriod.text_turns_used,
-      textTurnsAllowance: textAllowance,
-      blocksConsumed: usagePeriod.blocks_consumed,
-      currentTierPriceCents: usagePeriod.current_tier_price_cents,
-      periodStart: usagePeriod.period_start,
-      periodEnd: usagePeriod.period_end,
+      audioSecondsUsed: allowance.audioSecondsUsed,
+      audioSecondsAllowance: allowance.audioSecondsAllowance,
+      textTurnsUsed: allowance.textTurnsUsed,
+      textTurnsAllowance: allowance.textTurnsAllowance,
+      blocksConsumed: allowance.blocksConsumed,
+      currentTierPriceCents: allowance.blocksConsumed * AI_PRACTICE_BLOCK_PRICE_CENTS,
+      periodStart: allowance.periodStart.toISOString(),
+      periodEnd: allowance.periodEnd.toISOString(),
       percentAudioUsed,
       percentTextUsed,
+      // Freemium model additions
+      isFreeUser: allowance.isFreeUser,
+      audioSecondsRemaining: allowance.audioSecondsRemaining,
+      textTurnsRemaining: allowance.textTurnsRemaining,
+      canBuyBlocks: true, // Students can always buy more blocks
+      blockPriceCents: AI_PRACTICE_BLOCK_PRICE_CENTS,
     };
 
     return NextResponse.json(stats);

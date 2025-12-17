@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   return {
     title: post.title,
@@ -82,7 +82,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   }
 
   const relatedPosts = getRelatedPosts(post, 3);
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   // JSON-LD structured data
   const articleSchema = generateBlogPostSchema(post, baseUrl);

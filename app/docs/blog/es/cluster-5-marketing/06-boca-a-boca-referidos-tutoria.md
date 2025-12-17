@@ -128,7 +128,7 @@ Incluso si los estudiantes quieren referirte, la fricción los detiene. Elimina 
 
 **Proporciona una explicación simple:** Da a los estudiantes una descripción de una oración que puedan usar: "Trabajo con una tutora de español que se especializa en profesionales de negocios. Me ayudó a pasar de principiante a conversacional en seis meses." Haz fácil articular lo que haces y para quién.
 
-**Comparte tu enlace:** Ten tu enlace de reserva listo para compartir instantáneamente. [TutorLingua](https://tutorlingua.com) proporciona una página profesional de reserva que puedes enviar a referidos, haciendo el proceso perfecto. Los estudiantes pueden enviar por mensaje de texto o correo electrónico tu enlace con cero fricción.
+**Comparte tu enlace:** Ten tu enlace de reserva listo para compartir instantáneamente. [TutorLingua](https://tutorlingua.co) proporciona una página profesional de reserva que puedes enviar a referidos, haciendo el proceso perfecto. Los estudiantes pueden enviar por mensaje de texto o correo electrónico tu enlace con cero fricción.
 
 **Crea una tarjeta de referido:** Una imagen digital simple o PDF que los estudiantes puedan compartir con tu foto, lo que enseñas, tus especialidades y tu enlace de reserva. Hazlo compartible vía texto, correo electrónico o redes sociales con un clic.
 
@@ -256,4 +256,4 @@ El mejor marketing no se siente como marketing. Cuando los estudiantes están ta
 
 Deja de dejar los referidos al azar. Comienza a sistematizar el boca a boca, y mira cómo tu pipeline de estudiantes se vuelve autosustentable.
 
-¿Listo para crear una experiencia profesional que hace que los estudiantes quieran referirte? [Comienza con TutorLingua](https://tutorlingua.com/signup) para simplificar tu reserva, pagos y gestión de estudiantes—liberándote para enfocarte en entregar las experiencias transformadoras que generan referidos naturalmente.
+¿Listo para crear una experiencia profesional que hace que los estudiantes quieran referirte? [Comienza con TutorLingua](https://tutorlingua.co/signup) para simplificar tu reserva, pagos y gestión de estudiantes—liberándote para enfocarte en entregar las experiencias transformadoras que generan referidos naturalmente.

@@ -1,0 +1,421 @@
+{
+  "hero": {
+    "headline": "Entwickelt für Tutoren.",
+    "subheadline": "14 Tage kostenlos testen. Danach 29 $/Monat oder 299 $/Jahr. Alle Tools inklusive.",
+    "primaryCTA": "Kostenlos registrieren",
+    "secondaryCTA": "So funktioniert's",
+    "variants": {
+      "outcomeHeadline": "Weniger Verwaltung. Mehr Schüler.",
+      "financialHeadline": "Behalten Sie 100 % — keine Plattformgebühren.",
+      "aspirationalHeadline": "Ihre unabhängige Akademie, vollautomatisiert."
+    }
+  },
+  "socialProof": {
+    "text": "Genutzt von Sprachlehrern auf Preply, iTalki und Verbling, um ihr Stammkundengeschäft zu besitzen",
+    "tutors": [
+      { "name": "Alba GB.", "language": "Spanischlehrerin" },
+      { "name": "Thomas B.", "language": "Französischlehrer" },
+      { "name": "Ricardo M.", "language": "Portugiesischlehrer" }
+    ]
+  },
+  "problems": {
+    "headline": "Ihr Geschäft ist verstreut. Das sollte nicht so sein.",
+    "subtitle": "Schüler auf Preply. Buchungen auf Calendly. Links auf Beacons. TutorLingua bringt alles zusammen.",
+    "items": [
+      {
+        "icon": "Layers",
+        "title": "Nur für Tutoren entwickelt",
+        "description": "Anders als generische Tools. Alles, was Sie brauchen. Nichts, was Sie nicht brauchen."
+      },
+      {
+        "icon": "Users",
+        "title": "Besitzen Sie Ihr Stammkundengeschäft",
+        "description": "Marktplätze finden Schüler. Sie behalten sie. Keine Provisionen."
+      },
+      {
+        "icon": "Clock",
+        "title": "Schüler buchen sofort",
+        "description": "Teilen Sie Ihren Link. Sie wählen eine Zeit. Sie werden bezahlt. Fertig."
+      }
+    ]
+  },
+  "phoneMockup": {
+    "headline": "Ihre Website, bereit zum Teilen",
+    "subheadline": "Professionell. Mobilfreundlich. In 10 Minuten fertig.",
+    "features": [
+      {
+        "icon": "Palette",
+        "title": "Ihre Marke, Ihr Stil",
+        "description": "Wählen Sie Farben, Schriften und Fotos, die zu Ihnen passen"
+      },
+      {
+        "icon": "Layers",
+        "title": "Alle Ihre Dienste an einem Ort",
+        "description": "Schüler sehen Ihr Angebot und buchen sofort"
+      },
+      {
+        "icon": "Star",
+        "title": "Bewertungen, die Vertrauen schaffen",
+        "description": "Zeigen Sie, was Schüler über Sie sagen"
+      },
+      {
+        "icon": "Smartphone",
+        "title": "Funktioniert auf jedem Handy",
+        "description": "Teilen Sie Ihren Link überall — Instagram, WhatsApp, E-Mail"
+      }
+    ],
+    "cta": "Kostenlos registrieren"
+  },
+  "solution": {
+    "headline": "Alles, was Sie brauchen. Nichts, was Sie nicht brauchen.",
+    "subheadline": "Entwickelt für Sprachlehrer. In 10 Minuten bereit.",
+    "features": [
+      {
+        "icon": "Globe",
+        "title": "Ihr professioneller Hub",
+        "description": "Website plus Link-in-Bio. Teilen auf Instagram, TikTok, Marktplatzprofilen. Ein Link zu allem."
+      },
+      {
+        "icon": "Calendar",
+        "title": "Direktbuchungen",
+        "description": "Schüler wählen eine Zeit. Zahlen im Voraus. Erhalten Zoom-Links automatisch. Kein Zahlungen hinterherlaufen. Kein Hin und Her."
+      },
+      {
+        "icon": "Users",
+        "title": "Verfolgen Sie Ihre Schüler",
+        "description": "Speichern Sie Notizen nach jeder Lektion. Erinnern Sie sich, was Sie gelehrt haben. Verfolgen Sie den Fortschritt. Alles an einem Ort."
+      }
+    ]
+  },
+  "howItWorks": {
+    "headline": "In 10 Minuten bereit",
+    "steps": [
+      {
+        "number": 1,
+        "icon": "UserPlus",
+        "title": "Teilen Sie Ihren Link",
+        "description": "Setzen Sie ihn auf Instagram. Fügen Sie ihn zu TikTok hinzu. Fügen Sie ihn in Ihre Preply-Bio ein. Teilen Sie ihn überall."
+      },
+      {
+        "number": 2,
+        "icon": "Calendar",
+        "title": "Schüler buchen direkt",
+        "description": "Sie wählen eine Zeit. Zahlen im Voraus. Erhalten ihren Zoom-Link sofort. Sie erhalten eine Benachrichtigung."
+      },
+      {
+        "number": 3,
+        "icon": "Users",
+        "title": "Sie verfolgen alles",
+        "description": "Alle Ihre Schüler an einem Ort. Notizen, Termine, Zahlungen. Keine verstreuten Tools mehr."
+      }
+    ],
+    "cta": "Kostenlos registrieren"
+  },
+  "featuresDeepDive": {
+    "headline": "Volle Kontrolle. Zufriedene Eltern.",
+    "categories": [
+      {
+        "name": "Professionelle Präsenz",
+        "items": [
+          "Eigene Subdomain",
+          "Link-in-Bio mit Analysen",
+          "Eltern-Vertrauensseite",
+          "Mehrsprachiger Support",
+          "Social-Media-Integrationen"
+        ]
+      },
+      {
+        "name": "Buchungen & Zahlungen",
+        "items": [
+          "Interaktiver Kalender",
+          "Wiederkehrende Pakete",
+          "Stripe & PayPal Checkout",
+          "Automatische Rechnungen",
+          "Zoom-Link-Generierung"
+        ]
+      },
+      {
+        "name": "Lehrwerkzeuge",
+        "items": [
+          "24/7 KI-Gesprächspartner",
+          "KI-Unterrichtspläne & Hausaufgaben",
+          "Ressourcenbibliothek",
+          "Strukturierte Unterrichtsnotizen",
+          "GER-angepasste Fortschrittsverfolgung"
+        ]
+      },
+      {
+        "name": "Kommunikation",
+        "items": [
+          "Automatische Bestätigungen",
+          "E-Mail & WhatsApp Sequenzen",
+          "Testimonial-Erfassung",
+          "Tägliche Tutor-Zusammenfassung",
+          "Ein-Klick Eltern-Updates"
+        ]
+      },
+      {
+        "name": "Geschäftseinblicke",
+        "items": [
+          "Umsatzanalysen",
+          "Conversion-Trichter",
+          "KI-Nutzungskontrollen",
+          "Executive Dashboard",
+          "Vollständiger Datenexport"
+        ]
+      },
+      {
+        "name": "Das Klassenzimmer, das Notizen macht",
+        "items": [
+          "Perfekte Erinnerung — Jede Lektion wird automatisch transkribiert. Schüler suchen nach dem Wort, das sie vor drei Wochen vergessen haben.",
+          "Unsichtbare Einblicke — Sprechzeit, Vokabelmuster, häufige Fehler werden im Hintergrund verfolgt.",
+          "Hausaufgaben, die sich selbst schreiben — Übungsaufgaben aus der Lektion generiert. Basierend auf echten Fehlern, nicht Vorlagen."
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "headline": "14 Tage kostenlos testen",
+    "subheadline": "Danach 29 $/Monat oder 299 $/Jahr. Ein Festpreis pro Tutor.",
+    "comparisonNote": "Alle Funktionen inklusive. Keine Belastung bis Tag 14. Vor der Abrechnung kündigen.",
+    "toggle": {
+      "label": "Abrechnung",
+      "monthlyLabel": "Monatlich",
+      "annualLabel": "Jährlich (36 % sparen)",
+      "helper": "Jederzeit wechseln — Ihr Plan bleibt vollständig."
+    },
+    "tiers": [
+      {
+        "name": "Vollzugang",
+        "monthlyPrice": "29 $",
+        "annualPrice": "299 $",
+        "monthlyPeriod": "pro Monat",
+        "annualPeriod": "pro Jahr",
+        "badge": "Alles inklusive",
+        "description": "14 Tage kostenlos testen. Ein Plan. Die gesamte Plattform.",
+        "features": [
+          "Website und Buchungen an einem Ort",
+          "Sichere Zahlung über Stripe — Abrechnung nach dem Test",
+          "Notizen und Aufgaben pro Schüler",
+          "E-Mails und Erinnerungen integriert",
+          "Ohne Aufpreis. Jederzeit kündigen."
+        ],
+        "cta": "Kostenlos registrieren",
+        "highlighted": true
+      }
+    ]
+  },
+  "comparison": {
+    "headline": "Entwickelt für Tutoren. Nicht für jeden.",
+    "caption": "Generische Link-Tools funktionieren für jeden. TutorLingua funktioniert speziell für Sprachlehrer.",
+    "tableHeaders": {
+      "feature": "Was Sie bekommen",
+      "marketplace": "Generische Tools",
+      "platform": "TutorLingua"
+    },
+    "columns": [
+      { "label": "", "marketplace": "", "platform": "" },
+      { "label": "Buchungssystem", "marketplace": "Separates Tool", "platform": "Integriert" },
+      { "label": "Zahlungseinzug", "marketplace": "Separates Tool", "platform": "Integriert" },
+      { "label": "Schülernotizen & CRM", "marketplace": "Nicht enthalten", "platform": "Integriert" },
+      { "label": "Lektionsverfolgung", "marketplace": "Nicht enthalten", "platform": "Integriert" },
+      { "label": "Professionelle Website", "marketplace": "Nur Link-Seite", "platform": "Vollständige Website + Links" }
+    ]
+  },
+  "testimonials": {
+    "headline": "Echte Tutoren, echte Ergebnisse",
+    "subheadline": "Schließen Sie sich Tausenden von Tutoren an, die mit TutorLingua mehr verdienen und weniger arbeiten",
+    "featured": {
+      "quote": "Ich bleibe auf Preply für neue Schüler. Aber Wiederholungslektionen laufen über TutorLingua. Hat mir dieses Jahr 7.500 $ an Provisionen gespart.",
+      "author": "Alba GB.",
+      "role": "Spanischlehrerin",
+      "image": "/testimonials/sara.jpg"
+    },
+    "list": [
+      {
+        "quote": "Meine Instagram-Follower können mich endlich direkt buchen. 12 Lektionen in der ersten Woche gebucht.",
+        "author": "Thomas B.",
+        "role": "Französischlehrer"
+      },
+      {
+        "quote": "Alle meine Schüler an einem Ort. Notizen, Termine, Zahlungen. Keine verstreuten Tabellen mehr.",
+        "author": "Ricardo M.",
+        "role": "Portugiesischlehrer"
+      }
+    ]
+  },
+  "faq": {
+    "headline": "Häufige Fragen",
+    "items": [
+      {
+        "question": "Muss ich Preply oder iTalki verlassen?",
+        "answer": "Nein. Nutzen Sie Marktplätze, um gefunden zu werden. Nutzen Sie TutorLingua für Direktbuchungen von Ihren Followern und Stammkunden."
+      },
+      {
+        "question": "Ist das einfach zu bedienen?",
+        "answer": "Wenn Sie Instagram nutzen können, können Sie TutorLingua nutzen. Die meisten Tutoren sind in 10 Minuten fertig."
+      },
+      {
+        "question": "Wie buchen Schüler?",
+        "answer": "Sie klicken auf Ihren Link. Wählen eine Zeit. Zahlen. Erhalten ihren Zoom-Link sofort. Fertig."
+      },
+      {
+        "question": "Behalte ich alle meine Einnahmen?",
+        "answer": "Ja. Keine Provisionen auf Direktbuchungen über TutorLingua. Sie behalten 100 %."
+      },
+      {
+        "question": "Kann ich meine Schüler verfolgen?",
+        "answer": "Ja. Speichern Sie Notizen nach jeder Lektion. Verfolgen Sie den Fortschritt. Alle Ihre Schüler an einem organisierten Ort."
+      },
+      {
+        "question": "Kann ich jederzeit gehen?",
+        "answer": "Ja. Exportieren Sie alle Ihre Daten. Keine Bindung. Jederzeit kündigen."
+      }
+    ]
+  },
+  "valueStack": {
+    "headline": "Was Sie woanders zahlen würden",
+    "items": [
+      {
+        "icon": "Globe",
+        "feature": "Professionelle Website & Link-in-Bio",
+        "replaces": ["Squarespace", "Linktree"],
+        "competitorPrice": 16
+      },
+      {
+        "icon": "Calendar",
+        "feature": "Kalender & Buchungen",
+        "replaces": ["Calendly", "Acuity Scheduling"],
+        "competitorPrice": 12
+      },
+      {
+        "icon": "GraduationCap",
+        "feature": "Lektionspakete & Kurserstellung",
+        "replaces": ["Kajabi", "Teachable"],
+        "competitorPrice": 59
+      },
+      {
+        "icon": "Users",
+        "feature": "Schüler-CRM & Notizen",
+        "replaces": ["HubSpot", "Notion"],
+        "competitorPrice": 20
+      },
+      {
+        "icon": "Mail",
+        "feature": "E-Mail-Liste & Sequenzen",
+        "replaces": ["ConvertKit", "Mailchimp"],
+        "competitorPrice": 15
+      },
+      {
+        "icon": "CreditCard",
+        "feature": "Zahlungsabwicklung",
+        "replaces": ["Stripe setup", "PayPal Business"],
+        "competitorPrice": 0
+      },
+      {
+        "icon": "BarChart3",
+        "feature": "Analyse-Dashboard",
+        "replaces": ["Google Analytics"],
+        "competitorPrice": 0
+      }
+    ],
+    "totalLabel": "Was Sie sonst ausgeben würden",
+    "platformLabel": "TutorLingua beitreten",
+    "platformPrice": "29 $",
+    "platformPeriod": "/Monat",
+    "cta": "Kostenlos registrieren",
+    "ctaHref": "/signup"
+  },
+  "finalCTA": {
+    "headline": "Bereit, Ihr Geschäft zu besitzen?",
+    "subheadline": "14 Tage kostenlos testen. In 10 Minuten bereit.",
+    "calculatorLabel": "Monatlicher Umsatz:",
+    "calculatorUnit": "/Monat",
+    "rangeMinLabel": "500 $",
+    "rangeMaxLabel": "10.000 $",
+    "commissionLabel": "Marktplatzgebühren (25 %):",
+    "platformCostLabel": "TutorLingua (29 $):",
+    "monthlySavingsLabel": "Monatliche Ersparnis:",
+    "annualSavingsLabel": "Jährliche Ersparnis",
+    "button": "Kostenlos registrieren",
+    "finePrint": "14 Tage kostenlos testen. Abrechnung nach dem Test; vor Tag 14 kündigen.",
+    "trustBadges": ["Stripe verifiziert", "DSGVO-konform", "SOC 2 bereit"]
+  },
+  "navigation": {
+    "links": [
+      { "label": "Funktionen", "href": "#features" },
+      { "label": "So funktioniert's", "href": "#how-it-works" },
+      { "label": "Preise", "href": "#pricing" },
+      { "label": "Testimonials", "href": "#testimonials" }
+    ],
+    "cta": "Anmelden"
+  },
+  "footer": {
+    "tagline": "TutorLingua — Besitzen Sie Ihr Stammkundengeschäft. Entwickelt für Sprachlehrer.",
+    "sections": [
+      {
+        "title": "Produkt",
+        "links": [
+          { "label": "Funktionen", "href": "#features" },
+          { "label": "Preise", "href": "#pricing" },
+          { "label": "Sicherheit", "href": "/security" }
+        ]
+      },
+      {
+        "title": "Ressourcen",
+        "links": [
+          { "label": "Blog", "href": "/de/blog" },
+          { "label": "Hilfezentrum", "href": "/help" },
+          { "label": "Community", "href": "/community" }
+        ]
+      },
+      {
+        "title": "Unternehmen",
+        "links": [
+          { "label": "Über uns", "href": "/about" },
+          { "label": "Kontakt", "href": "/contact" },
+          { "label": "Datenschutz", "href": "/privacy" },
+          { "label": "AGB", "href": "/terms" },
+          { "label": "Admin", "href": "/admin/login" }
+        ]
+      }
+    ],
+    "copyright": "© 2025 TutorLingua. Alle Rechte vorbehalten."
+  },
+  "studioIntelligence": {
+    "badge": "Studio-Intelligenz",
+    "headline": "Ihr KI-Lehrassistent",
+    "subheadline": "Während Sie unterrichten, hört TutorLingua zu. Es erkennt Ausspracheprobleme und erstellt automatisch gezielte Übungen.",
+    "transcript": {
+      "recordingLabel": "Aufnahme",
+      "timer": "4:32",
+      "tutorLabel": "Tutor",
+      "studentLabel": "Schüler",
+      "lines": ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      "mispronouncedPrefix": "\"Muchas ",
+      "mispronouncedWord": "grassy-as",
+      "mispronouncedSuffix": "\"",
+      "mispronouncedHint": "Klingt zu englisch",
+      "correction": "\"Fast! Versuche 'grah-see-ahs' — rolle es ein bisschen\"",
+      "correctedWord": "¡Gracias!",
+      "correctionHint": "Viel besser!"
+    },
+    "connector": "KI analysiert Lektion",
+    "detectedTitle": "In dieser Lektion erkannt",
+    "detected": [
+      { "word": "\"gracias\"", "description": "Aussprache klingt zu englisch" },
+      { "word": "\"por favor\"", "description": "Fehlendes weiches 'v'" }
+    ],
+    "vocab": {
+      "title": "5 neue Begriffe",
+      "description": "Vokabelerweiterung"
+    },
+    "practiceTitle": "Automatisch generierte Übungen",
+    "practice": [
+      { "title": "Begrüßungs-Übung", "description": "gracias, hola, adiós, buenos días" },
+      { "title": "Weiche Laute Übung", "description": "favor, vamos, nuevo, llave" },
+      { "title": "Karteikarten-Deck", "description": "5 neue Wörter aus dieser Lektion" }
+    ],
+    "saveNote": "Automatisch im Schülerprofil gespeichert"
+  }
+}

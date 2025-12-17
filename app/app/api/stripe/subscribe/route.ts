@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
     // Parse billing cycle + tier from request body (defaults: pro + monthly)
     let billingCycle: "monthly" | "annual" = "monthly";
     let tier: "pro" | "studio" = "pro";
-    const trialPeriodDays = 14;
     try {
       const body = await request.json();
       if (body.billingCycle === "annual") {
@@ -21,6 +20,9 @@ export async function POST(request: NextRequest) {
     } catch {
       // No body or invalid JSON - use default monthly
     }
+
+    // Trial period: 14 days for annual, 7 days for monthly
+    const trialPeriodDays = billingCycle === "annual" ? 14 : 7;
 
     const monthlyPriceId =
       tier === "studio"

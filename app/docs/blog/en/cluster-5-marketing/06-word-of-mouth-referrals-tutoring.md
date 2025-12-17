@@ -128,7 +128,7 @@ Even if students want to refer you, friction stops them. Remove every barrier.
 
 **Provide a simple explanation:** Give students a one-sentence description they can use: "I work with a Spanish tutor who specializes in business professionals. She helped me go from beginner to conversational in six months." Make it easy to articulate what you do and for whom.
 
-**Share your link:** Have your booking link ready to share instantly. [TutorLingua](https://tutorlingua.com) provides a professional booking page you can send to referrals, making the process seamless. Students can text or email your link with zero friction.
+**Share your link:** Have your booking link ready to share instantly. [TutorLingua](https://tutorlingua.co) provides a professional booking page you can send to referrals, making the process seamless. Students can text or email your link with zero friction.
 
 **Create a referral card:** A simple digital image or PDF students can share with your photo, what you teach, your specialties, and your booking link. Make it sharable via text, email, or social media with one click.
 
@@ -256,4 +256,4 @@ The best marketing doesn't feel like marketing. When students are so happy with 
 
 Stop leaving referrals to chance. Start systematizing word-of-mouth, and watch your student pipeline become self-sustaining.
 
-Ready to create a professional experience that makes students want to refer you? [Get started with TutorLingua](https://tutorlingua.com/signup) to streamline your booking, payments, and student management—freeing you to focus on delivering the transformative experiences that generate referrals naturally.
+Ready to create a professional experience that makes students want to refer you? [Get started with TutorLingua](https://tutorlingua.co/signup) to streamline your booking, payments, and student management—freeing you to focus on delivering the transformative experiences that generate referrals naturally.

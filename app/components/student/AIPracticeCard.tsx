@@ -15,16 +15,16 @@ import {
   CheckCircle,
   Sparkles,
   ArrowRight,
-  Lock,
   Mic,
   Zap,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   AI_PRACTICE_BLOCK_PRICE_CENTS,
-  AI_PRACTICE_BASE_PRICE_CENTS,
-  BASE_AUDIO_MINUTES,
-  BASE_TEXT_TURNS,
+  FREE_AUDIO_MINUTES,
+  FREE_TEXT_TURNS,
+  BLOCK_AUDIO_MINUTES,
+  BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
 
 export interface PracticeAssignment {
@@ -60,6 +60,12 @@ export interface PracticeUsage {
   periodEnd: string | null;
   percentAudioUsed: number;
   percentTextUsed: number;
+  // Freemium model additions
+  isFreeUser?: boolean;
+  audioSecondsRemaining?: number;
+  textTurnsRemaining?: number;
+  canBuyBlocks?: boolean;
+  blockPriceCents?: number;
 }
 
 interface AIPracticeCardProps {
@@ -106,7 +112,6 @@ export function AIPracticeCard({
   studentId,
   usage,
 }: AIPracticeCardProps) {
-  const basePriceDollars = (AI_PRACTICE_BASE_PRICE_CENTS / 100).toFixed(0);
   const blockPriceDollars = (AI_PRACTICE_BLOCK_PRICE_CENTS / 100).toFixed(0);
 
   const openAssignments = assignments
@@ -129,7 +134,7 @@ export function AIPracticeCard({
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
-  // Not subscribed - show upgrade CTA with tiered pricing
+  // Not subscribed - show free tier CTA (freemium model)
   if (!isSubscribed) {
     return (
       <Card className="border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
@@ -137,9 +142,8 @@ export function AIPracticeCard({
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
             Conversation Practice
-            <Badge variant="secondary" className="text-xs">
-              <Sparkles className="h-3 w-3 mr-1" />
-              New
+            <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800">
+              Free
             </Badge>
           </CardTitle>
           <CardDescription>
@@ -149,12 +153,12 @@ export function AIPracticeCard({
         <CardContent className="space-y-4">
           <div className="rounded-xl border border-border/60 bg-background/80 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Lock className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+                <Sparkles className="h-5 w-5 text-emerald-600" />
               </div>
               <div className="space-y-1">
                 <p className="font-medium text-foreground">
-                  Unlock conversation practice
+                  Start practicing for free
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {tutorName
@@ -169,28 +173,33 @@ export function AIPracticeCard({
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
               <MessageSquare className="h-5 w-5 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1">
-                {BASE_TEXT_TURNS} text turns
+                {FREE_TEXT_TURNS} text turns
               </p>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
               <Mic className="h-5 w-5 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1">
-                {BASE_AUDIO_MINUTES} audio min
+                {FREE_AUDIO_MINUTES} audio min
               </p>
             </div>
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
               <Zap className="h-5 w-5 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1">
-                +${blockPriceDollars} blocks
+                +${blockPriceDollars}/block
               </p>
             </div>
           </div>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Free tier resets monthly. Buy extra blocks only when you need more.
+          </p>
 
           <Link
             href={`/student/practice/subscribe?student=${studentId}`}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
-            Subscribe for ${basePriceDollars}/month
+            <Sparkles className="h-4 w-4" />
+            Start Practicing Free
             <ArrowRight className="h-4 w-4" />
           </Link>
         </CardContent>
@@ -221,11 +230,18 @@ export function AIPracticeCard({
           <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-foreground">Monthly Usage</span>
-              {usage.blocksConsumed > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  +{usage.blocksConsumed} block{usage.blocksConsumed > 1 ? "s" : ""}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {usage.isFreeUser && (
+                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800">
+                    Free Tier
+                  </Badge>
+                )}
+                {usage.blocksConsumed > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{usage.blocksConsumed} block{usage.blocksConsumed > 1 ? "s" : ""}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Text turns meter */}

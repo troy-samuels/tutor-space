@@ -15,7 +15,7 @@ alternateLocale:
 
 Getting started with TutorLingua takes just a few minutes. Here's how to set up your account:
 
-1. **Visit the signup page** at [tutorlingua.com/signup](/signup)
+1. **Visit the signup page** at [tutorlingua.co/signup](/signup)
 2. **Enter your email** and create a secure password
 3. **Verify your email** by clicking the link we send you
 
@@ -30,7 +30,7 @@ TutorLingua's onboarding wizard helps you set up everything you need in 6 simple
 Fill in your basic information:
 
 - **Full name** - How students will see you
-- **Username** - Your unique booking URL (e.g., tutorlingua.com/book/yourname)
+- **Username** - Your unique booking URL (e.g., tutorlingua.co/book/yourname)
 - **Timezone** - Ensures bookings display in the correct time
 - **Profile photo** - A professional photo helps build trust
 

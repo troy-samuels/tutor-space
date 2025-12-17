@@ -68,7 +68,7 @@ Tu presencia digital es tu máquina de marketing 24/7. Cuando los estudiantes bu
 
 **La presencia completa:** Idealmente, también tendrás tu [propio sitio web de tutor](/es/blog/crear-web-tutor-sin-programar) que controles, marca consistente en todas las plataformas y una estrategia de contenido que demuestre tu experiencia.
 
-[TutorLingua](https://tutorlingua.com) hace esto fácil al proporcionar todo lo que necesitas en una plataforma: un sitio profesional de reservas, página bio link, procesamiento de pagos y herramientas de gestión de estudiantes. En lugar de hacer malabares con múltiples servicios, puedes enfocarte en lo que importa: enseñar y promocionarte.
+[TutorLingua](https://tutorlingua.co) hace esto fácil al proporcionar todo lo que necesitas en una plataforma: un sitio profesional de reservas, página bio link, procesamiento de pagos y herramientas de gestión de estudiantes. En lugar de hacer malabares con múltiples servicios, puedes enfocarte en lo que importa: enseñar y promocionarte.
 
 **La consistencia es credibilidad:** Tu nombre, foto, eslogan y mensajes deben ser consistentes en todos los lugares donde los estudiantes puedan encontrarte. La inconsistencia crea dudas. Si tu bio de Preply dice una cosa, tu Instagram dice otra y tu sitio web presenta una tercera versión, los estudiantes no confiarán en ninguna de ellas.
 
@@ -198,7 +198,7 @@ Eso es todo. Esas cinco acciones generarán más consultas de estudiantes de las
 
 ## Herramientas Que Hacen el Marketing Más Fácil
 
-No necesitas una docena de herramientas diferentes. Comienza con lo esencial: [TutorLingua](https://tutorlingua.com) para tu sitio de reservas, pagos y gestión de estudiantes; Canva para crear gráficos y contenido visual; una herramienta de programación como Calendly o el calendario integrado de TutorLingua; y una plataforma de email marketing como ConvertKit o Mailchimp.
+No necesitas una docena de herramientas diferentes. Comienza con lo esencial: [TutorLingua](https://tutorlingua.co) para tu sitio de reservas, pagos y gestión de estudiantes; Canva para crear gráficos y contenido visual; una herramienta de programación como Calendly o el calendario integrado de TutorLingua; y una plataforma de email marketing como ConvertKit o Mailchimp.
 
 La mejor herramienta de marketing es la consistencia. Los sistemas simples ejecutados confiablemente superan las estrategias complejas implementadas esporádicamente.
 
@@ -210,4 +210,4 @@ Cuando creas contenido útil, optimizas tu perfil para comunicar claramente tu v
 
 Los tutores que luchan para llenar su agenda no son mejores o peores profesores que aquellos con listas de espera. Simplemente no han priorizado el marketing. En 2025, la habilidad de enseñanza y la habilidad de marketing son igualmente importantes para construir un negocio exitoso de tutorías.
 
-¿Listo para simplificar tu marketing y hacer crecer tu negocio de tutorías? [Comienza con TutorLingua](https://tutorlingua.com/signup) y crea un sitio profesional de tutor que atraiga y convierta a tus estudiantes ideales, todo en una plataforma.
+¿Listo para simplificar tu marketing y hacer crecer tu negocio de tutorías? [Comienza con TutorLingua](https://tutorlingua.co/signup) y crea un sitio profesional de tutor que atraiga y convierta a tus estudiantes ideales, todo en una plataforma.

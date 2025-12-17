@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description:
       "Find answers to your questions about TutorLingua. Guides for account setup, bookings, payments, and more.",
     type: "website",
-    url: "https://tutorlingua.com/help",
+    url: "https://tutorlingua.co/help",
   },
   alternates: {
     languages: {

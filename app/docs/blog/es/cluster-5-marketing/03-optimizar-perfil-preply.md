@@ -254,7 +254,7 @@ Mientras optimizar tu perfil de Preply maximiza tu éxito en la plataforma, recu
 
 Los tutores más inteligentes usan Preply para lo que hace mejor—descubrimiento y credibilidad inicial—y luego [convierten estudiantes a reservas directas](/es/blog/convertir-estudiantes-reservas-directas) después de construir rapport. Esto evita las comisiones de Preply y te da control total sobre precios, programación y relaciones con estudiantes.
 
-Incluye tu enlace bio en tu descripción de perfil de Preply (si está permitido) o compártelo naturalmente en mensajes una vez que las relaciones se desarrollan. [TutorLingua](https://tutorlingua.com) hace esta transición perfecta con páginas profesionales de reserva, procesamiento de pagos y herramientas de gestión de estudiantes.
+Incluye tu enlace bio en tu descripción de perfil de Preply (si está permitido) o compártelo naturalmente en mensajes una vez que las relaciones se desarrollan. [TutorLingua](https://tutorlingua.co) hace esta transición perfecta con páginas profesionales de reserva, procesamiento de pagos y herramientas de gestión de estudiantes.
 
 También promociona tu perfil de Preply a través de tu [Instagram](/es/blog/instagram-tutores-idiomas) y otras redes sociales, animando a seguidores comprometidos a reservar lecciones de prueba. Esto crea un ciclo virtuoso: las redes sociales construyen confianza, Preply proporciona credibilidad a través de reseñas, y los estudiantes eventualmente se mueven a reservas directas.
 
@@ -308,4 +308,4 @@ Tus estudiantes potenciales están en Preply ahora mismo, buscando un tutor. ¿E
 
 Esa elección es tuya.
 
-¿Listo para tomar control total de tu negocio de tutorías más allá de las limitaciones de plataforma? [Comienza con TutorLingua](https://tutorlingua.com/signup) para crear tu propio sitio profesional de reservas y transicionar estudiantes a reservas directas, manteniendo el 100% de tus ganancias.
+¿Listo para tomar control total de tu negocio de tutorías más allá de las limitaciones de plataforma? [Comienza con TutorLingua](https://tutorlingua.co/signup) para crear tu propio sitio profesional de reservas y transicionar estudiantes a reservas directas, manteniendo el 100% de tus ganancias.

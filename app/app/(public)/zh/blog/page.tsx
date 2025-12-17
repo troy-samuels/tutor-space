@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "为独立语言教师提供的专业指南。降低佣金、吸引学生、发展业务。",
     type: "website",
-    url: "https://tutorlingua.com/zh/blog",
+    url: "https://tutorlingua.co/zh/blog",
   },
   alternates: {
     languages: {
@@ -188,7 +188,7 @@ export default function BlogIndexPageZH() {
   const featuredPosts = posts.filter((post) => post.featured).slice(0, 3);
   const recentPosts = posts.slice(0, 12);
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   const blogSchema = generateBlogSchema(baseUrl, "zh");
   const itemListSchema = generateBlogItemListSchema(posts, baseUrl, "zh");

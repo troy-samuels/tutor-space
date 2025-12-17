@@ -16,7 +16,7 @@ alternateLocale:
 Every TutorLingua tutor gets a unique booking page at:
 
 ```
-tutorlingua.com/book/yourusername
+tutorlingua.co/book/yourusername
 ```
 
 This is the link you share with students for them to book lessons.
@@ -69,7 +69,7 @@ After booking, students receive:
 
 Share your booking URL directly:
 ```
-tutorlingua.com/book/yourusername
+tutorlingua.co/book/yourusername
 ```
 
 ### Link in Bio

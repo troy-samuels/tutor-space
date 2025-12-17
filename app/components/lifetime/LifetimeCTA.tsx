@@ -61,7 +61,7 @@ export function LifetimeCTA({ onCheckout, isLoading }: LifetimeCTAProps) {
 
             {/* Price */}
             <div className="mt-8 flex items-center justify-center gap-4">
-              <span className="text-xl text-gray-500 line-through">$39/month</span>
+              <span className="text-xl text-gray-500 line-through">$29/month</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-5xl font-bold text-foreground">$99</span>
                 <span className="text-lg text-gray-600">one-time</span>

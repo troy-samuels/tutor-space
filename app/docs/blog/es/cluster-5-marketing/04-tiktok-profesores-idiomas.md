@@ -142,7 +142,7 @@ Las vistas no significan nada sin conversiones. Aquí está cómo mover espectad
 
 **Optimiza tu bio:** Incluye posicionamiento claro ("Coach IELTS | 95% de estudiantes alcanzan puntaje objetivo"), llamado a la acción ("Reserva lección de prueba") y enlace clicable a tu [página de reservas o link-in-bio](/es/blog/mejor-link-in-bio-tutores).
 
-[TutorLingua](https://tutorlingua.com) proporciona una página bio link integrada con tu calendario de reservas, haciendo perfecto para que espectadores de TikTok reserven lecciones con un clic.
+[TutorLingua](https://tutorlingua.co) proporciona una página bio link integrada con tu calendario de reservas, haciendo perfecto para que espectadores de TikTok reserven lecciones con un clic.
 
 **Llamado a la acción en cada video:** Invita verbalmente a espectadores a "revisar el enlace en bio para una lección de prueba gratis" o "Envíame DM si quieres ayuda personalizada con esto." No asumas que te buscarán—pide explícitamente.
 
@@ -225,4 +225,4 @@ TikTok no es esencial para el éxito de las tutorías, pero puede ser un amplifi
 
 Recuerda, TikTok es una herramienta en tu kit de herramientas de marketing, no toda la estrategia. El mejor enfoque combina [optimización de marketplace](/es/blog/optimizar-perfil-preply), presencia estratégica en redes sociales, [contenido convincente](/es/blog/contenido-atrae-estudiantes-ideales) y [sistemas de referencias](/es/blog/boca-a-boca-referidos-tutoria).
 
-¿Listo para simplificar tu negocio de tutorías para que tengas más tiempo para marketing? [Comienza con TutorLingua](https://tutorlingua.com/signup) para gestionar reservas, pagos y estudiantes en un lugar, liberándote para crear contenido que haga crecer tu marca.
+¿Listo para simplificar tu negocio de tutorías para que tengas más tiempo para marketing? [Comienza con TutorLingua](https://tutorlingua.co/signup) para gestionar reservas, pagos y estudiantes en un lugar, liberándote para crear contenido que haga crecer tu marca.

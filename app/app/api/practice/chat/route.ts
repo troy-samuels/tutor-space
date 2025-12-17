@@ -4,11 +4,10 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import {
-  AI_PRACTICE_BASE_PRICE_CENTS,
   AI_PRACTICE_BLOCK_PRICE_CENTS,
-  BASE_TEXT_TURNS,
+  FREE_TEXT_TURNS,
+  FREE_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
-  BASE_AUDIO_SECONDS,
   BLOCK_AUDIO_SECONDS,
 } from "@/lib/practice/constants";
 import { createPracticeChatCompletion } from "@/lib/practice/openai";
@@ -17,8 +16,9 @@ import {
   type GrammarCategorySlug,
   normalizeGrammarCategorySlug,
 } from "@/lib/practice/grammar-categories";
+import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 
-// Usage allowance constants (in seconds for audio)
+// Usage allowance constants
 const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 
 interface StructuredCorrection {
@@ -42,6 +42,7 @@ const MAX_OUTPUT_TOKENS_PER_CALL = 200;
 type ServiceRoleClient = SupabaseClient;
 
 export async function POST(request: Request) {
+  let studentId: string | null = null;
   let adminClient: ServiceRoleClient | null = null;
   let reservedMessageCount: number | null = null;
   let initialMessageCount = 0;
@@ -115,10 +116,12 @@ export async function POST(request: Request) {
     // Verify user owns this session via student record
     const { data: student } = await adminClient
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_subscription_id, ai_practice_block_subscription_item_id, tutor_id")
+      .select("id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_practice_subscription_id, ai_practice_block_subscription_item_id, tutor_id")
       .eq("id", session.student_id)
       .eq("user_id", user.id)
       .single();
+
+    studentId = student?.id ?? null;
 
     if (!student) {
       return NextResponse.json(
@@ -127,9 +130,26 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!student.ai_practice_enabled) {
+    // Check if student has AI practice enabled (either free tier or legacy subscription)
+    if (!student.ai_practice_enabled && !student.ai_practice_free_tier_enabled) {
       return NextResponse.json(
-        { error: "AI Practice subscription required" },
+        { error: "AI Practice not enabled. Please enable it first." },
+        { status: 403 }
+      );
+    }
+
+    // FREEMIUM MODEL: Check if tutor has Studio tier (access gate)
+    if (!student.tutor_id) {
+      return NextResponse.json(
+        { error: "No tutor assigned", code: "NO_TUTOR" },
+        { status: 403 }
+      );
+    }
+
+    const tutorHasStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
+    if (!tutorHasStudio) {
+      return NextResponse.json(
+        { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO" },
         { status: 403 }
       );
     }
@@ -162,22 +182,50 @@ export async function POST(request: Request) {
 
     reservedMessageCount = reservedSession.message_count;
 
-    // Get or create usage period for this billing cycle
-    const usagePeriod = await getOrCreateUsagePeriod(
-      adminClient,
-      student.id,
-      student.tutor_id,
-      student.ai_practice_subscription_id
+    // FREEMIUM MODEL: Get or create FREE usage period (no Stripe subscription required)
+    const { data: usagePeriod, error: periodError } = await adminClient.rpc(
+      "get_or_create_free_usage_period",
+      {
+        p_student_id: student.id,
+        p_tutor_id: student.tutor_id,
+      }
     );
 
-    if (!usagePeriod) {
+    if (periodError || !usagePeriod) {
+      console.error("[Practice Chat] Failed to get/create usage period:", periodError);
       return NextResponse.json(
-        { error: "Unable to track usage. Please contact support at support@tutorlingua.co." },
+        { error: "Unable to track usage. Please try again or contact support." },
         { status: 500 }
       );
     }
 
-    // Check text turns allowance and auto-purchase block if needed (atomic via RPC)
+    // Calculate current allowance (free tier + any purchased blocks)
+    const freeAudioSeconds = usagePeriod.free_audio_seconds ?? FREE_AUDIO_SECONDS;
+    const freeTextTurns = usagePeriod.free_text_turns ?? FREE_TEXT_TURNS;
+    const currentTextAllowance = freeTextTurns + (usagePeriod.blocks_consumed * BLOCK_TEXT_TURNS);
+
+    // FREEMIUM MODEL: Check if free allowance is exhausted
+    if (usagePeriod.text_turns_used >= currentTextAllowance) {
+      // Free tier exhausted - check if they have Stripe subscription for blocks
+      if (!student.ai_practice_block_subscription_item_id) {
+        return NextResponse.json(
+          {
+            error: "Free allowance exhausted",
+            code: "FREE_TIER_EXHAUSTED",
+            usage: {
+              text_turns_used: usagePeriod.text_turns_used,
+              text_turns_allowance: currentTextAllowance,
+              blocks_consumed: usagePeriod.blocks_consumed,
+            },
+            upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
+          },
+          { status: 402 } // Payment Required
+        );
+      }
+      // Has block subscription - will auto-purchase below
+    }
+
+    // Track usage updates
     let updatedUsage = usagePeriod;
     let blockPurchased = false;
 
@@ -303,18 +351,20 @@ export async function POST(request: Request) {
       })
       .eq("id", sessionId);
 
-    const incrementResult = await incrementTextTurnWithBilling({
+    const incrementResult = await incrementTextTurnWithBillingFreemium({
       adminClient,
       usagePeriodId: usagePeriod.id,
       blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+      freeTextTurns,
+      freeAudioSeconds,
     });
 
     updatedUsage = incrementResult.updatedUsage;
     blockPurchased = incrementResult.blockPurchased;
 
-    // Calculate remaining allowance for response
-    const updatedTextAllowance = BASE_TEXT_TURNS + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
-    const updatedAudioAllowance = BASE_AUDIO_SECONDS + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
+    // FREEMIUM: Calculate remaining allowance using free tier + blocks
+    const updatedTextAllowance = freeTextTurns + (updatedUsage.blocks_consumed * BLOCK_TEXT_TURNS);
+    const updatedAudioAllowance = freeAudioSeconds + (updatedUsage.blocks_consumed * BLOCK_AUDIO_SECONDS);
 
     return NextResponse.json({
       messageId: assistantMsg?.id,
@@ -326,10 +376,16 @@ export async function POST(request: Request) {
       usage: {
         text_turns_used: updatedUsage.text_turns_used,
         text_turns_allowance: updatedTextAllowance,
+        text_turns_remaining: Math.max(0, updatedTextAllowance - updatedUsage.text_turns_used),
         audio_seconds_used: updatedUsage.audio_seconds_used,
         audio_seconds_allowance: updatedAudioAllowance,
+        audio_seconds_remaining: Math.max(0, updatedAudioAllowance - updatedUsage.audio_seconds_used),
         blocks_consumed: updatedUsage.blocks_consumed,
         block_purchased: blockPurchased,
+        // Freemium model additions
+        isFreeUser: updatedUsage.blocks_consumed === 0,
+        canBuyBlocks: true,
+        blockPriceCents: BLOCK_PRICE_CENTS,
       },
     });
   } catch (error) {
@@ -370,6 +426,18 @@ export async function POST(request: Request) {
       );
     }
 
+    if (errorCode === "BLOCK_REQUIRED") {
+      return NextResponse.json(
+        {
+          error: "Free allowance exhausted",
+          code: "FREE_TIER_EXHAUSTED",
+          usage: (error as any).usage,
+          upgradeUrl: `/student/practice/buy-credits?student=${studentId ?? ""}`,
+        },
+        { status: 402 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to process message" },
       { status: 500 }
@@ -377,62 +445,8 @@ export async function POST(request: Request) {
   }
 }
 
-async function getOrCreateUsagePeriod(
-  adminClient: ServiceRoleClient,
-  studentId: string,
-  tutorId: string,
-  subscriptionId: string | null
-): Promise<{
-  id: string;
-  audio_seconds_used: number;
-  text_turns_used: number;
-  blocks_consumed: number;
-} | null> {
-  if (!subscriptionId) return null;
-
-  try {
-    // Get subscription period from Stripe
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
-    const periodStart = new Date(subscription.current_period_start * 1000);
-    const periodEnd = new Date(subscription.current_period_end * 1000);
-
-    // Try to find existing period
-    const { data: existingPeriod } = await adminClient
-      .from("practice_usage_periods")
-      .select("id, audio_seconds_used, text_turns_used, blocks_consumed")
-      .eq("student_id", studentId)
-      .eq("subscription_id", subscriptionId)
-      .gte("period_end", new Date().toISOString())
-      .lte("period_start", new Date().toISOString())
-      .maybeSingle();
-
-    if (existingPeriod) {
-      return existingPeriod;
-    }
-
-    // Create new period
-    const { data: newPeriod } = await adminClient
-      .from("practice_usage_periods")
-      .insert({
-        student_id: studentId,
-        tutor_id: tutorId,
-        subscription_id: subscriptionId,
-        period_start: periodStart.toISOString(),
-        period_end: periodEnd.toISOString(),
-        audio_seconds_used: 0,
-        text_turns_used: 0,
-        blocks_consumed: 0,
-        current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS,
-      })
-      .select("id, audio_seconds_used, text_turns_used, blocks_consumed")
-      .single();
-
-    return newPeriod;
-  } catch (error) {
-    console.error("[Practice Chat] Error getting usage period:", error);
-    return null;
-  }
-}
+// Note: getOrCreateUsagePeriod has been replaced by the get_or_create_free_usage_period RPC
+// for the freemium model. The RPC is called directly in the POST handler above.
 
 function buildDefaultSystemPrompt(
   language: string,
@@ -587,10 +601,18 @@ function parseVocabulary(content: string, focusWords: string[]): string[] {
   return focusWords.filter((word) => contentLower.includes(word.toLowerCase()));
 }
 
-async function incrementTextTurnWithBilling(params: {
+/**
+ * FREEMIUM MODEL: Increment text turn and handle block billing if needed
+ * - Uses increment_text_turn_freemium RPC which works with free tier allowances
+ * - Only charges blocks via Stripe if student has set up block subscription
+ * - Returns 402 at the API level if free tier exhausted without subscription
+ */
+async function incrementTextTurnWithBillingFreemium(params: {
   adminClient: ServiceRoleClient;
   usagePeriodId: string;
   blockSubscriptionItemId: string | null;
+  freeTextTurns: number;
+  freeAudioSeconds: number;
 }): Promise<{
   updatedUsage: {
     id: string;
@@ -601,68 +623,45 @@ async function incrementTextTurnWithBilling(params: {
   };
   blockPurchased: boolean;
 }> {
-  const { adminClient, usagePeriodId, blockSubscriptionItemId } = params;
+  const { adminClient, usagePeriodId, blockSubscriptionItemId, freeTextTurns } = params;
 
-  const { data: currentUsage, error: currentUsageError } = await adminClient
-    .from("practice_usage_periods")
-    .select("audio_seconds_used, text_turns_used, blocks_consumed")
-    .eq("id", usagePeriodId)
-    .single();
-
-  if (currentUsageError || !currentUsage) {
-    const err = new Error("Unable to load current usage");
-    (err as any).code = "TEXT_INCREMENT_FAILED";
-    throw err;
-  }
-
-  const textAllowance = BASE_TEXT_TURNS + (currentUsage.blocks_consumed * BLOCK_TEXT_TURNS);
-  const needsBlock = currentUsage.text_turns_used >= textAllowance;
-
-  if (needsBlock && !blockSubscriptionItemId) {
-    const err = new Error("Missing Stripe metered item for AI Practice blocks");
-    (err as any).code = "BLOCK_SUBSCRIPTION_ITEM_MISSING";
-    throw err;
-  }
-
-  const usageAtTrigger = {
-    audio_seconds: currentUsage.audio_seconds_used,
-    text_turns: currentUsage.text_turns_used,
-  };
-
-  const { data: incrementResult, error: incrementError } = await adminClient.rpc("increment_text_turn", {
-    p_usage_period_id: usagePeriodId,
-    p_base_text_turns: BASE_TEXT_TURNS,
-    p_block_text_turns: BLOCK_TEXT_TURNS,
-  });
+  // Use the freemium RPC which enforces free/block allowance and can signal block requirements
+  const { data: incrementResult, error: incrementError } = await adminClient.rpc(
+    "increment_text_turn_freemium",
+    { p_usage_period_id: usagePeriodId, p_allow_block_overage: !!blockSubscriptionItemId }
+  );
 
   if (incrementError || !incrementResult?.success) {
+    console.error("[Practice Chat] increment_text_turn_freemium failed:", incrementError);
+
+    // If the RPC explicitly signals block required, bubble a typed error
+    if (incrementResult?.error === "BLOCK_REQUIRED") {
+      const err = new Error("Block required");
+      (err as any).code = "BLOCK_REQUIRED";
+      (err as any).usage = {
+        text_turns_used: incrementResult.text_turns_used,
+        text_turns_allowance: incrementResult.text_turns_allowance,
+        blocks_consumed: incrementResult.blocks_consumed,
+      };
+      throw err;
+    }
+
     const err = new Error("Failed to increment text turn");
     (err as any).code = "TEXT_INCREMENT_FAILED";
     throw err;
   }
 
-  const blockPurchased = !!incrementResult.block_purchased;
+  let blockPurchased = false;
 
-  if (blockPurchased && !blockSubscriptionItemId) {
-    await adminClient
-      .from("practice_usage_periods")
-      .update({
-        text_turns_used: incrementResult.new_text_turns - 1,
-        blocks_consumed: Math.max(0, incrementResult.new_blocks - 1),
-        current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS +
-          (Math.max(0, incrementResult.new_blocks - 1) * BLOCK_PRICE_CENTS),
-      })
-      .eq("id", usagePeriodId)
-      .eq("text_turns_used", incrementResult.new_text_turns);
+  // If needs_block is true and student has block subscription, purchase via Stripe
+  if (incrementResult.needs_block && blockSubscriptionItemId) {
+    const usageAtTrigger = {
+      audio_seconds: 0, // Will be fetched if needed
+      text_turns: incrementResult.text_turns_used - 1,
+    };
 
-    const err = new Error("Missing Stripe metered item for AI Practice blocks");
-    (err as any).code = "BLOCK_SUBSCRIPTION_ITEM_MISSING";
-    throw err;
-  }
-
-  // If a block was auto-purchased, record metered usage and ledger entry
-  if (blockPurchased && blockSubscriptionItemId) {
     try {
+      // Record metered usage on Stripe
       const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
         blockSubscriptionItemId,
         {
@@ -672,33 +671,26 @@ async function incrementTextTurnWithBilling(params: {
         }
       );
 
-      await adminClient.from("practice_block_ledger").insert({
-        usage_period_id: usagePeriodId,
-        blocks_consumed: 1,
-        trigger_type: "text_overflow",
-        usage_at_trigger: usageAtTrigger,
-        stripe_usage_record_id: usageRecord.id,
+      // Record block purchase in our database
+      const { error: blockError } = await adminClient.rpc("record_block_purchase", {
+        p_usage_period_id: usagePeriodId,
+        p_trigger_type: "text_overflow",
+        p_stripe_usage_record_id: usageRecord.id,
       });
-    } catch (stripeError) {
-      console.error("Stripe usage record failed for text overflow", stripeError);
-      // Roll back the block + text increment so billing stays aligned
-      await adminClient
-        .from("practice_usage_periods")
-        .update({
-          text_turns_used: incrementResult.new_text_turns - 1,
-          blocks_consumed: Math.max(0, incrementResult.new_blocks - 1),
-          current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS +
-            (Math.max(0, incrementResult.new_blocks - 1) * BLOCK_PRICE_CENTS),
-        })
-        .eq("id", usagePeriodId)
-        .eq("text_turns_used", incrementResult.new_text_turns);
 
-      const err = new Error("Stripe usage record failed");
-      (err as any).code = "STRIPE_USAGE_FAILED";
-      throw err;
+      if (blockError) {
+        console.error("[Practice Chat] record_block_purchase failed:", blockError);
+      } else {
+        blockPurchased = true;
+      }
+    } catch (stripeError) {
+      console.error("[Practice Chat] Stripe usage record failed for text overflow:", stripeError);
+      // Don't throw - the increment already happened, just log the billing failure
+      // The student still gets to use the service, we'll reconcile billing later
     }
   }
 
+  // Fetch updated usage after increment (and possible block purchase)
   const { data: updatedUsage, error: fetchError } = await adminClient
     .from("practice_usage_periods")
     .select("id, audio_seconds_used, text_turns_used, blocks_consumed, current_tier_price_cents")

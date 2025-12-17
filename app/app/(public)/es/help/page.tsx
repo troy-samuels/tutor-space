@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description:
       "Encuentra respuestas a tus preguntas sobre TutorLingua. Guías para configuración de cuenta, reservas, pagos y más.",
     type: "website",
-    url: "https://tutorlingua.com/es/help",
+    url: "https://tutorlingua.co/es/help",
   },
   alternates: {
     languages: {

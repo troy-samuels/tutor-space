@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   return {
     title: `${article.title} | Centro de Ayuda TutorLingua`,
@@ -66,7 +66,7 @@ export default async function HelpArticlePageES({ params }: PageProps) {
   }
 
   const relatedArticles = getRelatedArticles(article, 3);
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   // JSON-LD structured data
   const articleSchema = generateHelpArticleSchema(article, baseUrl);

@@ -8,7 +8,7 @@ import { sendDigitalProductDeliveryEmail } from "@/lib/emails/digital-products";
 import { sendPaymentReceiptEmail, sendTutorBookingNotificationEmail, sendPaymentFailedEmail } from "@/lib/emails/booking-emails";
 import { mapPriceIdToPlan, getPlanDbTier } from "@/lib/payments/subscriptions";
 import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
-import { AI_PRACTICE_BASE_PRICE_CENTS } from "@/lib/practice/constants";
+// AI Practice constants removed - freemium model uses RPC for period creation
 import { recordSystemEvent, recordSystemMetric, shouldSample } from "@/lib/monitoring";
 import { sendLessonSubscriptionEmails } from "@/lib/emails/ops-emails";
 
@@ -856,7 +856,8 @@ async function handleSubscriptionUpdate(
   const customerId = subscription.customer as string;
 
   // Check if this is an AI Practice subscription (student subscription)
-  if (subscription.metadata?.type === "ai_practice") {
+  // Handles both legacy "ai_practice" and new "ai_practice_blocks" freemium model
+  if (subscription.metadata?.type === "ai_practice" || subscription.metadata?.type === "ai_practice_blocks") {
     await handleAIPracticeSubscriptionUpdate(subscription, supabase);
     return;
   }
@@ -932,7 +933,8 @@ async function handleSubscriptionDeleted(
   supabase: ServiceRoleClient
 ) {
   // Check if this is an AI Practice subscription
-  if (subscription.metadata?.type === "ai_practice") {
+  // Handles both legacy "ai_practice" and new "ai_practice_blocks" freemium model
+  if (subscription.metadata?.type === "ai_practice" || subscription.metadata?.type === "ai_practice_blocks") {
     await handleAIPracticeSubscriptionDeleted(subscription, supabase);
     return;
   }
@@ -1287,7 +1289,11 @@ async function handleAccountDeauthorized(
 
 /**
  * Handle AI Practice subscription updates (student subscriptions)
- * Updates the student's ai_practice_enabled status and creates new usage period if needed
+ *
+ * FREEMIUM MODEL:
+ * - Legacy "ai_practice" type: Full subscription (base + blocks), sets ai_practice_enabled
+ * - New "ai_practice_blocks" type: Blocks-only subscription, doesn't touch ai_practice_enabled
+ *   (free tier is controlled by ai_practice_free_tier_enabled flag)
  */
 async function handleAIPracticeSubscriptionUpdate(
   subscription: StripeSubscriptionPayload,
@@ -1295,6 +1301,8 @@ async function handleAIPracticeSubscriptionUpdate(
 ) {
   const studentId = subscription.metadata?.studentId;
   const tutorId = subscription.metadata?.tutorId;
+  const isBlocksOnly = subscription.metadata?.is_blocks_only === "true" ||
+                       subscription.metadata?.type === "ai_practice_blocks";
 
   if (!studentId) {
     console.error("No studentId in AI Practice subscription metadata");
@@ -1308,95 +1316,179 @@ async function handleAIPracticeSubscriptionUpdate(
     (item) => item.price.recurring?.usage_type === "metered"
   );
 
-  const { error } = await supabase
-    .from("students")
-    .update({
-      ai_practice_enabled: isActive,
-      ai_practice_subscription_id: subscription.id,
-      ai_practice_current_period_end: new Date(
-        subscription.current_period_end * 1000
-      ).toISOString(),
-      ai_practice_block_subscription_item_id: meteredItem?.id || null,
-    })
-    .eq("id", studentId);
+  if (isBlocksOnly) {
+    // FREEMIUM MODEL: Blocks-only subscription
+    // Only update the block subscription item, don't touch ai_practice_enabled
+    // (free tier access is controlled by ai_practice_free_tier_enabled)
+    const { error } = await supabase
+      .from("students")
+      .update({
+        ai_practice_block_subscription_item_id: isActive ? (meteredItem?.id || null) : null,
+        // Keep ai_practice_enabled unchanged - it's controlled by free tier
+      })
+      .eq("id", studentId);
 
-  if (error) {
-    console.error("Failed to update AI Practice subscription:", error);
-    throw error;
-  }
+    if (error) {
+      console.error("Failed to update AI Practice blocks subscription:", error);
+      throw error;
+    }
 
-  // Create or update usage period for the new billing cycle
-  if (isActive && tutorId) {
-    const periodStart = new Date(subscription.current_period_start * 1000);
-    const periodEnd = new Date(subscription.current_period_end * 1000);
-
-    // Check if period already exists
-    const { data: existingPeriod } = await supabase
-      .from("practice_usage_periods")
-      .select("id")
-      .eq("student_id", studentId)
-      .eq("subscription_id", subscription.id)
-      .eq("period_start", periodStart.toISOString())
-      .maybeSingle();
-
-    if (!existingPeriod) {
-      // Create new usage period with reset usage
+    // For blocks-only, we use the freemium RPC to get/create period
+    // The period was already created when free tier was enabled
+    if (isActive && tutorId) {
+      // Update existing period to link to this subscription for tracking
       const { error: periodError } = await supabase
         .from("practice_usage_periods")
-        .insert({
-          student_id: studentId,
-          tutor_id: tutorId,
-          subscription_id: subscription.id,
-          period_start: periodStart.toISOString(),
-          period_end: periodEnd.toISOString(),
-          audio_seconds_used: 0,
-          text_turns_used: 0,
-          blocks_consumed: 0,
-          current_tier_price_cents: AI_PRACTICE_BASE_PRICE_CENTS,
-        });
+        .update({
+          stripe_subscription_id: subscription.id,
+          is_free_tier: false, // Now has paid blocks subscription
+        })
+        .eq("student_id", studentId)
+        .gte("period_end", new Date().toISOString());
 
       if (periodError) {
-        console.error("Failed to create usage period:", periodError);
+        console.error("Failed to link subscription to usage period:", periodError);
         // Don't throw - subscription update succeeded
-      } else {
-        console.log(`✅ Created new usage period for student ${studentId}`);
       }
     }
-  }
 
-  console.log(
-    `✅ AI Practice subscription ${isActive ? "activated" : "updated"} for student ${studentId}`
-  );
+    console.log(
+      `✅ AI Practice blocks subscription ${isActive ? "activated" : "updated"} for student ${studentId} (freemium model)`
+    );
+  } else {
+    // LEGACY MODEL: Full subscription with base + blocks
+    const { error } = await supabase
+      .from("students")
+      .update({
+        ai_practice_enabled: isActive,
+        ai_practice_subscription_id: subscription.id,
+        ai_practice_current_period_end: new Date(
+          subscription.current_period_end * 1000
+        ).toISOString(),
+        ai_practice_block_subscription_item_id: meteredItem?.id || null,
+      })
+      .eq("id", studentId);
+
+    if (error) {
+      console.error("Failed to update AI Practice subscription:", error);
+      throw error;
+    }
+
+    // Create or update usage period for the new billing cycle (legacy model)
+    if (isActive && tutorId) {
+      const periodStart = new Date(subscription.current_period_start * 1000);
+      const periodEnd = new Date(subscription.current_period_end * 1000);
+
+      // Check if period already exists
+      const { data: existingPeriod } = await supabase
+        .from("practice_usage_periods")
+        .select("id")
+        .eq("student_id", studentId)
+        .eq("subscription_id", subscription.id)
+        .eq("period_start", periodStart.toISOString())
+        .maybeSingle();
+
+      if (!existingPeriod) {
+        // Create new usage period with reset usage (legacy pricing)
+        const { error: periodError } = await supabase
+          .from("practice_usage_periods")
+          .insert({
+            student_id: studentId,
+            tutor_id: tutorId,
+            subscription_id: subscription.id,
+            period_start: periodStart.toISOString(),
+            period_end: periodEnd.toISOString(),
+            audio_seconds_used: 0,
+            text_turns_used: 0,
+            blocks_consumed: 0,
+            is_free_tier: false,
+            current_tier_price_cents: 800, // Legacy $8 base price
+          });
+
+        if (periodError) {
+          console.error("Failed to create usage period:", periodError);
+          // Don't throw - subscription update succeeded
+        } else {
+          console.log(`✅ Created new usage period for student ${studentId} (legacy model)`);
+        }
+      }
+    }
+
+    console.log(
+      `✅ AI Practice subscription ${isActive ? "activated" : "updated"} for student ${studentId} (legacy model)`
+    );
+  }
 }
 
 /**
  * Handle AI Practice subscription cancellation
- * Disables AI practice for the student
+ *
+ * FREEMIUM MODEL:
+ * - Legacy "ai_practice" type: Disables ai_practice_enabled entirely
+ * - New "ai_practice_blocks" type: Only clears block subscription item,
+ *   keeps free tier access (ai_practice_enabled unchanged, student reverts to free tier)
  */
 async function handleAIPracticeSubscriptionDeleted(
   subscription: Stripe.Subscription,
   supabase: ServiceRoleClient
 ) {
   const studentId = subscription.metadata?.studentId;
+  const isBlocksOnly = subscription.metadata?.is_blocks_only === "true" ||
+                       subscription.metadata?.type === "ai_practice_blocks";
 
   if (!studentId) {
     console.error("No studentId in AI Practice subscription metadata");
     return;
   }
 
-  const { error } = await supabase
-    .from("students")
-    .update({
-      ai_practice_enabled: false,
-    })
-    .eq("id", studentId);
+  if (isBlocksOnly) {
+    // FREEMIUM MODEL: Blocks-only subscription canceled
+    // Only clear the block subscription item, keep free tier access
+    const { error } = await supabase
+      .from("students")
+      .update({
+        ai_practice_block_subscription_item_id: null,
+        // ai_practice_enabled stays unchanged - free tier still active
+      })
+      .eq("id", studentId);
 
-  if (error) {
-    console.error("Failed to disable AI Practice subscription:", error);
-    throw error;
+    if (error) {
+      console.error("Failed to clear AI Practice blocks subscription:", error);
+      throw error;
+    }
+
+    // Mark current period as free tier again
+    const { error: periodError } = await supabase
+      .from("practice_usage_periods")
+      .update({
+        is_free_tier: true,
+        stripe_subscription_id: null,
+      })
+      .eq("student_id", studentId)
+      .gte("period_end", new Date().toISOString());
+
+    if (periodError) {
+      console.error("Failed to update usage period to free tier:", periodError);
+      // Don't throw - subscription cleanup succeeded
+    }
+
+    console.log(`✅ AI Practice blocks subscription canceled for student ${studentId} (reverted to free tier)`);
+  } else {
+    // LEGACY MODEL: Full subscription canceled, disable access entirely
+    const { error } = await supabase
+      .from("students")
+      .update({
+        ai_practice_enabled: false,
+      })
+      .eq("id", studentId);
+
+    if (error) {
+      console.error("Failed to disable AI Practice subscription:", error);
+      throw error;
+    }
+
+    console.log(`✅ AI Practice subscription canceled for student ${studentId} (legacy model)`);
   }
-
-  console.log(`✅ AI Practice subscription canceled for student ${studentId}`);
 }
 
 /**

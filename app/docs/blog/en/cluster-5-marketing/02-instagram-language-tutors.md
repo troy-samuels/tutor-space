@@ -52,7 +52,7 @@ Your Instagram profile is your digital storefront. You have seconds to convince 
 
 Example: "Spanish tutor for busy professionals | Conversational fluency in 6 months | 500+ students taught | Book your trial lesson below"
 
-**Link in bio:** You get one clickable link, so make it count. Use a [link-in-bio page](/blog/best-link-in-bio-tutors) that directs to your booking calendar, testimonials, free resources, and other content. [TutorLingua](https://tutorlingua.com) provides a built-in bio link page that integrates directly with your booking calendar and payment system.
+**Link in bio:** You get one clickable link, so make it count. Use a [link-in-bio page](/blog/best-link-in-bio-tutors) that directs to your booking calendar, testimonials, free resources, and other content. [TutorLingua](https://tutorlingua.co) provides a built-in bio link page that integrates directly with your booking calendar and payment system.
 
 **Highlights:** Create Instagram Story Highlights for key topics: About Me, Testimonials, Free Lessons/Tips, Student Results, FAQ, Pricing/Packages. These act as an extended bio that visitors can explore to learn more about you.
 
@@ -162,7 +162,7 @@ Don't be afraid to ask for the booking. Many tutors provide tons of value but ne
 
 Create DM quick replies for common questions (rates, availability, teaching style) so you can respond quickly and consistently. But personalize each conversation—copy-paste responses feel impersonal.
 
-**Track your link clicks:** Use link tracking (built into tools like [TutorLingua](https://tutorlingua.com) or through services like Bitly) to see how many people click your bio link and what actions they take. This shows whether your content is actually driving bookings or just generating vanity metrics.
+**Track your link clicks:** Use link tracking (built into tools like [TutorLingua](https://tutorlingua.co) or through services like Bitly) to see how many people click your bio link and what actions they take. This shows whether your content is actually driving bookings or just generating vanity metrics.
 
 ## Instagram Best Practices for Tutors
 
@@ -184,7 +184,7 @@ The biggest mistake is giving up too soon. Instagram growth is slow initially. Y
 
 ## Tools to Make Instagram Easier
 
-Managing Instagram alongside teaching can feel overwhelming. These tools help: Canva for creating professional graphics and templates, Later, Planoly, or Buffer for scheduling posts in advance, CapCut or InShot for editing Reels on mobile, and [TutorLingua](https://tutorlingua.com) for your bio link page with integrated booking and payments.
+Managing Instagram alongside teaching can feel overwhelming. These tools help: Canva for creating professional graphics and templates, Later, Planoly, or Buffer for scheduling posts in advance, CapCut or InShot for editing Reels on mobile, and [TutorLingua](https://tutorlingua.co) for your bio link page with integrated booking and payments.
 
 Don't overcomplicate it. A smartphone, Canva free plan, and consistent effort are enough to build a successful tutor presence on Instagram.
 
@@ -220,4 +220,4 @@ Your teaching expertise deserves to be seen. Instagram gives you the platform. W
 
 ---
 
-Ready to streamline your tutor business beyond social media? [Start with TutorLingua](https://tutorlingua.com/signup) to manage bookings, payments, and student relationships—all in one place, leaving you more time to create great content.
+Ready to streamline your tutor business beyond social media? [Start with TutorLingua](https://tutorlingua.co/signup) to manage bookings, payments, and student relationships—all in one place, leaving you more time to create great content.

@@ -1,0 +1,199 @@
+---
+# ZAP Automation Framework Configuration for Google CASA
+# TutorLingua DAST Scan
+#
+# Usage: docker run --rm -v $(pwd):/zap/wrk/:rw ghcr.io/zaproxy/zaproxy:stable \
+#        zap.sh -cmd -autorun /zap/wrk/zap-casa-automation.yaml
+
+env:
+  contexts:
+    - name: TutorLingua
+      urls:
+        - https://tutorlingua.co
+      includePaths:
+        - https://tutorlingua.co.*
+      excludePaths:
+        # Webhooks - could cause external effects
+        - https://tutorlingua.co/api/stripe/webhook.*
+        - https://tutorlingua.co/api/stripe/connect/webhook.*
+        - https://tutorlingua.co/api/webhooks/.*
+        # Cron jobs
+        - https://tutorlingua.co/api/cron/.*
+        # Admin routes
+        - https://tutorlingua.co/api/admin/.*
+        # Payment checkout endpoints - could create real charges
+        - https://tutorlingua.co/api/stripe/booking-checkout.*
+        - https://tutorlingua.co/api/stripe/subscription-checkout.*
+        - https://tutorlingua.co/api/stripe/create-checkout-session.*
+        - https://tutorlingua.co/api/stripe/lifetime.*
+        - https://tutorlingua.co/api/stripe/billing-portal.*
+        - https://tutorlingua.co/api/digital-products/checkout.*
+        - https://tutorlingua.co/api/practice/subscribe.*
+        # Upload and email
+        - https://tutorlingua.co/api/upload.*
+        - https://tutorlingua.co/api/email/.*
+        # Refunds
+        - https://tutorlingua.co/api/refunds/.*
+        # LiveKit recording
+        - https://tutorlingua.co/api/livekit/recording.*
+        # Calendar OAuth - requires real OAuth flow
+        - https://tutorlingua.co/api/calendar/oauth/.*
+        # Next.js internals
+        - https://tutorlingua.co/_next/.*
+      authentication:
+        method: form
+        parameters:
+          loginPageUrl: https://tutorlingua.co/login
+          loginRequestUrl: https://tutorlingua.co/login
+          loginRequestBody: email={%username%}&password={%password%}
+        verification:
+          method: response
+          loggedInRegex: \Qdashboard\E|\QLog out\E|\QSign out\E
+          loggedOutRegex: \QLog in\E|\QSign up\E|\Qlogin\E
+      sessionManagement:
+        method: cookie
+      users:
+        - name: casa-test-tutor
+          credentials:
+            username: ${CASA_TEST_EMAIL}
+            password: ${CASA_TEST_PASSWORD}
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # Step 1: Load the custom config
+  - type: passiveScan-config
+    parameters:
+      enableTags: false
+      maxAlertsPerRule: 10
+
+  # Step 2: Spider the application (unauthenticated first)
+  - type: spider
+    parameters:
+      context: TutorLingua
+      maxDuration: 5
+      maxDepth: 5
+      maxChildren: 10
+    tests:
+      - onFail: INFO
+        statistic: automation.spider.urls.added
+        operator: '>='
+        value: 20
+
+  # Step 3: Spider authenticated pages
+  - type: spider
+    parameters:
+      context: TutorLingua
+      user: casa-test-tutor
+      maxDuration: 15
+      maxDepth: 8
+      maxChildren: 15
+    tests:
+      - onFail: INFO
+        statistic: automation.spider.urls.added
+        operator: '>='
+        value: 50
+
+  # Step 4: AJAX Spider for dynamic content
+  - type: spiderAjax
+    parameters:
+      context: TutorLingua
+      user: casa-test-tutor
+      maxDuration: 10
+      maxCrawlDepth: 5
+      numberOfBrowsers: 2
+      runOnlyIfModern: true
+
+  # Step 5: Passive scan wait
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  # Step 6: Active scan (the main DAST scan)
+  - type: activeScan
+    parameters:
+      context: TutorLingua
+      user: casa-test-tutor
+      policy: Default Policy
+      maxRuleDurationInMins: 5
+      maxScanDurationInMins: 45
+      # Conservative settings for production
+      threadPerHost: 2
+      delayInMs: 100
+    policyDefinition:
+      defaultStrength: medium
+      defaultThreshold: medium
+      rules:
+        # SQL Injection - thorough
+        - id: 40018
+          strength: high
+          threshold: low
+        # XSS - thorough
+        - id: 40012
+          strength: high
+          threshold: low
+        - id: 40014
+          strength: high
+          threshold: low
+        # Path Traversal
+        - id: 6
+          strength: high
+          threshold: low
+        # Remote File Inclusion
+        - id: 7
+          strength: medium
+          threshold: medium
+        # Command Injection
+        - id: 90020
+          strength: high
+          threshold: low
+        # CSRF
+        - id: 10202
+          strength: medium
+          threshold: low
+
+  # Step 7: Generate reports
+  - type: report
+    parameters:
+      template: traditional-xml
+      reportDir: /zap/wrk
+      reportFile: casa-scan-results
+      reportTitle: TutorLingua CASA DAST Scan Results
+      reportDescription: Google Cloud Application Security Assessment - Dynamic Application Security Testing results for tutorlingua.co
+    risks:
+      - high
+      - medium
+      - low
+      - info
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk
+      reportFile: casa-scan-report
+      reportTitle: TutorLingua CASA DAST Scan Report
+      reportDescription: Google Cloud Application Security Assessment - Dynamic Application Security Testing report for tutorlingua.co
+    risks:
+      - high
+      - medium
+      - low
+
+  - type: report
+    parameters:
+      template: traditional-pdf
+      reportDir: /zap/wrk
+      reportFile: casa-scan-report
+      reportTitle: TutorLingua CASA DAST Scan Report
+      reportDescription: Google Cloud Application Security Assessment - Dynamic Application Security Testing report for tutorlingua.co. This report is generated for submission to Google CASA.
+    risks:
+      - high
+      - medium
+      - low
+
+  # Step 8: Output summary
+  - type: outputSummary
+    parameters:
+      format: long
+      summaryFile: /zap/wrk/casa-scan-summary.json

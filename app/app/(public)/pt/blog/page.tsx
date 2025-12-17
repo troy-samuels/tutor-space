@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "Guias especializados para tutores de idiomas independentes. Reduza comissões, conquiste alunos, expanda seu negócio.",
     type: "website",
-    url: "https://tutorlingua.com/pt/blog",
+    url: "https://tutorlingua.co/pt/blog",
   },
   alternates: {
     languages: {
@@ -188,7 +188,7 @@ export default function BlogIndexPagePT() {
   const featuredPosts = posts.filter((post) => post.featured).slice(0, 3);
   const recentPosts = posts.slice(0, 12);
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   const blogSchema = generateBlogSchema(baseUrl, "pt");
   const itemListSchema = generateBlogItemListSchema(posts, baseUrl, "pt");

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "독립 어학 강사를 위한 전문 가이드. 수수료 절감, 학생 유치, 비즈니스 성장.",
     type: "website",
-    url: "https://tutorlingua.com/ko/blog",
+    url: "https://tutorlingua.co/ko/blog",
   },
   alternates: {
     languages: {
@@ -188,7 +188,7 @@ export default function BlogIndexPageKO() {
   const featuredPosts = posts.filter((post) => post.featured).slice(0, 3);
   const recentPosts = posts.slice(0, 12);
 
-  const baseUrl = "https://tutorlingua.com";
+  const baseUrl = "https://tutorlingua.co";
 
   const blogSchema = generateBlogSchema(baseUrl, "ko");
   const itemListSchema = generateBlogItemListSchema(posts, baseUrl, "ko");

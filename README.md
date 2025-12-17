@@ -159,8 +159,8 @@ npm run translate     # DeepL translation helper
 - 0% platform commission on direct bookings
 
 **For Students (AI Practice):**
-- Base tier: **$8/month** (included practice minutes)
-- Add-on blocks: **$5** per block for heavy usage
+- Free tier: **45 audio minutes + 600 text turns** (requires tutor with Studio)
+- Add-on blocks: **$5** per block (+45 audio minutes, +300 text turns)
 
 ## Documentation
 - `app/claude.md` — full platform documentation
@@ -177,4 +177,4 @@ Supports English, Spanish, French, Portuguese, German, Italian, Japanese, Korean
 ## License
 Proprietary — All rights reserved
 
-*Last updated: December 15, 2025*
+*Last updated: December 17, 2025*
