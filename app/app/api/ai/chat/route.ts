@@ -3,6 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { addMessage } from "@/lib/actions/ai-assistant";
 import { parseSanitizedJson } from "@/lib/utils/sanitize";
 
+type AiChatRequestBody = {
+  conversationId?: string;
+  message?: string;
+  contextType?: string;
+};
+
 // Simple AI response generation (placeholder for actual AI integration)
 // In production, this would call OpenAI, Anthropic, or similar
 async function generateAIResponse(
@@ -70,10 +76,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await parseSanitizedJson<Record<string, unknown>>(request);
-    const { conversationId, message, contextType = "general" } = body || {};
+    const body = await parseSanitizedJson<AiChatRequestBody>(request);
 
-    if (!conversationId || !message) {
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid request" },
+        { status: 400 }
+      );
+    }
+
+    const { conversationId, message, contextType: rawContextType } = body;
+    const contextType = typeof rawContextType === "string" ? rawContextType : "general";
+
+    if (typeof conversationId !== "string" || typeof message !== "string") {
       return NextResponse.json(
         { error: "Missing conversationId or message" },
         { status: 400 }
