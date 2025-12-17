@@ -274,16 +274,16 @@ export async function createBooking(input: CreateBookingInput) {
     .eq("tutor_id", user.id)
     .in("status", ["pending", "confirmed"])
     .neq("id", booking.id)
-    .lte("scheduled_at", bookingEnd.toISOString())
+    .lte("scheduled_at", postInsertEnd.toISOString())
     .order("created_at", { ascending: true });
 
-  const hasConflict = conflictingBookings?.some((existing) => {
+  const hasPostInsertConflict = conflictingBookings?.some((existing) => {
     const existingStart = new Date(existing.scheduled_at);
     const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
     return postInsertStart < existingEnd && postInsertEnd > existingStart && new Date(existing.created_at) < new Date(booking.created_at);
   });
 
-  if (hasConflict) {
+  if (hasPostInsertConflict) {
     await adminClient.from("bookings").delete().eq("id", booking.id).eq("tutor_id", user.id);
     return {
       error:
