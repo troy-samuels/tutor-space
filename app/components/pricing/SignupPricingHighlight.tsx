@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { BillingToggle, type BillingCycle } from "@/components/pricing/BillingToggle";
 
-const MONTHLY_PRICE = "$39";
-const ANNUAL_PRICE = "$299";
+const MONTHLY_PRICE = "$29";
+const ANNUAL_PRICE = "$199";
 
 export function SignupPricingHighlight() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
@@ -16,8 +16,8 @@ export function SignupPricingHighlight() {
       price: isAnnual ? ANNUAL_PRICE : MONTHLY_PRICE,
       period: isAnnual ? "/year" : "/month",
       helper: isAnnual
-        ? "14-day free trial. Then $299/yr (save 36% vs monthly)."
-        : "14-day free trial. Then $39/mo. Switch to annual anytime.",
+        ? "14-day free trial. Then $199/yr (save 43% vs monthly)."
+        : "7-day free trial. Then $29/mo. Switch to annual anytime.",
     };
   }, [billingCycle]);
 
@@ -33,7 +33,7 @@ export function SignupPricingHighlight() {
             <span className="text-sm font-semibold text-muted-foreground">{period}</span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            14-day free trial. Every feature included. Billing starts after the trial.
+            Free trial included. Every feature included. Billing starts after the trial.
           </p>
         </div>
 

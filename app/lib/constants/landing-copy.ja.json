@@ -1,0 +1,421 @@
+{
+  "hero": {
+    "headline": "チューターのために作られました。",
+    "subheadline": "14日間無料トライアル。その後は月額29ドルまたは年額299ドル。すべてのツールが含まれています。",
+    "primaryCTA": "無料で登録",
+    "secondaryCTA": "仕組みを見る",
+    "variants": {
+      "outcomeHeadline": "事務作業を減らし、生徒を増やす。",
+      "financialHeadline": "100%キープ — プラットフォーム手数料なし。",
+      "aspirationalHeadline": "あなたの独立したアカデミー、完全自動化。"
+    }
+  },
+  "socialProof": {
+    "text": "Preply、iTalki、Verblingの語学チューターがリピートビジネスを管理するために使用",
+    "tutors": [
+      { "name": "Alba GB.", "language": "スペイン語講師" },
+      { "name": "Thomas B.", "language": "フランス語チューター" },
+      { "name": "Ricardo M.", "language": "ポルトガル語チューター" }
+    ]
+  },
+  "problems": {
+    "headline": "あなたのビジネスは散らばっています。そうあるべきではありません。",
+    "subtitle": "Preplyの生徒。Calendlyの予約。Beaconsのリンク。TutorLinguaがすべてをまとめます。",
+    "items": [
+      {
+        "icon": "Layers",
+        "title": "チューター専用に設計",
+        "description": "汎用ツールとは異なり、必要なものがすべて揃っています。不要なものはありません。"
+      },
+      {
+        "icon": "Users",
+        "title": "リピートビジネスを所有",
+        "description": "マーケットプレイスが生徒を見つけます。あなたが彼らを維持します。手数料なし。"
+      },
+      {
+        "icon": "Clock",
+        "title": "生徒が即座に予約",
+        "description": "リンクを共有。時間を選択。支払いを受け取る。完了。"
+      }
+    ]
+  },
+  "phoneMockup": {
+    "headline": "あなたのサイト、共有する準備ができました",
+    "subheadline": "プロフェッショナル。モバイル対応。10分で完成。",
+    "features": [
+      {
+        "icon": "Palette",
+        "title": "あなたのブランド、あなたの方法",
+        "description": "あなたらしい色、フォント、写真を選択"
+      },
+      {
+        "icon": "Layers",
+        "title": "すべてのサービスを一か所に",
+        "description": "生徒があなたの提供内容を見て、即座に予約"
+      },
+      {
+        "icon": "Star",
+        "title": "信頼を築くレビュー",
+        "description": "生徒があなたについて言っていることを紹介"
+      },
+      {
+        "icon": "Smartphone",
+        "title": "どの電話でも動作",
+        "description": "どこでもリンクを共有 — Instagram、WhatsApp、メール"
+      }
+    ],
+    "cta": "無料で登録"
+  },
+  "solution": {
+    "headline": "必要なものすべて。不要なものはなし。",
+    "subheadline": "語学チューター向けに設計。10分で準備完了。",
+    "features": [
+      {
+        "icon": "Globe",
+        "title": "あなたのプロフェッショナルハブ",
+        "description": "ウェブサイトとlink-in-bio。Instagram、TikTok、マーケットプレイスプロフィールで共有。すべてへの1つのリンク。"
+      },
+      {
+        "icon": "Calendar",
+        "title": "直接予約",
+        "description": "生徒が時間を選択。前払い。Zoomリンクを自動取得。支払いの追跡なし。やり取りなし。"
+      },
+      {
+        "icon": "Users",
+        "title": "生徒を追跡",
+        "description": "各レッスン後にメモを保存。教えた内容を記憶。進捗を追跡。すべて一か所に。"
+      }
+    ]
+  },
+  "howItWorks": {
+    "headline": "10分で準備完了",
+    "steps": [
+      {
+        "number": 1,
+        "icon": "UserPlus",
+        "title": "リンクを共有",
+        "description": "Instagramに投稿。TikTokに追加。Preplyのプロフィールに入れる。どこでも共有。"
+      },
+      {
+        "number": 2,
+        "icon": "Calendar",
+        "title": "生徒が直接予約",
+        "description": "時間を選択。前払い。Zoomリンクを即座に取得。通知を受信。"
+      },
+      {
+        "number": 3,
+        "icon": "Users",
+        "title": "すべてを追跡",
+        "description": "すべての生徒を一か所に。メモ、スケジュール、支払い。散らばったツールはもうなし。"
+      }
+    ],
+    "cta": "無料で登録"
+  },
+  "featuresDeepDive": {
+    "headline": "完全なコントロール。満足した保護者。",
+    "categories": [
+      {
+        "name": "プロフェッショナルな存在感",
+        "items": [
+          "カスタムサブドメイン",
+          "分析付きlink-in-bio",
+          "保護者向け信頼性ページ",
+          "多言語サポート",
+          "ソーシャルメディア統合"
+        ]
+      },
+      {
+        "name": "予約と支払い",
+        "items": [
+          "インタラクティブカレンダー",
+          "定期パッケージ",
+          "Stripe & PayPalチェックアウト",
+          "自動請求書",
+          "Zoomリンク生成"
+        ]
+      },
+      {
+        "name": "教育ツール",
+        "items": [
+          "24時間年中無休のAI会話パートナー",
+          "AIレッスンプラン＆宿題",
+          "リソースライブラリ",
+          "構造化されたレッスンノート",
+          "CEFR準拠の進捗追跡"
+        ]
+      },
+      {
+        "name": "コミュニケーション",
+        "items": [
+          "自動確認",
+          "メール＆WhatsAppシーケンス",
+          "お客様の声の収集",
+          "デイリーチューターダイジェスト",
+          "ワンクリック保護者アップデート"
+        ]
+      },
+      {
+        "name": "ビジネスインサイト",
+        "items": [
+          "収益分析",
+          "コンバージョンファネル",
+          "AI使用コントロール",
+          "エグゼクティブダッシュボード",
+          "完全なデータエクスポート"
+        ]
+      },
+      {
+        "name": "ノートを取る教室",
+        "items": [
+          "完璧な記憶 — すべてのレッスンが自動的に文字起こしされます。生徒は3週間前に忘れた単語を検索できます。",
+          "見えないインサイト — 話す時間、語彙パターン、よくある間違いがバックグラウンドで静かに追跡されます。",
+          "自分で書く宿題 — レッスン自体から生成される復習練習。テンプレートではなく、実際のエラーに基づいています。"
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "headline": "14日間無料トライアル",
+    "subheadline": "その後、月額29ドルまたは年額299ドル。チューターごとに1つの固定価格。",
+    "comparisonNote": "すべての機能が含まれています。14日目まで請求なし。請求前にキャンセル可能。",
+    "toggle": {
+      "label": "請求",
+      "monthlyLabel": "月額",
+      "annualLabel": "年額（43%節約）",
+      "helper": "いつでも切り替え可能 — プランは完全なまま。"
+    },
+    "tiers": [
+      {
+        "name": "フルアクセス",
+        "monthlyPrice": "29ドル",
+        "annualPrice": "199ドル",
+        "monthlyPeriod": "月額",
+        "annualPeriod": "年額",
+        "badge": "すべて込み",
+        "description": "14日間無料トライアル。1つのプラン。プラットフォーム全体。",
+        "features": [
+          "サイトと予約を一か所に",
+          "Stripe経由の安全な支払い — トライアル後に請求",
+          "生徒ごとのメモとタスク",
+          "メールとリマインダー内蔵",
+          "追加料金なし。いつでもキャンセル。"
+        ],
+        "cta": "無料で登録",
+        "highlighted": true
+      }
+    ]
+  },
+  "comparison": {
+    "headline": "チューター向けに構築。誰にでも向けではない。",
+    "caption": "汎用リンクツールは誰にでも機能します。TutorLinguaは特に語学チューター向けに機能します。",
+    "tableHeaders": {
+      "feature": "得られるもの",
+      "marketplace": "汎用ツール",
+      "platform": "TutorLingua"
+    },
+    "columns": [
+      { "label": "", "marketplace": "", "platform": "" },
+      { "label": "予約システム", "marketplace": "別のツール", "platform": "内蔵" },
+      { "label": "支払い収集", "marketplace": "別のツール", "platform": "内蔵" },
+      { "label": "生徒ノート＆CRM", "marketplace": "含まれていない", "platform": "内蔵" },
+      { "label": "レッスン追跡", "marketplace": "含まれていない", "platform": "内蔵" },
+      { "label": "プロフェッショナルなウェブサイト", "marketplace": "リンクページのみ", "platform": "完全なサイト+リンク" }
+    ]
+  },
+  "testimonials": {
+    "headline": "本物のチューター、本物の結果",
+    "subheadline": "TutorLinguaでより多く稼ぎ、より少なく働く何千人ものチューターに参加しましょう",
+    "featured": {
+      "quote": "新しい生徒のためにPreplyに残っています。しかし、リピートレッスンはTutorLingua経由です。今年、手数料で7,500ドル節約しました。",
+      "author": "Alba GB.",
+      "role": "スペイン語講師",
+      "image": "/testimonials/sara.jpg"
+    },
+    "list": [
+      {
+        "quote": "Instagramのフォロワーがついに直接予約できるようになりました。最初の週に12レッスン予約。",
+        "author": "Thomas B.",
+        "role": "フランス語チューター"
+      },
+      {
+        "quote": "すべての生徒が一か所に。メモ、スケジュール、支払い。散らばったスプレッドシートはもうなし。",
+        "author": "Ricardo M.",
+        "role": "ポルトガル語チューター"
+      }
+    ]
+  },
+  "faq": {
+    "headline": "よくある質問",
+    "items": [
+      {
+        "question": "PreplyやiTalkiを離れる必要がありますか？",
+        "answer": "いいえ。発見されるためにマーケットプレイスを使用してください。フォロワーやリピート生徒からの直接予約にはTutorLinguaを使用してください。"
+      },
+      {
+        "question": "使いやすいですか？",
+        "answer": "Instagramを使えるなら、TutorLinguaを使えます。ほとんどのチューターは10分で準備完了です。"
+      },
+      {
+        "question": "生徒はどのように予約しますか？",
+        "answer": "リンクをクリック。時間を選択。支払い。Zoomリンクを即座に取得。完了。"
+      },
+      {
+        "question": "すべての収益を維持できますか？",
+        "answer": "はい。TutorLingua経由の直接予約には手数料がかかりません。100%キープ。"
+      },
+      {
+        "question": "生徒を追跡できますか？",
+        "answer": "はい。各レッスン後にメモを保存。進捗を追跡。すべての生徒を整理された一か所に。"
+      },
+      {
+        "question": "いつでも退会できますか？",
+        "answer": "はい。すべてのデータをエクスポート。ロックインなし。いつでもキャンセル。"
+      }
+    ]
+  },
+  "valueStack": {
+    "headline": "他で支払う金額",
+    "items": [
+      {
+        "icon": "Globe",
+        "feature": "プロフェッショナルウェブサイト＆Link-in-Bio",
+        "replaces": ["Squarespace", "Linktree"],
+        "competitorPrice": 16
+      },
+      {
+        "icon": "Calendar",
+        "feature": "カレンダー＆予約",
+        "replaces": ["Calendly", "Acuity Scheduling"],
+        "competitorPrice": 12
+      },
+      {
+        "icon": "GraduationCap",
+        "feature": "レッスンパッケージ＆コース",
+        "replaces": ["Kajabi", "Teachable"],
+        "competitorPrice": 59
+      },
+      {
+        "icon": "Users",
+        "feature": "生徒CRM＆メモ",
+        "replaces": ["HubSpot", "Notion"],
+        "competitorPrice": 20
+      },
+      {
+        "icon": "Mail",
+        "feature": "メールリスト＆シーケンス",
+        "replaces": ["ConvertKit", "Mailchimp"],
+        "competitorPrice": 15
+      },
+      {
+        "icon": "CreditCard",
+        "feature": "支払い処理",
+        "replaces": ["Stripe setup", "PayPal Business"],
+        "competitorPrice": 0
+      },
+      {
+        "icon": "BarChart3",
+        "feature": "分析ダッシュボード",
+        "replaces": ["Google Analytics"],
+        "competitorPrice": 0
+      }
+    ],
+    "totalLabel": "他で支払う金額",
+    "platformLabel": "TutorLinguaに参加",
+    "platformPrice": "29ドル",
+    "platformPeriod": "/月",
+    "cta": "無料で登録",
+    "ctaHref": "/signup"
+  },
+  "finalCTA": {
+    "headline": "ビジネスを所有する準備はできましたか？",
+    "subheadline": "14日間無料トライアル。10分で準備完了。",
+    "calculatorLabel": "月間収益：",
+    "calculatorUnit": "/月",
+    "rangeMinLabel": "500ドル",
+    "rangeMaxLabel": "10,000ドル",
+    "commissionLabel": "マーケットプレイス手数料（25%）：",
+    "platformCostLabel": "TutorLingua（29ドル）：",
+    "monthlySavingsLabel": "月間節約額：",
+    "annualSavingsLabel": "年間節約額",
+    "button": "無料で登録",
+    "finePrint": "14日間無料トライアル。トライアル後に請求；14日目までにキャンセル。",
+    "trustBadges": ["Stripe認証済み", "GDPR準拠", "SOC 2対応"]
+  },
+  "navigation": {
+    "links": [
+      { "label": "機能", "href": "#features" },
+      { "label": "仕組み", "href": "#how-it-works" },
+      { "label": "料金", "href": "#pricing" },
+      { "label": "お客様の声", "href": "#testimonials" }
+    ],
+    "cta": "ログイン"
+  },
+  "footer": {
+    "tagline": "TutorLingua — リピートビジネスを所有。語学チューター向けに構築。",
+    "sections": [
+      {
+        "title": "製品",
+        "links": [
+          { "label": "機能", "href": "#features" },
+          { "label": "料金", "href": "#pricing" },
+          { "label": "セキュリティ", "href": "/security" }
+        ]
+      },
+      {
+        "title": "リソース",
+        "links": [
+          { "label": "ブログ", "href": "/ja/blog" },
+          { "label": "ヘルプセンター", "href": "/help" },
+          { "label": "コミュニティ", "href": "/community" }
+        ]
+      },
+      {
+        "title": "会社",
+        "links": [
+          { "label": "会社概要", "href": "/about" },
+          { "label": "お問い合わせ", "href": "/contact" },
+          { "label": "プライバシー", "href": "/privacy" },
+          { "label": "利用規約", "href": "/terms" },
+          { "label": "管理者", "href": "/admin/login" }
+        ]
+      }
+    ],
+    "copyright": "© 2025 TutorLingua. All rights reserved."
+  },
+  "studioIntelligence": {
+    "badge": "スタジオインテリジェンス",
+    "headline": "あなたのAI教育アシスタント",
+    "subheadline": "あなたが教えている間、TutorLinguaは聞いています。発音の問題を検出し、ターゲットを絞った練習を自動的に作成します。",
+    "transcript": {
+      "recordingLabel": "録音中",
+      "timer": "4:32",
+      "tutorLabel": "チューター",
+      "studentLabel": "生徒",
+      "lines": ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      "mispronouncedPrefix": "\"Muchas ",
+      "mispronouncedWord": "grassy-as",
+      "mispronouncedSuffix": "\"",
+      "mispronouncedHint": "英語っぽく聞こえる",
+      "correction": "\"もう少し！'grah-see-ahs'と言ってみて — 少し巻いて\"",
+      "correctedWord": "¡Gracias!",
+      "correctionHint": "ずっと良い！"
+    },
+    "connector": "AIがレッスンを分析",
+    "detectedTitle": "このレッスンで検出",
+    "detected": [
+      { "word": "\"gracias\"", "description": "発音が英語っぽい" },
+      { "word": "\"por favor\"", "description": "柔らかい'v'音が欠けている" }
+    ],
+    "vocab": {
+      "title": "5つの新しい用語",
+      "description": "語彙の拡張"
+    },
+    "practiceTitle": "自動生成された練習",
+    "practice": [
+      { "title": "挨拶ドリル", "description": "gracias, hola, adiós, buenos días" },
+      { "title": "柔らかい音の練習", "description": "favor, vamos, nuevo, llave" },
+      { "title": "フラッシュカードデッキ", "description": "今日のレッスンから5つの新しい単語" }
+    ],
+    "saveNote": "生徒のプロフィールに自動保存"
+  }
+}

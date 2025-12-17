@@ -1,0 +1,421 @@
+{
+  "hero": {
+    "headline": "Gebouwd voor tutors.",
+    "subheadline": "14 dagen gratis proberen. Daarna $29 per maand of $199 per jaar. Alle tools inbegrepen.",
+    "primaryCTA": "Gratis aanmelden",
+    "secondaryCTA": "Bekijk hoe het werkt",
+    "variants": {
+      "outcomeHeadline": "Minder administratie. Meer studenten.",
+      "financialHeadline": "Houd 100% — geen platformkosten.",
+      "aspirationalHeadline": "Je onafhankelijke academie, volledig geautomatiseerd."
+    }
+  },
+  "socialProof": {
+    "text": "Gebruikt door taaltutors op Preply, iTalki en Verbling om hun terugkerende klanten te beheren",
+    "tutors": [
+      { "name": "Alba GB.", "language": "Spaans docent" },
+      { "name": "Thomas B.", "language": "Frans tutor" },
+      { "name": "Ricardo M.", "language": "Portugees tutor" }
+    ]
+  },
+  "problems": {
+    "headline": "Je bedrijf is verspreid. Dat zou niet moeten.",
+    "subtitle": "Studenten op Preply. Boekingen op Calendly. Links op Beacons. TutorLingua brengt alles samen.",
+    "items": [
+      {
+        "icon": "Layers",
+        "title": "Alleen voor tutors gebouwd",
+        "description": "Anders dan generieke tools. Alles wat je nodig hebt. Niets wat je niet nodig hebt."
+      },
+      {
+        "icon": "Users",
+        "title": "Beheer je terugkerende klanten",
+        "description": "Marktplaatsen vinden studenten. Jij behoudt ze. Geen commissies."
+      },
+      {
+        "icon": "Clock",
+        "title": "Studenten boeken direct",
+        "description": "Deel je link. Ze kiezen een tijd. Je wordt betaald. Klaar."
+      }
+    ]
+  },
+  "phoneMockup": {
+    "headline": "Je site, klaar om te delen",
+    "subheadline": "Professioneel. Mobielvriendelijk. In 10 minuten klaar.",
+    "features": [
+      {
+        "icon": "Palette",
+        "title": "Jouw merk, jouw manier",
+        "description": "Kies kleuren, lettertypen en foto's die bij je passen"
+      },
+      {
+        "icon": "Layers",
+        "title": "Al je diensten op één plek",
+        "description": "Studenten zien wat je aanbiedt en boeken direct"
+      },
+      {
+        "icon": "Star",
+        "title": "Recensies die vertrouwen wekken",
+        "description": "Laat zien wat studenten over je zeggen"
+      },
+      {
+        "icon": "Smartphone",
+        "title": "Werkt op elke telefoon",
+        "description": "Deel je link overal — Instagram, WhatsApp, email"
+      }
+    ],
+    "cta": "Gratis aanmelden"
+  },
+  "solution": {
+    "headline": "Alles wat je nodig hebt. Niets wat je niet nodig hebt.",
+    "subheadline": "Gebouwd voor taaltutors. In 10 minuten klaar.",
+    "features": [
+      {
+        "icon": "Globe",
+        "title": "Je professionele hub",
+        "description": "Website plus link-in-bio. Deel op Instagram, TikTok, marktplaatsprofielen. Eén link naar alles."
+      },
+      {
+        "icon": "Calendar",
+        "title": "Directe boekingen",
+        "description": "Studenten kiezen een tijd. Betalen vooruit. Krijgen Zoom-links automatisch. Geen betalingen achterna. Geen heen en weer."
+      },
+      {
+        "icon": "Users",
+        "title": "Volg je studenten",
+        "description": "Sla notities op na elke les. Onthoud wat je geleerd hebt. Volg de voortgang. Alles op één plek."
+      }
+    ]
+  },
+  "howItWorks": {
+    "headline": "In 10 minuten klaar",
+    "steps": [
+      {
+        "number": 1,
+        "icon": "UserPlus",
+        "title": "Deel je link",
+        "description": "Zet het op Instagram. Voeg toe aan TikTok. Zet in je Preply bio. Deel het overal."
+      },
+      {
+        "number": 2,
+        "icon": "Calendar",
+        "title": "Studenten boeken direct",
+        "description": "Ze kiezen een tijd. Betalen vooruit. Krijgen hun Zoom-link direct. Je krijgt een melding."
+      },
+      {
+        "number": 3,
+        "icon": "Users",
+        "title": "Jij houdt alles bij",
+        "description": "Al je studenten op één plek. Notities, schema's, betalingen. Geen verspreide tools meer."
+      }
+    ],
+    "cta": "Gratis aanmelden"
+  },
+  "featuresDeepDive": {
+    "headline": "Volledige controle. Tevreden ouders.",
+    "categories": [
+      {
+        "name": "Professionele aanwezigheid",
+        "items": [
+          "Eigen subdomein",
+          "Link-in-bio met analytics",
+          "Ouder-vertrouwenspagina",
+          "Meertalige ondersteuning",
+          "Social media integraties"
+        ]
+      },
+      {
+        "name": "Boekingen & betalingen",
+        "items": [
+          "Interactieve kalender",
+          "Terugkerende pakketten",
+          "Stripe & PayPal checkout",
+          "Automatische facturatie",
+          "Zoom-link generatie"
+        ]
+      },
+      {
+        "name": "Lesgereedschap",
+        "items": [
+          "24/7 AI-gesprekspartner",
+          "AI-lesplannen & huiswerk",
+          "Bronnenbibliotheek",
+          "Gestructureerde lesnotities",
+          "ERK-uitgelijnde voortgangsregistratie"
+        ]
+      },
+      {
+        "name": "Communicatie",
+        "items": [
+          "Geautomatiseerde bevestigingen",
+          "Email & WhatsApp sequences",
+          "Testimonial verzameling",
+          "Dagelijkse tutor samenvatting",
+          "Ouderupdates met één klik"
+        ]
+      },
+      {
+        "name": "Bedrijfsinzichten",
+        "items": [
+          "Omzet analytics",
+          "Conversietrechters",
+          "AI-gebruikscontroles",
+          "Executive dashboard",
+          "Volledige data export"
+        ]
+      },
+      {
+        "name": "Het Klaslokaal Dat Notities Maakt",
+        "items": [
+          "Perfect Geheugen — Elke les wordt automatisch getranscribeerd. Studenten zoeken dat woord dat ze drie weken geleden vergeten zijn.",
+          "Onzichtbare Inzichten — Spreektijd, woordenschatpatronen, veelgemaakte fouten worden stil op de achtergrond bijgehouden.",
+          "Huiswerk Dat Zichzelf Schrijft — Herhalingsoefeningen gegenereerd uit de les zelf. Gebaseerd op echte fouten, geen sjablonen."
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "headline": "14 dagen gratis proberen",
+    "subheadline": "Daarna $29/maand of $199/jaar. Eén vaste prijs per tutor.",
+    "comparisonNote": "Alle functies inbegrepen. Geen kosten tot dag 14. Annuleer voor facturatie.",
+    "toggle": {
+      "label": "Facturatie",
+      "monthlyLabel": "Maandelijks",
+      "annualLabel": "Jaarlijks (bespaar 43%)",
+      "helper": "Wissel wanneer je wilt — je plan blijft volledig."
+    },
+    "tiers": [
+      {
+        "name": "Volledige toegang",
+        "monthlyPrice": "$29",
+        "annualPrice": "$199",
+        "monthlyPeriod": "per maand",
+        "annualPeriod": "per jaar",
+        "badge": "Alles inbegrepen",
+        "description": "14 dagen gratis proberen. Eén plan. Het hele platform.",
+        "features": [
+          "Site en boekingen op één plek",
+          "Veilige betaling via Stripe — facturatie na proefperiode",
+          "Notities en taken per student",
+          "Emails en herinneringen ingebouwd",
+          "Zonder toeslag. Annuleer wanneer je wilt."
+        ],
+        "cta": "Gratis aanmelden",
+        "highlighted": true
+      }
+    ]
+  },
+  "comparison": {
+    "headline": "Gebouwd voor tutors. Niet voor iedereen.",
+    "caption": "Generieke link-tools werken voor iedereen. TutorLingua werkt specifiek voor taaltutors.",
+    "tableHeaders": {
+      "feature": "Wat je krijgt",
+      "marketplace": "Generieke tools",
+      "platform": "TutorLingua"
+    },
+    "columns": [
+      { "label": "", "marketplace": "", "platform": "" },
+      { "label": "Boekingssysteem", "marketplace": "Apart tool", "platform": "Ingebouwd" },
+      { "label": "Betalingsinning", "marketplace": "Apart tool", "platform": "Ingebouwd" },
+      { "label": "Student notities & CRM", "marketplace": "Niet inbegrepen", "platform": "Ingebouwd" },
+      { "label": "Les tracking", "marketplace": "Niet inbegrepen", "platform": "Ingebouwd" },
+      { "label": "Professionele website", "marketplace": "Alleen linkpagina", "platform": "Volledige site + links" }
+    ]
+  },
+  "testimonials": {
+    "headline": "Echte tutors, echte resultaten",
+    "subheadline": "Sluit je aan bij duizenden tutors die meer verdienen en minder werken met TutorLingua",
+    "featured": {
+      "quote": "Ik blijf op Preply voor nieuwe studenten. Maar herhaallessen gaan via TutorLingua. Heeft me dit jaar $7.500 aan commissies bespaard.",
+      "author": "Alba GB.",
+      "role": "Spaans docent",
+      "image": "/testimonials/sara.jpg"
+    },
+    "list": [
+      {
+        "quote": "Mijn Instagram-volgers kunnen me eindelijk direct boeken. 12 lessen geboekt in de eerste week.",
+        "author": "Thomas B.",
+        "role": "Frans tutor"
+      },
+      {
+        "quote": "Al mijn studenten op één plek. Notities, schema's, betalingen. Geen verspreide spreadsheets meer.",
+        "author": "Ricardo M.",
+        "role": "Portugees tutor"
+      }
+    ]
+  },
+  "faq": {
+    "headline": "Veelgestelde vragen",
+    "items": [
+      {
+        "question": "Moet ik Preply of iTalki verlaten?",
+        "answer": "Nee. Gebruik marktplaatsen om gevonden te worden. Gebruik TutorLingua voor directe boekingen van je volgers en terugkerende studenten."
+      },
+      {
+        "question": "Is dit makkelijk te gebruiken?",
+        "answer": "Als je Instagram kunt gebruiken, kun je TutorLingua gebruiken. De meeste tutors zijn in 10 minuten klaar."
+      },
+      {
+        "question": "Hoe boeken studenten?",
+        "answer": "Ze klikken op je link. Kiezen een tijd. Betalen. Krijgen hun Zoom-link direct. Klaar."
+      },
+      {
+        "question": "Houd ik al mijn inkomsten?",
+        "answer": "Ja. Geen commissies op directe boekingen via TutorLingua. Je houdt 100%."
+      },
+      {
+        "question": "Kan ik mijn studenten volgen?",
+        "answer": "Ja. Sla notities op na elke les. Volg de voortgang. Al je studenten op één georganiseerde plek."
+      },
+      {
+        "question": "Kan ik op elk moment vertrekken?",
+        "answer": "Ja. Exporteer al je data. Geen lock-in. Annuleer wanneer je wilt."
+      }
+    ]
+  },
+  "valueStack": {
+    "headline": "Wat je elders zou betalen",
+    "items": [
+      {
+        "icon": "Globe",
+        "feature": "Professionele Website & Link-in-Bio",
+        "replaces": ["Squarespace", "Linktree"],
+        "competitorPrice": 16
+      },
+      {
+        "icon": "Calendar",
+        "feature": "Kalender & Boekingen",
+        "replaces": ["Calendly", "Acuity Scheduling"],
+        "competitorPrice": 12
+      },
+      {
+        "icon": "GraduationCap",
+        "feature": "Lespakketten & Cursussen",
+        "replaces": ["Kajabi", "Teachable"],
+        "competitorPrice": 59
+      },
+      {
+        "icon": "Users",
+        "feature": "Student CRM & Notities",
+        "replaces": ["HubSpot", "Notion"],
+        "competitorPrice": 20
+      },
+      {
+        "icon": "Mail",
+        "feature": "Emaillijst & Sequences",
+        "replaces": ["ConvertKit", "Mailchimp"],
+        "competitorPrice": 15
+      },
+      {
+        "icon": "CreditCard",
+        "feature": "Betalingsverwerking",
+        "replaces": ["Stripe setup", "PayPal Business"],
+        "competitorPrice": 0
+      },
+      {
+        "icon": "BarChart3",
+        "feature": "Analytics Dashboard",
+        "replaces": ["Google Analytics"],
+        "competitorPrice": 0
+      }
+    ],
+    "totalLabel": "Wat je anders zou uitgeven",
+    "platformLabel": "Word lid van TutorLingua",
+    "platformPrice": "$29",
+    "platformPeriod": "/maand",
+    "cta": "Gratis aanmelden",
+    "ctaHref": "/signup"
+  },
+  "finalCTA": {
+    "headline": "Klaar om je bedrijf te bezitten?",
+    "subheadline": "14 dagen gratis proberen. In 10 minuten klaar.",
+    "calculatorLabel": "Maandelijkse omzet:",
+    "calculatorUnit": "/maand",
+    "rangeMinLabel": "$500",
+    "rangeMaxLabel": "$10.000",
+    "commissionLabel": "Marktplaatskosten (25%):",
+    "platformCostLabel": "TutorLingua ($29):",
+    "monthlySavingsLabel": "Maandelijkse besparing:",
+    "annualSavingsLabel": "Jaarlijkse besparing",
+    "button": "Gratis aanmelden",
+    "finePrint": "14 dagen gratis proberen. Facturatie na proefperiode; annuleer voor dag 14.",
+    "trustBadges": ["Stripe geverifieerd", "AVG-conform", "SOC 2 Ready"]
+  },
+  "navigation": {
+    "links": [
+      { "label": "Functies", "href": "#features" },
+      { "label": "Hoe het werkt", "href": "#how-it-works" },
+      { "label": "Prijzen", "href": "#pricing" },
+      { "label": "Testimonials", "href": "#testimonials" }
+    ],
+    "cta": "Inloggen"
+  },
+  "footer": {
+    "tagline": "TutorLingua — Beheer je terugkerende klanten. Gebouwd voor taaltutors.",
+    "sections": [
+      {
+        "title": "Product",
+        "links": [
+          { "label": "Functies", "href": "#features" },
+          { "label": "Prijzen", "href": "#pricing" },
+          { "label": "Beveiliging", "href": "/security" }
+        ]
+      },
+      {
+        "title": "Bronnen",
+        "links": [
+          { "label": "Blog", "href": "/nl/blog" },
+          { "label": "Helpcentrum", "href": "/help" },
+          { "label": "Community", "href": "/community" }
+        ]
+      },
+      {
+        "title": "Bedrijf",
+        "links": [
+          { "label": "Over ons", "href": "/about" },
+          { "label": "Contact", "href": "/contact" },
+          { "label": "Privacy", "href": "/privacy" },
+          { "label": "Voorwaarden", "href": "/terms" },
+          { "label": "Admin", "href": "/admin/login" }
+        ]
+      }
+    ],
+    "copyright": "© 2025 TutorLingua. Alle rechten voorbehouden."
+  },
+  "studioIntelligence": {
+    "badge": "Studio Intelligentie",
+    "headline": "Je AI-lesassistent",
+    "subheadline": "Terwijl je lesgeeft, luistert TutorLingua. Het detecteert uitspraakproblemen en maakt automatisch gerichte oefeningen.",
+    "transcript": {
+      "recordingLabel": "Opname",
+      "timer": "4:32",
+      "tutorLabel": "Tutor",
+      "studentLabel": "Student",
+      "lines": ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      "mispronouncedPrefix": "\"Muchas ",
+      "mispronouncedWord": "grassy-as",
+      "mispronouncedSuffix": "\"",
+      "mispronouncedHint": "Klinkt te Engels",
+      "correction": "\"Bijna! Probeer 'grah-see-ahs' — rol het een beetje\"",
+      "correctedWord": "¡Gracias!",
+      "correctionHint": "Veel beter!"
+    },
+    "connector": "AI analyseert les",
+    "detectedTitle": "Gedetecteerd in deze les",
+    "detected": [
+      { "word": "\"gracias\"", "description": "Uitspraak klinkt te Engels" },
+      { "word": "\"por favor\"", "description": "Zachte 'v' klank ontbreekt" }
+    ],
+    "vocab": {
+      "title": "5 nieuwe termen",
+      "description": "Woordenschatuitbreiding"
+    },
+    "practiceTitle": "Automatisch gegenereerde oefeningen",
+    "practice": [
+      { "title": "Begroetingen oefening", "description": "gracias, hola, adiós, buenos días" },
+      { "title": "Zachte klanken oefening", "description": "favor, vamos, nuevo, llave" },
+      { "title": "Flashcard deck", "description": "5 nieuwe woorden uit deze les" }
+    ],
+    "saveNote": "Automatisch opgeslagen in studentprofiel"
+  }
+}

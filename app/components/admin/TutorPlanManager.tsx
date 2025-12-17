@@ -77,7 +77,7 @@ interface TutorPlanManagerProps {
 
 const PLAN_OPTIONS = [
   { value: "professional", label: "Free" },
-  { value: "all_access", label: "All-access ($39/mo or $299/yr)" },
+  { value: "all_access", label: "All-access ($29/mo or $199/yr)" },
   { value: "founder_lifetime", label: "Founder Lifetime" },
 ];
 

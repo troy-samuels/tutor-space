@@ -112,14 +112,14 @@ export function StepPayments({
           <div>
             <p className="text-sm font-semibold text-foreground">Activate TutorLingua</p>
             <p className="text-xs text-muted-foreground">
-              Start your 14-day free trial. Then $39/mo or $299/yr.
+              Start your 7-day free trial. Then $29/mo or $199/yr.
             </p>
           </div>
         </div>
         <div className="mt-3">
           <PlatformSubscriptionCTA
-            ctaLabel="Start 14-day free trial"
-            helperText="14-day free trial. Then $39/mo or $299/yr."
+            ctaLabel="Start 7-day free trial"
+            helperText="7-day free trial. Then $29/mo or $199/yr."
           />
         </div>
       </div>

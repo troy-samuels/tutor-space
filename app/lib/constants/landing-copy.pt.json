@@ -2,7 +2,7 @@
   "hero": {
     "headline": "Criado para tutores.",
     "subheadline": "Teste gratuito de 14 dias. Depois US$ 39/mês ou US$ 299/ano. Todas as ferramentas incluídas.",
-    "primaryCTA": "Comece grátis",
+    "primaryCTA": "Cadastre-se grátis",
     "secondaryCTA": "Veja como funciona",
     "variants": {
       "outcomeHeadline": "Menos administração. Mais alunos.",
@@ -73,7 +73,7 @@
         "description": "Compartilhe seu link em qualquer lugar - Instagram, WhatsApp, e-mail"
       }
     ],
-    "cta": "Comece grátis"
+    "cta": "Cadastre-se grátis"
   },
   "solution": {
     "headline": "Tudo o que você precisa. Nada do que você não precisa.",
@@ -118,7 +118,7 @@
         "description": "Todos os seus alunos em um só lugar. Notas, horários, pagamentos. Não há mais ferramentas dispersas."
       }
     ],
-    "cta": "Iniciar gratuitamente"
+    "cta": "Cadastre-se grátis"
   },
   "featuresDeepDive": {
     "headline": "Controle total. Pais satisfeitos.",
@@ -190,14 +190,14 @@
     "toggle": {
       "label": "Faturamento",
       "monthlyLabel": "Mensal",
-      "annualLabel": "Anual (economia de 36%)",
+      "annualLabel": "Anual (economia de 43%)",
       "helper": "Troque a qualquer momento - seu plano continua sendo de acesso total."
     },
     "tiers": [
       {
         "name": "Acesso total",
-        "monthlyPrice": "$39",
-        "annualPrice": "$299",
+        "monthlyPrice": "$29",
+        "annualPrice": "$199",
         "monthlyPeriod": "por mês",
         "annualPeriod": "por ano",
         "badge": "Todos os recursos",
@@ -209,7 +209,7 @@
           "E-mail e WhatsApp incorporados",
           "Acesso total incluído. Pare quando quiser."
         ],
-        "cta": "Comece grátis",
+        "cta": "Cadastre-se grátis",
         "highlighted": true
       }
     ]
@@ -373,9 +373,9 @@
     ],
     "totalLabel": "O que você gastaria de outra forma",
     "platformLabel": "Junte-se ao TutorLingua",
-    "platformPrice": "$39",
+    "platformPrice": "$29",
     "platformPeriod": "/mo",
-    "cta": "Comece grátis",
+    "cta": "Cadastre-se grátis",
     "ctaHref": "/signup"
   },
   "finalCTA": {
@@ -386,10 +386,10 @@
     "rangeMinLabel": "$500",
     "rangeMaxLabel": "$10,000",
     "commissionLabel": "Taxas de marketplace (25%):",
-    "platformCostLabel": "TutorLingua ($39):",
+    "platformCostLabel": "TutorLingua ($29):",
     "monthlySavingsLabel": "Economia mensal:",
     "annualSavingsLabel": "Economia anual",
-    "button": "Comece grátis",
+    "button": "Cadastre-se grátis",
     "finePrint": "Teste grátis de 14 dias. Cobrança após o teste; cancele antes do dia 14.",
     "trustBadges": [
       "Stripe Verified",

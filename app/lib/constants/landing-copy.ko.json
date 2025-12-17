@@ -1,0 +1,421 @@
+{
+  "hero": {
+    "headline": "튜터를 위해 제작되었습니다.",
+    "subheadline": "14일 무료 체험. 이후 월 $29 또는 연 $199. 모든 도구가 포함됩니다.",
+    "primaryCTA": "무료 가입",
+    "secondaryCTA": "작동 방식 보기",
+    "variants": {
+      "outcomeHeadline": "관리는 줄이고, 학생은 늘리세요.",
+      "financialHeadline": "100% 수익 유지—플랫폼 수수료 없음.",
+      "aspirationalHeadline": "완전 자동화된 나만의 독립 학원."
+    }
+  },
+  "socialProof": {
+    "text": "Preply, iTalki, Verbling의 언어 튜터들이 단골 학생 관리에 사용합니다",
+    "tutors": [
+      { "name": "Alba GB.", "language": "스페인어 교사" },
+      { "name": "Thomas B.", "language": "프랑스어 튜터" },
+      { "name": "Ricardo M.", "language": "포르투갈어 튜터" }
+    ]
+  },
+  "problems": {
+    "headline": "비즈니스가 여기저기 흩어져 있습니다. 그러면 안 됩니다.",
+    "subtitle": "Preply에는 학생. Calendly에는 예약. Beacons에는 링크. TutorLingua가 모두 통합합니다.",
+    "items": [
+      {
+        "icon": "Layers",
+        "title": "튜터만을 위해 설계됨",
+        "description": "범용 도구와 다릅니다. 필요한 모든 것. 필요 없는 건 없음."
+      },
+      {
+        "icon": "Users",
+        "title": "단골 비즈니스를 소유하세요",
+        "description": "마켓플레이스가 학생을 찾아줍니다. 당신이 그들을 유지합니다. 수수료 없음."
+      },
+      {
+        "icon": "Clock",
+        "title": "학생이 즉시 예약",
+        "description": "링크를 공유하세요. 시간을 선택합니다. 결제가 완료됩니다. 끝."
+      }
+    ]
+  },
+  "phoneMockup": {
+    "headline": "공유할 준비가 된 웹사이트",
+    "subheadline": "전문적. 모바일 친화적. 10분 만에 완성.",
+    "features": [
+      {
+        "icon": "Palette",
+        "title": "나만의 브랜드, 나만의 방식",
+        "description": "색상, 글꼴, 사진을 자유롭게 선택하세요"
+      },
+      {
+        "icon": "Layers",
+        "title": "모든 서비스 한 곳에",
+        "description": "학생이 서비스를 보고 즉시 예약"
+      },
+      {
+        "icon": "Star",
+        "title": "신뢰를 쌓는 리뷰",
+        "description": "학생들의 평가를 보여주세요"
+      },
+      {
+        "icon": "Smartphone",
+        "title": "모든 기기에서 작동",
+        "description": "인스타그램, 왓츠앱, 이메일 어디서든 링크 공유"
+      }
+    ],
+    "cta": "무료 가입"
+  },
+  "solution": {
+    "headline": "필요한 모든 것. 필요 없는 건 없음.",
+    "subheadline": "언어 튜터를 위해 제작. 10분 만에 준비 완료.",
+    "features": [
+      {
+        "icon": "Globe",
+        "title": "전문 허브",
+        "description": "웹사이트와 링크인바이오. 인스타그램, 틱톡, 마켓플레이스 프로필에 공유. 하나의 링크로 모든 것에 연결."
+      },
+      {
+        "icon": "Calendar",
+        "title": "직접 예약",
+        "description": "학생이 시간을 선택하고 선불로 결제. Zoom 링크 자동 생성. 추심 불필요. 왔다 갔다 없음."
+      },
+      {
+        "icon": "Users",
+        "title": "학생 추적",
+        "description": "수업 후 노트 저장. 무엇을 가르쳤는지 기억. 진도 추적. 모든 것이 한 곳에."
+      }
+    ]
+  },
+  "howItWorks": {
+    "headline": "10분 만에 준비 완료",
+    "steps": [
+      {
+        "number": 1,
+        "icon": "UserPlus",
+        "title": "링크 공유",
+        "description": "인스타그램에 올리세요. 틱톡에 추가하세요. Preply 바이오에 넣으세요. 어디서든 공유하세요."
+      },
+      {
+        "number": 2,
+        "icon": "Calendar",
+        "title": "학생이 직접 예약",
+        "description": "시간을 선택하고 선불로 결제. 즉시 Zoom 링크 제공. 알림을 받습니다."
+      },
+      {
+        "number": 3,
+        "icon": "Users",
+        "title": "모든 것을 추적",
+        "description": "모든 학생이 한 곳에. 노트, 스케줄, 결제. 더 이상 흩어진 도구 없음."
+      }
+    ],
+    "cta": "무료 가입"
+  },
+  "featuresDeepDive": {
+    "headline": "완전한 통제. 학부모 만족.",
+    "categories": [
+      {
+        "name": "전문적인 인상",
+        "items": [
+          "맞춤 서브도메인",
+          "분석 기능 포함 링크인바이오",
+          "학부모 신뢰 페이지",
+          "다국어 지원",
+          "소셜 미디어 연동"
+        ]
+      },
+      {
+        "name": "예약 및 결제",
+        "items": [
+          "인터랙티브 캘린더",
+          "반복 패키지",
+          "Stripe 및 PayPal 결제",
+          "자동 청구서",
+          "Zoom 링크 생성"
+        ]
+      },
+      {
+        "name": "교육 도구",
+        "items": [
+          "24/7 AI 대화 파트너",
+          "AI 수업 계획 및 과제",
+          "자료실",
+          "구조화된 수업 노트",
+          "CEFR 기준 진도 추적"
+        ]
+      },
+      {
+        "name": "커뮤니케이션",
+        "items": [
+          "자동 확인",
+          "이메일 및 왓츠앱 시퀀스",
+          "추천 수집",
+          "일일 튜터 요약",
+          "원클릭 학부모 업데이트"
+        ]
+      },
+      {
+        "name": "비즈니스 인사이트",
+        "items": [
+          "수익 분석",
+          "전환 퍼널",
+          "AI 사용량 제어",
+          "경영 대시보드",
+          "전체 데이터 내보내기"
+        ]
+      },
+      {
+        "name": "자동 메모 교실",
+        "items": [
+          "완벽한 기억—모든 수업 자동 녹취. 학생이 3주 전 잊어버린 단어를 검색할 수 있음.",
+          "보이지 않는 인사이트—말하는 시간, 어휘 패턴, 흔한 실수가 백그라운드에서 추적됨.",
+          "자동 과제 작성—수업 자체에서 복습 연습 생성. 템플릿이 아닌 실제 실수를 기반으로."
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "headline": "14일 무료 체험",
+    "subheadline": "이후 월 $29 또는 연 $199. 튜터당 고정 가격.",
+    "comparisonNote": "모든 기능 포함. 14일 전까지 요금 청구 없음. 청구 전 취소 가능.",
+    "toggle": {
+      "label": "청구",
+      "monthlyLabel": "월간",
+      "annualLabel": "연간 (43% 절약)",
+      "helper": "언제든 전환—플랜은 유지됩니다."
+    },
+    "tiers": [
+      {
+        "name": "전체 액세스",
+        "monthlyPrice": "$29",
+        "annualPrice": "$199",
+        "monthlyPeriod": "월",
+        "annualPeriod": "년",
+        "badge": "올인원",
+        "description": "14일 무료 체험. 하나의 플랜. 전체 플랫폼.",
+        "features": [
+          "웹사이트와 예약 통합",
+          "Stripe 보안 결제—체험 후 청구",
+          "학생별 노트 및 과제",
+          "이메일 및 알림 내장",
+          "추가 비용 없음. 언제든 취소."
+        ],
+        "cta": "무료 가입",
+        "highlighted": true
+      }
+    ]
+  },
+  "comparison": {
+    "headline": "튜터를 위해 제작. 모두를 위한 게 아닙니다.",
+    "caption": "범용 링크 도구는 누구에게나 작동합니다. TutorLingua는 언어 튜터만을 위해 설계되었습니다.",
+    "tableHeaders": {
+      "feature": "제공 내용",
+      "marketplace": "범용 도구",
+      "platform": "TutorLingua"
+    },
+    "columns": [
+      { "label": "", "marketplace": "", "platform": "" },
+      { "label": "예약 시스템", "marketplace": "별도 도구", "platform": "내장" },
+      { "label": "결제 수금", "marketplace": "별도 도구", "platform": "내장" },
+      { "label": "학생 노트 및 CRM", "marketplace": "없음", "platform": "내장" },
+      { "label": "수업 추적", "marketplace": "없음", "platform": "내장" },
+      { "label": "전문 웹사이트", "marketplace": "링크 페이지만", "platform": "전체 사이트+링크" }
+    ]
+  },
+  "testimonials": {
+    "headline": "실제 튜터, 실제 결과",
+    "subheadline": "TutorLingua로 더 벌고 덜 일하는 수천 명의 튜터와 함께하세요",
+    "featured": {
+      "quote": "새 학생은 Preply를 유지합니다. 하지만 반복 수업은 TutorLingua를 통해. 올해 수수료 $7,500을 절약했습니다.",
+      "author": "Alba GB.",
+      "role": "스페인어 교사",
+      "image": "/testimonials/sara.jpg"
+    },
+    "list": [
+      {
+        "quote": "인스타그램 팔로워들이 드디어 직접 예약할 수 있게 되었습니다. 첫 주에 12개 수업 예약.",
+        "author": "Thomas B.",
+        "role": "프랑스어 튜터"
+      },
+      {
+        "quote": "모든 학생이 한 곳에. 노트, 스케줄, 결제. 더 이상 흩어진 스프레드시트 없음.",
+        "author": "Ricardo M.",
+        "role": "포르투갈어 튜터"
+      }
+    ]
+  },
+  "faq": {
+    "headline": "자주 묻는 질문",
+    "items": [
+      {
+        "question": "Preply나 iTalki를 떠나야 하나요?",
+        "answer": "아니요. 마켓플레이스는 발견용으로 사용하세요. TutorLingua는 팔로워와 단골 학생의 직접 예약용입니다."
+      },
+      {
+        "question": "사용하기 쉬운가요?",
+        "answer": "인스타그램을 할 줄 알면 TutorLingua도 할 수 있습니다. 대부분의 튜터가 10분 안에 준비 완료."
+      },
+      {
+        "question": "학생은 어떻게 예약하나요?",
+        "answer": "링크 클릭. 시간 선택. 결제. 즉시 Zoom 링크 제공. 끝."
+      },
+      {
+        "question": "수익을 모두 가져갈 수 있나요?",
+        "answer": "네. TutorLingua를 통한 직접 예약에는 수수료가 없습니다. 100% 본인 수익."
+      },
+      {
+        "question": "학생을 추적할 수 있나요?",
+        "answer": "네. 수업 후 노트 저장. 진도 추적. 모든 학생이 한 곳에 정리됨."
+      },
+      {
+        "question": "언제든 떠날 수 있나요?",
+        "answer": "네. 모든 데이터 내보내기 가능. 잠금 없음. 언제든 취소."
+      }
+    ]
+  },
+  "valueStack": {
+    "headline": "다른 곳에서 지불하는 비용",
+    "items": [
+      {
+        "icon": "Globe",
+        "feature": "전문 웹사이트 및 링크인바이오",
+        "replaces": ["Squarespace", "Linktree"],
+        "competitorPrice": 16
+      },
+      {
+        "icon": "Calendar",
+        "feature": "캘린더 및 예약",
+        "replaces": ["Calendly", "Acuity Scheduling"],
+        "competitorPrice": 12
+      },
+      {
+        "icon": "GraduationCap",
+        "feature": "수업 패키지 및 코스",
+        "replaces": ["Kajabi", "Teachable"],
+        "competitorPrice": 59
+      },
+      {
+        "icon": "Users",
+        "feature": "학생 CRM 및 노트",
+        "replaces": ["HubSpot", "Notion"],
+        "competitorPrice": 20
+      },
+      {
+        "icon": "Mail",
+        "feature": "이메일 리스트 및 시퀀스",
+        "replaces": ["ConvertKit", "Mailchimp"],
+        "competitorPrice": 15
+      },
+      {
+        "icon": "CreditCard",
+        "feature": "결제 처리",
+        "replaces": ["Stripe setup", "PayPal Business"],
+        "competitorPrice": 0
+      },
+      {
+        "icon": "BarChart3",
+        "feature": "분석 대시보드",
+        "replaces": ["Google Analytics"],
+        "competitorPrice": 0
+      }
+    ],
+    "totalLabel": "다른 곳에서 지출하는 금액",
+    "platformLabel": "TutorLingua 가입",
+    "platformPrice": "$29",
+    "platformPeriod": "/월",
+    "cta": "무료 가입",
+    "ctaHref": "/signup"
+  },
+  "finalCTA": {
+    "headline": "비즈니스를 소유할 준비가 되셨나요?",
+    "subheadline": "14일 무료 체험. 10분 만에 준비.",
+    "calculatorLabel": "월 수입:",
+    "calculatorUnit": "/월",
+    "rangeMinLabel": "$500",
+    "rangeMaxLabel": "$10,000",
+    "commissionLabel": "마켓플레이스 수수료 (25%):",
+    "platformCostLabel": "TutorLingua ($29):",
+    "monthlySavingsLabel": "월 절약:",
+    "annualSavingsLabel": "연 절약",
+    "button": "무료 가입",
+    "finePrint": "14일 무료 체험. 체험 후 청구; 14일 전 취소.",
+    "trustBadges": ["Stripe 인증", "GDPR 준수", "SOC 2 준비"]
+  },
+  "navigation": {
+    "links": [
+      { "label": "기능", "href": "#features" },
+      { "label": "작동 방식", "href": "#how-it-works" },
+      { "label": "가격", "href": "#pricing" },
+      { "label": "후기", "href": "#testimonials" }
+    ],
+    "cta": "로그인"
+  },
+  "footer": {
+    "tagline": "TutorLingua—단골 비즈니스를 소유하세요. 언어 튜터를 위해 제작.",
+    "sections": [
+      {
+        "title": "제품",
+        "links": [
+          { "label": "기능", "href": "#features" },
+          { "label": "가격", "href": "#pricing" },
+          { "label": "보안", "href": "/security" }
+        ]
+      },
+      {
+        "title": "리소스",
+        "links": [
+          { "label": "블로그", "href": "/ko/blog" },
+          { "label": "고객센터", "href": "/help" },
+          { "label": "커뮤니티", "href": "/community" }
+        ]
+      },
+      {
+        "title": "회사",
+        "links": [
+          { "label": "회사 소개", "href": "/about" },
+          { "label": "문의하기", "href": "/contact" },
+          { "label": "개인정보 보호", "href": "/privacy" },
+          { "label": "이용약관", "href": "/terms" },
+          { "label": "관리자", "href": "/admin/login" }
+        ]
+      }
+    ],
+    "copyright": "© 2025 TutorLingua. 모든 권리 보유."
+  },
+  "studioIntelligence": {
+    "badge": "스튜디오 인텔리전스",
+    "headline": "AI 교육 어시스턴트",
+    "subheadline": "수업 중에 TutorLingua가 듣고 있습니다. 발음 문제를 감지하고 맞춤 연습을 자동으로 생성합니다.",
+    "transcript": {
+      "recordingLabel": "녹음 중",
+      "timer": "4:32",
+      "tutorLabel": "튜터",
+      "studentLabel": "학생",
+      "lines": ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      "mispronouncedPrefix": "\"Muchas ",
+      "mispronouncedWord": "grassy-as",
+      "mispronouncedSuffix": "\"",
+      "mispronouncedHint": "영어처럼 들림",
+      "correction": "\"거의 다 됐어요! 'grah-see-ahs'로 해보세요—혀를 조금만 굴려요\"",
+      "correctedWord": "¡Gracias!",
+      "correctionHint": "훨씬 나아요!"
+    },
+    "connector": "AI가 수업을 분석합니다",
+    "detectedTitle": "이번 수업에서 감지됨",
+    "detected": [
+      { "word": "\"gracias\"", "description": "발음이 영어처럼 들림" },
+      { "word": "\"por favor\"", "description": "부드러운 'v' 소리 누락" }
+    ],
+    "vocab": {
+      "title": "새 단어 5개",
+      "description": "어휘 확장"
+    },
+    "practiceTitle": "자동 생성된 연습",
+    "practice": [
+      { "title": "인사 연습", "description": "gracias, hola, adiós, buenos días" },
+      { "title": "부드러운 소리 연습", "description": "favor, vamos, nuevo, llave" },
+      { "title": "플래시카드 세트", "description": "오늘 수업의 새 단어 5개" }
+    ],
+    "saveNote": "학생 프로필에 자동 저장"
+  }
+}

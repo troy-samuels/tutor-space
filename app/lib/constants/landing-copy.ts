@@ -1,5 +1,11 @@
 import { defaultLocale, type Locale } from "@/lib/i18n/config";
 import landingCopyPtJson from "./landing-copy.pt.json";
+import landingCopyDeJson from "./landing-copy.de.json";
+import landingCopyItJson from "./landing-copy.it.json";
+import landingCopyNlJson from "./landing-copy.nl.json";
+import landingCopyJaJson from "./landing-copy.ja.json";
+import landingCopyZhJson from "./landing-copy.zh.json";
+import landingCopyKoJson from "./landing-copy.ko.json";
 
 type ReusableLink = {
   label: string;
@@ -216,8 +222,8 @@ const landingCopyEn: LandingCopy = {
   hero: {
     headline: "Built for tutors.",
     subheadline:
-      "14-day free trial. Then $39 a month or $299 a year. All tools included.",
-    primaryCTA: "Start for free",
+      "Free trial. Then $29 a month or $199 a year. All tools included.",
+    primaryCTA: "Sign up free",
     secondaryCTA: "See how it works",
     variants: {
       outcomeHeadline: "Less admin. More students.",
@@ -286,7 +292,7 @@ const landingCopyEn: LandingCopy = {
         description: "Share your link anywhere—Instagram, WhatsApp, email",
       },
     ],
-    cta: "Start for free",
+    cta: "Sign up free",
   },
 
   solution: {
@@ -339,7 +345,7 @@ const landingCopyEn: LandingCopy = {
           "All your students in one place. Notes, schedules, payments. No more scattered tools.",
       },
     ],
-    cta: "Start for free",
+    cta: "Sign up free",
   },
 
   featuresDeepDive: {
@@ -413,14 +419,14 @@ const landingCopyEn: LandingCopy = {
     toggle: {
       label: "Billing",
       monthlyLabel: "Monthly",
-      annualLabel: "Annual (save 36%)",
+      annualLabel: "Annual (save 43%)",
       helper: "Switch anytime.",
     },
     tiers: [
       {
         name: "Pro",
-        monthlyPrice: "$39",
-        annualPrice: "$299",
+        monthlyPrice: "$29",
+        annualPrice: "$199",
         monthlyPeriod: "per month",
         annualPeriod: "per year",
         badge: "Most tutors",
@@ -432,13 +438,13 @@ const landingCopyEn: LandingCopy = {
           "Email and WhatsApp nudges built in",
           "Cancel anytime.",
         ],
-        cta: "Start for free",
+        cta: "Sign up free",
         highlighted: true,
       },
       {
         name: "Studio",
-        monthlyPrice: "$69",
-        annualPrice: "$499",
+        monthlyPrice: "$49",
+        annualPrice: "$349",
         monthlyPeriod: "per month",
         annualPeriod: "per year",
         badge: "Video + AI",
@@ -450,7 +456,7 @@ const landingCopyEn: LandingCopy = {
           "AI drills from lessons",
           "Cancel anytime.",
         ],
-        cta: "Start for free",
+        cta: "Sign up free",
         highlighted: false,
       },
     ],
@@ -585,9 +591,9 @@ const landingCopyEn: LandingCopy = {
     ],
     totalLabel: "What you'd spend otherwise",
     platformLabel: "Join TutorLingua",
-    platformPrice: "$39",
+    platformPrice: "$29",
     platformPeriod: "/mo",
-    cta: "Start for free",
+    cta: "Sign up free",
     ctaHref: "/signup",
   },
 
@@ -599,10 +605,10 @@ const landingCopyEn: LandingCopy = {
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Marketplace fees (25%):",
-    platformCostLabel: "TutorLingua ($39):",
+    platformCostLabel: "TutorLingua ($29):",
     monthlySavingsLabel: "Monthly savings:",
     annualSavingsLabel: "Annual savings",
-    button: "Start for free",
+    button: "Sign up free",
     finePrint: "14-day free trial. Billed after the trial; cancel anytime before day 14.",
     trustBadges: ["Stripe Verified", "GDPR Compliant", "SOC 2 Ready"],
   },
@@ -693,8 +699,8 @@ const landingCopyEs: LandingCopy = {
   hero: {
     headline: "Creado para tutores.",
     subheadline:
-      "Prueba gratis 14 días. Luego $39 al mes o $299 al año. Todas las funciones. Sin extras.",
-    primaryCTA: "Empieza gratis",
+      "Prueba gratis. Luego $29 al mes o $199 al año. Todas las funciones. Sin extras.",
+    primaryCTA: "Regístrate gratis",
     secondaryCTA: "Ver cómo funciona",
     variants: {
       outcomeHeadline: "Menos admin. Más estudiantes.",
@@ -763,7 +769,7 @@ const landingCopyEs: LandingCopy = {
         description: "Comparte tu enlace donde quieras—Instagram, WhatsApp, email",
       },
     ],
-    cta: "Empieza gratis",
+    cta: "Regístrate gratis",
   },
 
   solution: {
@@ -816,7 +822,7 @@ const landingCopyEs: LandingCopy = {
           "Todos tus estudiantes en un lugar. Notas, horarios, pagos. No más herramientas dispersas.",
       },
     ],
-    cta: "Empieza gratis",
+    cta: "Regístrate gratis",
   },
 
   featuresDeepDive: {
@@ -884,20 +890,20 @@ const landingCopyEs: LandingCopy = {
   },
 
   pricing: {
-    headline: "Prueba gratis 14 días",
-    subheadline: "Luego $39/mes o $299/año. Un precio fijo para cada tutor.",
+    headline: "Prueba gratis",
+    subheadline: "Luego $29/mes o $199/año. Un precio fijo para cada tutor.",
     comparisonNote: "Acceso completo. Sin cargos hasta el día 14. Cancela antes del cobro.",
     toggle: {
       label: "Facturación",
       monthlyLabel: "Mensual",
-      annualLabel: "Anual (ahorra 36%)",
+      annualLabel: "Anual (ahorra 43%)",
       helper: "Cambia cuando quieras—el plan sigue siendo completo.",
     },
     tiers: [
       {
         name: "Acceso total",
-        monthlyPrice: "$39",
-        annualPrice: "$299",
+        monthlyPrice: "$29",
+        annualPrice: "$199",
         monthlyPeriod: "al mes",
         annualPeriod: "al año",
         badge: "Todo incluido",
@@ -909,7 +915,7 @@ const landingCopyEs: LandingCopy = {
           "Emails y recordatorios listos",
           "Sin extras. Cancela cuando quieras.",
         ],
-        cta: "Empieza gratis",
+        cta: "Regístrate gratis",
         highlighted: true,
       },
     ],
@@ -1044,9 +1050,9 @@ const landingCopyEs: LandingCopy = {
     ],
     totalLabel: "Lo que gastarías normalmente",
     platformLabel: "Únete a TutorLingua",
-    platformPrice: "$39",
+    platformPrice: "$29",
     platformPeriod: "/mes",
-    cta: "Empieza gratis",
+    cta: "Regístrate gratis",
     ctaHref: "/signup",
   },
 
@@ -1059,10 +1065,10 @@ const landingCopyEs: LandingCopy = {
     rangeMinLabel: "$500",
     rangeMaxLabel: "$10,000",
     commissionLabel: "Comisiones marketplace (25%):",
-    platformCostLabel: "TutorLingua ($39):",
+    platformCostLabel: "TutorLingua ($29):",
     monthlySavingsLabel: "Ahorro mensual:",
     annualSavingsLabel: "Ahorro anual",
-    button: "Empieza gratis",
+    button: "Regístrate gratis",
     finePrint: "Prueba gratis de 14 días. Cargo después; cancela antes del día 14.",
     trustBadges: ["Stripe verificado", "Cumplimos con GDPR", "Listo para SOC 2"],
   },
@@ -1154,7 +1160,7 @@ const landingCopyFr: LandingCopy = {
     headline: "Conçu pour les tuteurs.",
     subheadline:
       "Essai gratuit de 14 jours. Puis 39 $/mois ou 299 $/an. Toutes les fonctionnalités. Aucun frais supplémentaire.",
-    primaryCTA: "Commencer gratuitement",
+    primaryCTA: "Inscris-toi gratuitement",
     secondaryCTA: "Voir comment ça fonctionne",
     variants: {
       outcomeHeadline: "Moins d'admin. Plus d'étudiants.",
@@ -1223,7 +1229,7 @@ const landingCopyFr: LandingCopy = {
         description: "Partagez votre lien partout — Instagram, WhatsApp, email",
       },
     ],
-    cta: "Commencer gratuitement",
+    cta: "Inscris-toi gratuitement",
   },
 
   solution: {
@@ -1276,7 +1282,7 @@ const landingCopyFr: LandingCopy = {
           "Tous vos étudiants au même endroit. Notes, horaires, paiements. Fini les outils éparpillés.",
       },
     ],
-    cta: "Commencer gratuitement",
+    cta: "Inscris-toi gratuitement",
   },
 
   featuresDeepDive: {
@@ -1369,7 +1375,7 @@ const landingCopyFr: LandingCopy = {
           "Emails et rappels intégrés",
           "Sans supplément. Résiliez quand vous voulez.",
         ],
-        cta: "Commencer gratuitement",
+        cta: "Inscris-toi gratuitement",
         highlighted: true,
       },
     ],
@@ -1506,7 +1512,7 @@ const landingCopyFr: LandingCopy = {
     platformLabel: "Rejoignez TutorLingua",
     platformPrice: "39 $",
     platformPeriod: "/mois",
-    cta: "Commencer gratuitement",
+    cta: "Inscris-toi gratuitement",
     ctaHref: "/signup",
   },
 
@@ -1522,7 +1528,7 @@ const landingCopyFr: LandingCopy = {
     platformCostLabel: "TutorLingua (39 $) :",
     monthlySavingsLabel: "Économies mensuelles :",
     annualSavingsLabel: "Économies annuelles",
-    button: "Commencer gratuitement",
+    button: "Inscris-toi gratuitement",
     finePrint: "Essai gratuit de 14 jours. Facturation après l'essai ; annulez avant le jour 14.",
     trustBadges: ["Stripe vérifié", "Conforme RGPD", "Prêt SOC 2"],
   },
@@ -1610,18 +1616,24 @@ const landingCopyFr: LandingCopy = {
 };
 
 const landingCopyPt: LandingCopy = landingCopyPtJson as LandingCopy;
+const landingCopyDe: LandingCopy = landingCopyDeJson as LandingCopy;
+const landingCopyIt: LandingCopy = landingCopyItJson as LandingCopy;
+const landingCopyNl: LandingCopy = landingCopyNlJson as LandingCopy;
+const landingCopyJa: LandingCopy = landingCopyJaJson as LandingCopy;
+const landingCopyZh: LandingCopy = landingCopyZhJson as LandingCopy;
+const landingCopyKo: LandingCopy = landingCopyKoJson as LandingCopy;
 
 const landingCopyByLocale: Record<Locale, LandingCopy> = {
   en: landingCopyEn,
   es: landingCopyEs,
   fr: landingCopyFr,
   pt: landingCopyPt,
-  de: landingCopyEn, // Falls back to English - full German translation can be added later
-  it: landingCopyEn, // Falls back to English - full Italian translation can be added later
-  nl: landingCopyEn, // Falls back to English - full Dutch translation can be added later
-  ja: landingCopyEn, // Falls back to English - full Japanese translation can be added later
-  zh: landingCopyEn, // Falls back to English - full Chinese translation can be added later
-  ko: landingCopyEn, // Falls back to English - full Korean translation can be added later
+  de: landingCopyDe,
+  it: landingCopyIt,
+  nl: landingCopyNl,
+  ja: landingCopyJa,
+  zh: landingCopyZh,
+  ko: landingCopyKo,
 };
 
 export function getLandingCopy(locale: string | Locale): LandingCopy {

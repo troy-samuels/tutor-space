@@ -29,8 +29,8 @@ TutorLingua is a comprehensive business management platform built specifically f
 ### Tech Stack
 
 **Frontend**:
-- Next.js 15.5.4 (App Router with Turbopack)
-- React 19.1.0
+- Next.js 16.0.10 (App Router with Turbopack)
+- React 19.2.3
 - TypeScript 5.x
 - Tailwind CSS 4.x
 - shadcn/ui component library
@@ -932,7 +932,7 @@ app/
 5. Assigns scenario to student as homework
 
 **AI Practice Session (Student)**:
-1. Student subscribes to AI Practice ($8/month base)
+1. Student accesses AI Practice (free with Studio tutor)
 2. Views assigned practice scenarios in progress dashboard
 3. Opens assigned session → starts conversation with AI
 4. Types or speaks (audio input with pronunciation assessment)
@@ -941,11 +941,12 @@ app/
 7. Session ends manually or at message limit
 8. Displays session summary with feedback, rating, vocabulary
 
-**Usage-Based Billing**:
-- Base tier: $8/month = 100 audio minutes + 300 text turns
-- Block add-ons: $5 each = +60 audio minutes + +200 text turns
-- Blocks auto-charge via Stripe metered billing when exceeded
+**Freemium Model**:
+- Free tier: 45 audio minutes + 600 text turns (requires tutor with Studio subscription)
+- Block add-ons: $5 each = +45 audio minutes + +300 text turns
+- Blocks charged via Stripe metered billing when free allowance exceeded
 - Usage tracked in `practice_usage_periods` table
+- Feature gated by tutor's Studio tier status
 
 **Grammar Categories Tracked**:
 verb_tense, subject_verb_agreement, preposition, article, word_order, gender_agreement, conjugation, pronoun, plural_singular, spelling, vocabulary
@@ -2035,11 +2036,11 @@ RESEND_API_KEY=re_...
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Stripe - Pro Tier ($39/mo, $299/yr)
+# Stripe - Pro Tier ($29/mo, $199/yr)
 STRIPE_PRO_MONTHLY_PRICE_ID=price_...
 STRIPE_PRO_ANNUAL_PRICE_ID=price_...
 
-# Stripe - Studio Tier ($69/mo, $499/yr, $99 lifetime)
+# Stripe - Studio Tier ($49/mo, $349/yr, $99 lifetime)
 STRIPE_STUDIO_MONTHLY_PRICE_ID=price_...
 STRIPE_STUDIO_ANNUAL_PRICE_ID=price_...
 STRIPE_STUDIO_LIFETIME_PRICE_ID=price_...
@@ -2167,14 +2168,14 @@ Located in `/app/docs/blog/`:
 | Plan ID | Display Name | Price | Tier | Description |
 |---------|--------------|-------|------|-------------|
 | `professional` | Free | $0 | Free | Default for new signups / trial expired |
-| `pro_monthly` | Pro Monthly | $39/month | Pro | Full platform access |
-| `pro_annual` | Pro Annual | $299/year | Pro | 36% off (~$25/mo effective) |
+| `pro_monthly` | Pro Monthly | $29/month | Pro | Full platform access |
+| `pro_annual` | Pro Annual | $199/year | Pro | 43% off (~$17/mo effective) |
 | `tutor_life` | Pro Lifetime | $99 one-time | Pro | Lifetime deal (unlocks Studio tier) |
-| `studio_monthly` | Studio Monthly | $69/month | Studio | Pro + LiveKit video, transcription, drills, clips |
-| `studio_annual` | Studio Annual | $499/year | Studio | 40% off (~$42/mo effective) |
+| `studio_monthly` | Studio Monthly | $49/month | Studio | Pro + LiveKit video, transcription, drills, clips |
+| `studio_annual` | Studio Annual | $349/year | Studio | 41% off (~$29/mo effective) |
 | `studio_life` | Studio Lifetime | $99 one-time | Studio | Lifetime Studio access (all features) |
 | `founder_lifetime` | Founder Lifetime | $49 one-time | Pro | Legacy grandfathered lifetime deal |
-| `all_access` | Pro (Legacy) | $39/month | Pro | Legacy plan, maps to pro_monthly |
+| `all_access` | Pro (Legacy) | $29/month | Pro | Legacy plan, maps to pro_monthly |
 
 **Tier Feature Access**:
 
@@ -2219,10 +2220,11 @@ Located in `/app/docs/blog/`:
 - Platform API cost: ~$1.50/month (at 4 hrs avg usage)
 - **Platform net profit**: ~$6.00/student/month (80% margin)
 
-**AI Practice Companion** (Student Subscription):
-- **Base tier**: $8/month = 100 audio minutes + 300 text turns
-- **Add-on blocks**: $5 each = +60 audio minutes + +200 text turns
-- **Billing**: Metered via Stripe (blocks auto-charge when exceeded)
+**AI Practice Companion** (Freemium Model):
+- **Free tier**: 45 audio minutes + 600 text turns (requires tutor with Studio)
+- **Add-on blocks**: $5 each = +45 audio minutes + +300 text turns
+- **Billing**: Metered via Stripe (blocks charged when free allowance exceeded)
+- **Access**: Gated by tutor's Studio tier subscription
 - **Constants**: `/lib/practice/constants.ts`
 
 **Marketplace Commissions** (Digital Products):
@@ -2240,8 +2242,8 @@ Located in `/app/docs/blog/`:
 
 For a tutor earning $2,000/month on Preply (33% commission):
 - Commission cost: $660/month ($7,920/year)
-- TutorLingua Pro cost: $39/month ($468/year)
-- **Annual savings: $7,452**
+- TutorLingua Pro cost: $29/month ($348/year)
+- **Annual savings: $7,572**
 
 ### Marketplace Positioning Strategy
 
@@ -2277,6 +2279,30 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 ---
 
 ## IMPLEMENTATION LOG
+
+### 17 December 2025: AI Practice Freemium Model
+
+**Model Change**:
+- Migrated AI Practice from $8/month subscription to freemium model
+- Free tier: 45 audio minutes + 600 text turns (no subscription required)
+- Access gated by tutor's Studio tier subscription
+- Students of Studio tutors get free AI Practice access
+- Block add-ons: $5 each for additional usage (+45 audio min, +300 text turns)
+
+**Code Changes**:
+- Updated `/lib/practice/constants.ts` with new FREE_* constants
+- Updated `/lib/practice/access.ts` for Studio-gated access control
+- Updated `/app/api/practice/*` routes for freemium logic
+- Updated `/components/student/AIPracticeCard.tsx` for freemium UI
+- Added `/app/api/practice/enable/` endpoint for tutor enablement
+- Added migration `20260115100000_freemium_hardening.sql`
+
+**Stripe Integration**:
+- Added comprehensive Stripe test coverage
+- Tests for checkout, webhooks, billing portal, idempotency, error handling
+- Test mocks in `/tests/utils/stripe-mocks.ts`
+
+---
 
 ### 15 December 2025: Enterprise Lesson Analysis Hardening
 
@@ -2423,4 +2449,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 15 December 2025*
+*Last updated: 17 December 2025*

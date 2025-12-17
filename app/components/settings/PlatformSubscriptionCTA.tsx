@@ -63,8 +63,8 @@ export function PlatformSubscriptionCTA({
         <BillingToggle
           value={billingCycle}
           onChange={setBillingCycle}
-          monthlyLabel={monthlyLabel ?? (tier === "studio" ? "$69/mo" : "$39/mo")}
-          annualLabel={annualLabel ?? (tier === "studio" ? "$499/yr" : "$299/yr")}
+          monthlyLabel={monthlyLabel ?? (tier === "studio" ? "$49/mo" : "$29/mo")}
+          annualLabel={annualLabel ?? (tier === "studio" ? "$349/yr" : "$199/yr")}
         />
       </div>
 

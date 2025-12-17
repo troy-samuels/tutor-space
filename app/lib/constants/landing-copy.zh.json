@@ -1,0 +1,421 @@
+{
+  "hero": {
+    "headline": "专为导师打造。",
+    "subheadline": "14天免费试用。之后每月29美元或每年299美元。包含所有工具。",
+    "primaryCTA": "免费注册",
+    "secondaryCTA": "了解工作原理",
+    "variants": {
+      "outcomeHeadline": "减少管理，增加学生。",
+      "financialHeadline": "保留100%——无平台费用。",
+      "aspirationalHeadline": "您的独立学院，全自动化。"
+    }
+  },
+  "socialProof": {
+    "text": "被Preply、iTalki和Verbling上的语言导师用于管理回头客业务",
+    "tutors": [
+      { "name": "Alba GB.", "language": "西班牙语老师" },
+      { "name": "Thomas B.", "language": "法语导师" },
+      { "name": "Ricardo M.", "language": "葡萄牙语导师" }
+    ]
+  },
+  "problems": {
+    "headline": "您的业务分散各处。不应该这样。",
+    "subtitle": "Preply上的学生。Calendly上的预约。Beacons上的链接。TutorLingua将一切整合。",
+    "items": [
+      {
+        "icon": "Layers",
+        "title": "仅为导师构建",
+        "description": "与通用工具不同。您需要的一切。没有不需要的。"
+      },
+      {
+        "icon": "Users",
+        "title": "拥有您的回头客业务",
+        "description": "市场平台找到学生。您留住他们。无佣金。"
+      },
+      {
+        "icon": "Clock",
+        "title": "学生即时预约",
+        "description": "分享您的链接。他们选择时间。您收到付款。完成。"
+      }
+    ]
+  },
+  "phoneMockup": {
+    "headline": "您的网站，随时可分享",
+    "subheadline": "专业。移动友好。10分钟完成。",
+    "features": [
+      {
+        "icon": "Palette",
+        "title": "您的品牌，您的方式",
+        "description": "选择适合您的颜色、字体和照片"
+      },
+      {
+        "icon": "Layers",
+        "title": "所有服务集于一处",
+        "description": "学生查看您的服务并即时预约"
+      },
+      {
+        "icon": "Star",
+        "title": "建立信任的评价",
+        "description": "展示学生对您的评价"
+      },
+      {
+        "icon": "Smartphone",
+        "title": "在任何手机上工作",
+        "description": "随处分享链接——Instagram、WhatsApp、电子邮件"
+      }
+    ],
+    "cta": "免费注册"
+  },
+  "solution": {
+    "headline": "您需要的一切。没有不需要的。",
+    "subheadline": "为语言导师构建。10分钟准备就绪。",
+    "features": [
+      {
+        "icon": "Globe",
+        "title": "您的专业中心",
+        "description": "网站加link-in-bio。在Instagram、TikTok、市场档案上分享。一个链接到一切。"
+      },
+      {
+        "icon": "Calendar",
+        "title": "直接预约",
+        "description": "学生选择时间。预付款。自动获取Zoom链接。无需追款。无来回沟通。"
+      },
+      {
+        "icon": "Users",
+        "title": "追踪您的学生",
+        "description": "每节课后保存笔记。记住教过的内容。追踪进度。一切集于一处。"
+      }
+    ]
+  },
+  "howItWorks": {
+    "headline": "10分钟准备就绪",
+    "steps": [
+      {
+        "number": 1,
+        "icon": "UserPlus",
+        "title": "分享您的链接",
+        "description": "放在Instagram上。添加到TikTok。加入您的Preply简介。随处分享。"
+      },
+      {
+        "number": 2,
+        "icon": "Calendar",
+        "title": "学生直接预约",
+        "description": "他们选择时间。预付款。即时获取Zoom链接。您收到通知。"
+      },
+      {
+        "number": 3,
+        "icon": "Users",
+        "title": "您追踪一切",
+        "description": "所有学生集于一处。笔记、时间表、付款。不再有分散的工具。"
+      }
+    ],
+    "cta": "免费注册"
+  },
+  "featuresDeepDive": {
+    "headline": "完全控制。家长满意。",
+    "categories": [
+      {
+        "name": "专业形象",
+        "items": [
+          "自定义子域名",
+          "带分析的link-in-bio",
+          "家长信任页面",
+          "多语言支持",
+          "社交媒体集成"
+        ]
+      },
+      {
+        "name": "预约与付款",
+        "items": [
+          "互动日历",
+          "循环套餐",
+          "Stripe和PayPal结账",
+          "自动开票",
+          "Zoom链接生成"
+        ]
+      },
+      {
+        "name": "教学工具",
+        "items": [
+          "24/7 AI对话伙伴",
+          "AI课程计划和作业",
+          "资源库",
+          "结构化课程笔记",
+          "CEFR对齐的进度追踪"
+        ]
+      },
+      {
+        "name": "通信",
+        "items": [
+          "自动确认",
+          "电子邮件和WhatsApp序列",
+          "推荐收集",
+          "每日导师摘要",
+          "一键家长更新"
+        ]
+      },
+      {
+        "name": "商业洞察",
+        "items": [
+          "收入分析",
+          "转化漏斗",
+          "AI使用控制",
+          "高管仪表板",
+          "完整数据导出"
+        ]
+      },
+      {
+        "name": "自动记笔记的教室",
+        "items": [
+          "完美记忆——每节课自动转录。学生可以搜索三周前忘记的单词。",
+          "隐形洞察——说话时间、词汇模式、常见错误在后台静默追踪。",
+          "自动写作业——从课程本身生成复习练习。基于真实错误，而非模板。"
+        ]
+      }
+    ]
+  },
+  "pricing": {
+    "headline": "14天免费试用",
+    "subheadline": "之后每月29美元或每年299美元。每位导师一个固定价格。",
+    "comparisonNote": "包含所有功能。第14天之前不收费。在计费前取消。",
+    "toggle": {
+      "label": "计费",
+      "monthlyLabel": "月付",
+      "annualLabel": "年付（节省43%）",
+      "helper": "随时切换——您的计划保持完整。"
+    },
+    "tiers": [
+      {
+        "name": "完全访问",
+        "monthlyPrice": "29美元",
+        "annualPrice": "199美元",
+        "monthlyPeriod": "每月",
+        "annualPeriod": "每年",
+        "badge": "全包",
+        "description": "14天免费试用。一个计划。整个平台。",
+        "features": [
+          "网站和预约集于一处",
+          "通过Stripe安全支付——试用后计费",
+          "每位学生的笔记和任务",
+          "内置电子邮件和提醒",
+          "无额外费用。随时取消。"
+        ],
+        "cta": "免费注册",
+        "highlighted": true
+      }
+    ]
+  },
+  "comparison": {
+    "headline": "为导师构建。不是为所有人。",
+    "caption": "通用链接工具适用于任何人。TutorLingua专门为语言导师设计。",
+    "tableHeaders": {
+      "feature": "您得到的",
+      "marketplace": "通用工具",
+      "platform": "TutorLingua"
+    },
+    "columns": [
+      { "label": "", "marketplace": "", "platform": "" },
+      { "label": "预约系统", "marketplace": "单独工具", "platform": "内置" },
+      { "label": "收款", "marketplace": "单独工具", "platform": "内置" },
+      { "label": "学生笔记和CRM", "marketplace": "不包含", "platform": "内置" },
+      { "label": "课程追踪", "marketplace": "不包含", "platform": "内置" },
+      { "label": "专业网站", "marketplace": "仅链接页面", "platform": "完整网站+链接" }
+    ]
+  },
+  "testimonials": {
+    "headline": "真实导师，真实结果",
+    "subheadline": "加入数千名使用TutorLingua赚得更多、工作更少的导师",
+    "featured": {
+      "quote": "我留在Preply获取新学生。但重复课程通过TutorLingua。今年为我节省了7,500美元的佣金。",
+      "author": "Alba GB.",
+      "role": "西班牙语老师",
+      "image": "/testimonials/sara.jpg"
+    },
+    "list": [
+      {
+        "quote": "我的Instagram粉丝终于可以直接预约我了。第一周预约了12节课。",
+        "author": "Thomas B.",
+        "role": "法语导师"
+      },
+      {
+        "quote": "所有学生集于一处。笔记、时间表、付款。不再有分散的电子表格。",
+        "author": "Ricardo M.",
+        "role": "葡萄牙语导师"
+      }
+    ]
+  },
+  "faq": {
+    "headline": "常见问题",
+    "items": [
+      {
+        "question": "我需要离开Preply或iTalki吗？",
+        "answer": "不需要。使用市场平台被发现。使用TutorLingua从您的粉丝和回头学生那里获得直接预约。"
+      },
+      {
+        "question": "这个容易使用吗？",
+        "answer": "如果您会用Instagram，就会用TutorLingua。大多数导师10分钟内准备就绪。"
+      },
+      {
+        "question": "学生如何预约？",
+        "answer": "点击您的链接。选择时间。付款。即时获取Zoom链接。完成。"
+      },
+      {
+        "question": "我能保留所有收入吗？",
+        "answer": "是的。通过TutorLingua的直接预约无佣金。您保留100%。"
+      },
+      {
+        "question": "我可以追踪我的学生吗？",
+        "answer": "是的。每节课后保存笔记。追踪进度。所有学生在一个有组织的地方。"
+      },
+      {
+        "question": "我可以随时离开吗？",
+        "answer": "是的。导出所有数据。无锁定。随时取消。"
+      }
+    ]
+  },
+  "valueStack": {
+    "headline": "您在别处支付的费用",
+    "items": [
+      {
+        "icon": "Globe",
+        "feature": "专业网站和Link-in-Bio",
+        "replaces": ["Squarespace", "Linktree"],
+        "competitorPrice": 16
+      },
+      {
+        "icon": "Calendar",
+        "feature": "日历和预约",
+        "replaces": ["Calendly", "Acuity Scheduling"],
+        "competitorPrice": 12
+      },
+      {
+        "icon": "GraduationCap",
+        "feature": "课程套餐和课程",
+        "replaces": ["Kajabi", "Teachable"],
+        "competitorPrice": 59
+      },
+      {
+        "icon": "Users",
+        "feature": "学生CRM和笔记",
+        "replaces": ["HubSpot", "Notion"],
+        "competitorPrice": 20
+      },
+      {
+        "icon": "Mail",
+        "feature": "邮件列表和序列",
+        "replaces": ["ConvertKit", "Mailchimp"],
+        "competitorPrice": 15
+      },
+      {
+        "icon": "CreditCard",
+        "feature": "支付处理",
+        "replaces": ["Stripe setup", "PayPal Business"],
+        "competitorPrice": 0
+      },
+      {
+        "icon": "BarChart3",
+        "feature": "分析仪表板",
+        "replaces": ["Google Analytics"],
+        "competitorPrice": 0
+      }
+    ],
+    "totalLabel": "您在别处花费的金额",
+    "platformLabel": "加入TutorLingua",
+    "platformPrice": "29美元",
+    "platformPeriod": "/月",
+    "cta": "免费注册",
+    "ctaHref": "/signup"
+  },
+  "finalCTA": {
+    "headline": "准备好拥有您的业务了吗？",
+    "subheadline": "14天免费试用。10分钟准备就绪。",
+    "calculatorLabel": "月收入：",
+    "calculatorUnit": "/月",
+    "rangeMinLabel": "500美元",
+    "rangeMaxLabel": "10,000美元",
+    "commissionLabel": "市场费用（25%）：",
+    "platformCostLabel": "TutorLingua（29美元）：",
+    "monthlySavingsLabel": "月节省：",
+    "annualSavingsLabel": "年节省",
+    "button": "免费注册",
+    "finePrint": "14天免费试用。试用后计费；第14天前取消。",
+    "trustBadges": ["Stripe认证", "GDPR合规", "SOC 2就绪"]
+  },
+  "navigation": {
+    "links": [
+      { "label": "功能", "href": "#features" },
+      { "label": "工作原理", "href": "#how-it-works" },
+      { "label": "价格", "href": "#pricing" },
+      { "label": "推荐", "href": "#testimonials" }
+    ],
+    "cta": "登录"
+  },
+  "footer": {
+    "tagline": "TutorLingua——拥有您的回头客业务。为语言导师构建。",
+    "sections": [
+      {
+        "title": "产品",
+        "links": [
+          { "label": "功能", "href": "#features" },
+          { "label": "价格", "href": "#pricing" },
+          { "label": "安全", "href": "/security" }
+        ]
+      },
+      {
+        "title": "资源",
+        "links": [
+          { "label": "博客", "href": "/zh/blog" },
+          { "label": "帮助中心", "href": "/help" },
+          { "label": "社区", "href": "/community" }
+        ]
+      },
+      {
+        "title": "公司",
+        "links": [
+          { "label": "关于我们", "href": "/about" },
+          { "label": "联系我们", "href": "/contact" },
+          { "label": "隐私", "href": "/privacy" },
+          { "label": "条款", "href": "/terms" },
+          { "label": "管理员", "href": "/admin/login" }
+        ]
+      }
+    ],
+    "copyright": "© 2025 TutorLingua. 保留所有权利。"
+  },
+  "studioIntelligence": {
+    "badge": "工作室智能",
+    "headline": "您的AI教学助手",
+    "subheadline": "当您教学时，TutorLingua在倾听。它检测发音问题并自动创建有针对性的练习。",
+    "transcript": {
+      "recordingLabel": "录制中",
+      "timer": "4:32",
+      "tutorLabel": "导师",
+      "studentLabel": "学生",
+      "lines": ["\"Muy bien. Ahora dime 'muchas gracias'\""],
+      "mispronouncedPrefix": "\"Muchas ",
+      "mispronouncedWord": "grassy-as",
+      "mispronouncedSuffix": "\"",
+      "mispronouncedHint": "听起来太像英语",
+      "correction": "\"差一点！试试'grah-see-ahs'——稍微卷一下舌头\"",
+      "correctedWord": "¡Gracias!",
+      "correctionHint": "好多了！"
+    },
+    "connector": "AI分析课程",
+    "detectedTitle": "本节课检测到",
+    "detected": [
+      { "word": "\"gracias\"", "description": "发音听起来太像英语" },
+      { "word": "\"por favor\"", "description": "缺少柔和的'v'音" }
+    ],
+    "vocab": {
+      "title": "5个新词汇",
+      "description": "词汇扩展"
+    },
+    "practiceTitle": "自动生成的练习",
+    "practice": [
+      { "title": "问候练习", "description": "gracias, hola, adiós, buenos días" },
+      { "title": "柔音练习", "description": "favor, vamos, nuevo, llave" },
+      { "title": "闪卡组", "description": "今天课程的5个新单词" }
+    ],
+    "saveNote": "自动保存到学生档案"
+  }
+}

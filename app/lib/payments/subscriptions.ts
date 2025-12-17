@@ -154,14 +154,14 @@ export function getPlanPricing(plan: PlatformBillingPlan): {
 		{ price: number; interval: "month" | "year" | "lifetime"; currency: string }
 	> = {
 		professional: { price: 0, interval: "month", currency: "USD" },
-		pro_monthly: { price: 39, interval: "month", currency: "USD" },
-		pro_annual: { price: 299, interval: "year", currency: "USD" },
+		pro_monthly: { price: 29, interval: "month", currency: "USD" },
+		pro_annual: { price: 199, interval: "year", currency: "USD" },
 		tutor_life: { price: 99, interval: "lifetime", currency: "USD" },
-		studio_monthly: { price: 69, interval: "month", currency: "USD" },
-		studio_annual: { price: 499, interval: "year", currency: "USD" },
+		studio_monthly: { price: 49, interval: "month", currency: "USD" },
+		studio_annual: { price: 349, interval: "year", currency: "USD" },
 		studio_life: { price: 99, interval: "lifetime", currency: "USD" },
 		founder_lifetime: { price: 0, interval: "lifetime", currency: "USD" },
-		all_access: { price: 39, interval: "month", currency: "USD" }, // Legacy
+		all_access: { price: 29, interval: "month", currency: "USD" }, // Legacy
 	};
 
 	return pricing[plan] ?? { price: 0, interval: "month", currency: "USD" };

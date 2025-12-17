@@ -47,7 +47,7 @@ const TESTIMONIALS = {
 // Value comparison data
 const VALUE_COMPARISON = {
   competitors: "$132/month",
-  tutorlingua: "$39/month",
+  tutorlingua: "$29/month",
   tools: "Calendly + Stripe + CRM + Website",
 };
 
@@ -98,8 +98,8 @@ export default async function BillingPage({
   })();
 
   const displayTierLabel = selectedTier === "studio" ? "Studio" : "Pro";
-  const displayMonthlyPrice = selectedTier === "studio" ? "$69/month" : "$39/month";
-  const displayAnnualPrice = selectedTier === "studio" ? "$499/year" : "$299/year";
+  const displayMonthlyPrice = selectedTier === "studio" ? "$49/month" : "$29/month";
+  const displayAnnualPrice = selectedTier === "studio" ? "$349/year" : "$199/year";
 
   // Calculate days remaining in trial
   let trialDaysRemaining: number | null = null;
