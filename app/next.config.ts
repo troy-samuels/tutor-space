@@ -6,6 +6,8 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(process.cwd(), ".."),
+  // Remove X-Powered-By header (security best practice)
+  poweredByHeader: false,
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
@@ -24,6 +26,59 @@ const nextConfig: NextConfig = {
       {
         source: "/@:username",
         destination: "/profile/:username",
+      },
+    ];
+  },
+  // Security headers for CASA compliance
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Prevents clickjacking attacks (CASA Medium)
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          // Prevents MIME type sniffing (CASA Low)
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          // Controls referrer information
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          // Content Security Policy (CASA Medium)
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              // Scripts: self, inline (Next.js requires), Google, Stripe, LiveKit
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://js.stripe.com https://*.livekit.cloud",
+              // Styles: self, inline (Tailwind/styled-jsx)
+              "style-src 'self' 'unsafe-inline'",
+              // Images: self, data URIs, blobs, HTTPS sources (Supabase storage, Unsplash, etc.)
+              "img-src 'self' blob: data: https:",
+              // Fonts: self, data URIs, Google Fonts
+              "font-src 'self' data: https://fonts.gstatic.com",
+              // Connect: API calls to Supabase, Stripe, LiveKit, Deepgram, OpenAI
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.livekit.cloud wss://*.livekit.cloud https://api.deepgram.com https://api.openai.com https://api.resend.com",
+              // Frames: Stripe checkout, Google OAuth
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://accounts.google.com",
+              // Media: self, Supabase storage for audio/video
+              "media-src 'self' https://*.supabase.co blob:",
+              // Workers: self for service workers
+              "worker-src 'self' blob:",
+            ].join("; "),
+          },
+          // Permissions Policy (formerly Feature-Policy)
+          {
+            key: "Permissions-Policy",
+            value: "camera=(self), microphone=(self), geolocation=()",
+          },
+        ],
       },
     ];
   },
