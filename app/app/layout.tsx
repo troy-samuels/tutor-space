@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { PageViewTracker } from "@/components/providers/PageViewTracker";
+import { GoogleAnalytics } from "@/components/providers/GoogleAnalytics";
 import { defaultLocale, locales } from "@/lib/i18n/config";
 import { CampaignBannerSlot } from "@/components/marketing/CampaignBannerSlot";
 
@@ -116,6 +117,7 @@ export default async function RootLayout({
           "antialiased",
         ].join(" ")}
       >
+        <GoogleAnalytics />
         <CampaignBannerSlot />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PageViewTracker />
