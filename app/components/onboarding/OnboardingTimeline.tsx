@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 import { TimelineStep, StepStatus } from "./TimelineStep";
 import { StepProfileBasics } from "./steps/StepProfileBasics";
 import { StepProfessionalInfo } from "./steps/StepProfessionalInfo";
@@ -91,7 +92,17 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
       try {
         const result = await completeOnboarding();
         if (result.success) {
-          router.push("/dashboard");
+          // Fire confetti celebration
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+
+          // Delay redirect so user can see the celebration
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 2000);
         } else {
           console.error("Failed to complete onboarding:", result.error);
           setIsCompleting(false);
