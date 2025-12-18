@@ -46,14 +46,14 @@ export function PhoneMockupSection({ copy }: PhoneMockupSectionProps) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16 min-h-[640px]">
           {/* Left column - Text content */}
-          <div className="order-2 lg:order-1 flex flex-col items-center justify-center text-center lg:items-start lg:text-left">
+          <div className="order-2 lg:order-1 flex flex-col items-start justify-center text-left">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               {copy.headline}
             </h2>
             <p className="mt-4 text-lg text-gray-600">{copy.subheadline}</p>
 
             {/* Feature list */}
-            <ul className="mt-8 w-full max-w-xl space-y-5">
+            <ul className="mt-8 w-full max-w-none space-y-5 lg:max-w-xl">
               {copy.features.map((feature, index) => {
                 const Icon = iconMap[feature.icon] ?? Layers;
                 return (
@@ -65,7 +65,7 @@ export function PhoneMockupSection({ copy }: PhoneMockupSectionProps) {
                         aria-hidden="true"
                       />
                     </div>
-                    <div className="text-center lg:text-left">
+                    <div className="text-left">
                       <h3 className="text-base font-semibold text-foreground">
                         {feature.title}
                       </h3>

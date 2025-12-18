@@ -34,7 +34,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
         </div>
 
         {/* Pricing card - centered */}
-        <div className="mx-auto mt-8 sm:mt-12 flex justify-center">
+        <div className="mx-auto mt-8 sm:mt-12 flex flex-wrap justify-center gap-6">
           {pricing.tiers.map((tier) => {
             const isAnnual = billingCycle === "annual";
             const displayPrice = isAnnual ? tier.annualPrice : tier.monthlyPrice;
@@ -44,105 +44,109 @@ export function PricingSection({ pricing }: PricingSectionProps) {
               <div
                 key={tier.name}
                 className={cn(
-                  "relative w-full max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-8 shadow-lg",
+                  "relative w-full max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-8 shadow-lg flex h-full flex-col",
                   tier.highlighted
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-foreground"
                 )}
               >
-                {/* Badge */}
-                {tier.badge && (
-                  <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex rounded-full bg-muted px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold text-primary shadow-md">
-                      {tier.badge}
-                    </span>
-                  </div>
-                )}
-
-                {/* Plan name */}
-                <h3
-                  className={cn(
-                    "text-xl sm:text-2xl font-bold",
-                    tier.highlighted ? "text-primary-foreground" : "text-primary"
+                <div className="flex-1">
+                  {/* Badge */}
+                  {tier.badge && (
+                    <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2">
+                      <span className="inline-flex rounded-full bg-muted px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold text-primary shadow-md">
+                        {tier.badge}
+                      </span>
+                    </div>
                   )}
-                >
-                  {tier.name}
-                </h3>
 
-                {/* Price */}
-                <p className="mt-3 sm:mt-4 flex items-baseline gap-x-2">
-                  <span
-                    className={cn(
-                      "text-4xl sm:text-5xl font-bold tracking-tight",
-                      tier.highlighted ? "text-primary-foreground" : "text-foreground"
-                    )}
-                  >
-                    {displayPrice}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-sm sm:text-base font-semibold",
-                      tier.highlighted ? "text-primary-foreground/80" : "text-gray-600"
-                    )}
-                  >
-                    {displayPeriod}
-                  </span>
-                </p>
-
-                {/* Description */}
-                <p
-                  className={cn(
-                    "mt-3 sm:mt-4 text-xs sm:text-sm",
-                    tier.highlighted ? "text-primary-foreground/90" : "text-gray-600"
-                  )}
-                >
-                  {tier.description}
-                </p>
-
-                {/* Features */}
-                <ul className="mt-6 sm:mt-8 space-y-2.5 sm:space-y-3">
-                  {tier.features.map((feature, index) => (
-                    <li key={index} className="flex gap-x-2.5 sm:gap-x-3">
-                      <svg
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <h3
                         className={cn(
-                          "h-5 w-4 sm:h-6 sm:w-5 flex-none",
+                          "text-xl sm:text-2xl font-bold",
                           tier.highlighted ? "text-primary-foreground" : "text-primary"
                         )}
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span
+                        {tier.name}
+                      </h3>
+
+                      <p className="flex items-baseline gap-x-2 text-sm sm:text-base">
+                        <span
+                          className={cn(
+                            "text-4xl sm:text-5xl font-bold tracking-tight",
+                            tier.highlighted ? "text-primary-foreground" : "text-foreground"
+                          )}
+                        >
+                          {displayPrice}
+                        </span>
+                        <span
+                          className={cn(
+                            "font-semibold",
+                            tier.highlighted ? "text-primary-foreground/80" : "text-gray-600"
+                          )}
+                        >
+                          {displayPeriod}
+                        </span>
+                      </p>
+
+                      <p
                         className={cn(
                           "text-xs sm:text-sm",
-                          tier.highlighted
-                            ? "text-primary-foreground/90"
-                            : "text-gray-700"
+                          tier.highlighted ? "text-primary-foreground/90" : "text-gray-600"
                         )}
                       >
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                        {tier.description}
+                      </p>
+                    </div>
+
+                    <ul className="space-y-2.5 sm:space-y-3">
+                      {tier.features.map((feature, index) => (
+                        <li key={index} className="flex gap-x-2.5 sm:gap-x-3">
+                          <svg
+                            className={cn(
+                              "h-5 w-4 sm:h-6 sm:w-5 flex-none",
+                              tier.highlighted ? "text-primary-foreground" : "text-primary"
+                            )}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span
+                            className={cn(
+                              "text-xs sm:text-sm",
+                              tier.highlighted
+                                ? "text-primary-foreground/90"
+                                : "text-gray-700"
+                            )}
+                          >
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
 
                 {/* CTA */}
-                <Link
-                  href="/signup"
-                  className={cn(
-                    "mt-6 sm:mt-8 block rounded-md px-5 sm:px-6 py-2.5 sm:py-3 text-center text-sm sm:text-base font-semibold shadow-sm transition-all",
-                    tier.highlighted
-                      ? "bg-background text-primary hover:bg-background/90"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  {tier.cta}
-                </Link>
+                <div className="mt-6 sm:mt-8">
+                  <Link
+                    href="/signup"
+                    className={cn(
+                      "block rounded-md px-5 sm:px-6 py-2.5 sm:py-3 text-center text-sm sm:text-base font-semibold shadow-sm transition-all",
+                      tier.highlighted
+                        ? "bg-background text-primary hover:bg-background/90"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    )}
+                  >
+                    {tier.cta}
+                  </Link>
+                </div>
               </div>
             );
           })}

@@ -20,13 +20,13 @@ function UnauthenticatedButtons() {
     <div className="flex items-center gap-3">
       <Link
         href="/login"
-        className="inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-medium text-foreground transition hover:bg-stone-100"
+        className="inline-flex h-9 items-center justify-center text-center rounded-full px-4 text-sm font-medium text-foreground transition hover:bg-stone-100"
       >
         Log in
       </Link>
       <Link
         href="/signup"
-        className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+        className="inline-flex h-9 items-center justify-center text-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
       >
         Sign up
       </Link>
