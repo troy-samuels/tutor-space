@@ -5,11 +5,14 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
+import type { ServiceRoleClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
 import { rateLimitServerAction } from "@/lib/middleware/rate-limit";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 const DASHBOARD_ROUTE = "/calendar";
+const ONBOARDING_ROUTE = "/onboarding";
 const STUDENT_HOME_ROUTE = "/student/search";
 
 function sanitizeRedirectPath(path: FormDataEntryValue | null): string | null {
@@ -37,6 +40,82 @@ function resolveStudentRedirect(target: string | null) {
 
 function resolveTutorRedirect(target: string | null) {
   return target || DASHBOARD_ROUTE;
+}
+
+async function startSubscriptionCheckout(params: {
+  user: User;
+  plan: PlatformBillingPlan;
+  fullName?: string | null;
+  adminClient: ServiceRoleClient | null;
+}): Promise<string | null> {
+  const { user, plan, fullName, adminClient } = params;
+
+  // Skip checkout for free or lifetime flows
+  if (plan === "professional" || plan === "tutor_life" || plan === "studio_life" || plan === "founder_lifetime" || plan === "all_access") {
+    return null;
+  }
+
+  const priceId =
+    plan === "pro_monthly"
+      ? process.env.STRIPE_PRO_MONTHLY_PRICE_ID
+      : plan === "pro_annual"
+        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID
+        : plan === "studio_monthly"
+          ? process.env.STRIPE_STUDIO_MONTHLY_PRICE_ID
+          : plan === "studio_annual"
+            ? process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID
+            : null;
+
+  if (!priceId) {
+    console.warn("[Auth] Missing Stripe price ID for plan", plan);
+    return null;
+  }
+
+  const trialPeriodDays = plan.endsWith("_annual") ? 14 : 7;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "");
+  const successUrl = `${appUrl}/onboarding?checkout=success`;
+  const cancelUrl = `${appUrl}/onboarding?checkout=cancel`;
+
+  try {
+    const customer = await getOrCreateStripeCustomer({
+      userId: user.id,
+      email: user.email ?? "",
+      name: fullName ?? (user.user_metadata?.full_name as string | undefined),
+      metadata: { profileId: user.id },
+    });
+
+    if (adminClient) {
+      const { error: updateError } = await adminClient
+        .from("profiles")
+        .update({ stripe_customer_id: customer.id })
+        .eq("id", user.id);
+
+      if (updateError) {
+        console.error("[Auth] Failed to sync stripe_customer_id during signup", updateError);
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      mode: "subscription",
+      allow_promotion_codes: false,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: trialPeriodDays,
+      },
+      metadata: {
+        userId: user.id,
+        plan,
+      },
+    });
+
+    return session.url ?? null;
+  } catch (error) {
+    console.error("[Auth] Failed to start signup checkout", error);
+    return null;
+  }
 }
 
 export type AuthActionState = {
@@ -205,7 +284,7 @@ export async function signUp(
 
           if (!immediateSignInError && immediateSignInData?.session) {
             revalidatePath("/", "layout");
-            return { success: "Account confirmed", redirectTo: DASHBOARD_ROUTE };
+            return { success: "Account confirmed", redirectTo: ONBOARDING_ROUTE };
           }
 
           if (immediateSignInError) {
@@ -335,10 +414,11 @@ export async function signUp(
                 .eq("claimed", false);
             }
 
-            const { error: fallbackSignInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
+            const { data: fallbackSignInData, error: fallbackSignInError } = await supabase.auth
+              .signInWithPassword({
+                email,
+                password,
+              });
 
             if (fallbackSignInError) {
               console.error("[Auth] Fallback sign-in failed after admin signup", fallbackSignInError);
@@ -348,8 +428,18 @@ export async function signUp(
               };
             }
 
+            const checkoutUrl =
+              fallbackSignInData?.user && finalPlan
+                ? await startSubscriptionCheckout({
+                    user: fallbackSignInData.user,
+                    plan: finalPlan,
+                    fullName,
+                    adminClient,
+                  })
+                : null;
+
             revalidatePath("/", "layout");
-            return { success: "Account created", redirectTo: DASHBOARD_ROUTE };
+            return { success: "Account created", redirectTo: checkoutUrl ?? ONBOARDING_ROUTE };
           }
         } catch (fallbackError) {
           console.error("[Auth] Unexpected fallback signup error after rate limit", fallbackError);
@@ -403,7 +493,14 @@ export async function signUp(
 
           if (!immediateSignInError && immediateSignInData?.session) {
             revalidatePath("/", "layout");
-            return { success: "Account created", redirectTo: DASHBOARD_ROUTE };
+            const checkoutUrl = await startSubscriptionCheckout({
+              user: data.user,
+              plan: finalPlan,
+              fullName,
+              adminClient,
+            });
+
+            return { success: "Account created", redirectTo: checkoutUrl ?? ONBOARDING_ROUTE };
           }
 
           if (immediateSignInError) {
@@ -426,8 +523,17 @@ export async function signUp(
     };
   }
 
+  const checkoutUrl = data.user
+    ? await startSubscriptionCheckout({
+        user: data.user,
+        plan: finalPlan,
+        fullName,
+        adminClient,
+      })
+    : null;
+
   revalidatePath("/", "layout");
-  return { success: "Account created", redirectTo: DASHBOARD_ROUTE };
+  return { success: "Account created", redirectTo: checkoutUrl ?? ONBOARDING_ROUTE };
 }
 
 export async function signIn(
