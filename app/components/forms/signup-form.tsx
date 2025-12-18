@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -11,7 +11,15 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
 type EmailStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
 
-export function SignupForm() {
+type PlanTier = "pro" | "studio";
+type BillingCycle = "monthly" | "annual";
+
+type SignupFormProps = {
+  tier?: PlanTier;
+  billingCycle?: BillingCycle;
+};
+
+export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFormProps) {
   const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
     signUp,
     initialState
@@ -291,9 +299,14 @@ export function SignupForm() {
     ? "signup-username-helper signup-username-status"
     : "signup-username-helper";
 
+  // Compute the plan ID based on tier and billing cycle
+  const planId = useMemo(() => {
+    return `${tier}_${billingCycle}` as const;
+  }, [tier, billingCycle]);
+
   return (
     <form action={formAction} className="space-y-6">
-      <input type="hidden" name="plan" value="professional" />
+      <input type="hidden" name="plan" value={planId} />
       <div className="space-y-2">
         <label
           htmlFor="full_name"

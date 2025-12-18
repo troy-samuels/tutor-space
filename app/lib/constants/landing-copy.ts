@@ -413,8 +413,8 @@ const landingCopyEn: LandingCopy = {
   },
 
   pricing: {
-    headline: "14-day free trial",
-    subheadline: "Pick Pro or Studio. Billed after the trial.",
+    headline: "Start your free trial",
+    subheadline: "Pick Pro or Studio. Billed after your trial ends.",
     comparisonNote: "All features included. Cancel anytime before billing begins.",
     toggle: {
       label: "Billing",
@@ -430,7 +430,7 @@ const landingCopyEn: LandingCopy = {
         monthlyPeriod: "per month",
         annualPeriod: "per year",
         badge: "Most tutors",
-        description: "14-day free trial.",
+        description: "Free trial included.",
         features: [
           "Site, links, and bookings in one place",
           "Secure Stripe checkout",
@@ -448,7 +448,7 @@ const landingCopyEn: LandingCopy = {
         monthlyPeriod: "per month",
         annualPeriod: "per year",
         badge: "Video + AI",
-        description: "14-day free trial.",
+        description: "Free trial included.",
         features: [
           "Everything in Pro",
           "Native classroom",
@@ -599,7 +599,7 @@ const landingCopyEn: LandingCopy = {
 
   finalCTA: {
     headline: "Ready to own your business?",
-    subheadline: "Start your 14-day free trial. Ready in 10 minutes.",
+    subheadline: "Start your free trial. Ready in 10 minutes.",
     calculatorLabel: "Monthly revenue:",
     calculatorUnit: "/month",
     rangeMinLabel: "$500",
@@ -609,7 +609,7 @@ const landingCopyEn: LandingCopy = {
     monthlySavingsLabel: "Monthly savings:",
     annualSavingsLabel: "Annual savings",
     button: "Sign up free",
-    finePrint: "14-day free trial. Billed after the trial; cancel anytime before day 14.",
+    finePrint: "Free trial included. Billed after the trial ends; cancel anytime.",
     trustBadges: ["Stripe Verified", "GDPR Compliant", "SOC 2 Ready"],
   },
 

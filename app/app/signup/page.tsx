@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { SignupForm } from "@/components/forms/signup-form";
-import { SignupBillingToggle } from "@/components/pricing/SignupBillingToggle";
+import { SignupPageClient } from "@/components/pricing/SignupPageClient";
 
 export const metadata: Metadata = {
   title: "Create Tutor Account | TutorLingua",
@@ -31,11 +30,7 @@ export default async function TutorSignupPage() {
           <p className="mt-2 text-base text-muted-foreground">{t("subtitle")}</p>
         </header>
 
-        <SignupBillingToggle />
-
-        <div className="w-full">
-          <SignupForm />
-        </div>
+        <SignupPageClient />
       </div>
     </div>
   );

@@ -65,7 +65,7 @@ export default async function PaymentSettingsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
-                14-day free trial, then Pro or Studio
+                Start your free trial — Pro or Studio
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 TutorLingua complements marketplaces like Preply with calendar sync and direct booking tools so you keep

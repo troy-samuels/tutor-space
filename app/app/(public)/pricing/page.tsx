@@ -4,7 +4,7 @@ import { defaultLocale } from "@/lib/i18n/config";
 
 export const metadata = {
   title: "Pricing | TutorLingua",
-  description: "Simple, transparent pricing for language tutors. 14-day free trial, no credit card required.",
+  description: "Simple, transparent pricing for language tutors. Free trial, no credit card required.",
 };
 
 export default function PricingPage() {
