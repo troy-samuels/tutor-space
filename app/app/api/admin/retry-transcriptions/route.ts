@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       const { result, error: dgError } = await deepgram.listen.prerecorded.transcribeUrl(
         { url: publicUrl },
         {
-          model: "nova-2",
+          model: "nova-3",
           smart_format: true,
           punctuate: true,
           diarize: true,

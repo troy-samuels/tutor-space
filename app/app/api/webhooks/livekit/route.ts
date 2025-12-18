@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
               : null;
 
         const transcriptionOptions: PrerecordedSchema = {
-          model: "nova-2",
+          model: "nova-3",
           smart_format: true,
           punctuate: true,
           diarize: true,
