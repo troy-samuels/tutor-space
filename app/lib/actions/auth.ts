@@ -189,6 +189,43 @@ export async function signUp(
       };
     }
 
+    if (adminClient) {
+      try {
+        const { error: confirmExistingError } = await adminClient.auth.admin.updateUserById(
+          existingUser.id,
+          { email_confirm: true }
+        );
+
+        if (!confirmExistingError) {
+          const { data: immediateSignInData, error: immediateSignInError } =
+            await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+
+          if (!immediateSignInError && immediateSignInData?.session) {
+            revalidatePath("/", "layout");
+            return { success: "Account confirmed", redirectTo: DASHBOARD_ROUTE };
+          }
+
+          if (immediateSignInError) {
+            console.error(
+              "[Auth] Immediate sign-in failed after confirming existing user",
+              immediateSignInError
+            );
+            return {
+              success: "Your account is confirmed. Please sign in to continue.",
+              redirectTo: "/login",
+            };
+          }
+        } else {
+          console.error("[Auth] Auto-confirmation failed for existing user", confirmExistingError);
+        }
+      } catch (confirmExistingError) {
+        console.error("[Auth] Unexpected error while confirming existing user", confirmExistingError);
+      }
+    }
+
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email,
@@ -201,13 +238,13 @@ export async function signUp(
       console.error("[Auth] Failed to resend confirmation email", resendError);
       return {
         error:
-          "This email is already registered but not confirmed yet. We couldn't resend the confirmation email—please try again shortly.",
+          "This email is already registered but not confirmed yet. We tried to finalize it—please try logging in again or contact support.",
       };
     }
 
     return {
-      success:
-        "This email is already registered but still waiting for confirmation. We just sent you a fresh confirmation email—check your inbox.",
+      success: "This email is already registered but still waiting for confirmation. Try logging in.",
+      redirectTo: "/login",
     };
   }
 
@@ -256,15 +293,14 @@ export async function signUp(
 
       if (!resendError) {
         return {
-          success:
-            "This email is already registered but still waiting for confirmation. We just sent you a fresh confirmation email—check your inbox.",
+          success: "This email is already registered. Try logging in now.",
+          redirectTo: "/login",
         };
       }
 
       console.error("[Auth] Failed to resend confirmation email after signup error", resendError);
       return {
-        error:
-          "That email is already registered. Please log in instead, or request another confirmation email.",
+        error: "That email is already registered. Please log in instead.",
       };
     }
 
@@ -351,9 +387,42 @@ export async function signUp(
   }
 
   if (!data.session) {
+    if (adminClient && data.user) {
+      try {
+        const { error: autoConfirmError } = await adminClient.auth.admin.updateUserById(
+          data.user.id,
+          { email_confirm: true }
+        );
+
+        if (!autoConfirmError) {
+          const { data: immediateSignInData, error: immediateSignInError } =
+            await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+
+          if (!immediateSignInError && immediateSignInData?.session) {
+            revalidatePath("/", "layout");
+            return { success: "Account created", redirectTo: DASHBOARD_ROUTE };
+          }
+
+          if (immediateSignInError) {
+            console.error(
+              "[Auth] Immediate sign-in failed after auto-confirmation",
+              immediateSignInError
+            );
+          }
+        } else {
+          console.error("[Auth] Auto-confirmation failed after signup", autoConfirmError);
+        }
+      } catch (autoConfirmError) {
+        console.error("[Auth] Unexpected auto-confirmation error after signup", autoConfirmError);
+      }
+    }
+
     return {
-      success:
-        "Check your email to confirm your account. Once confirmed, come back here and log in.",
+      success: "Account created. Please log in to continue.",
+      redirectTo: "/login",
     };
   }
 
@@ -393,27 +462,38 @@ export async function signIn(
   }
 
   if (existingUser && !existingUser.email_confirmed_at) {
-    const emailRedirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/dashboard`;
+    if (adminClient) {
+      try {
+        const { error: autoConfirmError } = await adminClient.auth.admin.updateUserById(
+          existingUser.id,
+          { email_confirm: true }
+        );
 
-    const { error: resendError } = await supabase.auth.resend({
-      type: "signup",
-      email,
-      options: {
-        emailRedirectTo,
-      },
-    });
+        if (!autoConfirmError) {
+          const { data: immediateData, error: immediateError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
 
-    if (resendError) {
-      console.error("[Auth] Failed to resend confirmation email during sign-in", resendError);
-      return {
-        error:
-          "Your account is almost ready, but we couldn’t resend the confirmation email. Try again in a moment or contact hello@tutorlingua.co.",
-      };
+          if (!immediateError && immediateData?.session) {
+            revalidatePath("/", "layout");
+            return { success: "Login successful", redirectTo: DASHBOARD_ROUTE };
+          }
+
+          if (immediateError) {
+            console.error("[Auth] Immediate sign-in failed after auto-confirm during login", immediateError);
+          }
+        } else {
+          console.error("[Auth] Auto-confirm during login failed", autoConfirmError);
+        }
+      } catch (autoConfirmError) {
+        console.error("[Auth] Unexpected auto-confirm error during login", autoConfirmError);
+      }
     }
 
     return {
-      success:
-        "We just sent a new confirmation email. Please confirm your TutorLingua account before logging in.",
+      error:
+        "Your account is almost ready. Please try logging in again in a few seconds or contact hello@tutorlingua.co.",
     };
   }
 
@@ -428,8 +508,7 @@ export async function signIn(
 
     if (message.includes("email not confirmed")) {
       return {
-        error:
-          "Please confirm your email before logging in. Check your inbox for the TutorLingua confirmation link.",
+        error: "We couldn't finish signing you in yet. Please try again in a few seconds.",
       };
     }
 
