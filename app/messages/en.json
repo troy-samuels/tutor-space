@@ -95,9 +95,9 @@
     }
   },
   "tutorSignupPage": {
-    "title": "Create your studio.",
+    "title": "Create your account.",
     "subtitle": "Start your free trial. No commitment.",
-    "ctaLoginPrefix": "Already have a studio?",
+    "ctaLoginPrefix": "Already have an account?",
     "ctaLogin": "Log in"
   },
   "forgotPasswordPage": {
