@@ -15,6 +15,8 @@ const DASHBOARD_ROUTE = "/calendar";
 const ONBOARDING_ROUTE = "/onboarding";
 const STUDENT_HOME_ROUTE = "/student/search";
 
+const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+
 function sanitizeRedirectPath(path: FormDataEntryValue | null): string | null {
   if (typeof path !== "string") return null;
   const trimmed = path.trim();
@@ -52,6 +54,11 @@ async function startSubscriptionCheckout(params: {
 
   // Skip checkout for free or lifetime flows
   if (plan === "professional" || plan === "tutor_life" || plan === "studio_life" || plan === "founder_lifetime" || plan === "all_access") {
+    return null;
+  }
+
+  if (!stripeConfigured) {
+    console.warn("[Auth] Stripe is not configured; skipping checkout and continuing to onboarding.");
     return null;
   }
 
@@ -428,18 +435,8 @@ export async function signUp(
               };
             }
 
-            const checkoutUrl =
-              fallbackSignInData?.user && finalPlan
-                ? await startSubscriptionCheckout({
-                    user: fallbackSignInData.user,
-                    plan: finalPlan,
-                    fullName,
-                    adminClient,
-                  })
-                : null;
-
             revalidatePath("/", "layout");
-            return { success: "Account created", redirectTo: checkoutUrl ?? ONBOARDING_ROUTE };
+            return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
           }
         } catch (fallbackError) {
           console.error("[Auth] Unexpected fallback signup error after rate limit", fallbackError);
@@ -493,14 +490,7 @@ export async function signUp(
 
           if (!immediateSignInError && immediateSignInData?.session) {
             revalidatePath("/", "layout");
-            const checkoutUrl = await startSubscriptionCheckout({
-              user: data.user,
-              plan: finalPlan,
-              fullName,
-              adminClient,
-            });
-
-            return { success: "Account created", redirectTo: checkoutUrl ?? ONBOARDING_ROUTE };
+            return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
           }
 
           if (immediateSignInError) {
@@ -523,17 +513,8 @@ export async function signUp(
     };
   }
 
-  const checkoutUrl = data.user
-    ? await startSubscriptionCheckout({
-        user: data.user,
-        plan: finalPlan,
-        fullName,
-        adminClient,
-      })
-    : null;
-
   revalidatePath("/", "layout");
-  return { success: "Account created", redirectTo: checkoutUrl ?? ONBOARDING_ROUTE };
+  return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
 }
 
 export async function signIn(

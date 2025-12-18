@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { STUDIO_FEATURES } from "@/components/studio/StudioFeatureInfo";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
+import { TrialExpiredBanner } from "@/components/billing/TrialExpiredBanner";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export default async function DashboardPage() {
@@ -112,8 +113,36 @@ export default async function DashboardPage() {
     (profile?.plan as PlatformBillingPlan | null) ?? "professional";
   const showStudioDiscovery = !hasStudioAccess(planName);
 
+  // Check for local trial (when Stripe is not configured)
+  let showTrialBanner = false;
+  let trialDaysRemaining: number | undefined;
+  let trialPlan: string | null = null;
+
+  // Fetch local trial info separately since it's not in the dashboard summary
+  const { data: trialProfile } = await supabase
+    .from("profiles")
+    .select("local_trial_end, local_trial_plan")
+    .eq("id", user.id)
+    .single();
+
+  if (trialProfile?.local_trial_end) {
+    const trialEnd = new Date(trialProfile.local_trial_end);
+    const now = new Date();
+    const diffMs = trialEnd.getTime() - now.getTime();
+    trialDaysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    trialPlan = trialProfile.local_trial_plan;
+    showTrialBanner = true;
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8">
+      {showTrialBanner && trialPlan && (
+        <TrialExpiredBanner
+          trialPlan={trialPlan}
+          daysRemaining={trialDaysRemaining}
+        />
+      )}
+
       <div className="pb-4 sm:pb-8">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {formatDate(new Date())}

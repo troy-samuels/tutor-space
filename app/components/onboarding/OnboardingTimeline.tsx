@@ -99,9 +99,17 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
             origin: { y: 0.6 },
           });
 
+          // Determine redirect destination
+          const targetUrl = result.redirectTo ?? "/dashboard";
+
           // Delay redirect so user can see the celebration
           setTimeout(() => {
-            router.push("/dashboard");
+            // Check if redirecting to Stripe checkout (external URL)
+            if (targetUrl.startsWith("https://")) {
+              window.location.href = targetUrl;
+            } else {
+              router.push(targetUrl);
+            }
           }, 2000);
         } else {
           console.error("Failed to complete onboarding:", result.error);

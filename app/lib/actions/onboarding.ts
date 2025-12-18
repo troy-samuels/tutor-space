@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { normalizeAndValidateUsernameSlug } from "@/lib/utils/username-slug";
+import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
+import { isStripeConfigured, createLocalTrial, getTrialDays } from "./local-trial";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type StepData = {
   // Step 1
@@ -269,9 +273,112 @@ export async function saveOnboardingStep(
   }
 }
 
+/**
+ * Get checkout URL for paid plans after onboarding completion.
+ * Returns null if:
+ * - User is on free plan
+ * - User has lifetime plan
+ * - Stripe is not configured (creates local trial instead)
+ */
+async function getPostOnboardingCheckoutUrl(userId: string, userEmail: string, fullName?: string): Promise<string | null> {
+  const supabase = await createClient();
+  const adminClient = createServiceRoleClient();
+
+  // Get user's selected plan from auth metadata
+  const { data: { user } } = await supabase.auth.getUser();
+  const plan = user?.user_metadata?.plan as PlatformBillingPlan | undefined;
+
+  if (!plan) return null;
+
+  // Skip checkout for free or lifetime plans
+  const skipCheckoutPlans: PlatformBillingPlan[] = [
+    "professional",
+    "tutor_life",
+    "studio_life",
+    "founder_lifetime",
+    "all_access",
+  ];
+
+  if (skipCheckoutPlans.includes(plan)) {
+    return null;
+  }
+
+  // Check if Stripe is configured
+  if (!isStripeConfigured()) {
+    // Create local trial instead
+    await createLocalTrial(userId, plan);
+    return null;
+  }
+
+  // Map plan to Stripe price ID
+  const priceId =
+    plan === "pro_monthly"
+      ? process.env.STRIPE_PRO_MONTHLY_PRICE_ID
+      : plan === "pro_annual"
+        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID
+        : plan === "studio_monthly"
+          ? process.env.STRIPE_STUDIO_MONTHLY_PRICE_ID
+          : plan === "studio_annual"
+            ? process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID
+            : null;
+
+  if (!priceId) {
+    console.warn("[Onboarding] Missing Stripe price ID for plan", plan);
+    await createLocalTrial(userId, plan);
+    return null;
+  }
+
+  const trialPeriodDays = getTrialDays(plan);
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "");
+  const successUrl = `${appUrl}/dashboard?subscription=success`;
+  const cancelUrl = `${appUrl}/dashboard?subscription=cancel`;
+
+  try {
+    const customer = await getOrCreateStripeCustomer({
+      userId,
+      email: userEmail,
+      name: fullName,
+      metadata: { profileId: userId },
+    });
+
+    // Store customer ID on profile
+    if (adminClient) {
+      await adminClient
+        .from("profiles")
+        .update({ stripe_customer_id: customer.id })
+        .eq("id", userId);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      mode: "subscription",
+      allow_promotion_codes: false,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: trialPeriodDays,
+      },
+      metadata: {
+        userId,
+        plan,
+        source: "post_onboarding",
+      },
+    });
+
+    return session.url ?? null;
+  } catch (error) {
+    console.error("[Onboarding] Failed to create checkout session", error);
+    // Fall back to local trial
+    await createLocalTrial(userId, plan);
+    return null;
+  }
+}
+
 export async function completeOnboarding(): Promise<{
   success: boolean;
   error?: string;
+  redirectTo?: string;
 }> {
   try {
     const supabase = await createClient();
@@ -297,7 +404,17 @@ export async function completeOnboarding(): Promise<{
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
 
-    return { success: true };
+    // Check if user needs Stripe checkout
+    const checkoutUrl = await getPostOnboardingCheckoutUrl(
+      user.id,
+      user.email ?? "",
+      user.user_metadata?.full_name as string | undefined
+    );
+
+    return {
+      success: true,
+      redirectTo: checkoutUrl ?? undefined,
+    };
   } catch (error) {
     console.error("Error completing onboarding:", error);
     return {
