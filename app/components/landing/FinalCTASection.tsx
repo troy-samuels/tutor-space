@@ -59,7 +59,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
               step="100"
               value={revenue}
               onChange={(e) => setRevenue(Number(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              className="w-full"
             />
 
             <div className="flex justify-between text-xs text-gray-500 mt-2">
