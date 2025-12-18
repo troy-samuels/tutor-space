@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { normalizeAndValidateUsernameSlug } from "@/lib/utils/username-slug";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
-import { isStripeConfigured, createLocalTrial, getTrialDays } from "./local-trial";
+import { createLocalTrial } from "./local-trial";
+import { isStripeConfigured, getTrialDays } from "@/lib/utils/stripe-config";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type StepData = {
