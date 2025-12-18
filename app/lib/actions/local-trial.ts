@@ -21,8 +21,8 @@ export function isStripeConfigured(): boolean {
  * - Annual plans: 14-day trial
  */
 export function getTrialDays(plan: PlatformBillingPlan): number {
-  if (plan.endsWith("_annual")) return 14;
-  return 7;
+  const annualPlans: PlatformBillingPlan[] = ["pro_annual", "studio_annual"];
+  return annualPlans.includes(plan) ? 14 : 7;
 }
 
 type LocalTrialResult =
