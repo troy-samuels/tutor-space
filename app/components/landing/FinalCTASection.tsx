@@ -20,8 +20,8 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
   const annualSavings = monthlySavings * 12;
 
   return (
-    <section className="bg-muted py-20 sm:py-32">
-      <div className="mx-auto max-w-4xl px-6 lg:px-8">
+    <section className="bg-muted py-20 sm:py-24 lg:py-32">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl bg-brand-white p-10 shadow-2xl sm:p-16">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

@@ -119,7 +119,7 @@ export function DayLessonsPanel({
       </div>
 
       {/* Content with animated lessons */}
-      <div className="p-3 sm:p-4 min-h-[180px] sm:min-h-[200px] flex items-center justify-center">
+      <div className="p-3 sm:p-4 h-[280px] sm:h-[320px] flex items-start justify-center overflow-hidden">
         <AnimatePresence mode="wait">
           {!date ? (
             // No date selected

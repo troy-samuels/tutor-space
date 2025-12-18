@@ -10,7 +10,7 @@ type HeroProps = {
 export function Hero({ hero, socialProof }: HeroProps) {
 
   return (
-    <section className="relative overflow-hidden bg-brand-white py-12 sm:py-20 lg:py-32">
+    <section className="relative overflow-hidden bg-brand-white py-20 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Hero content */}
         <div className="mx-auto max-w-3xl text-center">

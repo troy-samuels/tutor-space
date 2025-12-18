@@ -35,8 +35,8 @@ export function ValueStackSection({ valueStack }: ValueStackSectionProps) {
   );
 
   return (
-    <section className="bg-muted/50 py-20 sm:py-24">
-      <div className="mx-auto max-w-3xl px-6 lg:px-8">
+    <section className="bg-muted/50 py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         {/* Section headline */}
         <h2 className="text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-12">
           {valueStack.headline}

@@ -15,8 +15,8 @@ type HowItWorksProps = {
 export function HowItWorks({ howItWorks }: HowItWorksProps) {
 
   return (
-    <section id="how-it-works" className="bg-muted py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section id="how-it-works" className="bg-muted py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {howItWorks.headline}

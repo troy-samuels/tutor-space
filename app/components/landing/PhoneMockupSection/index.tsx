@@ -42,8 +42,8 @@ const iconMap: Record<string, LucideIcon> = {
 
 export function PhoneMockupSection({ copy }: PhoneMockupSectionProps) {
   return (
-    <section className="bg-brand-white py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section className="bg-brand-white py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16 min-h-[640px]">
           {/* Left column - Text content */}
           <div className="order-2 lg:order-1 flex flex-col items-center justify-center text-center lg:items-start lg:text-left">

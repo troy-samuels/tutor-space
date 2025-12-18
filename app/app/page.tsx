@@ -62,14 +62,14 @@ export default async function LandingPage() {
       <HowItWorks howItWorks={copy.howItWorks} />
 
       {/* Studio Intelligence Section */}
-      <section className="bg-[#FDF8F5] py-24">
-        <div className="mx-auto max-w-5xl px-6 lg:px-8">
+      <section className="bg-[#FDF8F5] py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
             <Badge className="mx-auto rounded-full border border-stone-200 bg-white px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-700 shadow-none">
               {copy.studioIntelligence.badge}
             </Badge>
-            <h2 className="mt-6 text-4xl md:text-5xl font-serif text-foreground">
+            <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               {copy.studioIntelligence.headline}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -161,7 +161,7 @@ export default async function LandingPage() {
             <div className="grid md:grid-cols-2 gap-4">
               {/* Left: Detected Struggles */}
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h3 className="font-serif text-lg text-foreground mb-4">{copy.studioIntelligence.detectedTitle}</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">{copy.studioIntelligence.detectedTitle}</h3>
                 <div className="space-y-3">
                   {copy.studioIntelligence.detected.map((item, index) => (
                     <div
@@ -193,7 +193,7 @@ export default async function LandingPage() {
 
               {/* Right: Generated Homework */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-primary">
-                <h3 className="font-serif text-lg text-foreground mb-4">{copy.studioIntelligence.practiceTitle}</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">{copy.studioIntelligence.practiceTitle}</h3>
                 <div className="space-y-3">
                   {copy.studioIntelligence.practice.map((item, index) => (
                     <div key={index} className="p-3 rounded-xl bg-stone-50 border border-stone-100">

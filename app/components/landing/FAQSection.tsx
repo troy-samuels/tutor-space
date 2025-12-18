@@ -12,8 +12,8 @@ export function FAQSection({ faq }: FAQSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="bg-brand-white py-20 sm:py-24">
-      <div className="mx-auto max-w-4xl px-6 lg:px-8">
+    <section className="bg-brand-white py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {faq.headline}
