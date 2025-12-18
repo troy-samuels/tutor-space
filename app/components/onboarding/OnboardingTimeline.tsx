@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { TimelineStep, StepStatus } from "./TimelineStep";
@@ -73,17 +73,21 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
     return "upcoming";
   };
 
-  // Custom smooth scroll with easing for a polished feel
-  const smoothScrollTo = useCallback((element: HTMLElement) => {
-    const headerOffset = 80; // Account for sticky header
-    const elementPosition = element.getBoundingClientRect().top;
-    const offsetPosition = elementPosition + window.scrollY - headerOffset;
+  // Keep the next step fully in view, respecting scroll margin offsets for the sticky header
+  useEffect(() => {
+    if (currentStep === 1) return;
 
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: "smooth",
+    const nextStepElement = document.getElementById(`step-${currentStep}`);
+    if (!nextStepElement) return;
+
+    requestAnimationFrame(() => {
+      nextStepElement.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
     });
-  }, []);
+  }, [currentStep]);
 
   const handleStepComplete = async (stepNumber: number) => {
     if (stepNumber === 7) {
@@ -121,12 +125,6 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
       }
     } else {
       setCurrentStep(stepNumber + 1);
-      requestAnimationFrame(() => {
-        const nextStepElement = document.getElementById(`step-${stepNumber + 1}`);
-        if (nextStepElement) {
-          smoothScrollTo(nextStepElement);
-        }
-      });
     }
   };
 

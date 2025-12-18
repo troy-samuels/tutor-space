@@ -316,6 +316,7 @@ export function StepProfileBasics({
           id="timezone"
           value={formData.timezone}
           onChange={(value) => handleChange("timezone", value)}
+          showCurrentTime={false}
         />
         <p className="text-xs text-muted-foreground">
           Auto-detected from your device; choose another if you work across regions.

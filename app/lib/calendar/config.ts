@@ -12,11 +12,41 @@ export type ProviderConfig = {
   redirectUri: string;
 };
 
+function normalizeAppUrl(): string | null {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl) {
+    return appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (!vercelUrl) return null;
+
+  const withProtocol = vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`;
+  return withProtocol.endsWith("/") ? withProtocol.slice(0, -1) : withProtocol;
+}
+
+function buildRedirectUri(provider: CalendarProvider): string | null {
+  const envRedirect =
+    provider === "google"
+      ? process.env.GOOGLE_OAUTH_REDIRECT_URL
+      : process.env.MICROSOFT_OAUTH_REDIRECT_URL;
+
+  if (envRedirect?.trim()) {
+    return envRedirect.trim();
+  }
+
+  const baseUrl = normalizeAppUrl();
+  if (!baseUrl) return null;
+
+  const path = provider === "google" ? "/api/calendar/oauth/google" : "/api/calendar/oauth/outlook";
+  return `${baseUrl}${path}`;
+}
+
 export function getProviderConfig(provider: CalendarProvider): ProviderConfig | null {
   if (provider === "google") {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URL;
+    const redirectUri = buildRedirectUri("google");
 
     if (!clientId || !clientSecret || !redirectUri) {
       return null;
@@ -36,7 +66,7 @@ export function getProviderConfig(provider: CalendarProvider): ProviderConfig | 
 
   const clientId = process.env.MICROSOFT_CLIENT_ID;
   const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
-  const redirectUri = process.env.MICROSOFT_OAUTH_REDIRECT_URL;
+  const redirectUri = buildRedirectUri("outlook");
 
   if (!clientId || !clientSecret || !redirectUri) {
     return null;

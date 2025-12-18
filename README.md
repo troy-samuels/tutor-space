@@ -113,6 +113,7 @@ GOOGLE_OAUTH_REDIRECT_URL=
 MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 MICROSOFT_OAUTH_REDIRECT_URL=
+CALENDAR_TOKEN_ENCRYPTION_KEY=
 
 # Studio tier (video + transcription)
 LIVEKIT_API_KEY=
@@ -128,6 +129,8 @@ SUPABASE_S3_BUCKET=
 NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=
 ```
+
+- Calendar redirect URLs default to `NEXT_PUBLIC_APP_URL/api/calendar/oauth/{provider}` if the explicit redirect env vars are unset. Keep `CALENDAR_TOKEN_ENCRYPTION_KEY` stable across deploys so stored tokens remain decryptable.
 
 ## Scripts
 ```bash
