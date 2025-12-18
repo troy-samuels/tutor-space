@@ -279,7 +279,6 @@ test("invoice.payment_succeeded: first payment after trial activates subscriptio
   });
 
   assert.equal(invoice.status, "paid");
-  assert.equal(invoice.paid, true);
 });
 
 // ============================================

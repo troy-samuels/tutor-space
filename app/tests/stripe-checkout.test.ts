@@ -48,7 +48,7 @@ test("booking checkout: minimum amount validation ($1 = 100 cents)", () => {
   const invalidAmount = 50;
 
   const validSession = createMockCheckoutSession({ amountTotal: validAmount });
-  assert.ok(validSession.amount_total >= 100, "Amount should be at least $1 (100 cents)");
+  assert.ok((validSession.amount_total ?? 0) >= 100, "Amount should be at least $1 (100 cents)");
 
   // Validate business rule: < $1 should be rejected
   assert.ok(invalidAmount < 100, "Amounts under $1 should fail validation");
