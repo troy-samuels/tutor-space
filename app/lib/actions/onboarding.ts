@@ -122,71 +122,43 @@ export async function saveOnboardingStep(
       }
 
       case 3: {
-        // Languages and services
-        // Update profile with languages and currency
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            languages_taught: data.languages_taught,
-            booking_currency: data.currency?.toUpperCase() || "USD",
-            onboarding_step: 3,
-          })
-          .eq("id", user.id);
+        // Languages and services - use atomic RPC function
+        const { data: result, error: rpcError } = await supabase.rpc("save_onboarding_step_3", {
+          p_user_id: user.id,
+          p_languages_taught: data.languages_taught || [],
+          p_booking_currency: data.currency?.toUpperCase() || "USD",
+          p_service_name: data.service?.name || null,
+          p_service_duration: data.service?.duration_minutes || null,
+          p_service_price: data.service ? Math.round(data.service.price * 100) : null,
+          p_service_currency: data.service?.currency?.toUpperCase() || null,
+          p_offer_type: data.service?.offer_type ?? "one_off",
+        });
 
-        if (profileError) throw profileError;
-
-        // Create the service
-        if (data.service) {
-          const { error: serviceError } = await supabase
-            .from("services")
-            .insert({
-              tutor_id: user.id,
-              name: data.service.name,
-              duration_minutes: data.service.duration_minutes,
-              price_amount: Math.round(data.service.price * 100), // cents
-              price: Math.round(data.service.price * 100), // keep legacy column in sync
-              price_currency: data.service.currency?.toUpperCase() || "USD",
-              currency: data.service.currency?.toUpperCase() || "USD",
-              is_active: true,
-              offer_type: data.service.offer_type ?? "one_off",
-            });
-
-          if (serviceError) throw serviceError;
+        if (rpcError) throw rpcError;
+        if (result && !result.success) {
+          return { success: false, error: result.error || "Failed to save languages and service" };
         }
         break;
       }
 
       case 4: {
-        // Availability
-        if (data.availability && data.availability.length > 0) {
-          // First, delete existing availability for this user
-          await supabase
-            .from("availability")
-            .delete()
-            .eq("tutor_id", user.id);
+        // Availability - use atomic RPC function
+        // Convert day names to numbers for the RPC payload
+        const availabilityPayload = data.availability?.map((slot) => ({
+          day_of_week: DAY_NAME_TO_NUMBER[slot.day_of_week.toLowerCase()] ?? 1,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+        })) || [];
 
-          // Insert new availability slots (convert day names to numbers)
-          const availabilityRecords = data.availability.map((slot) => ({
-            tutor_id: user.id,
-            day_of_week: DAY_NAME_TO_NUMBER[slot.day_of_week.toLowerCase()] ?? 1,
-            start_time: slot.start_time,
-            end_time: slot.end_time,
-          }));
+        const { data: result, error: rpcError } = await supabase.rpc("save_onboarding_step_4", {
+          p_user_id: user.id,
+          p_availability: availabilityPayload,
+        });
 
-          const { error } = await supabase
-            .from("availability")
-            .insert(availabilityRecords);
-
-          if (error) throw error;
+        if (rpcError) throw rpcError;
+        if (result && !result.success) {
+          return { success: false, error: result.error || "Failed to save availability" };
         }
-
-        // Update onboarding step
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ onboarding_step: 4 })
-          .eq("id", user.id);
-
-        if (profileError) throw profileError;
         break;
       }
 
@@ -263,7 +235,8 @@ export async function saveOnboardingStep(
         return { success: false, error: "Invalid step" };
     }
 
-    revalidatePath("/onboarding");
+    // Note: revalidatePath removed - onboarding is linear, client manages state
+    // Revalidation only needed in completeOnboarding()
     return { success: true };
   } catch (error) {
     console.error(`Error saving onboarding step ${step}:`, error);

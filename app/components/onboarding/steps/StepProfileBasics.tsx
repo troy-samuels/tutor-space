@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { Check, X, Loader2, Upload, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
@@ -15,14 +15,17 @@ type StepProfileBasicsProps = {
     username: string;
   };
   onComplete: () => void;
+  onSaveError?: (message: string) => void;
 };
 
 export function StepProfileBasics({
   profileId,
   initialValues,
   onComplete,
+  onSaveError,
 }: StepProfileBasicsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPending, startTransition] = useTransition();
 
   const [formData, setFormData] = useState({
     full_name: initialValues.full_name,
@@ -36,7 +39,7 @@ export function StepProfileBasics({
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Username availability check with debounce
   useEffect(() => {
@@ -133,11 +136,11 @@ export function StepProfileBasics({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    setIsSaving(true);
+    setIsUploading(true);
     try {
       let avatarUrl = formData.avatar_url;
 
-      // Upload avatar if selected
+      // Upload avatar if selected (must complete before we can proceed)
       if (avatarFile) {
         const supabase = createClient();
         const fileExt = avatarFile.name.split(".").pop();
@@ -156,24 +159,34 @@ export function StepProfileBasics({
         avatarUrl = publicUrl;
       }
 
-      // Save to database
-      const result = await saveOnboardingStep(1, {
-        full_name: formData.full_name.trim(),
-        username: formData.username.toLowerCase().trim(),
-        timezone: formData.timezone,
-        avatar_url: avatarUrl || null,
-      });
+      setIsUploading(false);
 
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
-      }
+      // Optimistic: Move to next step immediately
+      onComplete();
+
+      // Save to database in background
+      startTransition(async () => {
+        try {
+          const result = await saveOnboardingStep(1, {
+            full_name: formData.full_name.trim(),
+            username: formData.username.toLowerCase().trim(),
+            timezone: formData.timezone,
+            avatar_url: avatarUrl || null,
+          });
+
+          if (!result.success) {
+            console.error("Background save failed for step 1:", result.error);
+            onSaveError?.(result.error || "Failed to save profile basics");
+          }
+        } catch (error) {
+          console.error("Error saving step 1:", error);
+          onSaveError?.("An error occurred while saving");
+        }
+      });
     } catch (error) {
-      console.error("Error saving step 1:", error);
-      setErrors({ submit: "An error occurred. Please try again." });
-    } finally {
-      setIsSaving(false);
+      console.error("Error uploading avatar:", error);
+      setErrors({ submit: "Failed to upload photo. Please try again." });
+      setIsUploading(false);
     }
   };
 
@@ -335,13 +348,13 @@ export function StepProfileBasics({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={usernameStatus === "checking" || isSaving}
+          disabled={usernameStatus === "checking" || isUploading}
           className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSaving ? (
+          {isUploading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              Uploading...
             </>
           ) : (
             "Continue"

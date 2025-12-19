@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Loader2, Video, Check, ExternalLink } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepVideoProps = {
   onComplete: () => void;
+  onSaveError?: (message: string) => void;
 };
 
 type VideoProvider = "zoom_personal" | "google_meet" | "microsoft_teams" | "custom" | "none";
 
-export function StepVideo({ onComplete }: StepVideoProps) {
+export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
+  const [isPending, startTransition] = useTransition();
   const [selectedProvider, setSelectedProvider] = useState<VideoProvider | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [customPlatformName, setCustomPlatformName] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSkipping, setIsSkipping] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateUrl = (url: string, provider: VideoProvider): boolean => {
@@ -41,7 +41,7 @@ export function StepVideo({ onComplete }: StepVideoProps) {
     return true;
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!selectedProvider) {
       setErrors({ submit: "Please select a video platform" });
       return;
@@ -71,49 +71,53 @@ export function StepVideo({ onComplete }: StepVideoProps) {
       }
     }
 
-    setIsSaving(true);
     setErrors({});
 
-    try {
-      const result = await saveOnboardingStep(6, {
-        video_provider: selectedProvider,
-        video_url: selectedProvider !== "none" ? videoUrl : undefined,
-        custom_video_name: selectedProvider === "custom" ? customPlatformName : undefined,
-      });
+    // Optimistic: Move to next step immediately
+    onComplete();
 
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(6, {
+          video_provider: selectedProvider,
+          video_url: selectedProvider !== "none" ? videoUrl : undefined,
+          custom_video_name: selectedProvider === "custom" ? customPlatformName : undefined,
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 6:", result.error);
+          onSaveError?.(result.error || "Failed to save video settings");
+        }
+      } catch (error) {
+        console.error("Error saving video settings:", error);
+        onSaveError?.("An error occurred while saving");
       }
-    } catch (error) {
-      console.error("Error saving video settings:", error);
-      setErrors({ submit: "An error occurred. Please try again." });
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
-  const handleSkip = async () => {
-    setIsSkipping(true);
+  const handleSkip = () => {
     setErrors({});
 
-    try {
-      const result = await saveOnboardingStep(6, {
-        video_provider: "none",
-      });
+    // Optimistic: Move to next step immediately
+    onComplete();
 
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(6, {
+          video_provider: "none",
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 6:", result.error);
+          onSaveError?.(result.error || "Failed to save video step");
+        }
+      } catch (error) {
+        console.error("Error skipping step:", error);
+        onSaveError?.("An error occurred while saving");
       }
-    } catch (error) {
-      console.error("Error skipping step:", error);
-      setErrors({ submit: "An error occurred. Please try again." });
-    } finally {
-      setIsSkipping(false);
-    }
+    });
   };
 
   const providers = [
@@ -192,12 +196,11 @@ export function StepVideo({ onComplete }: StepVideoProps) {
                 setSelectedProvider(provider.id);
                 setErrors({});
               }}
-              disabled={isSaving || isSkipping}
               className={`flex w-full items-start gap-4 rounded-xl border p-4 pr-12 text-left transition ${
                 selectedProvider === provider.id
                   ? "border-primary bg-primary/10"
                   : "border-border hover:border-primary/50"
-              } disabled:cursor-not-allowed disabled:opacity-50`}
+              }`}
             >
               <div
                 className={`flex h-10 w-10 items-center justify-center rounded-lg ${
@@ -246,7 +249,6 @@ export function StepVideo({ onComplete }: StepVideoProps) {
                 onChange={(e) => setCustomPlatformName(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 placeholder="e.g., Microsoft Teams, WhatsApp Video"
-                disabled={isSaving || isSkipping}
               />
             </div>
           )}
@@ -260,7 +262,6 @@ export function StepVideo({ onComplete }: StepVideoProps) {
               onChange={(e) => setVideoUrl(e.target.value)}
               className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder={providers.find(p => p.id === selectedProvider)?.placeholder}
-              disabled={isSaving || isSkipping}
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
               {providers.find(p => p.id === selectedProvider)?.helpText}
@@ -296,34 +297,18 @@ export function StepVideo({ onComplete }: StepVideoProps) {
         <button
           type="button"
           onClick={handleSkip}
-          disabled={isSaving || isSkipping}
-          className="inline-flex h-10 items-center justify-center rounded-full border border-border px-6 text-sm font-semibold text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-full border border-border px-6 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
         >
-          {isSkipping ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Skipping...
-            </>
-          ) : (
-            "Skip for now"
-          )}
+          Skip for now
         </button>
 
         {selectedProvider && selectedProvider !== "none" && (
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || isSkipping}
-            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Continue"
-            )}
+            Continue
           </button>
         )}
       </div>

@@ -131,6 +131,7 @@ NEXT_PUBLIC_POSTHOG_HOST=
 ```
 
 - Calendar redirect URLs default to `NEXT_PUBLIC_APP_URL/api/calendar/oauth/{provider}` if the explicit redirect env vars are unset. Keep `CALENDAR_TOKEN_ENCRYPTION_KEY` stable across deploys so stored tokens remain decryptable.
+- Runbook: `docs/google-calendar-oauth.md` for setup and troubleshooting (including the "OAuth client wasn't found" error).
 
 ## Scripts
 ```bash

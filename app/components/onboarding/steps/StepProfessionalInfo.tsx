@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useTransition } from "react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepProfessionalInfoProps = {
   onComplete: () => void;
+  onSaveError?: (message: string) => void;
 };
 
 export function StepProfessionalInfo({
   onComplete,
+  onSaveError,
 }: StepProfessionalInfoProps) {
+  const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState({
     tagline: "",
     bio: "",
@@ -18,7 +20,6 @@ export function StepProfessionalInfo({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -64,33 +65,35 @@ export function StepProfessionalInfo({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateForm()) return;
 
-    setIsSaving(true);
-    try {
-      let websiteUrl = formData.website_url.trim();
-      if (websiteUrl && !websiteUrl.startsWith("http")) {
-        websiteUrl = `https://${websiteUrl}`;
-      }
-
-      const result = await saveOnboardingStep(2, {
-        tagline: formData.tagline.trim(),
-        bio: formData.bio.trim(),
-        website_url: websiteUrl || null,
-      });
-
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
-      }
-    } catch (error) {
-      console.error("Error saving step 2:", error);
-      setErrors({ submit: "An error occurred. Please try again." });
-    } finally {
-      setIsSaving(false);
+    let websiteUrl = formData.website_url.trim();
+    if (websiteUrl && !websiteUrl.startsWith("http")) {
+      websiteUrl = `https://${websiteUrl}`;
     }
+
+    // Optimistic: Move to next step immediately
+    onComplete();
+
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(2, {
+          tagline: formData.tagline.trim(),
+          bio: formData.bio.trim(),
+          website_url: websiteUrl || null,
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 2:", result.error);
+          onSaveError?.(result.error || "Failed to save professional info");
+        }
+      } catch (error) {
+        console.error("Error saving step 2:", error);
+        onSaveError?.("An error occurred while saving");
+      }
+    });
   };
 
   return (
@@ -190,17 +193,9 @@ export function StepProfessionalInfo({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSaving}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Continue"
-          )}
+          Continue
         </button>
       </div>
     </div>

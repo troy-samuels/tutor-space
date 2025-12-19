@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { getProviderConfigStatus } from "@/lib/calendar/config";
 
 interface ServiceStatus {
   id: string;
@@ -228,8 +229,10 @@ export async function POST(request: NextRequest) {
         .eq("id", "storage");
     }
 
-    // Check Google Calendar (just check config)
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    // Check Google Calendar configuration
+    const googleConfig = getProviderConfigStatus("google", { requireEncryptionKey: true });
+    const googleIssueCodes = googleConfig.issues.map((issue) => issue.code).join(", ");
+    if (googleConfig.config) {
       results.google_calendar = { status: "operational" };
       await supabase
         .from("system_status")
@@ -240,19 +243,24 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", "google_calendar");
     } else {
-      results.google_calendar = { status: "unknown", error: "Not configured" };
+      const errorMessage = googleIssueCodes
+        ? `Config issues: ${googleIssueCodes}`
+        : "Not configured";
+      results.google_calendar = { status: "degraded", error: errorMessage };
       await supabase
         .from("system_status")
         .update({
-          status: "unknown",
+          status: "degraded",
           last_check_at: new Date().toISOString(),
-          last_error: "Not configured",
+          last_error: errorMessage,
         })
         .eq("id", "google_calendar");
     }
 
-    // Check Outlook Calendar (just check config)
-    if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+    // Check Outlook Calendar configuration
+    const outlookConfig = getProviderConfigStatus("outlook", { requireEncryptionKey: true });
+    const outlookIssueCodes = outlookConfig.issues.map((issue) => issue.code).join(", ");
+    if (outlookConfig.config) {
       results.outlook_calendar = { status: "operational" };
       await supabase
         .from("system_status")
@@ -263,13 +271,16 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", "outlook_calendar");
     } else {
-      results.outlook_calendar = { status: "unknown", error: "Not configured" };
+      const errorMessage = outlookIssueCodes
+        ? `Config issues: ${outlookIssueCodes}`
+        : "Not configured";
+      results.outlook_calendar = { status: "degraded", error: errorMessage };
       await supabase
         .from("system_status")
         .update({
-          status: "unknown",
+          status: "degraded",
           last_check_at: new Date().toISOString(),
-          last_error: "Not configured",
+          last_error: errorMessage,
         })
         .eq("id", "outlook_calendar");
     }

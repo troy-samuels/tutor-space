@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
+import { AlertCircle, X } from "lucide-react";
 import { TimelineStep, StepStatus } from "./TimelineStep";
 import { StepProfileBasics } from "./steps/StepProfileBasics";
 import { StepProfessionalInfo } from "./steps/StepProfessionalInfo";
@@ -12,6 +13,7 @@ import { StepCalendarSync } from "./steps/StepCalendarSync";
 import { StepVideo } from "./steps/StepVideo";
 import { StepPayments } from "./steps/StepPayments";
 import { completeOnboarding } from "@/lib/actions/onboarding";
+import { WelcomeToast } from "@/components/ui/welcome-toast";
 
 type OnboardingProfile = {
   id: string;
@@ -67,6 +69,14 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [saveError, setSaveError] = useState<{ step: number; message: string } | null>(null);
+
+  // Callback for step components to report background save errors
+  const handleSaveError = useCallback((step: number, message: string) => {
+    setSaveError({ step, message });
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => setSaveError(null), 5000);
+  }, []);
 
   const getStepStatus = (stepNumber: number): StepStatus => {
     if (stepNumber === currentStep) return "active";
@@ -150,36 +160,42 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
               username: profile.username || "",
             }}
             onComplete={() => handleStepComplete(1)}
+            onSaveError={(msg) => handleSaveError(1, msg)}
           />
         );
       case 2:
         return (
           <StepProfessionalInfo
             onComplete={() => handleStepComplete(2)}
+            onSaveError={(msg) => handleSaveError(2, msg)}
           />
         );
       case 3:
         return (
           <StepLanguagesServices
             onComplete={() => handleStepComplete(3)}
+            onSaveError={(msg) => handleSaveError(3, msg)}
           />
         );
       case 4:
         return (
           <StepAvailability
             onComplete={() => handleStepComplete(4)}
+            onSaveError={(msg) => handleSaveError(4, msg)}
           />
         );
       case 5:
         return (
           <StepCalendarSync
             onComplete={() => handleStepComplete(5)}
+            onSaveError={(msg) => handleSaveError(5, msg)}
           />
         );
       case 6:
         return (
           <StepVideo
             onComplete={() => handleStepComplete(6)}
+            onSaveError={(msg) => handleSaveError(6, msg)}
           />
         );
       case 7:
@@ -197,6 +213,7 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
 
   return (
     <section className="mx-auto w-full max-w-2xl">
+      <WelcomeToast />
       <header className="mb-6 sm:mb-8 text-center">
         <h1 className="text-xl sm:text-2xl font-bold text-foreground">
           Welcome to TutorLingua!
@@ -223,6 +240,27 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
           </div>
         ))}
       </div>
+
+      {/* Error banner for failed background saves */}
+      {saveError && (
+        <div className="fixed bottom-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg max-w-sm animate-in slide-in-from-bottom-2">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">
+                Failed to save Step {saveError.step}
+              </p>
+              <p className="text-xs text-red-600 mt-1">{saveError.message}</p>
+            </div>
+            <button
+              onClick={() => setSaveError(null)}
+              className="text-red-400 hover:text-red-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

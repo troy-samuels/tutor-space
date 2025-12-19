@@ -5,9 +5,10 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   SUPPORTED_CALENDAR_PROVIDERS,
-  getProviderConfig,
+  getProviderConfigStatus,
   type CalendarProvider,
 } from "@/lib/calendar/config";
+import { formatCalendarConfigIssues } from "@/lib/calendar/errors";
 
 type CalendarConnectionRow = {
   provider: CalendarProvider;
@@ -92,9 +93,15 @@ export async function requestCalendarConnection(provider: CalendarProvider, opti
     return { error: "Unsupported calendar provider." };
   }
 
-  const config = getProviderConfig(provider);
+  const { config, issues } = getProviderConfigStatus(provider, {
+    requireEncryptionKey: true,
+  });
   if (!config) {
-    return { error: "Calendar provider is not configured yet." };
+    console.warn("[Calendar OAuth] Provider misconfigured", {
+      provider,
+      issues: issues.map((issue) => issue.code),
+    });
+    return { error: formatCalendarConfigIssues(issues.map((issue) => issue.code), provider) };
   }
 
   const { user } = await requireTutor();

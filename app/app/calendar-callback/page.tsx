@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, XCircle, Loader2 } from "lucide-react";
+import { getCalendarOAuthErrorMessage } from "@/lib/calendar/errors";
 
 export default function CalendarCallbackPage() {
   const searchParams = useSearchParams();
@@ -100,17 +101,5 @@ export default function CalendarCallbackPage() {
 }
 
 function getErrorMessage(error: string): string {
-  const messages: Record<string, string> = {
-    unsupported_provider: "This calendar provider is not supported.",
-    provider_not_configured: "This calendar provider is not configured.",
-    invalid_state: "The request was invalid. Please try again.",
-    unauthenticated: "You must be logged in to connect a calendar.",
-    token_exchange_failed: "Failed to connect to the calendar service.",
-    missing_access_token: "Failed to get access from the calendar service.",
-    encryption_failed: "Failed to securely store your credentials.",
-    persist_failed: "Failed to save your calendar connection.",
-    access_denied: "Calendar access was denied.",
-  };
-
-  return messages[error] || "An unexpected error occurred. Please try again or contact support at support@tutorlingua.co.";
+  return getCalendarOAuthErrorMessage(error);
 }

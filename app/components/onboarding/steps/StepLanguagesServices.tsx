@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Plus, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Plus, X } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepLanguagesServicesProps = {
   onComplete: () => void;
+  onSaveError?: (message: string) => void;
 };
 
 const COMMON_LANGUAGES = [
@@ -39,7 +40,9 @@ const CURRENCIES = [
 
 export function StepLanguagesServices({
   onComplete,
+  onSaveError,
 }: StepLanguagesServicesProps) {
+  const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState({
     languages_taught: [] as string[],
     currency: "USD",
@@ -49,7 +52,6 @@ export function StepLanguagesServices({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSaving, setIsSaving] = useState(false);
 
   const selectedCurrency = CURRENCIES.find((c) => c.code === formData.currency) || CURRENCIES[0];
 
@@ -92,33 +94,35 @@ export function StepLanguagesServices({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateForm()) return;
 
-    setIsSaving(true);
-    try {
-      const result = await saveOnboardingStep(3, {
-        languages_taught: formData.languages_taught,
-        currency: formData.currency,
-        service: {
-          name: formData.service_name.trim(),
-          duration_minutes: parseInt(formData.service_duration),
-          price: parseFloat(formData.service_price),
-          currency: formData.currency.toLowerCase(),
-        },
-      });
+    // Optimistic: Move to next step immediately
+    onComplete();
 
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(3, {
+          languages_taught: formData.languages_taught,
+          currency: formData.currency,
+          service: {
+            name: formData.service_name.trim(),
+            duration_minutes: parseInt(formData.service_duration),
+            price: parseFloat(formData.service_price),
+            currency: formData.currency.toLowerCase(),
+          },
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 3:", result.error);
+          onSaveError?.(result.error || "Failed to save languages and service");
+        }
+      } catch (error) {
+        console.error("Error saving step 3:", error);
+        onSaveError?.("An error occurred while saving");
       }
-    } catch (error) {
-      console.error("Error saving step 3:", error);
-      setErrors({ submit: "An error occurred. Please try again." });
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   return (
@@ -269,17 +273,9 @@ export function StepLanguagesServices({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSaving}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Continue"
-          )}
+          Continue
         </button>
       </div>
     </div>

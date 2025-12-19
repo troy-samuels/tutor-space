@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { SUPPORTED_CALENDAR_PROVIDERS, getProviderConfig } from "@/lib/calendar/config";
+import { SUPPORTED_CALENDAR_PROVIDERS, getProviderConfigStatus } from "@/lib/calendar/config";
 import { encrypt } from "@/lib/utils/crypto";
 import { RateLimiters } from "@/lib/middleware/rate-limit";
 
@@ -36,21 +36,10 @@ export async function GET(
     });
   }
 
-  const config = getProviderConfig(typedProvider);
-  if (!config) {
-    return redirectWithMessage(request, {
-      error: "provider_not_configured",
-    });
-  }
-
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const oauthError = searchParams.get("error");
-
-  const cookieName = `calendar_oauth_state_${typedProvider}`;
-  const cookieStore = await cookies();
-  const storedState = cookieStore.get(cookieName)?.value;
 
   // Parse state to check for popup mode
   let stateId: string | null = null;
@@ -66,6 +55,24 @@ export async function GET(
       stateId = state;
     }
   }
+
+  const { config, issues } = getProviderConfigStatus(typedProvider, {
+    requireEncryptionKey: true,
+  });
+  if (!config) {
+    const issueCode = issues[0]?.code ?? "provider_not_configured";
+    console.warn("[Calendar OAuth] Provider misconfigured", {
+      provider: typedProvider,
+      issues: issues.map((issue) => issue.code),
+    });
+    return redirectWithMessage(request, {
+      error: issueCode,
+    }, isPopup);
+  }
+
+  const cookieName = `calendar_oauth_state_${typedProvider}`;
+  const cookieStore = await cookies();
+  const storedState = cookieStore.get(cookieName)?.value;
 
   if (oauthError) {
     return redirectWithMessage(request, {

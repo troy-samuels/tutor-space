@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
+import { setWelcomeToast } from "@/components/ui/welcome-toast";
 
 const initialState: AuthActionState = { error: undefined, success: undefined };
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
@@ -27,11 +28,11 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  // Handle client-side redirect after successful signup
+  // Handle instant redirect after successful signup
   useEffect(() => {
     if (state?.redirectTo) {
-      router.push(state.redirectTo);
-      router.refresh();
+      setWelcomeToast("Welcome! Let's set up your profile.");
+      router.replace(state.redirectTo);
     }
   }, [state?.redirectTo, router]);
   const [emailValue, setEmailValue] = useState("");
@@ -431,12 +432,6 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
       {state?.error && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}
-        </p>
-      )}
-
-      {state?.success && (
-        <p className="rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
-          {state.success}
         </p>
       )}
 

@@ -26,6 +26,8 @@ export function TimelineStep({
   children,
   onNavigate,
 }: TimelineStepProps) {
+  const isClickableCompletedStep = isCompleted && status !== "active";
+
   return (
     <div className="relative flex gap-4">
       {/* Vertical line connector - base (gray) */}
@@ -71,15 +73,17 @@ export function TimelineStep({
               : status === "completed"
               ? "border-accent/30 bg-accent/5"
               : "border-border bg-muted/30"
+          } ${
+            isClickableCompletedStep
+              ? "cursor-pointer hover:border-accent/60 hover:shadow-sm hover:bg-accent/10"
+              : ""
           }`}
+          onClick={() =>
+            isClickableCompletedStep && onNavigate?.(stepNumber)
+          }
         >
           <div
-            className={`mb-3 ${
-              isCompleted && status !== "active"
-                ? "cursor-pointer rounded-lg -mx-2 px-2 py-1 transition-colors border border-transparent hover:bg-accent/10 hover:border-accent/40"
-                : ""
-            }`}
-            onClick={() => isCompleted && status !== "active" && onNavigate?.(stepNumber)}
+            className="mb-3"
           >
             <h3
               className={`text-sm sm:text-base font-semibold transition-colors duration-200 ${

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Plus, Trash2, Calendar } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Plus, Trash2, Calendar } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepAvailabilityProps = {
   onComplete: () => void;
+  onSaveError?: (message: string) => void;
 };
 
 type TimeSlot = {
@@ -36,13 +37,14 @@ const TIME_OPTIONS = [
 
 export function StepAvailability({
   onComplete,
+  onSaveError,
 }: StepAvailabilityProps) {
+  const [isPending, startTransition] = useTransition();
   const [slots, setSlots] = useState<TimeSlot[]>([
     { id: "1", day: "monday", start_time: "09:00", end_time: "17:00" },
   ]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSaving, setIsSaving] = useState(false);
 
   const addSlot = () => {
     const newSlot: TimeSlot = {
@@ -117,30 +119,32 @@ export function StepAvailability({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateForm()) return;
 
-    setIsSaving(true);
-    try {
-      const result = await saveOnboardingStep(4, {
-        availability: slots.map((s) => ({
-          day_of_week: s.day,
-          start_time: s.start_time,
-          end_time: s.end_time,
-        })),
-      });
+    // Optimistic: Move to next step immediately
+    onComplete();
 
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(4, {
+          availability: slots.map((s) => ({
+            day_of_week: s.day,
+            start_time: s.start_time,
+            end_time: s.end_time,
+          })),
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 4:", result.error);
+          onSaveError?.(result.error || "Failed to save availability");
+        }
+      } catch (error) {
+        console.error("Error saving step 4:", error);
+        onSaveError?.("An error occurred while saving");
       }
-    } catch (error) {
-      console.error("Error saving step 4:", error);
-      setErrors({ submit: "An error occurred. Please try again." });
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   const formatTime = (time: string) => {
@@ -254,17 +258,9 @@ export function StepAvailability({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSaving}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Continue"
-          )}
+          Continue
         </button>
       </div>
     </div>
