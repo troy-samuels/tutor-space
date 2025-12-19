@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
-import { setWelcomeToast } from "@/components/ui/welcome-toast";
+import confetti from "canvas-confetti";
 
 const initialState: AuthActionState = { error: undefined, success: undefined };
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
@@ -26,15 +26,35 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
     initialState
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
   const router = useRouter();
 
-  // Handle instant redirect after successful signup
+  // Handle success celebration and redirect
   useEffect(() => {
-    if (state?.redirectTo) {
-      setWelcomeToast("Welcome! Let's set up your profile.");
-      router.replace(state.redirectTo);
+    const redirectTo = state?.redirectTo;
+    if (redirectTo) {
+      setShowCelebration(true);
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+      });
+      const timer = setTimeout(() => {
+        router.replace(redirectTo);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [state?.redirectTo, router]);
+
+  // Trigger shake on error
+  useEffect(() => {
+    if (state?.error) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [state?.error]);
   const [emailValue, setEmailValue] = useState("");
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
   const [emailMessage, setEmailMessage] = useState("");
@@ -306,8 +326,9 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
   }, [tier, billingCycle]);
 
   return (
-    <form action={formAction} className="space-y-6">
-      <input type="hidden" name="plan" value={planId} />
+    <div className="relative">
+      <form action={formAction} className={`space-y-6 ${isShaking ? "animate-shake" : ""}`}>
+        <input type="hidden" name="plan" value={planId} />
       <div className="space-y-2">
         <label
           htmlFor="full_name"
@@ -430,7 +451,7 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
       </div>
 
       {state?.error && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive animate-in fade-in slide-in-from-top-2 duration-200">
           {state.error}
         </p>
       )}
@@ -450,11 +471,25 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
       <button
         type="submit"
         className="w-full h-12 rounded-full bg-primary px-4 text-base font-medium text-primary-foreground shadow-lg shadow-primary/20 transition hover:scale-[1.01] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={Boolean(state?.success) || isPending}
+        disabled={Boolean(state?.success) || isPending || showCelebration}
       >
         {isPending ? "Creating..." : "Start Free Trial"}
       </button>
 
-    </form>
+      </form>
+
+      {showCelebration && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/90 rounded-xl animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-3 animate-in zoom-in-50 duration-300">
+            <span className="text-6xl" role="img" aria-label="celebration">
+              🎉
+            </span>
+            <p className="text-lg font-semibold text-foreground">
+              Welcome aboard!
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -8,7 +8,15 @@ export const metadata: Metadata = {
   description: "Set up your TutorLingua workspace in minutes.",
 };
 
-export default async function TutorSignupPage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function TutorSignupPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const checkoutCancelled = params.checkout === "cancelled";
   const t = await getTranslations("tutorSignupPage");
 
   return (
@@ -30,7 +38,7 @@ export default async function TutorSignupPage() {
           <p className="mt-2 text-base text-muted-foreground">{t("subtitle")}</p>
         </header>
 
-        <SignupPageClient />
+        <SignupPageClient checkoutCancelled={checkoutCancelled} />
       </div>
     </div>
   );

@@ -2,7 +2,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingTimeline } from "@/components/onboarding/OnboardingTimeline";
 
-export default async function OnboardingPage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const subscriptionSuccess = params.subscription === "success";
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,6 +40,7 @@ export default async function OnboardingPage() {
           username: profile?.username ?? null,
           email: profile?.email ?? user.email ?? null,
         }}
+        subscriptionSuccess={subscriptionSuccess}
       />
     </div>
   );

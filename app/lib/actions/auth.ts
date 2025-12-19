@@ -80,8 +80,8 @@ async function startSubscriptionCheckout(params: {
 
   const trialPeriodDays = plan.endsWith("_annual") ? 14 : 7;
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "");
-  const successUrl = `${appUrl}/onboarding?checkout=success`;
-  const cancelUrl = `${appUrl}/onboarding?checkout=cancel`;
+  const successUrl = `${appUrl}/onboarding?subscription=success`;
+  const cancelUrl = `${appUrl}/signup?checkout=cancelled`;
 
   try {
     const customer = await getOrCreateStripeCustomer({
@@ -436,6 +436,19 @@ export async function signUp(
             }
 
             revalidatePath("/", "layout");
+
+            // Redirect to Stripe checkout if needed (paid plan)
+            const checkoutUrl = await startSubscriptionCheckout({
+              user: adminCreated.user,
+              plan: finalPlan,
+              fullName,
+              adminClient,
+            });
+
+            if (checkoutUrl) {
+              return { success: "Account created", redirectTo: checkoutUrl };
+            }
+
             return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
           }
         } catch (fallbackError) {
@@ -490,6 +503,19 @@ export async function signUp(
 
           if (!immediateSignInError && immediateSignInData?.session) {
             revalidatePath("/", "layout");
+
+            // Redirect to Stripe checkout if needed (paid plan)
+            const checkoutUrl = await startSubscriptionCheckout({
+              user: data.user,
+              plan: finalPlan,
+              fullName,
+              adminClient,
+            });
+
+            if (checkoutUrl) {
+              return { success: "Account created", redirectTo: checkoutUrl };
+            }
+
             return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
           }
 
@@ -514,6 +540,22 @@ export async function signUp(
   }
 
   revalidatePath("/", "layout");
+
+  // Redirect to Stripe checkout if needed (paid plan)
+  // If we have a session, we must have a user
+  if (data.user) {
+    const checkoutUrl = await startSubscriptionCheckout({
+      user: data.user,
+      plan: finalPlan,
+      fullName,
+      adminClient,
+    });
+
+    if (checkoutUrl) {
+      return { success: "Account created", redirectTo: checkoutUrl };
+    }
+  }
+
   return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
 }
 

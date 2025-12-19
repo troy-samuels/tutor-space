@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -8,6 +8,7 @@ import { studentSignup } from "@/lib/actions/student-auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { detectUserTimezone } from "@/lib/utils/timezones";
+import confetti from "canvas-confetti";
 
 export function StudentSignupForm() {
   const router = useRouter();
@@ -23,9 +24,20 @@ export function StudentSignupForm() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
   const meetsLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
   const hasLetter = /[A-Za-z]/.test(password);
+
+  // Trigger shake on error
+  useEffect(() => {
+    if (error) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,12 +64,24 @@ export function StudentSignupForm() {
         return;
       }
 
+      // Show celebration before redirect
+      setShowCelebration(true);
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+      });
+
       // Send students to the search page with the tutor prefilled (if provided)
       const redirectUrl = tutorParam
         ? `/student/search?prefill=${encodeURIComponent(tutorParam)}`
         : "/student/search";
-      router.push(redirectUrl);
-      router.refresh();
+
+      // Delay redirect to show celebration
+      setTimeout(() => {
+        router.push(redirectUrl);
+        router.refresh();
+      }, 1500);
     } catch {
       setError(t("unexpectedError"));
       setLoading(false);
@@ -65,13 +89,14 @@ export function StudentSignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Error Message */}
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
+    <div className="relative">
+      <form onSubmit={handleSubmit} className={`space-y-5 ${isShaking ? "animate-shake" : ""}`}>
+        {/* Error Message */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm animate-in fade-in slide-in-from-top-2 duration-200">
+            {error}
+          </div>
+        )}
 
       {/* Full Name Field */}
       <div>
@@ -212,7 +237,7 @@ export function StudentSignupForm() {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || showCelebration}
         className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
@@ -235,7 +260,21 @@ export function StudentSignupForm() {
           {t("signIn")}
         </Link>
       </p>
-    </form>
+      </form>
+
+      {showCelebration && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/90 rounded-xl animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-3 animate-in zoom-in-50 duration-300">
+            <span className="text-6xl" role="img" aria-label="celebration">
+              🎉
+            </span>
+            <p className="text-lg font-semibold text-foreground">
+              Welcome aboard!
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

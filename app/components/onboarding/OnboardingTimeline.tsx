@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 import { TimelineStep, StepStatus } from "./TimelineStep";
 import { StepProfileBasics } from "./steps/StepProfileBasics";
 import { StepProfessionalInfo } from "./steps/StepProfessionalInfo";
@@ -24,6 +24,7 @@ type OnboardingProfile = {
 
 type OnboardingTimelineProps = {
   profile: OnboardingProfile;
+  subscriptionSuccess?: boolean;
 };
 
 const STEPS = [
@@ -64,12 +65,21 @@ const STEPS = [
   },
 ] as const;
 
-export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
+export function OnboardingTimeline({ profile, subscriptionSuccess }: OnboardingTimelineProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
   const [saveError, setSaveError] = useState<{ step: number; message: string } | null>(null);
+  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(subscriptionSuccess ?? false);
+
+  // Auto-dismiss subscription success banner after 8 seconds
+  useEffect(() => {
+    if (showSubscriptionBanner) {
+      const timer = setTimeout(() => setShowSubscriptionBanner(false), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSubscriptionBanner]);
 
   // Callback for step components to report background save errors
   const handleSaveError = useCallback((step: number, message: string) => {
@@ -222,6 +232,29 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
           Complete these steps to get your tutor site ready for bookings
         </p>
       </header>
+
+      {/* Subscription success banner */}
+      {showSubscriptionBanner && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 animate-in slide-in-from-top-2">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-800">
+                Your free trial has started!
+              </p>
+              <p className="text-xs text-emerald-600 mt-1">
+                You have 14 days to explore TutorLingua. Let&apos;s finish setting up your profile.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSubscriptionBanner(false)}
+              className="text-emerald-400 hover:text-emerald-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-0">
         {STEPS.map((step) => (

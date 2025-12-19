@@ -119,7 +119,15 @@ export async function GET(
     });
 
     if (!response.ok) {
-      throw new Error(`Token exchange failed with status ${response.status}`);
+      // Log the actual error response from Google/Microsoft for debugging
+      const errorBody = await response.text();
+      console.error("[Calendar OAuth] token exchange failed", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+        provider: typedProvider,
+      });
+      throw new Error(`Token exchange failed with status ${response.status}: ${errorBody}`);
     }
 
     tokenResponse = (await response.json()) as TokenResponse;

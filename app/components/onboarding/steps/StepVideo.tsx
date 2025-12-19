@@ -122,13 +122,13 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
 
   const providers = [
     {
-      id: "zoom_personal" as const,
-      name: "Zoom Personal Room",
-      description: "Use your permanent Zoom room. Works with free Zoom accounts.",
-      placeholder: "https://zoom.us/j/1234567890",
-      helpText: "Find this in your Zoom app under Meetings → Personal Room",
-      setupUrl: "https://zoom.us/meeting",
-      popular: true,
+      id: "google_meet" as const,
+      name: "Google Meet",
+      description: "Use a reusable Google Meet link. 60-minute limit on free accounts.",
+      placeholder: "https://meet.google.com/xxx-yyyy-zzz",
+      helpText: "Create one at meet.google.com → New meeting → Create for later",
+      setupUrl: "https://meet.google.com",
+      recommended: true,
     },
     {
       id: "microsoft_teams" as const,
@@ -139,16 +139,16 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
       helpLink: "https://support.microsoft.com/en-us/office/create-a-link-or-code-for-joining-a-teams-meeting-775bd09d-bfbe-4c1d-998f-e22a35f8e3a9",
       helpLinkText: "Need help? Learn how to get your Teams link →",
       setupUrl: "https://teams.microsoft.com",
-      popular: true,
+      recommended: true,
     },
     {
-      id: "google_meet" as const,
-      name: "Google Meet",
-      description: "Use a reusable Google Meet link. 60-minute limit on free accounts.",
-      placeholder: "https://meet.google.com/xxx-yyyy-zzz",
-      helpText: "Create one at meet.google.com → New meeting → Create for later",
-      setupUrl: "https://meet.google.com",
-      popular: false,
+      id: "zoom_personal" as const,
+      name: "Zoom Personal Room",
+      description: "Use your permanent Zoom room. Works with free Zoom accounts.",
+      placeholder: "https://zoom.us/j/1234567890",
+      helpText: "Find this in your Zoom app under Meetings → Personal Room",
+      setupUrl: "https://zoom.us/meeting",
+      recommended: false,
     },
     {
       id: "custom" as const,
@@ -156,7 +156,7 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
       description: "WhatsApp Video, FaceTime, or any other video platform",
       placeholder: "https://...",
       helpText: "Enter your meeting room URL",
-      popular: false,
+      recommended: false,
     },
     {
       id: "none" as const,
@@ -164,7 +164,7 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
       description: "You'll share meeting links with students yourself via email or messaging",
       placeholder: "",
       helpText: "",
-      popular: false,
+      recommended: false,
     },
   ];
 
@@ -220,9 +220,9 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
                   <span className="text-sm font-semibold text-foreground">
                     {provider.name}
                   </span>
-                  {provider.popular && (
+                  {provider.recommended && (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                      Popular
+                      Recommended
                     </span>
                   )}
                 </div>
