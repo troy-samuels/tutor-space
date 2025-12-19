@@ -10,8 +10,10 @@ type TimelineStepProps = {
   title: string;
   description: string;
   status: StepStatus;
+  isCompleted: boolean;
   isLastStep: boolean;
   children?: ReactNode;
+  onNavigate?: (stepNumber: number) => void;
 };
 
 export function TimelineStep({
@@ -19,8 +21,10 @@ export function TimelineStep({
   title,
   description,
   status,
+  isCompleted,
   isLastStep,
   children,
+  onNavigate,
 }: TimelineStepProps) {
   return (
     <div className="relative flex gap-4">
@@ -34,7 +38,7 @@ export function TimelineStep({
         <div
           className="absolute left-5 top-10 w-0.5 bg-accent transition-all duration-500 ease-out"
           style={{
-            height: status === "completed" ? "calc(100% - 2.5rem)" : "0%",
+            height: isCompleted ? "calc(100% - 2.5rem)" : "0%",
           }}
         />
       )}
@@ -69,7 +73,14 @@ export function TimelineStep({
               : "border-border bg-muted/30"
           }`}
         >
-          <div className="mb-3">
+          <div
+            className={`mb-3 ${
+              isCompleted && status !== "active"
+                ? "cursor-pointer rounded-lg -mx-2 px-2 py-1 transition-colors border border-transparent hover:bg-accent/10 hover:border-accent/40"
+                : ""
+            }`}
+            onClick={() => isCompleted && status !== "active" && onNavigate?.(stepNumber)}
+          >
             <h3
               className={`text-sm sm:text-base font-semibold transition-colors duration-200 ${
                 status === "upcoming"
@@ -98,7 +109,7 @@ export function TimelineStep({
           )}
 
           {/* Completed badge */}
-          {status === "completed" && (
+          {isCompleted && status !== "active" && (
             <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-accent animate-in fade-in zoom-in duration-200">
               <Check className="h-3.5 w-3.5" />
               Completed

@@ -65,12 +65,19 @@ const STEPS = [
 export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
 
   const getStepStatus = (stepNumber: number): StepStatus => {
-    if (stepNumber < currentStep) return "completed";
     if (stepNumber === currentStep) return "active";
+    if (completedSteps.includes(stepNumber)) return "completed";
     return "upcoming";
+  };
+
+  const handleNavigateToStep = (stepNumber: number) => {
+    if (completedSteps.includes(stepNumber)) {
+      setCurrentStep(stepNumber);
+    }
   };
 
   // Keep the next step fully in view, respecting scroll margin offsets for the sticky header
@@ -90,6 +97,10 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
   }, [currentStep]);
 
   const handleStepComplete = async (stepNumber: number) => {
+    setCompletedSteps((prev) =>
+      prev.includes(stepNumber) ? prev : [...prev, stepNumber],
+    );
+
     if (stepNumber === 7) {
       // Final step - complete onboarding and redirect
       setIsCompleting(true);
@@ -203,7 +214,9 @@ export function OnboardingTimeline({ profile }: OnboardingTimelineProps) {
               title={step.title}
               description={step.description}
               status={getStepStatus(step.id)}
+              isCompleted={completedSteps.includes(step.id)}
               isLastStep={step.id === 7}
+              onNavigate={handleNavigateToStep}
             >
               {renderStepContent(step.id)}
             </TimelineStep>

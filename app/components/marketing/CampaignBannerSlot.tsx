@@ -1,15 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-
-const CampaignBanner = dynamic(
-  () => import("./CampaignBanner").then((mod) => mod.CampaignBanner),
-  {
-    ssr: false,
-    loading: () => <div className="w-full h-10 bg-amber-600 animate-pulse" />,
-  }
-);
+import { CampaignBanner } from "./CampaignBanner";
 
 const EXCLUDED_PREFIXES = [
   "/admin",
@@ -37,6 +29,6 @@ export function CampaignBannerSlot() {
     return null;
   }
 
+  // Server-render the banner so space is reserved and the page doesn't jump after hydration.
   return <CampaignBanner />;
 }
-
