@@ -89,7 +89,7 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
             id="password"
             name="password"
             type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
+            autoComplete={showPassword ? "off" : "current-password"}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}

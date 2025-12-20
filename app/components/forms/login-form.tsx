@@ -60,7 +60,7 @@ export function LoginForm() {
             required
             minLength={6}
             className="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            autoComplete="current-password"
+            autoComplete={showPassword ? "off" : "current-password"}
           />
           <button
             type="button"

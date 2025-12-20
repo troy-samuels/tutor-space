@@ -437,6 +437,7 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
             type={showPassword ? "text" : "password"}
             required
             minLength={8}
+            autoComplete={showPassword ? "off" : "new-password"}
             className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 pr-12 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
           <button

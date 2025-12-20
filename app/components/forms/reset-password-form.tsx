@@ -27,6 +27,7 @@ export function ResetPasswordForm() {
             type={showPassword ? "text" : "password"}
             required
             minLength={6}
+            autoComplete={showPassword ? "off" : "new-password"}
             className="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button
@@ -51,6 +52,7 @@ export function ResetPasswordForm() {
             type={showConfirmPassword ? "text" : "password"}
             required
             minLength={6}
+            autoComplete={showConfirmPassword ? "off" : "new-password"}
             className="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button
