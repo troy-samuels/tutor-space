@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
     }
 
     const price = computeFounderPrice(request.headers.get("accept-language"));
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+    // Trim to remove any accidental newlines from env var
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").trim();
     // Guest checkout goes to /lifetime/success, authenticated users go to /dashboard
     const successUrl = user
       ? `${appUrl.replace(/\/$/, "")}/dashboard?checkout=success`
@@ -104,8 +105,6 @@ export async function POST(request: NextRequest) {
       : `${appUrl.replace(/\/$/, "")}/lifetime`;
 
     // Create checkout session using direct fetch (bypasses Stripe SDK issues)
-    console.log("[Stripe] Creating checkout with URLs:", { successUrl, cancelUrl, appUrl });
-
     const result = await createStripeCheckoutSession({
       successUrl,
       cancelUrl,
@@ -120,11 +119,8 @@ export async function POST(request: NextRequest) {
     });
 
     if ("error" in result) {
-      console.error("[Stripe] Checkout creation failed:", result.error, { successUrl, cancelUrl });
-      return NextResponse.json({
-        error: result.error,
-        debug: { successUrl, cancelUrl }
-      }, { status: 500 });
+      console.error("[Stripe] Checkout creation failed:", result.error);
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
     return NextResponse.json({ url: result.url });
