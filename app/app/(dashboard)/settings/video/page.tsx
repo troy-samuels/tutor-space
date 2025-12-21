@@ -15,7 +15,7 @@ export default async function VideoSettingsPage() {
   }
 
   // Get current video settings and AI homework preference
-  const { data: profile } = await supabase
+  const profileResult = await supabase
     .from("profiles")
     .select(
       "video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link, calendly_link, custom_video_url, custom_video_name, auto_homework_approval, tier"
@@ -23,6 +23,7 @@ export default async function VideoSettingsPage() {
     .eq("id", user.id)
     .single();
 
+  const profile = profileResult.data;
   const isStudioTier = profile?.tier === "studio";
 
   return (

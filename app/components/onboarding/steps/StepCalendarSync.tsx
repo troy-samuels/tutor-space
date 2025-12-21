@@ -7,14 +7,12 @@ import { requestCalendarConnection } from "@/lib/actions/calendar";
 
 type StepCalendarSyncProps = {
   onComplete: () => void;
-  onSaveError?: (message: string) => void;
 };
 
 export function StepCalendarSync({
   onComplete,
-  onSaveError,
 }: StepCalendarSyncProps) {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [selectedProvider, setSelectedProvider] = useState<"google" | "outlook" | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,38 +28,37 @@ export function StepCalendarSync({
       const data = event.data;
       if (data?.type !== "calendar-oauth-callback") return;
 
-      if (data.success && data.provider) {
-        // Optimistic: Move to next step immediately
-        onComplete();
-
-        // Save to database in background
-        startTransition(async () => {
-          try {
-            const saveResult = await saveOnboardingStep(5, {
-              calendar_provider: data.provider,
-            });
-
-            if (!saveResult.success) {
-              console.error("Background save failed for step 5:", saveResult.error);
-              onSaveError?.(saveResult.error || "Failed to save calendar connection");
-            }
-          } catch (error) {
-            console.error("Error saving step 5:", error);
-            onSaveError?.("An error occurred while saving");
-          }
-        });
-      } else if (data.error) {
-        setErrors({ submit: data.error || "Calendar connection failed. Please try again." });
-      }
-
-      setIsConnecting(false);
-      setSelectedProvider(null);
-      popupRef.current = null;
-
       // Clear polling interval when message is received
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
+      }
+
+      if (data.success && data.provider) {
+        // Advance immediately - calendar IS connected (tokens saved during OAuth)
+        onComplete();
+
+        // Save metadata in background - don't show error if this fails
+        // The calendar connection is already saved in calendar_connections table
+        startTransition(async () => {
+          try {
+            await saveOnboardingStep(5, {
+              calendar_provider: data.provider,
+            });
+          } catch (error) {
+            // Log but don't show error - this is non-critical metadata
+            console.error("Background save failed for step 5:", error);
+          }
+        });
+
+        setIsConnecting(false);
+        setSelectedProvider(null);
+        popupRef.current = null;
+      } else if (data.error) {
+        setErrors({ submit: data.error || "Calendar connection failed. Please try again." });
+        setIsConnecting(false);
+        setSelectedProvider(null);
+        popupRef.current = null;
       }
     };
 
@@ -73,7 +70,7 @@ export function StepCalendarSync({
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [onComplete, onSaveError, startTransition]);
+  }, [onComplete, startTransition]);
 
   const handleConnect = async (provider: "google" | "outlook") => {
     setIsConnecting(true);
@@ -123,23 +120,17 @@ export function StepCalendarSync({
   };
 
   const handleSkip = () => {
-    // Optimistic: Move to next step immediately
+    // Advance immediately
     onComplete();
 
-    // Save to database in background
+    // Save in background - don't show error if this fails
     startTransition(async () => {
       try {
-        const result = await saveOnboardingStep(5, {
+        await saveOnboardingStep(5, {
           calendar_provider: null,
         });
-
-        if (!result.success) {
-          console.error("Background save failed for step 5:", result.error);
-          onSaveError?.(result.error || "Failed to save calendar step");
-        }
       } catch (error) {
-        console.error("Error skipping step 5:", error);
-        onSaveError?.("An error occurred while saving");
+        console.error("Background save failed for step 5:", error);
       }
     });
   };

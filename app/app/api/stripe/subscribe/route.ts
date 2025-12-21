@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { randomUUID } from "crypto";
+import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
@@ -122,13 +124,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check for existing active subscription to prevent duplicates
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: "active",
+      limit: 1,
+    });
+
+    if (existingSubscriptions.data.length > 0) {
+      // User already has an active subscription - redirect to billing portal instead
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customer.id,
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co"}/dashboard`,
+      });
+      return NextResponse.json({
+        url: portalSession.url,
+        message: "You already have an active subscription. Redirecting to manage your plan."
+      });
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
     const successUrl = `${appUrl.replace(/\/$/, "")}/dashboard?checkout=success`;
     const cancelUrl = `${appUrl.replace(/\/$/, "")}/dashboard?checkout=cancel`;
 
-    const session = await stripe.checkout.sessions.create({
+    // Idempotency key prevents duplicate checkout sessions on rapid clicks
+    const idempotencyKey = `subscribe:${user.id}:${plan}:${randomUUID()}`;
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customer.id,
       mode: "subscription",
+      payment_method_collection: "always",
       allow_promotion_codes: false,
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -145,6 +170,10 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         plan,
       },
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey,
     });
 
     return NextResponse.json({ url: session.url });

@@ -10,6 +10,9 @@ export async function createExpressAccount(tutorId: string, client: SupabaseClie
       card_payments: { requested: true },
       transfers: { requested: true },
     },
+    metadata: {
+      tutor_id: tutorId,
+    },
   });
   await setStripeAccountId(client, tutorId, account.id);
   // Initial status snapshot
@@ -36,5 +39,4 @@ export async function refreshAccountStatus(tutorId: string, accountId: string, c
   const account = await stripe.accounts.retrieve(accountId);
   await updateStripeStatus(client, tutorId, extractTutorStripeStatus(account as unknown as Record<string, unknown>));
 }
-
 

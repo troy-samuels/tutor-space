@@ -120,6 +120,7 @@ export async function createCheckoutSession(params: {
   }>;
   transferDestinationAccountId?: string; // Stripe Connect destination
   applicationFeeCents?: number; // platform fee (in cents)
+  idempotencyKey?: string; // Prevents duplicate checkout sessions
 }): Promise<Stripe.Checkout.Session> {
   const {
     customerId,
@@ -131,6 +132,7 @@ export async function createCheckoutSession(params: {
     lineItems,
     transferDestinationAccountId,
     applicationFeeCents,
+    idempotencyKey,
   } = params;
 
   const session = await stripe.checkout.sessions.create({
@@ -174,7 +176,7 @@ export async function createCheckoutSession(params: {
             application_fee_amount: applicationFeeCents ?? undefined,
           }
         : undefined,
-  });
+  }, idempotencyKey ? { idempotencyKey } : undefined);
 
   return session;
 }

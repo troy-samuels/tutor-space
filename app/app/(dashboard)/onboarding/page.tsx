@@ -11,6 +11,8 @@ export default async function OnboardingPage({
 }) {
   const params = await searchParams;
   const subscriptionSuccess = params.subscription === "success";
+  const stripeReturn = params.stripe_return === "1";
+  const stripeRefresh = params.stripe_refresh === "1";
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,6 +43,8 @@ export default async function OnboardingPage({
           email: profile?.email ?? user.email ?? null,
         }}
         subscriptionSuccess={subscriptionSuccess}
+        stripeReturn={stripeReturn}
+        stripeRefresh={stripeRefresh}
       />
     </div>
   );

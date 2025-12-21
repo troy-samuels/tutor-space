@@ -146,7 +146,10 @@ export function StepPayments({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId }),
+          body: JSON.stringify({
+            accountId,
+            returnContext: "onboarding", // Ensures return to onboarding flow after Stripe
+          }),
         },
         { maxRetries: 3, baseDelayMs: 1000 },
         (attempt, _error, delayMs) => {

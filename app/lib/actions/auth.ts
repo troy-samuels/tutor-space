@@ -105,6 +105,7 @@ async function startSubscriptionCheckout(params: {
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       mode: "subscription",
+      payment_method_collection: "always",
       allow_promotion_codes: false,
       success_url: successUrl,
       cancel_url: cancelUrl,

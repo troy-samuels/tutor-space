@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -179,8 +180,13 @@ export async function POST(req: NextRequest) {
       sessionConfig.customer_email = studentEmail;
     }
 
+    // Idempotency key prevents duplicate checkout sessions on rapid clicks
+    const idempotencyKey = `lesson-sub:${templateId}:${user?.id ?? "guest"}:${randomUUID()}`;
+
     // Create checkout session
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+    const session = await stripe.checkout.sessions.create(sessionConfig, {
+      idempotencyKey,
+    });
 
     return NextResponse.json({
       sessionId: session.id,

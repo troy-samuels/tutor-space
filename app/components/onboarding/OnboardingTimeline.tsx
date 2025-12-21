@@ -25,6 +25,8 @@ type OnboardingProfile = {
 type OnboardingTimelineProps = {
   profile: OnboardingProfile;
   subscriptionSuccess?: boolean;
+  stripeReturn?: boolean;
+  stripeRefresh?: boolean;
 };
 
 const STEPS = [
@@ -65,13 +67,37 @@ const STEPS = [
   },
 ] as const;
 
-export function OnboardingTimeline({ profile, subscriptionSuccess }: OnboardingTimelineProps) {
+export function OnboardingTimeline({
+  profile,
+  subscriptionSuccess,
+  stripeReturn,
+  stripeRefresh,
+}: OnboardingTimelineProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
   const [saveError, setSaveError] = useState<{ step: number; message: string } | null>(null);
   const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(subscriptionSuccess ?? false);
+  const [showStripeReturnBanner, setShowStripeReturnBanner] = useState(stripeReturn ?? false);
+
+  // Handle return from Stripe Connect onboarding
+  useEffect(() => {
+    if (stripeReturn || stripeRefresh) {
+      // Jump to step 7 (payments)
+      setCurrentStep(7);
+
+      // Refresh Stripe status from server
+      fetch("/api/stripe/connect/status", { method: "POST" })
+        .catch(err => console.error("Failed to refresh Stripe status:", err));
+
+      // Auto-dismiss banner after 8 seconds
+      if (stripeReturn) {
+        const timer = setTimeout(() => setShowStripeReturnBanner(false), 8000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [stripeReturn, stripeRefresh]);
 
   // Auto-dismiss subscription success banner after 8 seconds
   useEffect(() => {
@@ -251,6 +277,46 @@ export function OnboardingTimeline({ profile, subscriptionSuccess }: OnboardingT
             >
               <X className="h-4 w-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stripe Connect return success banner */}
+      {showStripeReturnBanner && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 animate-in slide-in-from-top-2">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-800">
+                Stripe setup started!
+              </p>
+              <p className="text-xs text-emerald-600 mt-1">
+                Click &quot;Continue&quot; to complete your profile and start accepting payments.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowStripeReturnBanner(false)}
+              className="text-emerald-400 hover:text-emerald-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stripe refresh banner (user needs to re-enter info) */}
+      {stripeRefresh && !stripeReturn && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 animate-in slide-in-from-top-2">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-800">
+                Stripe needs more information
+              </p>
+              <p className="text-xs text-yellow-600 mt-1">
+                Click &quot;Set Up Card Payments&quot; to continue where you left off.
+              </p>
+            </div>
           </div>
         </div>
       )}

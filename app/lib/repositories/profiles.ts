@@ -20,26 +20,72 @@ export async function updateStripeStatus(
 	tutorId: string,
 	status: TutorStripeStatus
 ): Promise<void> {
+	const baseUpdate = {
+		stripe_account_id: status.accountId,
+		stripe_charges_enabled: status.chargesEnabled,
+		stripe_payouts_enabled: status.payoutsEnabled,
+		stripe_onboarding_status: status.onboardingStatus,
+		stripe_default_currency: status.defaultCurrency,
+		stripe_country: status.country,
+		stripe_last_capability_check_at: status.lastCapabilityCheckAt,
+	};
+
+	const extendedUpdate = {
+		stripe_disabled_reason: status.disabledReason,
+		stripe_currently_due: status.currentlyDue,
+		stripe_eventually_due: status.eventuallyDue,
+		stripe_past_due: status.pastDue,
+		stripe_pending_verification: status.pendingVerification,
+		stripe_details_submitted: status.detailsSubmitted,
+	};
+
+	const isMissingColumn = (err: { code?: string; message?: string }) => {
+		return err.code === "42703" || Boolean(err.message?.toLowerCase().includes("column"));
+	};
+
 	const { error } = await client
 		.from("profiles")
-		.update({
-			stripe_account_id: status.accountId,
-			stripe_charges_enabled: status.chargesEnabled,
-			stripe_payouts_enabled: status.payoutsEnabled,
-			stripe_onboarding_status: status.onboardingStatus,
-			stripe_default_currency: status.defaultCurrency,
-			stripe_country: status.country,
-			stripe_last_capability_check_at: status.lastCapabilityCheckAt,
-			stripe_disabled_reason: status.disabledReason,
-			stripe_currently_due: status.currentlyDue,
-			stripe_eventually_due: status.eventuallyDue,
-			stripe_past_due: status.pastDue,
-			stripe_pending_verification: status.pendingVerification,
-			stripe_details_submitted: status.detailsSubmitted,
-		})
+		.update({ ...baseUpdate, ...extendedUpdate })
 		.eq("id", tutorId);
-	if (error) {
+
+	if (!error) {
+		return;
+	}
+
+	if (!isMissingColumn(error)) {
 		throw error;
+	}
+
+	console.warn("[Stripe Connect] Falling back to base profile update:", {
+		code: error.code,
+		message: error.message,
+	});
+
+	const { error: baseError } = await client
+		.from("profiles")
+		.update(baseUpdate)
+		.eq("id", tutorId);
+
+	if (!baseError) {
+		return;
+	}
+
+	if (!isMissingColumn(baseError)) {
+		throw baseError;
+	}
+
+	console.warn("[Stripe Connect] Falling back to minimal profile update:", {
+		code: baseError.code,
+		message: baseError.message,
+	});
+
+	const { error: minimalError } = await client
+		.from("profiles")
+		.update({ stripe_account_id: status.accountId })
+		.eq("id", tutorId);
+
+	if (minimalError) {
+		throw minimalError;
 	}
 }
 
@@ -73,5 +119,4 @@ export async function getTutorStripeStatus(
 		detailsSubmitted: Boolean(data?.stripe_details_submitted),
 	};
 }
-
 

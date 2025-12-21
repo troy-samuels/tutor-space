@@ -116,7 +116,7 @@ export default function VideoSettingsForm({
       urlField: "zoom_personal_link" as const,
       placeholder: "https://zoom.us/j/1234567890",
       helpText: "Find this in your Zoom app under Meetings → Personal Room",
-      setupUrl: "https://zoom.us/meeting",
+      setupUrl: "https://zoom.us/profile",
     },
     {
       id: "microsoft_teams",
@@ -138,7 +138,7 @@ export default function VideoSettingsForm({
       urlField: "google_meet_link" as const,
       placeholder: "https://meet.google.com/xxx-yyyy-zzz",
       helpText: "Create one at meet.google.com → New meeting → Create for later",
-      setupUrl: "https://meet.google.com",
+      setupUrl: "https://meet.google.com/new",
     },
     {
       id: "calendly",

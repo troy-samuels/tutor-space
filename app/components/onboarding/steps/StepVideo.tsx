@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Video, Check, ExternalLink } from "lucide-react";
+import { Video, Check, ExternalLink } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 
 type StepVideoProps = {
@@ -127,7 +127,7 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
       description: "Use a reusable Google Meet link. 60-minute limit on free accounts.",
       placeholder: "https://meet.google.com/xxx-yyyy-zzz",
       helpText: "Create one at meet.google.com → New meeting → Create for later",
-      setupUrl: "https://meet.google.com",
+      setupUrl: "https://meet.google.com/new",
       recommended: true,
     },
     {
@@ -147,7 +147,7 @@ export function StepVideo({ onComplete, onSaveError }: StepVideoProps) {
       description: "Use your permanent Zoom room. Works with free Zoom accounts.",
       placeholder: "https://zoom.us/j/1234567890",
       helpText: "Find this in your Zoom app under Meetings → Personal Room",
-      setupUrl: "https://zoom.us/meeting",
+      setupUrl: "https://zoom.us/profile",
       recommended: false,
     },
     {
