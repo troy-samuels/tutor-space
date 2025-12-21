@@ -1,7 +1,8 @@
 import Stripe from "stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripeApiVersion = process.env.STRIPE_API_VERSION || "2025-12-15.clover";
+// Use stable Stripe API version (acacia) to avoid connection errors
+const stripeApiVersion = process.env.STRIPE_API_VERSION || "2024-12-18.acacia";
 
 if (!stripeSecretKey) {
   console.warn(
@@ -287,4 +288,146 @@ export async function createPaymentIntent(params: {
   });
 
   return paymentIntent;
+}
+
+/**
+ * Get customer's active subscriptions in parallel with customer lookup
+ */
+export async function getCustomerWithSubscriptions(params: {
+  userId: string;
+  email: string;
+  name?: string;
+}): Promise<{
+  customer: Stripe.Customer;
+  subscriptions: Stripe.Subscription[];
+}> {
+  const { userId, email, name } = params;
+
+  // Get or create customer first
+  const customer = await getOrCreateStripeCustomer({ userId, email, name });
+
+  // Then get subscriptions
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customer.id,
+    status: "active",
+    limit: 10,
+  });
+
+  return {
+    customer,
+    subscriptions: subscriptions.data,
+  };
+}
+
+/**
+ * Update a subscription with proper proration handling
+ */
+export async function updateSubscription(params: {
+  subscriptionId: string;
+  priceId: string;
+  prorationBehavior?: "create_prorations" | "none" | "always_invoice";
+  billingCycleAnchor?: "now" | "unchanged";
+  metadata?: Record<string, string>;
+}): Promise<Stripe.Subscription> {
+  const {
+    subscriptionId,
+    priceId,
+    prorationBehavior = "create_prorations",
+    billingCycleAnchor,
+    metadata,
+  } = params;
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const currentItem = subscription.items.data[0];
+
+  if (!currentItem) {
+    throw new Error("No subscription item found");
+  }
+
+  const updateParams: Stripe.SubscriptionUpdateParams = {
+    items: [{ id: currentItem.id, price: priceId }],
+    proration_behavior: prorationBehavior,
+  };
+
+  if (billingCycleAnchor) {
+    updateParams.billing_cycle_anchor = billingCycleAnchor;
+  }
+
+  if (metadata) {
+    updateParams.metadata = {
+      ...subscription.metadata,
+      ...metadata,
+    };
+  }
+
+  return stripe.subscriptions.update(subscriptionId, updateParams);
+}
+
+/**
+ * Cancel a subscription at period end (safe cancellation)
+ */
+export async function cancelSubscriptionAtPeriodEnd(
+  subscriptionId: string
+): Promise<Stripe.Subscription> {
+  return stripe.subscriptions.update(subscriptionId, {
+    cancel_at_period_end: true,
+  });
+}
+
+/**
+ * Create a checkout session for subscription with flexible options
+ */
+export async function createSubscriptionCheckoutSession(params: {
+  customerId: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  trialDays?: number;
+  metadata?: Record<string, string>;
+  allowPromotionCodes?: boolean;
+}): Promise<Stripe.Checkout.Session> {
+  const {
+    customerId,
+    priceId,
+    successUrl,
+    cancelUrl,
+    trialDays,
+    metadata,
+    allowPromotionCodes = false,
+  } = params;
+
+  return stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "subscription",
+    payment_method_collection: "always",
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    allow_promotion_codes: allowPromotionCodes,
+    line_items: [{ price: priceId, quantity: 1 }],
+    subscription_data: trialDays ? { trial_period_days: trialDays } : undefined,
+    metadata,
+  });
+}
+
+/**
+ * Create a one-time payment checkout session (for lifetime plans)
+ */
+export async function createOneTimeCheckoutSession(params: {
+  customerId: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}): Promise<Stripe.Checkout.Session> {
+  const { customerId, priceId, successUrl, cancelUrl, metadata } = params;
+
+  return stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "payment",
+    payment_method_types: ["card"],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    line_items: [{ price: priceId, quantity: 1 }],
+    metadata,
+  });
 }
