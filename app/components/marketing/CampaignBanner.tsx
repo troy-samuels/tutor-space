@@ -59,14 +59,12 @@ export function CampaignBanner() {
     CAMPAIGN_CONFIG.endDate
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Handle banner click - trigger checkout directly
   const handleBannerClick = async () => {
     if (isLoading || phase !== "LIVE") return;
 
     setIsLoading(true);
-    setError(null);
     try {
       const response = await fetch("/api/stripe/lifetime", {
         method: "POST",
@@ -80,12 +78,10 @@ export function CampaignBanner() {
         window.location.href = data.url;
       } else {
         console.error("Failed to create checkout:", data.error);
-        setError(data.error || "Unable to start checkout. Please try again.");
         setIsLoading(false);
       }
     } catch (err) {
       console.error("Checkout error:", err);
-      setError("Connection error. Please try again.");
       setIsLoading(false);
     }
   };
@@ -163,13 +159,9 @@ export function CampaignBanner() {
             {formatTimeDisplay()}
           </span>
 
-          {/* Loading indicator, error, or arrow hint */}
+          {/* Loading indicator or arrow hint */}
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
-          ) : error ? (
-            <span className="text-xs text-red-200 bg-red-900/50 px-2 py-0.5 rounded whitespace-nowrap">
-              {error} ↻
-            </span>
           ) : (
             <span className="hidden lg:inline text-white/80">→</span>
           )}

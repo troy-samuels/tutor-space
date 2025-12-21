@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 import { computeFounderPrice } from "@/lib/pricing/founder";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
+
+const RETRYABLE_STRIPE_ERRORS = new Set([
+  "StripeAPIError",
+  "StripeConnectionError",
+  "StripeRateLimitError",
+]);
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
     const priceId = process.env.STRIPE_PRO_LIFETIME_PRICE_ID ?? process.env.STRIPE_LIFETIME_PRICE_ID;
     const usePriceId = price.currency.toLowerCase() === "gbp" && !!priceId;
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       // Use customer ID for authenticated users, otherwise Stripe collects email
       ...(customerId ? { customer: customerId } : {}),
       mode: "payment",
@@ -105,7 +114,46 @@ export async function POST(request: NextRequest) {
         plan: "tutor_life",
         source: trackingSource,
       },
-    });
+    } as const;
+
+    const idempotencyKey = `lifetime:${user?.id ?? "guest"}:${randomUUID()}`;
+    const maxAttempts = 3;
+    let session;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey,
+        });
+        break;
+      } catch (err) {
+        const error = err as { type?: string; code?: string; message?: string };
+        const isRetryable =
+          (error.type && RETRYABLE_STRIPE_ERRORS.has(error.type)) ||
+          error.code === "ECONNRESET" ||
+          error.code === "ETIMEDOUT" ||
+          Boolean(error.message?.toLowerCase().includes("request was retried")) ||
+          Boolean(error.message?.toLowerCase().includes("connection"));
+
+        if (!isRetryable || attempt === maxAttempts) {
+          throw err;
+        }
+
+        const delayMs = 250 * Math.pow(2, attempt - 1);
+        console.warn("[Stripe] Lifetime checkout retrying", {
+          attempt,
+          delayMs,
+          type: error.type,
+          code: error.code,
+          message: error.message,
+        });
+        await sleep(delayMs);
+      }
+    }
+
+    if (!session?.url) {
+      throw new Error("Stripe checkout session URL missing.");
+    }
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
