@@ -2,8 +2,8 @@ import Stripe from "stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 // IMPORTANT: Hardcoded to stable Stripe API version - do NOT use env override
-// The version 2025-12-15.clover causes connection errors, use 2024-12-18.acacia
-const stripeApiVersion = "2024-12-18.acacia";
+// Valid versions: 2024-09-30.acacia, 2024-10-28.acacia, 2024-11-20.acacia
+const stripeApiVersion = "2024-11-20.acacia";
 
 if (!stripeSecretKey) {
   console.warn(
