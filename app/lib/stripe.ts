@@ -13,8 +13,19 @@ if (!stripeSecretKey) {
 const stripeClient = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
       typescript: true,
+      // Enable HTTP keep-alive for connection reuse
+      httpClient: Stripe.createNodeHttpClient(),
     })
   : null;
+
+// Warm up Stripe connection pool on module load
+// This establishes the TCP connection early, reducing first-call latency
+if (stripeClient && typeof window === "undefined") {
+  // Only warm up on server-side (not in browser)
+  stripeClient.balance.retrieve().catch(() => {
+    // Silent fail - connection warming is best-effort
+  });
+}
 
 const missingStripeError = () =>
   new Error(
