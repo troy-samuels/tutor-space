@@ -21,28 +21,35 @@ export async function POST(request: NextRequest) {
     const keySet = !!process.env.STRIPE_SECRET_KEY;
     const keyPrefix = process.env.STRIPE_SECRET_KEY?.substring(0, 7) || "not-set";
 
+    // Try direct fetch to Stripe to bypass SDK issues
     try {
-      await stripe.balance.retrieve();
-    } catch (balanceErr) {
-      const e = balanceErr as { type?: string; message?: string; statusCode?: number; rawType?: string };
-      console.error("[Stripe] Balance check failed:", {
-        type: e.type,
-        rawType: e.rawType,
-        message: e.message,
-        statusCode: e.statusCode,
-        keySet,
-        keyPrefix
+      const testResponse = await fetch("https://api.stripe.com/v1/balance", {
+        headers: {
+          "Authorization": `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        }
       });
-
+      if (!testResponse.ok) {
+        const errorText = await testResponse.text();
+        return NextResponse.json({
+          error: "Stripe API error",
+          debug: {
+            status: testResponse.status,
+            body: errorText.substring(0, 200),
+            keyPrefix,
+            version: "v5-fetch"
+          }
+        }, { status: 500 });
+      }
+    } catch (fetchErr) {
+      const e = fetchErr as Error;
       return NextResponse.json({
-        error: e.message || "Stripe connection failed",
+        error: e.message || "Network error to Stripe",
         debug: {
-          type: e.type,
-          rawType: e.rawType,
-          statusCode: e.statusCode,
-          keySet,
+          name: e.name,
+          message: e.message,
           keyPrefix,
-          version: "v4"
+          version: "v5-fetch"
         }
       }, { status: 500 });
     }
