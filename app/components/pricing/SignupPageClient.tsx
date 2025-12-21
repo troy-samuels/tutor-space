@@ -7,11 +7,13 @@ import { SignupForm } from "@/components/forms/signup-form";
 
 type SignupPageClientProps = {
   checkoutCancelled?: boolean;
+  initialTier?: PlanTier;
+  initialBilling?: BillingCycle;
 };
 
-export function SignupPageClient({ checkoutCancelled }: SignupPageClientProps) {
-  const [tier, setTier] = useState<PlanTier>("pro");
-  const [billing, setBilling] = useState<BillingCycle>("monthly");
+export function SignupPageClient({ checkoutCancelled, initialTier, initialBilling }: SignupPageClientProps) {
+  const [tier, setTier] = useState<PlanTier>(initialTier ?? "pro");
+  const [billing, setBilling] = useState<BillingCycle>(initialBilling ?? "monthly");
   const [showCancelledBanner, setShowCancelledBanner] = useState(checkoutCancelled ?? false);
 
   return (

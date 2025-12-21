@@ -17,6 +17,8 @@ export default async function TutorSignupPage({
 }) {
   const params = await searchParams;
   const checkoutCancelled = params.checkout === "cancelled";
+  const initialTier = params.tier === "studio" ? "studio" : "pro";
+  const initialBilling = params.billing === "annual" ? "annual" : "monthly";
   const t = await getTranslations("tutorSignupPage");
 
   return (
@@ -38,7 +40,11 @@ export default async function TutorSignupPage({
           <p className="mt-2 text-base text-muted-foreground">{t("subtitle")}</p>
         </header>
 
-        <SignupPageClient checkoutCancelled={checkoutCancelled} />
+        <SignupPageClient
+          checkoutCancelled={checkoutCancelled}
+          initialTier={initialTier}
+          initialBilling={initialBilling}
+        />
       </div>
     </div>
   );

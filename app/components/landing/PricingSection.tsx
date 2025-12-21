@@ -136,7 +136,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                 {/* CTA */}
                 <div className="mt-6 sm:mt-8">
                   <Link
-                    href="/signup"
+                    href={`/signup?tier=${tier.name.toLowerCase()}&billing=${billingCycle}`}
                     className={cn(
                       "block rounded-md px-5 sm:px-6 py-2.5 sm:py-3 text-center text-sm sm:text-base font-semibold shadow-sm transition-all",
                       tier.highlighted
