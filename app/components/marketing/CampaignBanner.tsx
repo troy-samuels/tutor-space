@@ -10,8 +10,8 @@ import { useCampaignTimer } from "@/lib/hooks/useCampaignTimer";
 // ============================================
 // Format: ISO 8601 with Z suffix for UTC
 export const CAMPAIGN_CONFIG = {
-  startDate: "2025-12-15T09:00:00Z", // Monday Dec 15, 09:00 AM UTC
-  endDate: "2025-12-22T18:00:00Z", // Sunday Dec 22, 18:00 PM UTC (7 days)
+  startDate: "2025-12-21T18:20:10Z", // Live now
+  endDate: "2025-12-31T23:59:59Z", // Dec 31, 23:59:59 UTC
 } as const;
 
 // Launch offer configuration
@@ -63,7 +63,7 @@ export function CampaignBanner() {
 
   // Handle banner click - trigger checkout directly
   const handleBannerClick = async () => {
-    if (isLoading || phase !== "LIVE") return;
+    if (isLoading) return;
 
     setIsLoading(true);
     setError(null);
@@ -130,7 +130,7 @@ export function CampaignBanner() {
       animate={{ opacity: 1, y: 0 }}
       className={`w-full bg-amber-600 hover:bg-amber-500 transition-colors duration-200 cursor-pointer text-white ${
         isLoading ? "pointer-events-none opacity-75" : ""
-      } ${isUpcoming ? "cursor-not-allowed opacity-75" : ""}`}
+      }`}
     >
       <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 h-10">
         <div className="flex h-full items-center justify-center gap-2 sm:gap-3 md:gap-4">
