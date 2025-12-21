@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
-import confetti from "canvas-confetti";
 
 const initialState: AuthActionState = { error: undefined, success: undefined };
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
@@ -26,24 +25,13 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
     initialState
   );
   const [showPassword, setShowPassword] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const router = useRouter();
 
-  // Handle success celebration and redirect
+  // Handle success redirect (immediate)
   useEffect(() => {
-    const redirectTo = state?.redirectTo;
-    if (redirectTo) {
-      setShowCelebration(true);
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-      });
-      const timer = setTimeout(() => {
-        router.replace(redirectTo);
-      }, 1500);
-      return () => clearTimeout(timer);
+    if (state?.redirectTo) {
+      router.replace(state.redirectTo);
     }
   }, [state?.redirectTo, router]);
 
@@ -472,25 +460,12 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
       <button
         type="submit"
         className="w-full h-12 rounded-full bg-primary px-4 text-base font-medium text-primary-foreground shadow-lg shadow-primary/20 transition hover:scale-[1.01] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-        disabled={Boolean(state?.success) || isPending || showCelebration}
+        disabled={Boolean(state?.success) || isPending}
       >
         {isPending ? "Creating..." : "Start Free Trial"}
       </button>
 
       </form>
-
-      {showCelebration && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/90 rounded-xl animate-in fade-in duration-300">
-          <div className="flex flex-col items-center gap-3 animate-in zoom-in-50 duration-300">
-            <span className="text-6xl" role="img" aria-label="celebration">
-              🎉
-            </span>
-            <p className="text-lg font-semibold text-foreground">
-              Welcome aboard!
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
