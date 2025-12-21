@@ -5,7 +5,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: path.resolve(process.cwd(), ".."),
+  // outputFileTracingRoot only needed for monorepo setups - disabled for Vercel deployment
+  // outputFileTracingRoot: path.resolve(process.cwd(), ".."),
   // Remove X-Powered-By header (security best practice)
   poweredByHeader: false,
   experimental: {

@@ -24,9 +24,6 @@ type OnboardingProfile = {
 
 type OnboardingTimelineProps = {
   profile: OnboardingProfile;
-  subscriptionSuccess?: boolean;
-  stripeReturn?: boolean;
-  stripeRefresh?: boolean;
 };
 
 const STEPS = [
@@ -69,42 +66,53 @@ const STEPS = [
 
 export function OnboardingTimeline({
   profile,
-  subscriptionSuccess,
-  stripeReturn,
-  stripeRefresh,
 }: OnboardingTimelineProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
   const [saveError, setSaveError] = useState<{ step: number; message: string } | null>(null);
-  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(subscriptionSuccess ?? false);
-  const [showStripeReturnBanner, setShowStripeReturnBanner] = useState(stripeReturn ?? false);
+  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
+  const [showStripeReturnBanner, setShowStripeReturnBanner] = useState(false);
+  const [stripeRefresh, setStripeRefresh] = useState(false);
 
-  // Handle return from Stripe Connect onboarding
+  // Read URL params after mount to avoid hydration issues with useSearchParams
   useEffect(() => {
-    if (stripeReturn || stripeRefresh) {
-      // Jump to step 7 (payments)
-      setCurrentStep(7);
+    const params = new URLSearchParams(window.location.search);
+    const subscriptionSuccess = params.get("subscription") === "success";
+    const stripeReturnParam = params.get("stripe_return") === "1";
+    const stripeRefreshParam = params.get("stripe_refresh") === "1";
 
-      // Refresh Stripe status from server
+    if (stripeReturnParam || stripeRefreshParam) {
+      setCurrentStep(7);
       fetch("/api/stripe/connect/status", { method: "POST" })
         .catch(err => console.error("Failed to refresh Stripe status:", err));
-
-      // Auto-dismiss banner after 8 seconds
-      if (stripeReturn) {
-        const timer = setTimeout(() => setShowStripeReturnBanner(false), 8000);
-        return () => clearTimeout(timer);
-      }
     }
-  }, [stripeReturn, stripeRefresh]);
+    if (stripeReturnParam) {
+      setShowStripeReturnBanner(true);
+    }
+    if (stripeRefreshParam) {
+      setStripeRefresh(true);
+    }
+    if (subscriptionSuccess) {
+      setShowSubscriptionBanner(true);
+    }
+  }, []);
+
+  // Auto-dismiss Stripe return banner after 8 seconds
+  useEffect(() => {
+    if (!showStripeReturnBanner) return;
+
+    const timer = setTimeout(() => setShowStripeReturnBanner(false), 8000);
+    return () => clearTimeout(timer);
+  }, [showStripeReturnBanner]);
 
   // Auto-dismiss subscription success banner after 8 seconds
   useEffect(() => {
-    if (showSubscriptionBanner) {
-      const timer = setTimeout(() => setShowSubscriptionBanner(false), 8000);
-      return () => clearTimeout(timer);
-    }
+    if (!showSubscriptionBanner) return;
+
+    const timer = setTimeout(() => setShowSubscriptionBanner(false), 8000);
+    return () => clearTimeout(timer);
   }, [showSubscriptionBanner]);
 
   // Callback for step components to report background save errors
@@ -305,7 +313,7 @@ export function OnboardingTimeline({
       )}
 
       {/* Stripe refresh banner (user needs to re-enter info) */}
-      {stripeRefresh && !stripeReturn && (
+      {stripeRefresh && !showStripeReturnBanner && (
         <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 animate-in slide-in-from-top-2">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
