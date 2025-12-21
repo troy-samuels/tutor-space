@@ -1,59 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
-import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
-import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 import { computeFounderPrice } from "@/lib/pricing/founder";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
 
-const RETRYABLE_STRIPE_ERRORS = new Set([
-  "StripeAPIError",
-  "StripeConnectionError",
-  "StripeRateLimitError",
-]);
+// Helper to create Stripe checkout session via direct fetch (bypasses SDK issues)
+async function createStripeCheckoutSession(params: {
+  customerId?: string;
+  successUrl: string;
+  cancelUrl: string;
+  currency: string;
+  amountCents: number;
+  productName: string;
+  metadata: Record<string, string>;
+}): Promise<{ url: string } | { error: string }> {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    return { error: "Stripe not configured" };
+  }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const body = new URLSearchParams();
+  body.append("mode", "payment");
+  body.append("success_url", params.successUrl);
+  body.append("cancel_url", params.cancelUrl);
+  body.append("line_items[0][price_data][currency]", params.currency);
+  body.append("line_items[0][price_data][unit_amount]", String(params.amountCents));
+  body.append("line_items[0][price_data][product_data][name]", params.productName);
+  body.append("line_items[0][quantity]", "1");
+
+  if (params.customerId) {
+    body.append("customer", params.customerId);
+  }
+
+  Object.entries(params.metadata).forEach(([key, value]) => {
+    body.append(`metadata[${key}]`, value);
+  });
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${stripeKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    return { error: data.error?.message || "Stripe checkout failed" };
+  }
+
+  return { url: data.url };
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Diagnostic v4: Check Stripe key and connectivity
-    const keySet = !!process.env.STRIPE_SECRET_KEY;
-    const keyPrefix = process.env.STRIPE_SECRET_KEY?.substring(0, 7) || "not-set";
-
-    // Try direct fetch to Stripe to bypass SDK issues
-    try {
-      const testResponse = await fetch("https://api.stripe.com/v1/balance", {
-        headers: {
-          "Authorization": `Bearer ${process.env.STRIPE_SECRET_KEY}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        }
-      });
-      if (!testResponse.ok) {
-        const errorText = await testResponse.text();
-        return NextResponse.json({
-          error: "Stripe API error",
-          debug: {
-            status: testResponse.status,
-            body: errorText.substring(0, 200),
-            keyPrefix,
-            version: "v5-fetch"
-          }
-        }, { status: 500 });
-      }
-    } catch (fetchErr) {
-      const e = fetchErr as Error;
-      return NextResponse.json({
-        error: e.message || "Network error to Stripe",
-        debug: {
-          name: e.name,
-          message: e.message,
-          keyPrefix,
-          version: "v5-fetch"
-        }
-      }, { status: 500 });
-    }
-
     const supabase = await createClient();
     const supabaseAdmin = createServiceRoleClient();
 
@@ -101,112 +103,29 @@ export async function POST(request: NextRequest) {
       ? `${appUrl.replace(/\/$/, "")}/dashboard?checkout=cancel`
       : `${appUrl.replace(/\/$/, "")}/lifetime`;
 
-    // For authenticated users, get/create Stripe customer
-    // For guests, Stripe will collect email during checkout
-    let customerId: string | undefined;
-    if (user) {
-      const customer = await getOrCreateStripeCustomer({
-        userId: user.id,
-        email: user.email ?? "",
-        name: (user.user_metadata?.full_name as string | undefined) ?? undefined,
-        metadata: {
-          profileId: user.id,
-        },
-      });
-      customerId = customer.id;
-    }
-
-    // Prefer the Pro lifetime price ID; keep STRIPE_LIFETIME_PRICE_ID as a deprecated alias.
-    const priceId = process.env.STRIPE_PRO_LIFETIME_PRICE_ID ?? process.env.STRIPE_LIFETIME_PRICE_ID;
-    const usePriceId = price.currency.toLowerCase() === "gbp" && !!priceId;
-
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      // Use customer ID for authenticated users, otherwise Stripe collects email
-      ...(customerId ? { customer: customerId } : {}),
-      mode: "payment",
-      allow_promotion_codes: false,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      line_items: usePriceId
-        ? [
-            {
-              price: priceId,
-              quantity: 1,
-            },
-          ]
-        : [
-            {
-              price_data: {
-                currency: price.currency.toLowerCase(),
-                product_data: {
-                  name: "TutorLingua lifetime access",
-                  description: "One-time payment for lifetime platform access.",
-                },
-                unit_amount: price.amountCents,
-              },
-              quantity: 1,
-            },
-          ],
+    // Create checkout session using direct fetch (bypasses Stripe SDK issues)
+    const result = await createStripeCheckoutSession({
+      successUrl,
+      cancelUrl,
+      currency: price.currency.toLowerCase(),
+      amountCents: price.amountCents,
+      productName: "TutorLingua Lifetime Access",
       metadata: {
         userId: user?.id ?? "",
         plan: "tutor_life",
         source: trackingSource,
       },
-    };
-
-    const idempotencyKey = `lifetime:${user?.id ?? "guest"}:${randomUUID()}`;
-    const maxAttempts = 3;
-    let session;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        session = await stripe.checkout.sessions.create(sessionParams, {
-          idempotencyKey,
-        });
-        break;
-      } catch (err) {
-        const error = err as { type?: string; code?: string; message?: string };
-        const isRetryable =
-          (error.type && RETRYABLE_STRIPE_ERRORS.has(error.type)) ||
-          error.code === "ECONNRESET" ||
-          error.code === "ETIMEDOUT" ||
-          Boolean(error.message?.toLowerCase().includes("request was retried")) ||
-          Boolean(error.message?.toLowerCase().includes("connection"));
-
-        if (!isRetryable || attempt === maxAttempts) {
-          throw err;
-        }
-
-        const delayMs = 250 * Math.pow(2, attempt - 1);
-        console.warn("[Stripe] Lifetime checkout retrying", {
-          attempt,
-          delayMs,
-          type: error.type,
-          code: error.code,
-          message: error.message,
-        });
-        await sleep(delayMs);
-      }
-    }
-
-    if (!session?.url) {
-      throw new Error("Stripe checkout session URL missing.");
-    }
-
-    return NextResponse.json({ url: session.url });
-  } catch (error) {
-    const err = error as { type?: string; code?: string; message?: string; statusCode?: number };
-    const errorMessage = err.message || "Unknown error";
-    console.error("[Stripe] Lifetime checkout error (v2):", {
-      message: errorMessage,
-      type: err.type,
-      code: err.code,
-      statusCode: err.statusCode,
-      stack: error instanceof Error ? error.stack : undefined,
     });
-    return NextResponse.json({
-      error: errorMessage,
-      debug: { type: err.type, code: err.code, version: "v2" }
-    }, { status: 500 });
+
+    if ("error" in result) {
+      console.error("[Stripe] Checkout creation failed:", result.error);
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: result.url });
+  } catch (error) {
+    const err = error as Error;
+    console.error("[Stripe] Lifetime checkout error:", err.message);
+    return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
   }
 }
