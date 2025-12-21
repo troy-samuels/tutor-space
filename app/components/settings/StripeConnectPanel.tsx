@@ -99,7 +99,7 @@ export default function StripeConnectPanel(props: Props) {
   const ready = connected && status.chargesEnabled && status.payoutsEnabled && status.onboardingStatus === "completed";
 
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-lg border border-stone-200 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Stripe Connect</h3>
         <div className="flex gap-2">
@@ -123,7 +123,7 @@ export default function StripeConnectPanel(props: Props) {
       </p>
       <div className="flex flex-wrap gap-2">
         {!connected && (
-          <button className="inline-flex h-9 items-center rounded-md bg-black px-3 text-white hover:bg-black/90" onClick={connectStripe} disabled={busy}>
+          <button className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-white hover:bg-primary/90" onClick={connectStripe} disabled={busy}>
             Connect Stripe
           </button>
         )}

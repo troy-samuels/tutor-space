@@ -49,7 +49,7 @@ export default function PaymentSettingsForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="bg-white border border-stone-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold mb-4">Payment Settings</h2>
         <p className="text-sm text-gray-600 mb-6">
           Stripe Connect is required to accept payments.
@@ -73,7 +73,7 @@ export default function PaymentSettingsForm({
                   booking_currency: e.target.value,
                 })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
             >
               <option value="USD">USD — $ (United States)</option>
               <option value="EUR">EUR — € (Eurozone)</option>
@@ -112,7 +112,7 @@ export default function PaymentSettingsForm({
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
         >
           {isPending ? "Saving..." : "Save Payment Settings"}
         </button>

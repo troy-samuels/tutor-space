@@ -23,19 +23,19 @@ export function UpcomingSessions({ sessions, className }: UpcomingSessionsProps)
   const hasSessions = sessions.length > 0;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-5", className)}>
       <div className="flex items-center justify-between">
-        <p className="text-base font-semibold text-foreground">Today &amp; Tomorrow</p>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Today & Tomorrow</h3>
         <Button asChild size="sm" variant="ghost">
           <Link href="/bookings">View all</Link>
         </Button>
       </div>
       {hasSessions ? (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {sessions.map((session) => (
             <li
               key={session.id}
-              className="rounded-xl border border-stone-100 bg-white p-3 shadow-sm"
+              className="rounded-xl border border-stone-200 bg-white p-5 transition-colors hover:border-primary/30"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -46,7 +46,7 @@ export function UpcomingSessions({ sessions, className }: UpcomingSessionsProps)
                     {session.serviceName ?? "Service pending confirmation"}
                   </p>
                 </div>
-                <Button size="icon" variant="ghost" className="text-primary">
+                <Button size="icon" variant="ghost" className="text-primary/70 hover:text-primary hover:bg-primary/5">
                   <Video className="h-4 w-4" />
                   <span className="sr-only">Join session</span>
                 </Button>
@@ -67,7 +67,7 @@ export function UpcomingSessions({ sessions, className }: UpcomingSessionsProps)
           ))}
         </ul>
       ) : (
-        <div className="rounded-xl border border-dashed border-stone-200 bg-white p-6 text-center shadow-sm">
+        <div className="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center">
           <CalendarDays className="mx-auto h-6 w-6 text-muted-foreground" />
           <p className="mt-3 text-sm font-medium">No sessions scheduled</p>
           <p className="text-xs text-muted-foreground">
@@ -90,7 +90,7 @@ UpcomingSessions.Skeleton = function UpcomingSessionsSkeleton({
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between">
-        <p className="text-base font-semibold text-foreground">Today &amp; Tomorrow</p>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Today & Tomorrow</h3>
         <div className="h-5 w-10 rounded bg-muted/30" />
       </div>
       <div className="space-y-3">

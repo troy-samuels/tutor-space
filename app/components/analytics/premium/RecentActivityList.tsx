@@ -9,7 +9,6 @@ import {
   Activity,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import type { RecentActivityItem } from "@/lib/types/analytics-premium";
 
 interface RecentActivityListProps {
@@ -55,14 +54,14 @@ export function RecentActivityList({
   // Empty state
   if (data.length === 0) {
     return (
-      <Card className="min-h-[120px] rounded-3xl border border-stone-100 bg-white shadow-sm">
+      <Card className="min-h-[120px] rounded-2xl border border-stone-100 bg-white shadow-sm sm:rounded-3xl">
         <CardHeader className="px-5 pt-5 pb-3">
           <CardTitle className="text-sm font-semibold tracking-tight text-muted-foreground">
             Recent Activity
           </CardTitle>
         </CardHeader>
         <CardContent className="mt-0 flex flex-col items-center gap-3 px-5 pb-6 text-center">
-          <div className="rounded-full bg-muted/50 p-3">
+          <div className="rounded-full bg-stone-100 p-3">
             <Activity className="h-4 w-4 text-stone-200" />
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
@@ -103,9 +102,9 @@ export function RecentActivityList({
   };
 
   return (
-    <Card className="min-h-[120px] rounded-[24px] border border-border/50 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-lg backdrop-blur">
+    <Card className="min-h-[120px] rounded-2xl border border-stone-200 bg-white sm:rounded-3xl">
       <CardHeader className="px-5 pt-5 pb-3">
-        <CardTitle className="text-sm font-semibold tracking-tight text-muted-foreground">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Recent Activity
         </CardTitle>
       </CardHeader>
@@ -117,13 +116,9 @@ export function RecentActivityList({
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-muted/40"
+                className="flex items-center gap-4 rounded-xl px-4 py-4 transition-colors hover:bg-stone-50"
               >
-                <div
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary"
-                  )}
-                >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-primary">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">

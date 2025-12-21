@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     siteName: "TutorLingua",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.png?v=2",
         width: 1200,
         height: 630,
         alt: "TutorLingua – Platform for Language Tutors",
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     title: "TutorLingua – The operating system for language tutors",
     description:
       "Run your tutoring business from one tab with TutorLingua: branded site, bookings, payments, CRM, and AI assistance.",
-    images: ["/og-image.png"],
+    images: ["/og-image.png?v=2"],
     creator: "@tutorlingua.co",
   },
   robots: {

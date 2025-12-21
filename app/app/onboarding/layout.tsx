@@ -26,6 +26,10 @@ export default async function OnboardingLayout({
     .eq("id", user.id)
     .single();
 
+  if (profile?.role && profile.role !== "tutor") {
+    redirect("/student/login");
+  }
+
   const plan: PlatformBillingPlan =
     (profile?.plan as PlatformBillingPlan | null) ?? "professional";
   const entitlements = {

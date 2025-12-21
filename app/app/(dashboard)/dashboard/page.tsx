@@ -10,7 +10,6 @@ import { UpcomingSessions, type UpcomingSession } from "@/components/dashboard/u
 import { RecentActivityList } from "@/components/analytics/premium/RecentActivityList";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { STUDIO_FEATURES } from "@/components/studio/StudioFeatureInfo";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import { TrialExpiredBanner } from "@/components/billing/TrialExpiredBanner";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
@@ -135,7 +134,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-8 sm:space-y-10">
       {showTrialBanner && trialPlan && (
         <TrialExpiredBanner
           trialPlan={trialPlan}
@@ -143,11 +142,11 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="pb-4 sm:pb-8">
+      <div className="pb-6 sm:pb-10">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {formatDate(new Date())}
         </p>
-        <h1 className="font-serif text-3xl text-foreground sm:text-5xl">
+        <h1 className="font-sans text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Good morning, {displayName}.
         </h1>
         <p className="mt-2 text-base font-sans text-muted-foreground sm:text-lg">
@@ -162,19 +161,19 @@ export default async function DashboardPage() {
         revenueThisMonthCents={revenueThisMonth}
       />
 
-      <div className="grid items-start gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-7 min-h-[180px] rounded-2xl border border-stone-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:rounded-3xl sm:p-8">
+      <div className="grid items-start gap-8 xl:grid-cols-12">
+        <div className="xl:col-span-7 min-h-[180px] rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl sm:p-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-            <Avatar className="h-14 w-14 rounded-2xl bg-stone-100 sm:h-20 sm:w-20">
-              <AvatarFallback className="rounded-2xl text-xl text-primary">
+            <Avatar className="h-16 w-16 rounded-2xl border border-stone-200 bg-stone-50 sm:h-24 sm:w-24">
+              <AvatarFallback className="rounded-2xl text-xl font-semibold text-primary">
                 {getInitials(nextBooking?.student?.full_name)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-2">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-400">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70">
                 Up next
               </p>
-              <p className="mb-2 font-serif text-2xl text-foreground sm:text-3xl">
+              <p className="mb-2 text-2xl font-semibold text-foreground sm:text-3xl">
                 {nextBooking?.student?.full_name ?? "Your next student"}
               </p>
               <p className="text-base text-muted-foreground">
@@ -221,53 +220,20 @@ export default async function DashboardPage() {
       </div>
 
       {showStudioDiscovery && (
-        <section className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 p-6 sm:rounded-3xl sm:p-8">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                <Sparkles className="h-5 w-5 text-purple-500" />
-                Unlock Studio Intelligence
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">
-                Take your tutoring to the next level with AI-powered tools.
-              </p>
-            </div>
-            <Link
-              href="/settings/billing?upgrade=studio"
-              className="hidden text-sm font-medium text-purple-600 hover:text-purple-800 sm:inline-flex sm:items-center sm:gap-1"
-            >
-              View all features
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+        <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-5 py-4">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm text-muted-foreground">
+              Unlock AI-powered tools with <span className="font-medium text-foreground">Studio</span>
+            </span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {STUDIO_FEATURES.slice(0, 3).map((feature) => (
-              <div
-                key={feature.id}
-                className="relative overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 transition-transform hover:scale-[1.02]"
-              >
-                <div className="mb-2 flex items-center gap-3">
-                  <div className="rounded-lg bg-purple-100 p-2">
-                    <feature.icon className="h-5 w-5 text-purple-600" />
-                  </div>
-                </div>
-                <h4 className="font-semibold text-gray-900">{feature.title}</h4>
-                <p className="mt-1 line-clamp-2 text-sm text-gray-600">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 text-center sm:hidden">
-            <Link
-              href="/settings/billing?upgrade=studio"
-              className="inline-flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-purple-700"
-            >
-              <Sparkles className="h-4 w-4" />
-              Upgrade to Studio
-            </Link>
-          </div>
-        </section>
+          <Link
+            href="/settings/billing?upgrade=studio"
+            className="text-sm font-medium text-primary hover:text-primary/80"
+          >
+            Learn more
+          </Link>
+        </div>
       )}
 
       <DashboardBookingCalendarSlot signupDate={profile?.created_at ?? null} />

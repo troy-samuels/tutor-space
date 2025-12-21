@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripeApiVersion = process.env.STRIPE_API_VERSION || "2024-10-17";
+const stripeApiVersion = process.env.STRIPE_API_VERSION || "2025-12-15.clover";
 
 if (!stripeSecretKey) {
   console.warn(
