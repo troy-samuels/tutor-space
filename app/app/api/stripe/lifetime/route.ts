@@ -104,6 +104,8 @@ export async function POST(request: NextRequest) {
       : `${appUrl.replace(/\/$/, "")}/lifetime`;
 
     // Create checkout session using direct fetch (bypasses Stripe SDK issues)
+    console.log("[Stripe] Creating checkout with URLs:", { successUrl, cancelUrl, appUrl });
+
     const result = await createStripeCheckoutSession({
       successUrl,
       cancelUrl,
@@ -118,8 +120,11 @@ export async function POST(request: NextRequest) {
     });
 
     if ("error" in result) {
-      console.error("[Stripe] Checkout creation failed:", result.error);
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      console.error("[Stripe] Checkout creation failed:", result.error, { successUrl, cancelUrl });
+      return NextResponse.json({
+        error: result.error,
+        debug: { successUrl, cancelUrl }
+      }, { status: 500 });
     }
 
     return NextResponse.json({ url: result.url });
