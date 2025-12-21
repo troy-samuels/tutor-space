@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("[Stripe] Lifetime checkout error", error);
-    return NextResponse.json({ error: "Unable to start checkout" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("[Stripe] Lifetime checkout error:", errorMessage, error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
