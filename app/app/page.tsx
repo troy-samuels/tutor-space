@@ -17,6 +17,7 @@ import { ValueStackSection } from "@/components/landing/ValueStackSection";
 import { FinalCTASection } from "@/components/landing/FinalCTASection";
 import { Footer } from "@/components/landing/Footer";
 import { StructuredData } from "@/components/landing/StructuredData";
+import { LandingPrefetch } from "@/components/landing/LandingPrefetch";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, ArrowDown, ArrowRight, BookOpen, CheckCircle2 } from "lucide-react";
 
@@ -52,6 +53,7 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-brand-white">
       <StructuredData faq={copy.faq} />
+      <LandingPrefetch />
       {/* User reaching this point is definitively NOT authenticated (redirected otherwise).
           Pass isAuthenticated={false} to skip loading state entirely. */}
       <Navigation navigation={copy.navigation} isAuthenticated={false} />
