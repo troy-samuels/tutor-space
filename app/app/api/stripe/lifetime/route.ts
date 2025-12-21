@@ -17,26 +17,34 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: NextRequest) {
   try {
-    // Diagnostic: Check Stripe connectivity first
+    // Diagnostic v4: Check Stripe key and connectivity
+    const keySet = !!process.env.STRIPE_SECRET_KEY;
+    const keyPrefix = process.env.STRIPE_SECRET_KEY?.substring(0, 7) || "not-set";
+
     try {
       await stripe.balance.retrieve();
     } catch (balanceErr) {
-      const e = balanceErr as { type?: string; message?: string; statusCode?: number };
-      console.error("[Stripe] Balance check failed:", { type: e.type, message: e.message, statusCode: e.statusCode });
-      // If it's an auth error, the key is invalid
-      if (e.type === "StripeAuthenticationError" || e.statusCode === 401) {
-        return NextResponse.json({
-          error: "Stripe API key is invalid or not configured correctly",
-          debug: { type: e.type, statusCode: e.statusCode, version: "v3" }
-        }, { status: 500 });
-      }
-      // For connection errors, let's try a simpler call
-      if (e.type === "StripeConnectionError") {
-        return NextResponse.json({
-          error: "Cannot connect to Stripe API - please check API key and network",
-          debug: { type: e.type, version: "v3" }
-        }, { status: 500 });
-      }
+      const e = balanceErr as { type?: string; message?: string; statusCode?: number; rawType?: string };
+      console.error("[Stripe] Balance check failed:", {
+        type: e.type,
+        rawType: e.rawType,
+        message: e.message,
+        statusCode: e.statusCode,
+        keySet,
+        keyPrefix
+      });
+
+      return NextResponse.json({
+        error: e.message || "Stripe connection failed",
+        debug: {
+          type: e.type,
+          rawType: e.rawType,
+          statusCode: e.statusCode,
+          keySet,
+          keyPrefix,
+          version: "v4"
+        }
+      }, { status: 500 });
     }
 
     const supabase = await createClient();
