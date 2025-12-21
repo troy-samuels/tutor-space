@@ -17,6 +17,28 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: NextRequest) {
   try {
+    // Diagnostic: Check Stripe connectivity first
+    try {
+      await stripe.balance.retrieve();
+    } catch (balanceErr) {
+      const e = balanceErr as { type?: string; message?: string; statusCode?: number };
+      console.error("[Stripe] Balance check failed:", { type: e.type, message: e.message, statusCode: e.statusCode });
+      // If it's an auth error, the key is invalid
+      if (e.type === "StripeAuthenticationError" || e.statusCode === 401) {
+        return NextResponse.json({
+          error: "Stripe API key is invalid or not configured correctly",
+          debug: { type: e.type, statusCode: e.statusCode, version: "v3" }
+        }, { status: 500 });
+      }
+      // For connection errors, let's try a simpler call
+      if (e.type === "StripeConnectionError") {
+        return NextResponse.json({
+          error: "Cannot connect to Stripe API - please check API key and network",
+          debug: { type: e.type, version: "v3" }
+        }, { status: 500 });
+      }
+    }
+
     const supabase = await createClient();
     const supabaseAdmin = createServiceRoleClient();
 
