@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ReadingProgress } from "@/components/blog/ReadingProgress";
+import { CopyLinkButton } from "@/components/blog/CopyLinkButton";
 import {
   getBlogPost,
   getAllBlogPosts,
@@ -104,44 +106,7 @@ export default async function BlogPostPagePT({ params }: PageProps) {
           __html: JSON.stringify(breadcrumbSchema),
         }}
       />
-
-      {/* Reading Progress Bar */}
-      <div className="fixed top-16 left-0 right-0 z-30 h-1 bg-gray-100">
-        <div
-          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-150"
-          style={{ width: "0%" }}
-          id="reading-progress"
-        />
-      </div>
-
-      {/* Progress Bar Script */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              var progressBar = document.getElementById('reading-progress');
-              var article = document.querySelector('article');
-              if (!progressBar || !article) return;
-
-              function updateProgress() {
-                var articleTop = article.offsetTop;
-                var articleHeight = article.offsetHeight;
-                var windowHeight = window.innerHeight;
-                var scrollY = window.scrollY;
-
-                var progress = Math.min(100, Math.max(0,
-                  ((scrollY - articleTop + windowHeight * 0.3) / articleHeight) * 100
-                ));
-
-                progressBar.style.width = progress + '%';
-              }
-
-              window.addEventListener('scroll', updateProgress, { passive: true });
-              updateProgress();
-            })();
-          `,
-        }}
-      />
+      <ReadingProgress />
 
       {/* Article Header */}
       <header className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white">
@@ -347,17 +312,7 @@ export default async function BlogPostPagePT({ params }: PageProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </a>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${baseUrl}/pt/blog/${post.slug}`);
-                  }}
-                  className="flex items-center justify-center w-12 h-12 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-green-600 hover:border-green-200 hover:bg-green-50 transition-all shadow-sm"
-                  aria-label="Copiar link"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </button>
+                <CopyLinkButton url={`${baseUrl}/pt/blog/${post.slug}`} />
               </div>
             </div>
 

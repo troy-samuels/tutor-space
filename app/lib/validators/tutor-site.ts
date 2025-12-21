@@ -2,7 +2,21 @@ import { z } from "zod";
 
 // Core optional string with max length helper
 const optionalString = (max: number) => z.string().trim().max(max).optional().or(z.literal("").optional());
-const optionalUrl = () => z.string().url().optional().or(z.literal("").optional());
+const optionalUrl = () =>
+  z
+    .string()
+    .trim()
+    .refine((value) => {
+      if (value === "") return true;
+      if (value.startsWith("/")) return true;
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return false;
+      }
+    }, "Invalid URL")
+    .optional();
 
 // Hex color like #ffffff
 const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
@@ -26,16 +40,21 @@ const themeFont = z
   ])
   .optional();
 
-// Legacy palette IDs (deprecated, use archetypeId)
-const themePaletteId = z
-  .enum(["classic-ink", "ocean-trust", "warm-clay", "midnight-gold", "lavender-luxe"])
-  .optional();
-
 // Teaching Archetype IDs (Language Niche Edition)
 const themeArchetypeId = z
   .enum(["professional", "immersion", "academic", "polyglot", "artisan"])
   .optional();
 
+// Legacy palette IDs (deprecated, use archetypeId)
+const legacyPaletteId = z.enum([
+  "classic-ink",
+  "ocean-trust",
+  "warm-clay",
+  "midnight-gold",
+  "lavender-luxe",
+]);
+
+const themePaletteId = z.union([legacyPaletteId, themeArchetypeId]).optional();
 // Border radius options per archetype
 const themeBorderRadius = z.enum(["lg", "xl", "2xl", "3xl"]).optional();
 
@@ -158,6 +177,5 @@ export const tutorSiteDataSchema = z
   .strict();
 
 export type TutorSiteDataValidated = z.infer<typeof tutorSiteDataSchema>;
-
 
 

@@ -1,3 +1,5 @@
+"use client";
+
 import { Eye, EyeOff, FileArchive, FileText, Link as LinkIcon, MoreVertical, Trash2 } from "lucide-react";
 import type { DigitalProductRecord } from "@/lib/types/digital-product";
 import { formatCurrency } from "@/lib/utils";

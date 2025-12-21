@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import type { SophieMockData } from "../sophie-data";
 
@@ -23,7 +24,8 @@ export function MockupBookingCTA({ booking, theme }: MockupBookingCTAProps) {
       <p className="mt-2 text-sm text-white/80">{booking.subcopy}</p>
 
       {/* CTA Button */}
-      <button
+      <Link
+        href="/signup"
         className="mt-5 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-bold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
         style={{
           backgroundColor: "#ffffff",
@@ -32,7 +34,7 @@ export function MockupBookingCTA({ booking, theme }: MockupBookingCTAProps) {
       >
         <CalendarDays className="h-4 w-4" />
         {booking.ctaLabel}
-      </button>
+      </Link>
 
       {/* Trust text */}
       <p className="mt-4 text-xs text-white/60">

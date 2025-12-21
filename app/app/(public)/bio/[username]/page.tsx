@@ -6,6 +6,7 @@ import { Instagram, Mail, Music4, Facebook, Twitter } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { LinkRecord } from "@/lib/actions/links";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import { BioLinkList } from "@/components/bio/BioLinkList";
 
 type BioProfile = {
   id: string;
@@ -91,6 +92,12 @@ export default async function BioPage({ params }: { params: Promise<BioParams> }
     .order("sort_order", { ascending: true });
 
   const tutorLinks = (links as LinkRecord[] | null) ?? [];
+  const linkCards = tutorLinks.map((link) => ({
+    id: link.id,
+    url: link.url,
+    title: link.title,
+    button_style: link.button_style ?? "default",
+  }));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted via-muted/60 to-white">
@@ -159,24 +166,7 @@ export default async function BioPage({ params }: { params: Promise<BioParams> }
         </div>
 
         <section className="w-full max-w-xl space-y-4">
-          {tutorLinks.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-border bg-muted/50 px-5 py-6 text-center text-sm text-foreground">
-              This tutor is still adding resources. Check back soon, or tap book a lesson to connect directly.
-            </div>
-          ) : (
-            tutorLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackClick(link.id)}
-                className={buttonClass(link.button_style ?? "default")}
-              >
-                {link.title}
-              </a>
-            ))
-          )}
+          <BioLinkList links={linkCards} />
         </section>
 
         <section className="w-full max-w-xl">
@@ -200,18 +190,6 @@ export default async function BioPage({ params }: { params: Promise<BioParams> }
   );
 }
 
-function trackClick(linkId: string) {
-  if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
-    navigator.sendBeacon(`/api/links/${linkId}/click`);
-    return;
-  }
-
-  void fetch(`/api/links/${linkId}/click`, {
-    method: "POST",
-    keepalive: true,
-  });
-}
-
 function SocialLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <a
@@ -227,17 +205,4 @@ function SocialLink({ href, children }: { href: string; children: React.ReactNod
 
 function cleanHandle(handle: string) {
   return handle.startsWith("@") ? handle.slice(1) : handle;
-}
-
-function buttonClass(style: string) {
-  switch (style) {
-    case "primary":
-      return "block rounded-full bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90";
-    case "secondary":
-      return "block rounded-full bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/20";
-    case "outline":
-      return "block rounded-full border shadow-sm px-5 py-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/10";
-    default:
-      return "block rounded-full bg-white px-5 py-3 text-center text-sm font-semibold text-primary shadow-md transition hover:bg-primary/10";
-  }
 }

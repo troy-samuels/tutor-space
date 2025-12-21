@@ -276,7 +276,6 @@ export async function getPublicSiteData(username: string) {
     .from("tutor_site_reviews")
     .select("author_name, quote, rating, sort_order")
     .eq("tutor_site_id", siteRow.id)
-    .eq("status", "approved")
     .order("sort_order", { ascending: true });
 
   const nextSlot = await getNextAvailableSlot(profile.id, (profile as any).timezone || "UTC");
@@ -505,7 +504,11 @@ export async function createSite(data: TutorSiteData) {
       sort_order: index,
     }));
 
-    await supabase.from("tutor_site_services").insert(servicesInsert);
+    const { error: servicesError } = await supabase.from("tutor_site_services").insert(servicesInsert);
+    if (servicesError) {
+      track("site_create_error", { site_id: site.id, reason: servicesError.message });
+      return { error: "Failed to create site" };
+    }
   }
 
   // Insert reviews
@@ -517,7 +520,11 @@ export async function createSite(data: TutorSiteData) {
       sort_order: index,
     }));
 
-    await supabase.from("tutor_site_reviews").insert(reviewsInsert);
+    const { error: reviewsError } = await supabase.from("tutor_site_reviews").insert(reviewsInsert);
+    if (reviewsError) {
+      track("site_create_error", { site_id: site.id, reason: reviewsError.message });
+      return { error: "Failed to create site" };
+    }
   }
 
   // Insert resources
@@ -530,7 +537,11 @@ export async function createSite(data: TutorSiteData) {
       sort_order: index,
     }));
 
-    await supabase.from("tutor_site_resources").insert(resourcesInsert);
+    const { error: resourcesError } = await supabase.from("tutor_site_resources").insert(resourcesInsert);
+    if (resourcesError) {
+      track("site_create_error", { site_id: site.id, reason: resourcesError.message });
+      return { error: "Failed to create site" };
+    }
   }
 
   // Insert products
@@ -541,7 +552,11 @@ export async function createSite(data: TutorSiteData) {
       sort_order: index,
     }));
 
-    await supabase.from("tutor_site_products").insert(productsInsert);
+    const { error: productsError } = await supabase.from("tutor_site_products").insert(productsInsert);
+    if (productsError) {
+      track("site_create_error", { site_id: site.id, reason: productsError.message });
+      return { error: "Failed to create site" };
+    }
   }
 
   revalidatePath("/pages");
@@ -632,7 +647,14 @@ export async function updateSite(siteId: string, data: TutorSiteData) {
 
   // Update services - delete all and re-insert
   if (input.services !== undefined) {
-    await supabase.from("tutor_site_services").delete().eq("tutor_site_id", siteId);
+    const { error: servicesDeleteError } = await supabase
+      .from("tutor_site_services")
+      .delete()
+      .eq("tutor_site_id", siteId);
+    if (servicesDeleteError) {
+      track("site_update_error", { site_id: siteId, reason: servicesDeleteError.message });
+      return { error: "Failed to update site" };
+    }
 
     if (input.services.length > 0) {
       const servicesInsert = input.services.map((serviceId, index) => ({
@@ -641,13 +663,24 @@ export async function updateSite(siteId: string, data: TutorSiteData) {
         sort_order: index,
       }));
 
-      await supabase.from("tutor_site_services").insert(servicesInsert);
+      const { error: servicesError } = await supabase.from("tutor_site_services").insert(servicesInsert);
+      if (servicesError) {
+        track("site_update_error", { site_id: siteId, reason: servicesError.message });
+        return { error: "Failed to update site" };
+      }
     }
   }
 
   // Update reviews - delete all and re-insert
   if (input.reviews !== undefined) {
-    await supabase.from("tutor_site_reviews").delete().eq("tutor_site_id", siteId);
+    const { error: reviewsDeleteError } = await supabase
+      .from("tutor_site_reviews")
+      .delete()
+      .eq("tutor_site_id", siteId);
+    if (reviewsDeleteError) {
+      track("site_update_error", { site_id: siteId, reason: reviewsDeleteError.message });
+      return { error: "Failed to update site" };
+    }
 
     if (input.reviews.length > 0) {
       const reviewsInsert = input.reviews.map((review, index) => ({
@@ -657,13 +690,24 @@ export async function updateSite(siteId: string, data: TutorSiteData) {
         sort_order: index,
       }));
 
-      await supabase.from("tutor_site_reviews").insert(reviewsInsert);
+      const { error: reviewsError } = await supabase.from("tutor_site_reviews").insert(reviewsInsert);
+      if (reviewsError) {
+        track("site_update_error", { site_id: siteId, reason: reviewsError.message });
+        return { error: "Failed to update site" };
+      }
     }
   }
 
   // Update resources - delete all and re-insert
   if (input.resources !== undefined) {
-    await supabase.from("tutor_site_resources").delete().eq("tutor_site_id", siteId);
+    const { error: resourcesDeleteError } = await supabase
+      .from("tutor_site_resources")
+      .delete()
+      .eq("tutor_site_id", siteId);
+    if (resourcesDeleteError) {
+      track("site_update_error", { site_id: siteId, reason: resourcesDeleteError.message });
+      return { error: "Failed to update site" };
+    }
 
     if (input.resources.length > 0) {
       const resourcesInsert = input.resources.map((resource, index) => ({
@@ -674,13 +718,24 @@ export async function updateSite(siteId: string, data: TutorSiteData) {
         sort_order: index,
       }));
 
-      await supabase.from("tutor_site_resources").insert(resourcesInsert);
+      const { error: resourcesError } = await supabase.from("tutor_site_resources").insert(resourcesInsert);
+      if (resourcesError) {
+        track("site_update_error", { site_id: siteId, reason: resourcesError.message });
+        return { error: "Failed to update site" };
+      }
     }
   }
 
   // Update products - delete all and re-insert
   if (input.products !== undefined) {
-    await supabase.from("tutor_site_products").delete().eq("tutor_site_id", siteId);
+    const { error: productsDeleteError } = await supabase
+      .from("tutor_site_products")
+      .delete()
+      .eq("tutor_site_id", siteId);
+    if (productsDeleteError) {
+      track("site_update_error", { site_id: siteId, reason: productsDeleteError.message });
+      return { error: "Failed to update site" };
+    }
 
     if (input.products.length > 0) {
       const productsInsert = input.products.map((productId, index) => ({
@@ -689,7 +744,11 @@ export async function updateSite(siteId: string, data: TutorSiteData) {
         sort_order: index,
       }));
 
-      await supabase.from("tutor_site_products").insert(productsInsert);
+      const { error: productsError } = await supabase.from("tutor_site_products").insert(productsInsert);
+      if (productsError) {
+        track("site_update_error", { site_id: siteId, reason: productsError.message });
+        return { error: "Failed to update site" };
+      }
     }
   }
 

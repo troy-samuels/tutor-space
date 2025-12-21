@@ -7,6 +7,7 @@ import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 import { remark } from "remark";
 import remarkHtml from "remark-html";
+import sanitizeHtml from "sanitize-html";
 import { ArrowLeft, CheckCircle2, ClipboardList, Gamepad2, PlayCircle, Sparkles } from "lucide-react";
 
 type LessonRecording = {
@@ -165,7 +166,29 @@ export default async function LessonReviewPage({
 
   const summaryMarkdown = extractSummary(recording);
   const summaryHtml = summaryMarkdown
-    ? await remark().use(remarkHtml).process(summaryMarkdown).then((file) => String(file))
+    ? await remark()
+        .use(remarkHtml)
+        .process(summaryMarkdown)
+        .then((file) =>
+          sanitizeHtml(String(file), {
+            allowedTags: [
+              "p",
+              "br",
+              "strong",
+              "em",
+              "ul",
+              "ol",
+              "li",
+              "a",
+              "code",
+              "pre",
+              "blockquote",
+            ],
+            allowedAttributes: {
+              a: ["href", "target", "rel"],
+            },
+          })
+        )
     : null;
 
   const keyPoints = Array.isArray(recording.key_points) ? recording.key_points : [];
