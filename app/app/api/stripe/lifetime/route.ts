@@ -158,8 +158,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("[Stripe] Lifetime checkout error:", errorMessage, error);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    const err = error as { type?: string; code?: string; message?: string; statusCode?: number };
+    const errorMessage = err.message || "Unknown error";
+    console.error("[Stripe] Lifetime checkout error (v2):", {
+      message: errorMessage,
+      type: err.type,
+      code: err.code,
+      statusCode: err.statusCode,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json({
+      error: errorMessage,
+      debug: { type: err.type, code: err.code, version: "v2" }
+    }, { status: 500 });
   }
 }
