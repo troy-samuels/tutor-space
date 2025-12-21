@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 import { computeFounderPrice } from "@/lib/pricing/founder";
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     const priceId = process.env.STRIPE_PRO_LIFETIME_PRICE_ID ?? process.env.STRIPE_LIFETIME_PRICE_ID;
     const usePriceId = price.currency.toLowerCase() === "gbp" && !!priceId;
 
-    const sessionParams = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       // Use customer ID for authenticated users, otherwise Stripe collects email
       ...(customerId ? { customer: customerId } : {}),
       mode: "payment",
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
         plan: "tutor_life",
         source: trackingSource,
       },
-    } as const;
+    };
 
     const idempotencyKey = `lifetime:${user?.id ?? "guest"}:${randomUUID()}`;
     const maxAttempts = 3;
