@@ -7,7 +7,7 @@ const faqs = [
   {
     question: "What exactly do I get with the lifetime deal?",
     answer:
-      "You get full access to every feature on TutorLingua, forever. This includes the booking system, student CRM, custom website builder, payment processing, messaging, analytics, digital product sales, and all future features we add. There are no hidden fees or upsells.",
+      "You get Pro + Studio features, forever. Pro includes booking, CRM, payments, website builder, messaging, analytics, and digital products. Studio adds video classroom, lesson recordings, AI transcription, auto-generated drills, marketing clips, and learning roadmaps. No hidden fees or upsells.",
   },
   {
     question: "What does 'lifetime' mean?",
@@ -30,9 +30,9 @@ const faqs = [
       "TutorLingua charges 0% platform fees on your bookings. When you accept payments from students, you'll only pay Stripe's standard processing fees (typically 2.9% + 30¢). We don't take a cut of your earnings.",
   },
   {
-    question: "What happens after December 3rd, 2025?",
+    question: "What happens after December 31st, 2025?",
     answer:
-      "After the deadline, the $99 lifetime deal will no longer be available. We'll switch to our regular monthly pricing of $29/month.",
+      "After the deadline, the $99 lifetime deal will no longer be available. Regular pricing is $29/month for Pro or $49/month for Studio.",
   },
   {
     question: "I already have a TutorLingua account. Can I upgrade?",

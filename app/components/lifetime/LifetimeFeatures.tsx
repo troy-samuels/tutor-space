@@ -10,6 +10,12 @@ import {
   Link2,
   FileText,
   Check,
+  Video,
+  PlayCircle,
+  Captions,
+  Zap,
+  Scissors,
+  Map,
 } from "lucide-react";
 
 const features = [
@@ -55,6 +61,39 @@ const features = [
   },
 ];
 
+const studioFeatures = [
+  {
+    icon: Video,
+    title: "Native Video Classroom",
+    description: "HD video conferencing with recording. No more Zoom links.",
+  },
+  {
+    icon: PlayCircle,
+    title: "Lesson Recordings",
+    description: "Every lesson auto-saved to cloud. Students replay anytime.",
+  },
+  {
+    icon: Captions,
+    title: "AI Transcription",
+    description: "Speech-to-text with searchable transcripts and speaker ID.",
+  },
+  {
+    icon: Zap,
+    title: "AI-Generated Drills",
+    description: "Auto-create match, gap-fill, and scramble games from lessons.",
+  },
+  {
+    icon: Scissors,
+    title: "Marketing Clips",
+    description: "AI extracts viral-worthy highlights for social media.",
+  },
+  {
+    icon: Map,
+    title: "Learning Roadmaps",
+    description: "Visual learning paths tracking student progress.",
+  },
+];
+
 export function LifetimeFeatures() {
   return (
     <section className="bg-muted py-20 sm:py-24">
@@ -85,6 +124,42 @@ export function LifetimeFeatures() {
               </p>
             </div>
           ))}
+        </div>
+
+        {/* Studio Features Section */}
+        <div className="mt-16 pt-8 border-t border-primary/20">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <span className="rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-800">
+              BONUS: Studio Features Included
+            </span>
+          </div>
+          <div className="mx-auto max-w-2xl text-center mb-12">
+            <h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              AI-Powered Teaching Tools
+            </h3>
+            <p className="mt-3 text-lg text-gray-600">
+              6 premium Studio features, normally $49/month extra
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {studioFeatures.map((feature) => (
+              <div
+                key={feature.title}
+                className="group rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-sm transition-all hover:shadow-md border border-amber-200/50"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 transition-colors group-hover:bg-amber-200">
+                  <feature.icon className="h-6 w-6 text-amber-700" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Additional benefits */}

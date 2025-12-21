@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Zap, Shield, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const DEADLINE = "2025-12-03T23:59:59";
+const DEADLINE = "2025-12-31T23:59:59";
 
 function useCountdown(deadlineIso: string) {
   const deadlineMs = useMemo(() => new Date(deadlineIso).getTime(), [deadlineIso]);

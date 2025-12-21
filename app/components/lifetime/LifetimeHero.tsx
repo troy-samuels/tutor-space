@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const DEADLINE = "2025-12-03T23:59:59";
+const DEADLINE = "2025-12-31T23:59:59";
 
 function useCountdown(deadlineIso: string) {
   const deadlineMs = useMemo(() => new Date(deadlineIso).getTime(), [deadlineIso]);
@@ -62,9 +62,9 @@ export function LifetimeHero({ onCheckout, isLoading }: LifetimeHeroProps) {
           </div>
 
           <p className="mt-6 text-lg leading-8 text-gray-700 sm:text-xl">
-            Pay once, own it forever. No monthly fees. No hidden costs.
+            One payment. Lifetime access to Pro + Studio features.
             <br />
-            Full access to every feature, for as long as TutorLingua exists.
+            No subscriptions. No limits. Forever yours.
           </p>
 
           {/* Countdown timer */}
