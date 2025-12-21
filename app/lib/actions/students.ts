@@ -9,6 +9,46 @@ import {
   sendAccessDeniedEmail,
 } from "@/lib/emails/access-emails";
 import { sendStudentInviteEmail } from "@/lib/emails/student-invite";
+import { resend, EMAIL_CONFIG } from "@/lib/resend";
+import { QuickInviteEmail, QuickInviteEmailText } from "@/emails/quick-invite";
+
+/**
+ * Send a quick invite email with booking link from the dashboard
+ */
+export async function sendQuickInviteEmail(
+  email: string,
+  tutorName: string,
+  bookingUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { success: false, error: "Please enter a valid email address" };
+  }
+
+  try {
+    const html = QuickInviteEmail({ tutorName, bookingUrl });
+    const text = QuickInviteEmailText({ tutorName, bookingUrl });
+
+    const { error } = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: email.trim().toLowerCase(),
+      subject: `${tutorName} invited you to book a lesson`,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("[sendQuickInviteEmail] Failed:", error);
+      return { success: false, error: "Failed to send email. Please try again." };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("[sendQuickInviteEmail] Error:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
 
 export type StudentRecord = {
   id: string;

@@ -8,6 +8,7 @@ import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
 import { DashboardBookingCalendarSlot } from "@/components/dashboard/DashboardBookingCalendarSlot";
 import { UpcomingSessions, type UpcomingSession } from "@/components/dashboard/upcoming-sessions";
 import { RecentActivityList } from "@/components/analytics/premium/RecentActivityList";
+import { InviteStudentsCard } from "@/components/dashboard/InviteStudentsCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
@@ -147,7 +148,7 @@ export default async function DashboardPage() {
           {formatDate(new Date())}
         </p>
         <h1 className="font-sans text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          Good morning, {displayName}.
+          {getTimeBasedGreeting()}, {displayName}.
         </h1>
         <p className="mt-2 text-base font-sans text-muted-foreground sm:text-lg">
           You have {sessionsToday} {sessionsToday === 1 ? "session" : "sessions"} today.
@@ -214,6 +215,10 @@ export default async function DashboardPage() {
         </div>
 
         <div className="space-y-6 xl:col-span-5">
+          <InviteStudentsCard
+            username={profile?.username ?? ""}
+            tutorName={profile?.full_name ?? ""}
+          />
           <UpcomingSessions sessions={mappedUpcomingSessions} />
           <RecentActivityList data={recentActivity} />
         </div>
@@ -247,4 +252,11 @@ function getInitials(name?: string | null) {
   const first = parts[0]?.[0] ?? "";
   const second = parts[1]?.[0] ?? "";
   return `${first}${second}` || "ST";
+}
+
+function getTimeBasedGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  return "Good evening";
 }
