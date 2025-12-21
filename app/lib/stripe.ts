@@ -1,9 +1,8 @@
 import Stripe from "stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-// IMPORTANT: Hardcoded to stable Stripe API version - do NOT use env override
-// Valid versions: 2024-09-30.acacia, 2024-10-28.acacia, 2024-11-20.acacia
-const stripeApiVersion = "2024-11-20.acacia";
+// Use SDK's default API version (2025-09-30.clover for stripe@19.x)
+// Do NOT override with env var or hardcoded values
 
 if (!stripeSecretKey) {
   console.warn(
@@ -13,7 +12,6 @@ if (!stripeSecretKey) {
 
 const stripeClient = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
-      apiVersion: stripeApiVersion as Stripe.LatestApiVersion,
       typescript: true,
     })
   : null;
