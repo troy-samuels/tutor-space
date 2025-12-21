@@ -60,8 +60,8 @@ const STEPS = [
   },
   {
     id: 7,
-    title: "Payments",
-    description: "Connect Stripe or add a payment link to start accepting payments",
+    title: "Get Paid",
+    description: "Choose how students will pay you for lessons",
   },
 ] as const;
 
@@ -198,7 +198,6 @@ export function OnboardingTimeline({ profile, subscriptionSuccess }: OnboardingT
         return (
           <StepCalendarSync
             onComplete={() => handleStepComplete(5)}
-            onSaveError={(msg) => handleSaveError(5, msg)}
           />
         );
       case 6:

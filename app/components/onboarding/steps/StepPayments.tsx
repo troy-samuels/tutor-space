@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, CreditCard, Check, ExternalLink, AlertTriangle, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback, useTransition } from "react";
+import { Loader2, CreditCard, Check, ExternalLink, AlertTriangle, RefreshCw, Wallet } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 import { checkConnectHealth } from "@/lib/stripe/connect-health";
 import { fetchWithRetry } from "@/lib/stripe/connect-retry";
@@ -11,6 +11,7 @@ type StepPaymentsProps = {
   profileId: string;
   onComplete: () => void;
   isCompleting: boolean;
+  onSaveError?: (message: string) => void;
 };
 
 // State machine for Stripe Connect flow
@@ -22,11 +23,16 @@ type ConnectState =
   | { status: "error"; error: StripeConnectError }
   | { status: "redirecting" };
 
+type PaymentOption = "stripe" | "manual" | null;
+
 export function StepPayments({
   profileId,
   onComplete,
   isCompleting,
+  onSaveError,
 }: StepPaymentsProps) {
+  const [, startTransition] = useTransition();
+  const [selectedOption, setSelectedOption] = useState<PaymentOption>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [connectState, setConnectState] = useState<ConnectState>({ status: "idle" });
 
@@ -47,21 +53,60 @@ export function StepPayments({
   }, [connectState]);
 
   const startStripeConnectFlow = useCallback(async () => {
+    // Immediate feedback - this should always run
+    console.log("[Stripe Connect] Button clicked, profileId:", profileId);
+
+    // Show loading state immediately
     setConnectState({ status: "checking" });
     setErrors({});
 
     try {
+      // Verify profileId exists
+      if (!profileId) {
+        console.error("[Stripe Connect] No profileId provided");
+        setConnectState({
+          status: "error",
+          error: {
+            code: "invalid_tutor_id",
+            message: "Profile not found. Please refresh and try again.",
+            recovery: "If this persists, try logging out and back in.",
+            retryable: false,
+          },
+        });
+        return;
+      }
+
       // 1. Pre-flight health check
+      console.log("[Stripe Connect] Running health check...");
       const health = await checkConnectHealth(profileId);
-      if (!health.ready && health.error) {
-        setConnectState({ status: "error", error: health.error });
+      console.log("[Stripe Connect] Health check result:", health);
+
+      if (!health.ready) {
+        if (health.error) {
+          console.error("[Stripe Connect] Health check failed:", health.error);
+          setConnectState({ status: "error", error: health.error });
+        } else {
+          // Health check returned not ready without an error - create a generic error
+          console.error("[Stripe Connect] Health check not ready, no error provided");
+          setConnectState({
+            status: "error",
+            error: {
+              code: "stripe_network_error",
+              message: "Unable to verify your account. Please try again.",
+              recovery: "Check your internet connection and refresh the page.",
+              retryable: true,
+            },
+          });
+        }
         return;
       }
 
       // 2. Create account (or use existing) with retry
       let accountId = health.existingAccountId;
+      console.log("[Stripe Connect] Existing account:", accountId || "none");
 
       if (!accountId) {
+        console.log("[Stripe Connect] Creating new account...");
         setConnectState({ status: "connecting", stage: "account" });
 
         const accountResult = await fetchWithRetry<{ accountId: string }>(
@@ -83,14 +128,17 @@ export function StepPayments({
         );
 
         if (!accountResult.success) {
+          console.error("[Stripe Connect] Account creation failed:", accountResult.error);
           setConnectState({ status: "error", error: accountResult.error });
           return;
         }
 
         accountId = accountResult.data.accountId;
+        console.log("[Stripe Connect] Account created:", accountId);
       }
 
       // 3. Get account link with retry
+      console.log("[Stripe Connect] Getting account link...");
       setConnectState({ status: "connecting", stage: "link" });
 
       const linkResult = await fetchWithRetry<{ url: string }>(
@@ -112,9 +160,12 @@ export function StepPayments({
       );
 
       if (!linkResult.success) {
+        console.error("[Stripe Connect] Link creation failed:", linkResult.error);
         setConnectState({ status: "error", error: linkResult.error });
         return;
       }
+
+      console.log("[Stripe Connect] Got account link, saving step...");
 
       // 4. Save onboarding step
       setConnectState({ status: "connecting", stage: "save" });
@@ -123,6 +174,8 @@ export function StepPayments({
         payment_method: "stripe",
         custom_payment_url: null,
       });
+
+      console.log("[Stripe Connect] Step saved, redirecting to Stripe...");
 
       // 5. Redirect to Stripe
       setConnectState({ status: "redirecting" });
@@ -141,23 +194,54 @@ export function StepPayments({
     }
   }, [profileId]);
 
-  const handleComplete = async () => {
+  const handleManualComplete = () => {
     setErrors({});
-    try {
-      const result = await saveOnboardingStep(7, {
-        payment_method: undefined,
-        custom_payment_url: null,
-      });
 
-      if (result.success) {
-        onComplete();
-      } else {
-        setErrors({ submit: result.error || "Failed to save. Please try again." });
+    // Optimistic: Move to next step immediately
+    onComplete();
+
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(7, {
+          payment_method: undefined,
+          custom_payment_url: null,
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 7:", result.error);
+          onSaveError?.(result.error || "Failed to save payment settings");
+        }
+      } catch (error) {
+        console.error("Error saving payment step:", error);
+        onSaveError?.("An error occurred while saving");
       }
-    } catch (error) {
-      console.error("Error completing onboarding:", error);
-      setErrors({ submit: "Failed to complete setup. Please try again." });
-    }
+    });
+  };
+
+  const handleSkip = () => {
+    setErrors({});
+
+    // Optimistic: Move to next step immediately
+    onComplete();
+
+    // Save to database in background
+    startTransition(async () => {
+      try {
+        const result = await saveOnboardingStep(7, {
+          payment_method: undefined,
+          custom_payment_url: null,
+        });
+
+        if (!result.success) {
+          console.error("Background save failed for step 7:", result.error);
+          onSaveError?.(result.error || "Failed to save payment step");
+        }
+      } catch (error) {
+        console.error("Error skipping step:", error);
+        onSaveError?.("An error occurred while saving");
+      }
+    });
   };
 
   const isConnecting =
@@ -166,72 +250,109 @@ export function StepPayments({
     connectState.status === "retrying" ||
     connectState.status === "redirecting";
 
+  // Simplified loading messages (2 states instead of 5)
   const getConnectingMessage = () => {
-    switch (connectState.status) {
-      case "checking":
-        return "Verifying...";
-      case "connecting":
-        if (connectState.stage === "account") return "Creating account...";
-        if (connectState.stage === "link") return "Generating link...";
-        if (connectState.stage === "save") return "Saving...";
-        return "Connecting...";
-      case "retrying":
-        return `Retrying in ${connectState.countdown}s...`;
-      case "redirecting":
-        return "Redirecting to Stripe...";
-      default:
-        return "Connecting...";
+    if (connectState.status === "redirecting" ||
+        (connectState.status === "connecting" && connectState.stage === "save")) {
+      return "Opening secure setup...";
     }
+    if (connectState.status === "retrying") {
+      return "Retrying...";
+    }
+    return "Setting up...";
   };
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          Your trial is active! Now set up how you&apos;ll receive payments from students.
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Choose how you&apos;ll receive payments from students after they book lessons.
+      </p>
 
-      {/* Stripe Connect Card - Optional */}
-      <button
-        type="button"
-        onClick={startStripeConnectFlow}
-        disabled={isConnecting || isCompleting}
-        className="flex w-full items-start gap-4 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30 p-4 text-left transition hover:border-muted-foreground/60 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <CreditCard className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              Stripe Connect
-            </span>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Optional
-            </span>
+      {/* Payment Option Selection */}
+      <div className="space-y-3">
+        {/* Option 1: Card Payments (Recommended) */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedOption("stripe");
+            setErrors({});
+          }}
+          disabled={isConnecting || isCompleting}
+          className={`flex w-full items-start gap-4 rounded-xl border p-4 text-left transition ${
+            selectedOption === "stripe"
+              ? "border-primary bg-primary/10"
+              : "border-border hover:border-primary/50"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+              selectedOption === "stripe"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {selectedOption === "stripe" ? (
+              <Check className="h-5 w-5" />
+            ) : (
+              <CreditCard className="h-5 w-5" />
+            )}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Accept credit cards and get payouts directly to your bank account.
-          </p>
-          <p className="mt-3 text-xs text-muted-foreground">
-            You can set this up later in Settings → Payments
-          </p>
-        </div>
-        <div className="mt-1 inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          {isConnecting ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" />
-              {getConnectingMessage()}
-            </>
-          ) : (
-            <>
-              <ExternalLink className="h-3 w-3" />
-              Connect Stripe
-            </>
-          )}
-        </div>
-      </button>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                Accept Card Payments
+              </span>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                Recommended
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Students pay by card. Money goes to your bank in 2-3 days.
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground/70">
+              Takes ~5 minutes. You&apos;ll enter basic info on a secure page.
+            </p>
+          </div>
+        </button>
+
+        {/* Option 2: Manual Payments */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedOption("manual");
+            setErrors({});
+            setConnectState({ status: "idle" });
+          }}
+          disabled={isConnecting || isCompleting}
+          className={`flex w-full items-start gap-4 rounded-xl border p-4 text-left transition ${
+            selectedOption === "manual"
+              ? "border-primary bg-primary/10"
+              : "border-border hover:border-primary/50"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+              selectedOption === "manual"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {selectedOption === "manual" ? (
+              <Check className="h-5 w-5" />
+            ) : (
+              <Wallet className="h-5 w-5" />
+            )}
+          </div>
+          <div className="flex-1">
+            <span className="text-sm font-semibold text-foreground">
+              I&apos;ll handle payments myself
+            </span>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Use Venmo, PayPal, Zelle, bank transfer, or cash. You&apos;ll collect payments outside the platform.
+            </p>
+          </div>
+        </button>
+      </div>
 
       {/* Error display with structured messaging */}
       {connectState.status === "error" && (
@@ -267,22 +388,22 @@ export function StepPayments({
         </div>
       )}
 
-      {/* Retry countdown display */}
+      {/* Retry state display */}
       {connectState.status === "retrying" && (
         <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-yellow-600" />
             <span className="text-sm text-yellow-800">
-              Retrying in {connectState.countdown}s (attempt {connectState.attempt} of 3)...
+              {getConnectingMessage()}
             </span>
           </div>
         </div>
       )}
 
-      {/* Alternative payment methods note */}
+      {/* Info box */}
       <div className="rounded-xl bg-blue-50 p-4">
         <p className="text-xs text-blue-800">
-          <span className="font-medium">Other options:</span> You can also accept payments via Venmo, PayPal, or Zelle. Configure these in Settings after onboarding.
+          You can change your payment method anytime in Settings → Payments.
         </p>
       </div>
 
@@ -291,26 +412,58 @@ export function StepPayments({
         <p className="text-sm text-red-600">{errors.submit}</p>
       )}
 
-      {/* Complete Setup button */}
-      <div className="flex justify-end pt-2">
+      {/* Action buttons - matching StepVideo.tsx layout */}
+      <div className="flex items-center justify-between pt-2">
         <button
           type="button"
-          onClick={handleComplete}
+          onClick={handleSkip}
           disabled={isConnecting || isCompleting}
-          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-full border border-border px-6 text-sm font-semibold text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isCompleting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Completing...
-            </>
-          ) : (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Complete Setup
-            </>
-          )}
+          Skip for now
         </button>
+
+        {selectedOption === "stripe" && (
+          <button
+            type="button"
+            onClick={startStripeConnectFlow}
+            disabled={isConnecting || isCompleting}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {getConnectingMessage()}
+              </>
+            ) : (
+              <>
+                Set Up Card Payments
+                <ExternalLink className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        )}
+
+        {selectedOption === "manual" && (
+          <button
+            type="button"
+            onClick={handleManualComplete}
+            disabled={isCompleting}
+            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isCompleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Completing...
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Continue
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
