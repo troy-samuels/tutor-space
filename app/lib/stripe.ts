@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
 // Use SDK's default API version (2025-09-30.clover for stripe@19.x)
 // Do NOT override with env var or hardcoded values
 

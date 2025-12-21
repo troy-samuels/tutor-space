@@ -64,13 +64,13 @@ async function startSubscriptionCheckout(params: {
 
   const priceId =
     plan === "pro_monthly"
-      ? process.env.STRIPE_PRO_MONTHLY_PRICE_ID
+      ? process.env.STRIPE_PRO_MONTHLY_PRICE_ID?.trim()
       : plan === "pro_annual"
-        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID
+        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID?.trim()
         : plan === "studio_monthly"
-          ? process.env.STRIPE_STUDIO_MONTHLY_PRICE_ID
+          ? process.env.STRIPE_STUDIO_MONTHLY_PRICE_ID?.trim()
           : plan === "studio_annual"
-            ? process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID
+            ? process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID?.trim()
             : null;
 
   if (!priceId) {
