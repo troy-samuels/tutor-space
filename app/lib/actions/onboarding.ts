@@ -365,18 +365,11 @@ export async function completeOnboarding(): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Check if user needs Stripe checkout
-    const checkoutUrl = await getPostOnboardingCheckoutUrl(
-      user.id,
-      user.email ?? "",
-      user.user_metadata?.full_name as string | undefined
-    );
-
-    // Mark onboarding complete only after paid checkout (if required)
+    // Mark onboarding as complete
     const { error } = await supabase
       .from("profiles")
       .update({
-        onboarding_completed: checkoutUrl ? false : true,
+        onboarding_completed: true,
         onboarding_step: 7,
       })
       .eq("id", user.id);
@@ -388,7 +381,6 @@ export async function completeOnboarding(): Promise<{
 
     return {
       success: true,
-      redirectTo: checkoutUrl ?? undefined,
     };
   } catch (error) {
     console.error("Error completing onboarding:", error);
