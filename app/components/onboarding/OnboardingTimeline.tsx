@@ -12,7 +12,11 @@ import { StepAvailability } from "./steps/StepAvailability";
 import { StepCalendarSync } from "./steps/StepCalendarSync";
 import { StepVideo } from "./steps/StepVideo";
 import { StepPayments } from "./steps/StepPayments";
-import { completeOnboarding } from "@/lib/actions/onboarding";
+import {
+  checkOnboardingStatus,
+  completeOnboarding,
+  finalizeOnboardingAfterCheckout,
+} from "@/lib/actions/onboarding";
 import { WelcomeToast } from "@/components/ui/welcome-toast";
 
 type OnboardingProfile = {
@@ -20,6 +24,7 @@ type OnboardingProfile = {
   full_name: string | null;
   username: string | null;
   email: string | null;
+  stripe_charges_enabled?: boolean;
 };
 
 type OnboardingTimelineProps = {
@@ -75,6 +80,11 @@ export function OnboardingTimeline({
   const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
   const [showStripeReturnBanner, setShowStripeReturnBanner] = useState(false);
   const [stripeRefresh, setStripeRefresh] = useState(false);
+  const [stripeReturnDetected, setStripeReturnDetected] = useState(false);
+  const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
+  const [finalizeAttempts, setFinalizeAttempts] = useState(0);
+
+  const maxFinalizeAttempts = 5;
 
   // Read URL params after mount to avoid hydration issues with useSearchParams
   useEffect(() => {
@@ -85,19 +95,75 @@ export function OnboardingTimeline({
 
     if (stripeReturnParam || stripeRefreshParam) {
       setCurrentStep(7);
-      fetch("/api/stripe/connect/status", { method: "POST" })
-        .catch(err => console.error("Failed to refresh Stripe status:", err));
+      // Initial status refresh - StepPayments will handle polling
     }
     if (stripeReturnParam) {
       setShowStripeReturnBanner(true);
+      setStripeReturnDetected(true);
     }
     if (stripeRefreshParam) {
       setStripeRefresh(true);
     }
     if (subscriptionSuccess) {
       setShowSubscriptionBanner(true);
+      setSubscriptionSuccess(true);
     }
   }, []);
+
+  // Resume progress from the saved onboarding step
+  useEffect(() => {
+    let isMounted = true;
+
+    checkOnboardingStatus()
+      .then(({ completed, step }) => {
+        if (!isMounted || completed) return;
+
+        const normalizedStep = Math.min(Math.max(step || 1, 1), 7);
+        setCurrentStep(normalizedStep);
+
+        if (normalizedStep > 1) {
+          setCompletedSteps(Array.from({ length: normalizedStep - 1 }, (_, index) => index + 1));
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to resume onboarding progress:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Finalize onboarding after Stripe checkout completes
+  useEffect(() => {
+    if (!subscriptionSuccess) return;
+
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const finalize = async () => {
+      const result = await finalizeOnboardingAfterCheckout();
+      if (cancelled) return;
+
+      if (result.success) {
+        router.push("/dashboard");
+        return;
+      }
+
+      if (finalizeAttempts < maxFinalizeAttempts - 1) {
+        retryTimer = setTimeout(() => {
+          setFinalizeAttempts((attempt) => attempt + 1);
+        }, 1500);
+      }
+    };
+
+    finalize();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [subscriptionSuccess, finalizeAttempts, router]);
 
   // Auto-dismiss Stripe return banner after 8 seconds
   useEffect(() => {
@@ -247,6 +313,8 @@ export function OnboardingTimeline({
             profileId={profile.id}
             onComplete={() => handleStepComplete(7)}
             isCompleting={isCompleting}
+            stripeReturnDetected={stripeReturnDetected}
+            initialStripeChargesEnabled={profile.stripe_charges_enabled}
           />
         );
       default:

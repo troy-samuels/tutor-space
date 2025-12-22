@@ -15,7 +15,7 @@ export default async function OnboardingPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, username, email, onboarding_completed")
+    .select("id, full_name, username, email, onboarding_completed, stripe_charges_enabled")
     .eq("id", user.id)
     .single();
 
@@ -33,6 +33,7 @@ export default async function OnboardingPage() {
             full_name: profile?.full_name ?? null,
             username: profile?.username ?? null,
             email: profile?.email ?? user.email ?? null,
+            stripe_charges_enabled: profile?.stripe_charges_enabled ?? false,
           }}
         />
       </Suspense>

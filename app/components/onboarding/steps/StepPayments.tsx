@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CreditCard, Check, ExternalLink, Wallet } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
@@ -10,6 +10,8 @@ type StepPaymentsProps = {
   onComplete: () => void;
   isCompleting: boolean;
   onSaveError?: (message: string) => void;
+  stripeReturnDetected?: boolean;
+  initialStripeChargesEnabled?: boolean;
 };
 
 // Simplified state - just idle or redirecting
@@ -22,12 +24,64 @@ export function StepPayments({
   onComplete,
   isCompleting,
   onSaveError,
+  stripeReturnDetected = false,
+  initialStripeChargesEnabled = false,
 }: StepPaymentsProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [selectedOption, setSelectedOption] = useState<PaymentOption>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [connectState, setConnectState] = useState<ConnectState>("idle");
+  const [isPolling, setIsPolling] = useState(false);
+  const hasAutoCompletedRef = useRef(false);
+
+  // Poll for Stripe Connect completion when returning from Stripe
+  useEffect(() => {
+    // Prevent double execution
+    if (hasAutoCompletedRef.current) return;
+
+    // If already connected, auto-complete immediately
+    if (initialStripeChargesEnabled) {
+      hasAutoCompletedRef.current = true;
+      onComplete();
+      return;
+    }
+
+    // If returning from Stripe, start polling
+    if (stripeReturnDetected) {
+      setIsPolling(true);
+      let pollCount = 0;
+      const maxPolls = 20; // Poll for max 60 seconds (20 * 3000ms)
+
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+
+        try {
+          const res = await fetch("/api/stripe/connect/status", { method: "POST" });
+          const data = await res.json();
+
+          if (data.chargesEnabled) {
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            hasAutoCompletedRef.current = true;
+            onComplete();
+          } else if (pollCount >= maxPolls) {
+            // Stop polling after max attempts but don't auto-complete
+            clearInterval(pollInterval);
+            setIsPolling(false);
+          }
+        } catch (err) {
+          console.error("Failed to check Stripe status:", err);
+          // Continue polling on error
+        }
+      }, 3000);
+
+      return () => {
+        clearInterval(pollInterval);
+        setIsPolling(false);
+      };
+    }
+  }, [stripeReturnDetected, initialStripeChargesEnabled, onComplete]);
 
   /**
    * Fast Stripe Connect Flow
@@ -97,6 +151,24 @@ export function StepPayments({
   };
 
   const isRedirecting = connectState === "redirecting";
+  const isProcessing = isRedirecting || isPolling;
+
+  // Show polling status when returning from Stripe
+  if (isPolling) {
+    return (
+      <div className="space-y-5">
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-sm font-medium text-foreground">
+            Verifying Stripe setup...
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            This may take a few moments. Please don&apos;t close this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

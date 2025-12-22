@@ -50,7 +50,20 @@ export async function POST(req: NextRequest) {
 
     // Use verified tutorId and accountId from authenticated session
     await refreshAccountStatus(user.id, profile.stripe_account_id, supabaseAdmin);
-    return NextResponse.json({ success: true });
+
+    // Fetch updated profile to return current status
+    const { data: updatedProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status")
+      .eq("id", user.id)
+      .single();
+
+    return NextResponse.json({
+      success: true,
+      chargesEnabled: updatedProfile?.stripe_charges_enabled ?? false,
+      payoutsEnabled: updatedProfile?.stripe_payouts_enabled ?? false,
+      onboardingStatus: updatedProfile?.stripe_onboarding_status ?? "pending",
+    });
   } catch (error) {
     console.error("Connect status refresh failed", error);
     return NextResponse.json(
