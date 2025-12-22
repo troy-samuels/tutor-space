@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkStudentAccess } from "@/lib/actions/student-auth";
 import { getStudentLessonHistory } from "@/lib/actions/student-lessons";
 import { generateBookableSlots, filterFutureSlots, groupSlotsByDate } from "@/lib/utils/slots";
+import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 
 type RouteParams = {
   params: Promise<{ username: string }>;
@@ -12,7 +13,8 @@ type RouteParams = {
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const supabase = await createClient();
   const { username } = await params;
-  const normalizedUsername = username.toLowerCase();
+  const rawLower = username.trim().toLowerCase();
+  const normalizedUsername = normalizeUsernameSlug(username) || rawLower;
   const searchParams = new URL(req.url).searchParams;
   const requestedService = searchParams.get("service");
 
@@ -20,13 +22,25 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
+  let profileResult = await supabase
     .from("public_profiles")
     .select(
       "id, full_name, username, email, bio, avatar_url, instagram_handle, website_url, timezone, languages_taught"
     )
     .eq("username", normalizedUsername)
-    .single();
+    .maybeSingle();
+
+  if (!profileResult.data && rawLower && rawLower !== normalizedUsername) {
+    profileResult = await supabase
+      .from("public_profiles")
+      .select(
+        "id, full_name, username, email, bio, avatar_url, instagram_handle, website_url, timezone, languages_taught"
+      )
+      .eq("username", rawLower)
+      .maybeSingle();
+  }
+
+  const profile = profileResult.data;
 
   if (!profile) {
     return NextResponse.json({ status: "not_found" }, { status: 404 });

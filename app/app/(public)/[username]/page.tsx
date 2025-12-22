@@ -56,6 +56,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<Pa
 
   return (
     <PublicProfileClient
+      username={profile.username || resolvedParams.username}
       profile={{
         full_name: profile.full_name || profile.username || "Tutor",
         tagline: site.config.hero?.customHeadline || profile.tagline || "",

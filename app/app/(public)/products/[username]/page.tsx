@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductPurchaseForm } from "@/components/digital-products/purchase-form";
+import { formatCurrency } from "@/lib/utils";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 
 type PageProps = {
@@ -62,7 +63,9 @@ export default async function TutorProductsPage({ params }: PageProps) {
               <p className="text-lg font-semibold text-foreground">{product.title}</p>
               <p className="text-sm text-muted-foreground">{product.description}</p>
               <p className="mt-2 text-base font-semibold text-primary">
-                ${(product.price_cents / 100).toFixed(2)} {product.currency.toUpperCase()}
+                {product.price_cents != null
+                  ? formatCurrency(product.price_cents, product.currency?.toUpperCase() || "USD")
+                  : "Free"}
               </p>
               <div className="mt-4">
                 <ProductPurchaseForm productId={product.id} tutorUsername={profile.username!} />

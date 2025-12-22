@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { ThemeShell } from "@/components/site/ThemeShell";
+import { ProductPurchaseForm } from "@/components/digital-products/purchase-form";
 import type { FAQItem, SiteTheme } from "@/lib/types/site";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 type TabId = "services" | "products" | "reviews" | "faq";
 
@@ -40,6 +42,7 @@ type ProfileData = {
 };
 
 interface PublicProfileClientProps {
+  username: string;
   profile: ProfileData;
   coverImage: string | null;
   themeId: SiteTheme;
@@ -60,6 +63,7 @@ interface PublicProfileClientProps {
 }
 
 export default function PublicProfileClient({
+  username,
   profile,
   coverImage,
   themeId,
@@ -72,6 +76,8 @@ export default function PublicProfileClient({
   visibility,
   faqs,
 }: PublicProfileClientProps) {
+  const router = useRouter();
+
   // Compute enabled tabs based on available content
   const enabledTabs = useMemo(() => {
     const tabs: { id: TabId; label: string }[] = [];
@@ -94,8 +100,20 @@ export default function PublicProfileClient({
   const [activeTab, setActiveTab] = useState<TabId>(enabledTabs[0]?.id || "services");
 
   // Service selection state
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    services[0]?.id ?? null
+  );
   const selectedService = services.find((s) => s.id === selectedServiceId) ?? null;
+  const handleBook = () => {
+    if (!selectedServiceId) return;
+    const query = new URLSearchParams({ service: selectedServiceId });
+    router.push(`/book/${username}?${query.toString()}`);
+  };
+
+  const formatPriceLabel = (amount?: number | null, currency?: string | null) => {
+    if (amount == null || amount <= 0) return "Free";
+    return formatCurrency(amount, currency?.toUpperCase() || "USD");
+  };
 
   return (
     <ThemeShell themeId={themeId}>
@@ -156,12 +174,13 @@ export default function PublicProfileClient({
             <ServicesList
               services={services}
               accentColor={accentColor}
+              formatPriceLabel={formatPriceLabel}
               selectedId={selectedServiceId}
               onSelect={setSelectedServiceId}
             />
           )}
           {activeTab === "products" && visibility.products && products.length > 0 && (
-            <ProductsList products={products} />
+            <ProductsList products={products} formatPriceLabel={formatPriceLabel} />
           )}
           {activeTab === "reviews" && visibility.reviews && reviews.length > 0 && (
             <ReviewsList reviews={reviews} />
@@ -171,17 +190,22 @@ export default function PublicProfileClient({
           )}
         </main>
 
-        {/* Sticky CTA */}
+        {/* Desktop CTA */}
+        <DesktopCTA
+          nextSlot={nextSlot}
+          accentColor={accentColor}
+          selectedService={selectedService}
+          onBook={handleBook}
+          formatPriceLabel={formatPriceLabel}
+        />
+
+        {/* Sticky CTA (Mobile) */}
         <MobileCTA
           nextSlot={nextSlot}
           accentColor={accentColor}
           selectedService={selectedService}
-          onBook={() => {
-            if (selectedServiceId) {
-              // TODO: Open booking modal
-              console.log("Book service:", selectedServiceId);
-            }
-          }}
+          onBook={handleBook}
+          formatPriceLabel={formatPriceLabel}
         />
       </div>
     </ThemeShell>
@@ -305,11 +329,13 @@ function CreatorProfileHeader({
 function ServicesList({
   services,
   accentColor,
+  formatPriceLabel,
   selectedId,
   onSelect,
 }: {
   services: ServiceData[];
   accentColor: string;
+  formatPriceLabel: (amount?: number | null, currency?: string | null) => string;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
@@ -363,7 +389,7 @@ function ServicesList({
                   "font-bold text-stone-900 tabular-nums",
                   isSignature ? "text-xl" : "text-lg"
                 )}>
-                  {service.price ? `$${(service.price / 100).toFixed(0)}` : "Free"}
+                  {formatPriceLabel(service.price, service.currency)}
                 </span>
                 {/* Checkmark for selected state */}
                 {isSelected && (
@@ -389,7 +415,13 @@ function ServicesList({
 // Products List
 // ============================================================
 
-function ProductsList({ products }: { products: ProductData[] }) {
+function ProductsList({
+  products,
+  formatPriceLabel,
+}: {
+  products: ProductData[];
+  formatPriceLabel: (amount?: number | null, currency?: string | null) => string;
+}) {
   return (
     <section className="py-6">
       <div className="space-y-3">
@@ -402,11 +434,18 @@ function ProductsList({ products }: { products: ProductData[] }) {
             {product.description && (
               <p className="text-xs text-stone-500 mt-1 line-clamp-2">{product.description}</p>
             )}
-            {typeof product.price_cents === "number" && (
-              <p className="text-sm font-semibold text-stone-900 mt-2">
-                ${(product.price_cents / 100).toFixed(0)}{product.currency ? ` ${product.currency.toUpperCase()}` : ""}
-              </p>
-            )}
+            <p className="text-sm font-semibold text-stone-900 mt-2">
+              {product.price_cents != null
+                ? formatPriceLabel(product.price_cents, product.currency)
+                : "Free"}
+            </p>
+            <div className="mt-3">
+              <ProductPurchaseForm
+                productId={product.id}
+                fullWidth
+                buttonLabel="Buy now"
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -445,11 +484,13 @@ function MobileCTA({
   accentColor,
   selectedService,
   onBook,
+  formatPriceLabel,
 }: {
   nextSlot?: string | null;
   accentColor: string;
   selectedService?: ServiceData | null;
   onBook?: () => void;
+  formatPriceLabel: (amount?: number | null, currency?: string | null) => string;
 }) {
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full border-t border-black/5 bg-white/90 p-4 backdrop-blur-md md:hidden">
@@ -459,7 +500,7 @@ function MobileCTA({
             <>
               <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
               <p className="text-sm font-medium text-stone-900">
-                {selectedService.name} • {selectedService.price ? `$${(selectedService.price / 100).toFixed(0)}` : "Free"}
+                {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
               </p>
             </>
           ) : nextSlot ? (
@@ -485,6 +526,64 @@ function MobileCTA({
         >
           {selectedService ? `Book ${selectedService.name}` : "Select a Service"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Desktop CTA
+// ============================================================
+
+function DesktopCTA({
+  nextSlot,
+  accentColor,
+  selectedService,
+  onBook,
+  formatPriceLabel,
+}: {
+  nextSlot?: string | null;
+  accentColor: string;
+  selectedService?: ServiceData | null;
+  onBook?: () => void;
+  formatPriceLabel: (amount?: number | null, currency?: string | null) => string;
+}) {
+  return (
+    <div className="hidden md:block">
+      <div className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6">
+        <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/90 px-6 py-4 shadow-sm">
+          <div>
+            {selectedService ? (
+              <>
+                <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
+                <p className="text-sm font-medium text-stone-900">
+                  {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
+                </p>
+              </>
+            ) : nextSlot ? (
+              <>
+                <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Next Available</p>
+                <p className="text-sm font-medium text-stone-900">{nextSlot}</p>
+              </>
+            ) : (
+              <p className="text-sm font-medium text-stone-500">Choose a service to book</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onBook}
+            disabled={!selectedService}
+            className={cn(
+              "rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
+              selectedService
+                ? "text-white"
+                : "cursor-not-allowed bg-stone-200 text-stone-400"
+            )}
+            style={selectedService ? { backgroundColor: accentColor } : undefined}
+          >
+            {selectedService ? `Book ${selectedService.name}` : "Select a Service"}
+          </button>
+        </div>
       </div>
     </div>
   );

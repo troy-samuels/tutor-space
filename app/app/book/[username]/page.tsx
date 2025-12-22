@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { generateBookableSlots, filterFutureSlots, groupSlotsByDate } from "@/lib/utils/slots";
@@ -9,6 +9,7 @@ import { AccessRequestStatus } from "@/components/booking/AccessRequestStatus";
 import { checkStudentAccess } from "@/lib/actions/student-auth";
 import { getStudentLessonHistory } from "@/lib/actions/student-lessons";
 import { generateTutorPersonSchema, generateBreadcrumbSchema } from "@/lib/utils/structured-data";
+import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 
 interface BookPageProps {
   params: Promise<{ username: string }>;
@@ -18,12 +19,24 @@ interface BookPageProps {
 export async function generateMetadata({ params }: BookPageProps): Promise<Metadata> {
   const { username } = await params;
   const supabase = await createClient();
-  
-  const { data: profile } = await supabase
+  const rawLower = username.trim().toLowerCase();
+  const normalized = normalizeUsernameSlug(username) || rawLower;
+
+  let profileResult = await supabase
     .from("public_profiles")
     .select("full_name, username, bio, tagline, avatar_url, languages_taught")
-    .eq("username", username)
-    .single();
+    .eq("username", normalized)
+    .maybeSingle();
+
+  if (!profileResult.data && rawLower && rawLower !== normalized) {
+    profileResult = await supabase
+      .from("public_profiles")
+      .select("full_name, username, bio, tagline, avatar_url, languages_taught")
+      .eq("username", rawLower)
+      .maybeSingle();
+  }
+
+  const profile = profileResult.data;
 
   if (!profile) {
     return {
@@ -58,13 +71,13 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
       username,
     ],
     alternates: {
-      canonical: `/book/${profile.username ?? username}`,
+      canonical: `/book/${profile.username ?? normalized}`,
     },
     openGraph: {
       title: `Book ${languagesList} lessons with ${tutorName}`,
       description,
       type: "profile",
-      url: `https://tutorlingua.co/book/${profile.username ?? username}`,
+      url: `https://tutorlingua.co/book/${profile.username ?? normalized}`,
       images: profile.avatar_url ? [{ 
         url: profile.avatar_url,
         width: 400,
@@ -84,6 +97,8 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
 export default async function BookPage({ params, searchParams }: BookPageProps) {
   const { username } = await params;
   const { service: serviceId, services: allowedServicesParam } = await searchParams;
+  const rawLower = username.trim().toLowerCase();
+  const normalized = normalizeUsernameSlug(username) || rawLower;
 
   // Parse allowed services from invite link (comma-separated IDs)
   const allowedServiceIds = allowedServicesParam
@@ -97,7 +112,7 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     {
       data: { user },
     },
-    { data: profile, error: profileError },
+    profileResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -105,20 +120,41 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
       .select(
         "id, full_name, username, timezone, bio, tagline, avatar_url, instagram_handle, website_url, languages_taught"
       )
-      .eq("username", username)
-      .single(),
+      .eq("username", normalized)
+      .maybeSingle(),
   ]);
+  let profile = profileResult.data;
+  const profileError = profileResult.error;
 
   if (profileError || !profile) {
-    // Debug logging for 404 investigation
-    console.error("[BookPage] Profile not found:", {
-      username,
-      error: profileError?.message,
-      code: profileError?.code,
-      details: profileError?.details,
-      hint: profileError?.hint,
-    });
-    return notFound();
+    const fallbackResult = rawLower && rawLower !== normalized
+      ? await supabase
+          .from("public_profiles")
+          .select(
+            "id, full_name, username, timezone, bio, tagline, avatar_url, instagram_handle, website_url, languages_taught"
+          )
+          .eq("username", rawLower)
+          .maybeSingle()
+      : null;
+
+    const fallbackProfile = fallbackResult?.data ?? null;
+    if (!fallbackProfile) {
+      // Debug logging for 404 investigation
+      console.error("[BookPage] Profile not found:", {
+        username,
+        error: profileError?.message,
+        code: profileError?.code,
+        details: profileError?.details,
+        hint: profileError?.hint,
+      });
+      return notFound();
+    }
+
+    profile = fallbackProfile;
+  }
+
+  if (profile.username && profile.username !== username) {
+    redirect(`/book/${profile.username}`);
   }
 
   // Get tutor's active services
@@ -307,15 +343,15 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
       name: s.name,
       description: s.description || "",
       duration_minutes: s.duration_minutes,
-      price: s.price_amount * 100, // Convert to cents
-      currency: s.price_currency,
+      price: s.price_amount ?? 0,
+      currency: s.price_currency || "USD",
     }))
   );
 
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: "Home", url: "/" },
-    { name: `${profile.full_name || username}`, url: `/profile/${username}` },
-    { name: "Book a Lesson", url: `/book/${username}` },
+    { name: `${profile.full_name || username}`, url: `/profile/${profile.username || username}` },
+    { name: "Book a Lesson", url: `/book/${profile.username || username}` },
   ]);
 
   return (
