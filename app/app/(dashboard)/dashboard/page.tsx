@@ -162,31 +162,31 @@ export default async function DashboardPage() {
         revenueThisMonthCents={revenueThisMonth}
       />
 
-      <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
+      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
         {/* Row 1, Col 1: UP NEXT */}
-        <div className="min-h-[180px] rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl sm:p-10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-            <Avatar className="h-16 w-16 rounded-2xl border border-stone-200 bg-stone-50 sm:h-24 sm:w-24">
+        <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl sm:p-8">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-5">
+            <Avatar className="h-16 w-16 shrink-0 rounded-2xl border border-stone-200 bg-stone-50 sm:h-20 sm:w-20">
               <AvatarFallback className="rounded-2xl text-xl font-semibold text-primary">
                 {getInitials(nextBooking?.student?.full_name)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 space-y-2">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70">
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70">
                 Up next
               </p>
-              <p className="mb-2 text-2xl font-semibold text-foreground sm:text-3xl">
+              <p className="truncate text-xl font-semibold text-foreground sm:text-2xl">
                 {nextBooking?.student?.full_name ?? "Your next student"}
               </p>
-              <p className="text-base text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {metadataLabel}
               </p>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+            <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
               {nextBooking ? (
                 <Button
                   asChild
-                  className="w-full whitespace-nowrap rounded-full bg-primary px-8 py-3 text-white hover:bg-primary/90 sm:w-auto"
+                  className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
                 >
                   <Link href={`/classroom/${nextBooking.id}`} className="flex items-center justify-center gap-2">
                     <span>Start Lesson</span>
@@ -195,7 +195,7 @@ export default async function DashboardPage() {
                 </Button>
               ) : (
                 <Button
-                  className="w-full whitespace-nowrap rounded-full bg-primary px-8 py-3 text-white hover:bg-primary/90 sm:w-auto"
+                  className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
                   disabled
                 >
                   <span className="flex items-center gap-2">
@@ -205,7 +205,7 @@ export default async function DashboardPage() {
                 </Button>
               )}
               <Link
-                className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary sm:self-auto"
+                className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
                 href={nextBooking ? `/classroom/${nextBooking.id}` : "/bookings"}
               >
                 <span>View Lesson Plan</span>
