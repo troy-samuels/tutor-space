@@ -28,12 +28,16 @@ export default async function DashboardGroupLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, subscription_status, avatar_url, plan, username")
+    .select("id, full_name, email, role, subscription_status, avatar_url, plan, username, onboarding_completed")
     .eq("id", user.id)
     .single();
 
   if (profile?.role && profile.role !== "tutor") {
     redirect("/student/login");
+  }
+
+  if (!profile?.onboarding_completed) {
+    redirect("/onboarding");
   }
 
   const plan: PlatformBillingPlan =

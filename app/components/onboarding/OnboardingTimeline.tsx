@@ -113,12 +113,18 @@ export function OnboardingTimeline({
   // Resume progress from the saved onboarding step
   useEffect(() => {
     let isMounted = true;
+    const params = new URLSearchParams(window.location.search);
+    const hasStripeReturn = params.get("stripe_return") === "1";
+    const hasStripeRefresh = params.get("stripe_refresh") === "1";
 
     checkOnboardingStatus()
       .then(({ completed, step }) => {
         if (!isMounted || completed) return;
 
-        const normalizedStep = Math.min(Math.max(step || 1, 1), 7);
+        let normalizedStep = Math.min(Math.max(step || 1, 1), 7);
+        if (hasStripeReturn || hasStripeRefresh) {
+          normalizedStep = 7;
+        }
         setCurrentStep(normalizedStep);
 
         if (normalizedStep > 1) {

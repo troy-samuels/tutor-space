@@ -7,6 +7,7 @@ import { normalizeAndValidateUsernameSlug } from "@/lib/utils/username-slug";
 import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 import { createLocalTrial } from "./local-trial";
 import { isStripeConfigured, getTrialDays } from "@/lib/utils/stripe-config";
+import { hasProAccess } from "@/lib/payments/subscriptions";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 type StepData = {
@@ -304,8 +305,8 @@ async function getPostOnboardingCheckoutUrl(userId: string, userEmail: string, f
 
   const trialPeriodDays = getTrialDays(plan);
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "");
-  const successUrl = `${appUrl}/dashboard?subscription=success`;
-  const cancelUrl = `${appUrl}/dashboard?subscription=cancel`;
+  const successUrl = `${appUrl}/onboarding?subscription=success`;
+  const cancelUrl = `${appUrl}/onboarding?subscription=cancel`;
 
   try {
     const customer = await getOrCreateStripeCustomer({
@@ -364,7 +365,67 @@ export async function completeOnboarding(): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Mark onboarding as complete
+    // Check if user needs Stripe checkout
+    const checkoutUrl = await getPostOnboardingCheckoutUrl(
+      user.id,
+      user.email ?? "",
+      user.user_metadata?.full_name as string | undefined
+    );
+
+    // Mark onboarding complete only after paid checkout (if required)
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        onboarding_completed: checkoutUrl ? false : true,
+        onboarding_step: 7,
+      })
+      .eq("id", user.id);
+
+    if (error) throw error;
+
+    revalidatePath("/dashboard");
+    revalidatePath("/onboarding");
+
+    return {
+      success: true,
+      redirectTo: checkoutUrl ?? undefined,
+    };
+  } catch (error) {
+    console.error("Error completing onboarding:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An error occurred",
+    };
+  }
+}
+
+export async function finalizeOnboardingAfterCheckout(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+
+    const plan =
+      (profile?.plan as PlatformBillingPlan | null) ?? "professional";
+
+    if (!hasProAccess(plan)) {
+      return { success: false, error: "Subscription not active yet" };
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -378,19 +439,9 @@ export async function completeOnboarding(): Promise<{
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
 
-    // Check if user needs Stripe checkout
-    const checkoutUrl = await getPostOnboardingCheckoutUrl(
-      user.id,
-      user.email ?? "",
-      user.user_metadata?.full_name as string | undefined
-    );
-
-    return {
-      success: true,
-      redirectTo: checkoutUrl ?? undefined,
-    };
+    return { success: true };
   } catch (error) {
-    console.error("Error completing onboarding:", error);
+    console.error("Error finalizing onboarding:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "An error occurred",
