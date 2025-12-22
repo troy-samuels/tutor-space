@@ -142,6 +142,7 @@ export async function POST(req: NextRequest) {
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
+      allow_promotion_codes: true,
       line_items: [
         {
           price: template.stripe_price_id,

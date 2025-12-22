@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       customer: customer.id,
       mode: "subscription",
       payment_method_collection: "always",
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: cancelUrl,
       line_items: [

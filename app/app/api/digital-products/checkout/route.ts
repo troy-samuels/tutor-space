@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
     mode: "payment",
     payment_method_types: ["card"],
     customer_email: buyerEmail,
+    allow_promotion_codes: true,
     line_items: [
       {
         price: product.stripe_price_id,
