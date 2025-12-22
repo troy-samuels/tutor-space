@@ -326,7 +326,7 @@ async function getPostOnboardingCheckoutUrl(userId: string, userEmail: string, f
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       mode: "subscription",
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: cancelUrl,
       line_items: [{ price: priceId, quantity: 1 }],

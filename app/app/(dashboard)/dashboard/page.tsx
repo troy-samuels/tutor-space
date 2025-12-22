@@ -162,8 +162,9 @@ export default async function DashboardPage() {
         revenueThisMonthCents={revenueThisMonth}
       />
 
-      <div className="grid items-start gap-8 xl:grid-cols-12">
-        <div className="xl:col-span-7 min-h-[180px] rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl sm:p-10">
+      <div className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
+        {/* Row 1, Col 1: UP NEXT */}
+        <div className="min-h-[180px] rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl sm:p-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
             <Avatar className="h-16 w-16 rounded-2xl border border-stone-200 bg-stone-50 sm:h-24 sm:w-24">
               <AvatarFallback className="rounded-2xl text-xl font-semibold text-primary">
@@ -214,14 +215,19 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="space-y-6 xl:col-span-5">
-          <InviteStudentsCard
-            username={profile?.username ?? ""}
-            tutorName={profile?.full_name ?? ""}
-          />
+        {/* Row 1, Col 2: Invite Students */}
+        <InviteStudentsCard
+          username={profile?.username ?? ""}
+          tutorName={profile?.full_name ?? ""}
+        />
+
+        {/* Row 2, Col 1: Today & Tomorrow */}
+        <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl">
           <UpcomingSessions sessions={mappedUpcomingSessions} />
-          <RecentActivityList data={recentActivity} />
         </div>
+
+        {/* Row 2, Col 2: Recent Activity */}
+        <RecentActivityList data={recentActivity} />
       </div>
 
       {showStudioDiscovery && (
