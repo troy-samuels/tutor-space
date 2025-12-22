@@ -14,6 +14,11 @@ type ProfileBasics = {
   tagline: string | null;
   bio: string | null;
   avatar_url: string | null;
+  instagram_handle: string | null;
+  tiktok_handle: string | null;
+  facebook_handle: string | null;
+  x_handle: string | null;
+  website_url: string | null;
 };
 
 type ServiceLite = {
@@ -44,7 +49,9 @@ export default async function PagesBuilder() {
   const [profileResult, siteResult, servicesResult, productsResult] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, username, tagline, bio, avatar_url")
+      .select(
+        "id, full_name, username, tagline, bio, avatar_url, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
+      )
       .eq("id", user.id)
       .maybeSingle<ProfileBasics>(),
     supabase
@@ -91,6 +98,11 @@ export default async function PagesBuilder() {
         tagline: profile?.tagline ?? "Language tutor",
         bio: profile?.bio ?? "Share your teaching story and what makes your approach unique.",
         avatar_url: profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | null) ?? null,
+        instagram_handle: profile?.instagram_handle ?? null,
+        tiktok_handle: profile?.tiktok_handle ?? null,
+        facebook_handle: profile?.facebook_handle ?? null,
+        x_handle: profile?.x_handle ?? null,
+        website_url: profile?.website_url ?? null,
       }}
     />
   );

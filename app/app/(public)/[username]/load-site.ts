@@ -27,7 +27,7 @@ export async function loadPublicSite(
     supabase
       .from("public_profiles")
       .select(
-        "id, full_name, username, tagline, bio, avatar_url, email, stripe_payment_link, languages_taught"
+        "id, full_name, username, tagline, bio, avatar_url, email, stripe_payment_link, languages_taught, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
       )
       .eq("username", params.username.toLowerCase())
       .single(),
@@ -122,6 +122,11 @@ export async function loadPublicSite(
         avatar_url: profile.avatar_url,
         stripe_payment_link: profile.stripe_payment_link,
         languages_taught: (profile as any).languages_taught || null,
+        instagram_handle: (profile as any).instagram_handle || null,
+        tiktok_handle: (profile as any).tiktok_handle || null,
+        facebook_handle: (profile as any).facebook_handle || null,
+        x_handle: (profile as any).x_handle || null,
+        website_url: (profile as any).website_url || null,
       },
       about: {
         title: site.about_title || profile.full_name || "",
@@ -176,12 +181,58 @@ export async function loadPublicSite(
             url: site.contact_cta_url || `mailto:${profile.email || ""}`,
           }
         : null,
-      socialLinks:
-        resources?.map((r) => ({
+      socialLinks: [
+        ...(resources?.map((r) => ({
           id: r.id,
           label: r.label,
           url: r.url,
-        })) || [],
+        })) || []),
+        ...(profile.instagram_handle
+          ? [
+              {
+                id: `profile-instagram-${profile.id}`,
+                label: "Instagram",
+                url: `https://instagram.com/${profile.instagram_handle.replace(/^@/, "")}`,
+              },
+            ]
+          : []),
+        ...(profile.tiktok_handle
+          ? [
+              {
+                id: `profile-tiktok-${profile.id}`,
+                label: "TikTok",
+                url: `https://tiktok.com/@${profile.tiktok_handle.replace(/^@/, "")}`,
+              },
+            ]
+          : []),
+        ...(profile.facebook_handle
+          ? [
+              {
+                id: `profile-facebook-${profile.id}`,
+                label: "Facebook",
+                url: `https://facebook.com/${profile.facebook_handle.replace(/^@/, "")}`,
+              },
+            ]
+          : []),
+        ...(profile.x_handle
+          ? [
+              {
+                id: `profile-x-${profile.id}`,
+                label: "X",
+                url: `https://x.com/${profile.x_handle.replace(/^@/, "")}`,
+              },
+            ]
+          : []),
+        ...(profile.website_url
+          ? [
+              {
+                id: `profile-website-${profile.id}`,
+                label: "Website",
+                url: profile.website_url,
+              },
+            ]
+          : []),
+      ],
       digitalResources: [],
       additionalPages: { faq: [], resources: [] },
       booking: {

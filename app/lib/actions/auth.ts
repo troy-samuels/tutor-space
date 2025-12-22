@@ -15,7 +15,10 @@ const DASHBOARD_ROUTE = "/calendar";
 const ONBOARDING_ROUTE = "/onboarding";
 const STUDENT_HOME_ROUTE = "/student/search";
 
-const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+// Check stripe config at runtime, not module load time
+function isStripeConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
 
 function sanitizeRedirectPath(path: FormDataEntryValue | null): string | null {
   if (typeof path !== "string") return null;
@@ -52,13 +55,21 @@ async function startSubscriptionCheckout(params: {
 }): Promise<string | null> {
   const { user, plan, fullName, adminClient } = params;
 
+  // Debug: Log the plan and stripe configuration
+  const stripeConfigured = isStripeConfigured();
+  console.log("[Auth] startSubscriptionCheckout called with plan:", plan);
+  console.log("[Auth] stripeConfigured:", stripeConfigured);
+  console.log("[Auth] STRIPE_SECRET_KEY exists:", Boolean(process.env.STRIPE_SECRET_KEY));
+
   // Skip checkout for free or lifetime flows
   if (plan === "professional" || plan === "tutor_life" || plan === "studio_life" || plan === "founder_lifetime" || plan === "all_access") {
+    console.log("[Auth] Skipping checkout - free/lifetime plan");
     return null;
   }
 
   if (!stripeConfigured) {
     console.warn("[Auth] Stripe is not configured; skipping checkout and continuing to onboarding.");
+    console.log("[Auth] Current STRIPE_SECRET_KEY value:", process.env.STRIPE_SECRET_KEY ? "SET" : "NOT SET");
     return null;
   }
 
@@ -73,8 +84,11 @@ async function startSubscriptionCheckout(params: {
             ? process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID?.trim()
             : null;
 
+  console.log("[Auth] Resolved priceId:", priceId);
+
   if (!priceId) {
     console.warn("[Auth] Missing Stripe price ID for plan", plan);
+    console.log("[Auth] Available price IDs - PRO_MONTHLY:", process.env.STRIPE_PRO_MONTHLY_PRICE_ID ? "SET" : "NOT SET");
     return null;
   }
 
@@ -119,9 +133,11 @@ async function startSubscriptionCheckout(params: {
       },
     });
 
+    console.log("[Auth] Checkout session created, URL:", session.url);
     return session.url ?? null;
   } catch (error) {
     console.error("[Auth] Failed to start signup checkout", error);
+    console.error("[Auth] Error details:", JSON.stringify(error, null, 2));
     return null;
   }
 }
@@ -506,17 +522,21 @@ export async function signUp(
             revalidatePath("/", "layout");
 
             // Redirect to Stripe checkout if needed (paid plan)
+            console.log("[Auth] About to call startSubscriptionCheckout with finalPlan:", finalPlan);
             const checkoutUrl = await startSubscriptionCheckout({
               user: data.user,
               plan: finalPlan,
               fullName,
               adminClient,
             });
+            console.log("[Auth] startSubscriptionCheckout returned:", checkoutUrl);
 
             if (checkoutUrl) {
+              console.log("[Auth] Redirecting to Stripe checkout:", checkoutUrl);
               return { success: "Account created", redirectTo: checkoutUrl };
             }
 
+            console.log("[Auth] No checkout URL, redirecting to onboarding");
             return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
           }
 

@@ -30,8 +30,10 @@ import {
   ChevronDown,
   Upload,
   Instagram,
+  Facebook,
   Globe,
   Music4,
+  Twitter,
   Trash2,
 } from "lucide-react";
 import { uploadHeroImage } from "@/lib/actions/tutor-sites";
@@ -66,6 +68,8 @@ type StudioProfile = {
   avatar_url: string | null;
   instagram_handle?: string | null;
   tiktok_handle?: string | null;
+  facebook_handle?: string | null;
+  x_handle?: string | null;
   website_url?: string | null;
 };
 
@@ -477,8 +481,14 @@ function ControlDeck({
         <Button
           disabled={publishStatus === "publishing"}
           onClick={onPublish}
-          className="rounded-full bg-stone-900 px-5 text-sm font-medium text-white shadow-sm transition-all hover:bg-stone-800 hover:shadow-md active:scale-[0.98]"
+          className="relative rounded-full bg-stone-900 px-5 text-sm font-medium text-white shadow-sm transition-all hover:bg-stone-800 hover:shadow-md active:scale-[0.98]"
         >
+          {publishStatus !== "published" && (
+            <span
+              className="pointer-events-none absolute -inset-0.5 rounded-full border border-amber-300/60 animate-pulse"
+              aria-hidden="true"
+            />
+          )}
           {publishStatus === "publishing" ? "Publishing..." : publishStatus === "published" ? <><Check className="mr-1.5 h-3.5 w-3.5" />Published</> : "Publish"}
         </Button>
       </motion.div>
@@ -499,6 +509,13 @@ function ControlDeck({
             rel="noreferrer"
             title="View live site"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
+            onClick={(event) => {
+              if (publishStatus !== "published") {
+                event.preventDefault();
+                setShareMessage("Publish to view live");
+                setTimeout(() => setShareMessage(null), 2000);
+              }
+            }}
           >
             <ExternalLink className="h-4 w-4" />
           </a>
@@ -2022,6 +2039,16 @@ const SOCIAL_PLATFORM_CONFIG = {
     label: "TikTok",
     getUrl: (h: string) => `https://tiktok.com/@${h.replace(/^@/, "")}`,
   },
+  facebook: {
+    icon: Facebook,
+    label: "Facebook",
+    getUrl: (h: string) => `https://facebook.com/${h.replace(/^@/, "")}`,
+  },
+  x: {
+    icon: Twitter,
+    label: "X",
+    getUrl: (h: string) => `https://x.com/${h.replace(/^@/, "")}`,
+  },
   website: {
     icon: Globe,
     label: "Website",
@@ -2088,6 +2115,24 @@ function SocialGrid({
       url: SOCIAL_PLATFORM_CONFIG.website.getUrl(profile.website_url),
       icon: Globe,
       label: "Website",
+    });
+  }
+  if (profile.facebook_handle) {
+    links.push({
+      platform: "facebook",
+      handle: profile.facebook_handle,
+      url: SOCIAL_PLATFORM_CONFIG.facebook.getUrl(profile.facebook_handle),
+      icon: Facebook,
+      label: "Facebook",
+    });
+  }
+  if (profile.x_handle) {
+    links.push({
+      platform: "x",
+      handle: profile.x_handle,
+      url: SOCIAL_PLATFORM_CONFIG.x.getUrl(profile.x_handle),
+      icon: Twitter,
+      label: "X",
     });
   }
 

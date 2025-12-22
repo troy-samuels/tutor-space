@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Facebook, Globe, Instagram, Music4, Twitter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ThemeShell } from "@/components/site/ThemeShell";
 import { ProductPurchaseForm } from "@/components/digital-products/purchase-form";
@@ -39,6 +40,11 @@ type ProfileData = {
   bio: string;
   avatar_url?: string | null;
   languages_taught: string[];
+  instagram_handle?: string | null;
+  tiktok_handle?: string | null;
+  facebook_handle?: string | null;
+  x_handle?: string | null;
+  website_url?: string | null;
 };
 
 interface PublicProfileClientProps {
@@ -115,6 +121,44 @@ export default function PublicProfileClient({
     return formatCurrency(amount, currency?.toUpperCase() || "USD");
   };
 
+  const socialLinks = [
+    profile.instagram_handle
+      ? {
+          label: "Instagram",
+          url: `https://instagram.com/${profile.instagram_handle.replace(/^@/, "")}`,
+          icon: <Instagram className="h-4 w-4" />,
+        }
+      : null,
+    profile.tiktok_handle
+      ? {
+          label: "TikTok",
+          url: `https://tiktok.com/@${profile.tiktok_handle.replace(/^@/, "")}`,
+          icon: <Music4 className="h-4 w-4" />,
+        }
+      : null,
+    profile.facebook_handle
+      ? {
+          label: "Facebook",
+          url: `https://facebook.com/${profile.facebook_handle.replace(/^@/, "")}`,
+          icon: <Facebook className="h-4 w-4" />,
+        }
+      : null,
+    profile.x_handle
+      ? {
+          label: "X",
+          url: `https://x.com/${profile.x_handle.replace(/^@/, "")}`,
+          icon: <Twitter className="h-4 w-4" />,
+        }
+      : null,
+    profile.website_url
+      ? {
+          label: "Website",
+          url: profile.website_url,
+          icon: <Globe className="h-4 w-4" />,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; url: string; icon: React.ReactNode }>;
+
   return (
     <ThemeShell themeId={themeId}>
       <div className="min-h-screen bg-[var(--bg-page)]">
@@ -130,6 +174,7 @@ export default function PublicProfileClient({
           bgColor={bgColor}
           hasAvailability={!!nextSlot}
           showAbout={visibility.about}
+          socialLinks={socialLinks}
         />
 
         {/* iOS Segmented Control Tabs */}
@@ -227,6 +272,7 @@ function CreatorProfileHeader({
   bgColor,
   hasAvailability,
   showAbout,
+  socialLinks,
 }: {
   name: string;
   tagline: string;
@@ -238,6 +284,7 @@ function CreatorProfileHeader({
   bgColor: string;
   hasAvailability: boolean;
   showAbout: boolean;
+  socialLinks: Array<{ label: string; url: string; icon: React.ReactNode }>;
 }) {
   return (
     <div className="relative">
@@ -297,6 +344,27 @@ function CreatorProfileHeader({
           <p className="text-sm text-stone-500">{tagline}</p>
         )}
       </div>
+
+      {/* 4. Social Icons */}
+      {socialLinks.length > 0 && (
+        <div className="mt-4 flex justify-center">
+          <div className="flex items-center gap-3">
+            {socialLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 text-stone-600 transition hover:border-stone-300 hover:text-stone-900"
+                title={link.label}
+                aria-label={link.label}
+              >
+                {link.icon}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 5. Info Chip Row (Metadata Scroll) */}
       {languages.length > 0 && (

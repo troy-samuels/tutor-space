@@ -205,14 +205,18 @@ export async function getPublicSiteData(username: string) {
 
   let profileResult = await supabase
     .from("public_profiles")
-    .select("id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone")
+    .select(
+      "id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
+    )
     .eq("username", normalizedUsername)
     .maybeSingle();
 
   if (!profileResult.data && rawLower && rawLower !== normalizedUsername) {
     profileResult = await supabase
       .from("public_profiles")
-      .select("id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone")
+      .select(
+        "id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
+      )
       .eq("username", rawLower)
       .maybeSingle();
   }

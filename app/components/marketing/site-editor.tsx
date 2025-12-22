@@ -38,6 +38,11 @@ type EditorProfile = {
   avatar_url: string | null;
   email?: string | null;
   stripe_payment_link?: string | null;
+  instagram_handle?: string | null;
+  tiktok_handle?: string | null;
+  facebook_handle?: string | null;
+  x_handle?: string | null;
+  website_url?: string | null;
 };
 
 type ServiceLite = {
@@ -294,12 +299,55 @@ export function SiteEditor({
   // Section visibility panel toggle
   const [showSectionSettings, setShowSectionSettings] = useState(false);
 
-  // Social links from resources
-  const resourceLinks = initialSiteData?.resources?.map((r) => ({
-    id: r.id,
-    label: r.label,
-    url: r.url,
-  })) ?? [];
+  // Social links from resources + profile handles
+  const profileSocialLinks = [
+    profile.instagram_handle
+      ? {
+          id: `profile-instagram-${profile.id}`,
+          label: "Instagram",
+          url: `https://instagram.com/${profile.instagram_handle.replace(/^@/, "")}`,
+        }
+      : null,
+    profile.tiktok_handle
+      ? {
+          id: `profile-tiktok-${profile.id}`,
+          label: "TikTok",
+          url: `https://tiktok.com/@${profile.tiktok_handle.replace(/^@/, "")}`,
+        }
+      : null,
+    profile.facebook_handle
+      ? {
+          id: `profile-facebook-${profile.id}`,
+          label: "Facebook",
+          url: `https://facebook.com/${profile.facebook_handle.replace(/^@/, "")}`,
+        }
+      : null,
+    profile.x_handle
+      ? {
+          id: `profile-x-${profile.id}`,
+          label: "X",
+          url: `https://x.com/${profile.x_handle.replace(/^@/, "")}`,
+        }
+      : null,
+    profile.website_url
+      ? {
+          id: `profile-website-${profile.id}`,
+          label: "Website",
+          url: profile.website_url.startsWith("http")
+            ? profile.website_url
+            : `https://${profile.website_url}`,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ id: string; label: string; url: string }>;
+
+  const resourceLinks = [
+    ...(initialSiteData?.resources?.map((r) => ({
+      id: r.id,
+      label: r.label,
+      url: r.url,
+    })) ?? []),
+    ...profileSocialLinks,
+  ];
 
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplateId(template.id);

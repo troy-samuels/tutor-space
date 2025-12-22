@@ -67,6 +67,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<Pa
           : typeof profile.languages_taught === "string"
             ? (profile.languages_taught as string).split(",").map((s) => s.trim()).filter(Boolean)
             : [],
+        instagram_handle: (profile as any).instagram_handle || null,
+        tiktok_handle: (profile as any).tiktok_handle || null,
+        facebook_handle: (profile as any).facebook_handle || null,
+        x_handle: (profile as any).x_handle || null,
+        website_url: (profile as any).website_url || null,
       }}
       coverImage={site.config.hero?.coverImage || null}
       themeId={site.config.themeId}
