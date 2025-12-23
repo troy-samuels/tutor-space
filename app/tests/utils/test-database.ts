@@ -717,14 +717,18 @@ export const TestDataFactories = {
     const deletionSteps = [
       () => client.from("lesson_drills").delete().eq("tutor_id", tutorId),
       () => client.from("lesson_recordings").delete().eq("tutor_id", tutorId),
-      () => client.from("homework_submissions").delete().in(
-        "homework_id",
-        client
+      async () => {
+        const { data: homeworkIds } = await client
           .from("homework_assignments")
           .select("id")
-          .eq("tutor_id", tutorId)
-          .then((r) => r.data?.map((h) => h.id) || [])
-      ),
+          .eq("tutor_id", tutorId);
+        if (homeworkIds && homeworkIds.length > 0) {
+          await client.from("homework_submissions").delete().in(
+            "homework_id",
+            homeworkIds.map((h) => h.id)
+          );
+        }
+      },
       () => client.from("homework_assignments").delete().eq("tutor_id", tutorId),
       () => client.from("student_practice_sessions").delete().eq("tutor_id", tutorId),
       () => client.from("practice_assignments").delete().eq("tutor_id", tutorId),

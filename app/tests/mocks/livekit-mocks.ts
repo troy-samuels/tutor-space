@@ -274,23 +274,30 @@ export function createMockLiveKitEvent(
 
   // Handle room
   if (options.room) {
+    // If it looks like a complete MockRoom (has required fields), use it directly
+    // Otherwise, treat it as CreateRoomOptions and generate a full MockRoom
+    const room = options.room as MockRoom | CreateRoomOptions;
     event.room =
-      "sid" in options.room ? options.room : createMockRoom(options.room as CreateRoomOptions);
+      "sid" in room && typeof room.sid === "string" && "name" in room && typeof room.name === "string"
+        ? (room as MockRoom)
+        : createMockRoom(options.room as CreateRoomOptions);
   }
 
   // Handle participant
   if (options.participant) {
+    const participant = options.participant as MockParticipant | CreateParticipantOptions;
     event.participant =
-      "sid" in options.participant
-        ? options.participant
+      "sid" in participant && typeof participant.sid === "string" && "identity" in participant && typeof participant.identity === "string" && "state" in participant
+        ? (participant as MockParticipant)
         : createMockParticipant(options.participant as CreateParticipantOptions);
   }
 
   // Handle egress
   if (options.egressInfo) {
+    const egressInfo = options.egressInfo as MockEgressInfo | CreateEgressInfoOptions;
     event.egressInfo =
-      "egressId" in options.egressInfo
-        ? options.egressInfo
+      "egressId" in egressInfo && typeof egressInfo.egressId === "string" && "status" in egressInfo
+        ? (egressInfo as MockEgressInfo)
         : createMockEgressInfo(options.egressInfo as CreateEgressInfoOptions);
   }
 

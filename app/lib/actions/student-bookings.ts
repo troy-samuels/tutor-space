@@ -319,9 +319,25 @@ export async function getStudentBookings(): Promise<{
     return { error: "Failed to load bookings" };
   }
 
+  if (!bookings || !Array.isArray(bookings)) {
+    return { bookings: [] };
+  }
+
   // Get tutor and service info
-  const tutorIds = [...new Set(bookings.map((b) => b.tutor_id))];
-  const serviceIds = [...new Set(bookings.map((b) => b.service_id))];
+  type BookingRow = {
+    id: string;
+    scheduled_at: string;
+    duration_minutes: number;
+    status: string;
+    meeting_url: string | null;
+    meeting_provider: string | null;
+    tutor_id: string;
+    service_id: string;
+    notes?: string | null;
+  };
+  const bookingsList = bookings as unknown as BookingRow[];
+  const tutorIds = [...new Set(bookingsList.map((b) => b.tutor_id))];
+  const serviceIds = [...new Set(bookingsList.map((b) => b.service_id))];
 
   const [tutorsResult, servicesResult] = await Promise.all([
     adminClient
@@ -337,12 +353,12 @@ export async function getStudentBookings(): Promise<{
   const tutorMap = new Map(tutorsResult.data?.map((t) => [t.id, t]) || []);
   const serviceMap = new Map(servicesResult.data?.map((s) => [s.id, s]) || []);
 
-  const result = bookings.map((booking) => ({
+  const result = bookingsList.map((booking) => ({
     id: booking.id,
     scheduled_at: booking.scheduled_at,
     duration_minutes: booking.duration_minutes,
     status: booking.status,
-    notes: "notes" in booking ? (booking as { notes: string | null }).notes : null,
+    notes: booking.notes ?? null,
     meeting_url: booking.meeting_url,
     meeting_provider: booking.meeting_provider,
     tutor: tutorMap.get(booking.tutor_id) || {
