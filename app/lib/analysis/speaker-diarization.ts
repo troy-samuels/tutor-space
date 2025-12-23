@@ -16,6 +16,7 @@ export interface Word {
   confidence: number;
   speaker?: number;
   punctuated_word?: string;
+  language?: string; // BCP-47 language code from code-switching (e.g., "en", "es")
 }
 
 export interface SpeakerSegment {
@@ -25,6 +26,7 @@ export interface SpeakerSegment {
   end: number;
   words: Word[];
   confidence: number;
+  languages?: string[]; // Unique languages detected in this segment (for code-switching)
 }
 
 export interface SpeakerTurn {
@@ -62,6 +64,7 @@ interface DeepgramWord {
   confidence: number;
   speaker?: number;
   punctuated_word?: string;
+  language?: string; // BCP-47 language code from code-switching
 }
 
 interface DeepgramParagraph {
@@ -152,6 +155,19 @@ export function parseDiarization(transcriptJson: unknown): SpeakerSegment[] {
 }
 
 /**
+ * Extract unique languages from words (for code-switching analysis)
+ */
+function extractSegmentLanguages(words: Word[]): string[] | undefined {
+  const langs = new Set<string>();
+  for (const word of words) {
+    if (word.language) {
+      langs.add(word.language);
+    }
+  }
+  return langs.size > 0 ? Array.from(langs) : undefined;
+}
+
+/**
  * Parse Deepgram utterances (preferred method for diarization)
  */
 function parseUtterances(
@@ -164,21 +180,27 @@ function parseUtterances(
     words: DeepgramWord[];
   }>
 ): SpeakerSegment[] {
-  return utterances.map((utterance) => ({
-    speaker: utterance.speaker,
-    text: utterance.transcript.trim(),
-    start: utterance.start,
-    end: utterance.end,
-    confidence: utterance.confidence,
-    words: utterance.words.map((w) => ({
+  return utterances.map((utterance) => {
+    const words: Word[] = utterance.words.map((w) => ({
       word: w.word,
       start: w.start,
       end: w.end,
       confidence: w.confidence,
       speaker: w.speaker,
       punctuated_word: w.punctuated_word,
-    })),
-  }));
+      language: w.language,
+    }));
+
+    return {
+      speaker: utterance.speaker,
+      text: utterance.transcript.trim(),
+      start: utterance.start,
+      end: utterance.end,
+      confidence: utterance.confidence,
+      words,
+      languages: extractSegmentLanguages(words),
+    };
+  });
 }
 
 /**
@@ -202,6 +224,16 @@ function parseParagraphs(
     const text = para.sentences?.map((s) => s.text).join(" ").trim() || "";
 
     if (text) {
+      const words: Word[] = paraWords.map((w) => ({
+        word: w.word,
+        start: w.start,
+        end: w.end,
+        confidence: w.confidence,
+        speaker: w.speaker,
+        punctuated_word: w.punctuated_word,
+        language: w.language,
+      }));
+
       segments.push({
         speaker,
         text,
@@ -210,14 +242,8 @@ function parseParagraphs(
         confidence: paraWords.length > 0
           ? paraWords.reduce((sum, w) => sum + w.confidence, 0) / paraWords.length
           : 0,
-        words: paraWords.map((w) => ({
-          word: w.word,
-          start: w.start,
-          end: w.end,
-          confidence: w.confidence,
-          speaker: w.speaker,
-          punctuated_word: w.punctuated_word,
-        })),
+        words,
+        languages: extractSegmentLanguages(words),
       });
     }
   }
@@ -236,8 +262,9 @@ function parseWordsToSegments(words: DeepgramWord[]): SpeakerSegment[] {
     const speaker = word.speaker ?? 0;
 
     if (!currentSegment || currentSegment.speaker !== speaker) {
-      // Start new segment
+      // Finalize previous segment with languages
       if (currentSegment) {
+        currentSegment.languages = extractSegmentLanguages(currentSegment.words);
         segments.push(currentSegment);
       }
       currentSegment = {
@@ -261,13 +288,15 @@ function parseWordsToSegments(words: DeepgramWord[]): SpeakerSegment[] {
       confidence: word.confidence,
       speaker: word.speaker,
       punctuated_word: word.punctuated_word,
+      language: word.language,
     });
   }
 
   if (currentSegment && currentSegment.words.length > 0) {
-    // Calculate average confidence
+    // Calculate average confidence and extract languages
     currentSegment.confidence =
       currentSegment.words.reduce((sum, w) => sum + w.confidence, 0) / currentSegment.words.length;
+    currentSegment.languages = extractSegmentLanguages(currentSegment.words);
     segments.push(currentSegment);
   }
 

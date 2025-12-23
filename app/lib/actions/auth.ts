@@ -47,6 +47,23 @@ function resolveTutorRedirect(target: string | null) {
   return target || DASHBOARD_ROUTE;
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`));
+    }, ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 async function startSubscriptionCheckout(params: {
   user: User;
   plan: PlatformBillingPlan;
@@ -595,7 +612,11 @@ export async function signIn(
 
   if (adminClient && email) {
     try {
-      const { data, error: adminError } = await adminClient.auth.admin.listUsers();
+        const { data, error: adminError } = await withTimeout(
+          adminClient.auth.admin.listUsers(),
+          2000,
+          "Supabase admin listUsers"
+        );
 
       if (adminError) {
         const supabaseError = adminError as { message?: string; status?: number };

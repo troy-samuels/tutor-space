@@ -342,3 +342,213 @@ export function generateCompleteProfileSchema(
   };
 }
 
+/**
+ * Generate LLM-friendly disambiguating description
+ * Creates a factual, quotable summary that AI systems can cite
+ */
+export function generateLLMSummary(profile: TutorProfile): string {
+  const name = profile.full_name || profile.username;
+  const languages = profile.languages_taught.join(" and ");
+
+  const parts: string[] = [
+    `${name} is an independent ${languages} language tutor on TutorLingua`,
+  ];
+
+  if (profile.years_teaching) {
+    parts.push(`with ${profile.years_teaching} years of teaching experience`);
+  }
+
+  if (profile.total_students && profile.total_students > 0) {
+    parts.push(`teaching ${profile.total_students}+ students`);
+  }
+
+  if (profile.average_rating && profile.testimonial_count && profile.testimonial_count > 0) {
+    parts.push(`rated ${profile.average_rating.toFixed(1)}/5 by ${profile.testimonial_count} students`);
+  }
+
+  let summary = parts.join(", ");
+
+  if (profile.tagline) {
+    summary += `. ${profile.tagline}`;
+  }
+
+  return summary.trim();
+}
+
+/**
+ * Generate ProfilePage schema for bio/link-in-bio pages
+ * Optimized for social link aggregators
+ */
+export function generateProfilePageSchema(
+  profile: Pick<TutorProfile, "username" | "full_name" | "tagline" | "avatar_url">,
+  links: Array<{ url: string; title: string }>
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "dateModified": new Date().toISOString(),
+    "mainEntity": {
+      "@type": "Person",
+      "@id": `${baseUrl}/profile/${profile.username}`,
+      "name": profile.full_name || profile.username,
+      "url": `${baseUrl}/bio/${profile.username}`,
+      ...(profile.avatar_url && {
+        "image": profile.avatar_url,
+      }),
+      ...(links.length > 0 && {
+        "sameAs": links.map(l => l.url),
+      }),
+    },
+  };
+}
+
+/**
+ * Generate ItemList schema for link collections (bio pages)
+ */
+export function generateLinkListSchema(
+  profile: Pick<TutorProfile, "username" | "full_name">,
+  links: Array<{ url: string; title: string }>
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  if (links.length === 0) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `${profile.full_name || profile.username}'s Links`,
+    "url": `${baseUrl}/bio/${profile.username}`,
+    "numberOfItems": links.length,
+    "itemListElement": links.map((link, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": link.title,
+      "url": link.url,
+    })),
+  };
+}
+
+/**
+ * Generate Product schema for digital products
+ */
+export function generateProductSchema(
+  product: {
+    id: string;
+    title: string;
+    description: string | null;
+    price_cents: number | null;
+    currency: string | null;
+  },
+  profile: Pick<TutorProfile, "username" | "full_name">
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  return {
+    "@type": "Product",
+    "@id": `${baseUrl}/products/${profile.username}/${product.id}`,
+    "name": product.title,
+    ...(product.description && { "description": product.description }),
+    "seller": {
+      "@type": "Person",
+      "@id": `${baseUrl}/profile/${profile.username}`,
+      "name": profile.full_name || profile.username,
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": product.price_cents ? (product.price_cents / 100).toFixed(2) : "0",
+      "priceCurrency": product.currency?.toUpperCase() || "USD",
+      "availability": "https://schema.org/InStock",
+      "url": `${baseUrl}/products/${profile.username}`,
+    },
+    "category": "Educational Materials",
+  };
+}
+
+/**
+ * Generate ItemList schema for product catalog
+ */
+export function generateProductCatalogSchema(
+  profile: Pick<TutorProfile, "username" | "full_name">,
+  products: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    price_cents: number | null;
+    currency: string | null;
+  }>
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  if (products.length === 0) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `${profile.full_name || profile.username}'s Learning Resources`,
+    "description": `Digital learning materials and resources from ${profile.full_name || profile.username}`,
+    "url": `${baseUrl}/products/${profile.username}`,
+    "numberOfItems": products.length,
+    "itemListElement": products.map((product, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": generateProductSchema(product, profile),
+    })),
+  };
+}
+
+/**
+ * Generate ReserveAction schema for booking CTAs
+ * Helps search engines and LLMs understand booking capability
+ */
+export function generateBookingActionSchema(
+  profile: Pick<TutorProfile, "username" | "full_name" | "languages_taught">
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+  const languages = profile.languages_taught.join(", ");
+
+  return {
+    "@type": "ReserveAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": `${baseUrl}/book/${profile.username}`,
+      "actionPlatform": [
+        "http://schema.org/DesktopWebPlatform",
+        "http://schema.org/MobileWebPlatform",
+      ],
+    },
+    "result": {
+      "@type": "Reservation",
+      "name": `${languages} lesson with ${profile.full_name || profile.username}`,
+    },
+  };
+}
+
+/**
+ * Generate AggregateRating schema for reviews pages
+ */
+export function generateAggregateRatingSchema(
+  profile: Pick<TutorProfile, "username" | "full_name" | "average_rating" | "testimonial_count">
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  if (!profile.average_rating || !profile.testimonial_count || profile.testimonial_count === 0) {
+    return null;
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "AggregateRating",
+    "itemReviewed": {
+      "@type": "Person",
+      "@id": `${baseUrl}/profile/${profile.username}`,
+      "name": profile.full_name || profile.username,
+    },
+    "ratingValue": profile.average_rating,
+    "reviewCount": profile.testimonial_count,
+    "bestRating": 5,
+    "worstRating": 1,
+  };
+}
+

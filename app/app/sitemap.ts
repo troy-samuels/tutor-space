@@ -58,6 +58,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     })) || [];
 
+  // Products page URLs (for tutors with published digital products)
+  const productsUrls =
+    profiles?.map((profile) => ({
+      url: `${baseUrl}/products/${profile.username}`,
+      lastModified: profile.updated_at ? new Date(profile.updated_at) : new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })) || [];
+
+  // Reviews page URLs (for tutors with published sites)
+  const reviewsUrls =
+    publishedSites?.map((site) => ({
+      url: `${baseUrl}/${(site.profiles as any).username}/reviews`,
+      lastModified: site.updated_at ? new Date(site.updated_at) : new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    })) || [];
+
   // English blog post URLs
   const englishBlogUrls = englishPosts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
@@ -117,6 +135,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...tutorUrls,
     ...bioUrls,
     ...profileUrls,
+    ...productsUrls,
+    ...reviewsUrls,
     ...englishBlogUrls,
     ...spanishBlogUrls,
     ...nicheUrls,

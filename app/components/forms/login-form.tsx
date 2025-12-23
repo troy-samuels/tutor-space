@@ -7,7 +7,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { signIn, signInWithOAuth, type AuthActionState } from "@/lib/actions/auth";
 
-const initialState: AuthActionState = { error: undefined, success: undefined };
+const initialState: AuthActionState = {
+  error: undefined,
+  success: undefined,
+  redirectTo: undefined,
+};
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(

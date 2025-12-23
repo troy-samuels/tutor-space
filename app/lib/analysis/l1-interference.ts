@@ -325,18 +325,33 @@ function detectPatternsInText(
   patterns: L1InterferencePattern[]
 ): L1InterferenceResult[] {
   const results: L1InterferenceResult[] = [];
+  const sourceText = text ?? "";
 
   for (const pattern of patterns) {
-    let matchCount = 0;
+    const matchRanges: Array<{ start: number; end: number }> = [];
+
+    const addRange = (start: number, end: number) => {
+      for (const range of matchRanges) {
+        if (start < range.end && end > range.start) {
+          return;
+        }
+      }
+      matchRanges.push({ start, end });
+    };
+
+    const collectMatches = (regex: RegExp) => {
+      for (const match of sourceText.matchAll(regex)) {
+        if (match.index === undefined) {
+          continue;
+        }
+        addRange(match.index, match.index + match[0].length);
+      }
+    };
 
     // Check regex detection
     if (pattern.detectionRegex) {
       try {
-        const regex = new RegExp(pattern.detectionRegex, "gi");
-        const matches = text.match(regex);
-        if (matches) {
-          matchCount += matches.length;
-        }
+        collectMatches(new RegExp(pattern.detectionRegex, "gi"));
       } catch (e) {
         // Invalid regex, skip
       }
@@ -344,22 +359,17 @@ function detectPatternsInText(
 
     // Check keyword detection
     if (pattern.detectionKeywords && pattern.detectionKeywords.length > 0) {
-      const lowerText = text.toLowerCase();
       for (const keyword of pattern.detectionKeywords) {
-        const keywordRegex = new RegExp(`\\b${escapeRegex(keyword)}\\b`, "gi");
-        const matches = lowerText.match(keywordRegex);
-        if (matches) {
-          matchCount += matches.length;
-        }
+        collectMatches(new RegExp(`\\b${escapeRegex(keyword)}\\b`, "gi"));
       }
     }
 
-    if (matchCount > 0) {
+    if (matchRanges.length > 0) {
       results.push({
         pattern: pattern.patternType,
         patternName: pattern.patternName,
         patternType: pattern.patternType,
-        count: matchCount,
+        count: matchRanges.length,
         examples: pattern.exampleErrors?.map((e) => ({
           wrong: e.wrong,
           correct: e.correct,

@@ -12,6 +12,7 @@ import {
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
 import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 
 export const metadata = {
   title: "Practice | TutorLingua",
@@ -40,7 +41,7 @@ export default async function PracticeSessionPage({ params }: PageProps) {
   // Get student record
   const { data: student } = await adminClient
     .from("students")
-    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end, ai_practice_subscription_id")
+    .select("*")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -50,9 +51,28 @@ export default async function PracticeSessionPage({ params }: PageProps) {
   }
 
   // Check subscription
-  const isSubscribed = student.ai_practice_enabled === true &&
+  const hasPracticeEnabledColumn = Object.prototype.hasOwnProperty.call(
+    student,
+    "ai_practice_enabled"
+  );
+  const hasFreeTierColumn = Object.prototype.hasOwnProperty.call(
+    student,
+    "ai_practice_free_tier_enabled"
+  );
+  const isPaidActive = student.ai_practice_enabled === true &&
     (!student.ai_practice_current_period_end ||
       new Date(student.ai_practice_current_period_end) > new Date());
+  const isFreeActive = student.ai_practice_free_tier_enabled === true;
+  let isSubscribed = isPaidActive || isFreeActive;
+
+  if (!hasPracticeEnabledColumn && !hasFreeTierColumn) {
+    const tutorHasPracticeAccess = student.tutor_id
+      ? await getTutorHasPracticeAccess(adminClient, student.tutor_id)
+      : false;
+    if (tutorHasPracticeAccess) {
+      isSubscribed = true;
+    }
+  }
 
   if (!isSubscribed) {
     redirect(`/student/practice/subscribe?student=${student.id}`);

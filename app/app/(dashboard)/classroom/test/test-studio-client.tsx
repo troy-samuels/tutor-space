@@ -54,6 +54,13 @@ export default function TestStudioClient() {
               message: "Please sign in to access the Test Studio.",
               isAccessDenied: false,
             });
+          } else if (response.status === 503) {
+            setError({
+              message:
+                data.error ||
+                "Video service isn't configured yet. Please contact support.",
+              isAccessDenied: false,
+            });
           } else {
             setError({
               message: data.error || "Failed to access the Test Studio.",

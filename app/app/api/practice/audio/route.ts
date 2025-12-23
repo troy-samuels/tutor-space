@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     // Get student record
     const { data: student } = await adminClient
       .from("students")
-      .select("id, tutor_id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_audio_enabled, ai_audio_seconds_limit, ai_practice_current_period_end, ai_practice_subscription_id, ai_practice_block_subscription_item_id")
+      .select("*")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
@@ -341,7 +341,7 @@ export async function GET() {
     // Get student record - check both free tier and legacy subscription
     const { data: student } = await adminClient
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_practice_subscription_id, ai_practice_current_period_end, tutor_id")
+      .select("*")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();

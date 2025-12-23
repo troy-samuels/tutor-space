@@ -5,7 +5,7 @@
  * and adaptive drill generation into a unified processing pipeline.
  */
 
-import { parseDiarization, identifyTutorSpeaker, separateSpeakers } from "./speaker-diarization";
+import { parseDiarization, identifyTutorSpeaker, separateSpeakers, type SpeakerSegment } from "./speaker-diarization";
 import { analyzeTutorSpeech, mergeObjectives, type TutorAnalysis, type InferredObjective } from "./tutor-speech-analyzer";
 import { analyzeStudentSpeech, type StudentAnalysis, type StudentLanguageProfile } from "./student-speech-analyzer";
 import { detectL1Interference, getL1PatternsForPair, matchErrorsToL1Patterns, type L1InterferenceAnalysis } from "./l1-interference";
@@ -17,6 +17,25 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 // =============================================================================
 // TYPES
 // =============================================================================
+
+/**
+ * Metrics for multilingual code-switching analysis.
+ * Tracks language distribution and switching patterns in lessons.
+ */
+export interface CodeSwitchingMetrics {
+  /** Total number of words analyzed */
+  totalWords: number;
+  /** Word count by language (BCP-47 codes) */
+  wordsByLanguage: Record<string, number>;
+  /** Number of times the speaker switched languages */
+  switchCount: number;
+  /** Average language switches per minute */
+  avgSwitchesPerMinute: number;
+  /** Most frequently used language */
+  dominantLanguage: string;
+  /** Whether the transcript contains multiple languages */
+  isCodeSwitched: boolean;
+}
 
 export interface EnhancedAnalysisInput {
   recordingId: string;
@@ -38,6 +57,9 @@ export interface EnhancedAnalysisResult {
   studentAnalysis: StudentAnalysis;
   interactionMetrics: InteractionMetrics;
   l1InterferenceAnalysis: L1InterferenceAnalysis;
+
+  // Code-switching (multilingual)
+  codeSwitchingMetrics: CodeSwitchingMetrics;
 
   // Objectives
   lessonObjectives: InferredObjective[];
@@ -81,6 +103,11 @@ export async function processEnhancedAnalysis(
   const segments = parseDiarization(transcriptJson);
   const tutorSpeakerId = identifyTutorSpeaker(segments, tutorName);
   const { tutorSegments, studentSegments, studentSpeakerId } = separateSpeakers(segments, tutorSpeakerId);
+
+  // -------------------------------------------------------------------------
+  // Step 1b: Compute code-switching metrics
+  // -------------------------------------------------------------------------
+  const codeSwitchingMetrics = computeCodeSwitchingMetrics(segments);
 
   // -------------------------------------------------------------------------
   // Step 2: Load student language profile
@@ -184,6 +211,10 @@ export async function processEnhancedAnalysis(
   // Step 10: Save enhanced analysis to database
   // -------------------------------------------------------------------------
   if (supabase) {
+    // Extract detected languages from code-switching metrics
+    const detectedLanguages = Object.keys(codeSwitchingMetrics.wordsByLanguage)
+      .filter((lang) => lang !== "unknown");
+
     await supabase
       .from("lesson_recordings")
       .update({
@@ -196,6 +227,8 @@ export async function processEnhancedAnalysis(
         l1_interference_detected: l1InterferenceAnalysis.patterns,
         engagement_score: interactionMetrics.engagementScore,
         confusion_indicators: interactionMetrics.confusionIndicators,
+        code_switching_metrics: codeSwitchingMetrics,
+        detected_languages: detectedLanguages.length > 0 ? detectedLanguages : null,
       })
       .eq("id", recordingId);
   }
@@ -231,6 +264,7 @@ export async function processEnhancedAnalysis(
     studentAnalysis,
     interactionMetrics,
     l1InterferenceAnalysis,
+    codeSwitchingMetrics,
     lessonObjectives,
     drillPackage,
     summaryMd,
@@ -768,4 +802,52 @@ function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Compute code-switching metrics from speaker segments.
+ * Analyzes language distribution and switching patterns.
+ */
+function computeCodeSwitchingMetrics(segments: SpeakerSegment[]): CodeSwitchingMetrics {
+  const wordsByLanguage: Record<string, number> = {};
+  let switchCount = 0;
+  let lastLanguage: string | null = null;
+  let totalWords = 0;
+  let totalDuration = 0;
+
+  for (const segment of segments) {
+    totalDuration += segment.end - segment.start;
+
+    for (const word of segment.words) {
+      totalWords++;
+      const lang = word.language || "unknown";
+      wordsByLanguage[lang] = (wordsByLanguage[lang] || 0) + 1;
+
+      // Count language switches
+      if (lastLanguage && lastLanguage !== lang && lang !== "unknown" && lastLanguage !== "unknown") {
+        switchCount++;
+      }
+      if (lang !== "unknown") {
+        lastLanguage = lang;
+      }
+    }
+  }
+
+  // Find dominant language (excluding "unknown")
+  const knownLanguages = Object.entries(wordsByLanguage)
+    .filter(([lang]) => lang !== "unknown")
+    .sort((a, b) => b[1] - a[1]);
+
+  const dominantLanguage = knownLanguages[0]?.[0] || "unknown";
+  const durationMinutes = totalDuration / 60 || 1;
+  const isCodeSwitched = knownLanguages.length > 1;
+
+  return {
+    totalWords,
+    wordsByLanguage,
+    switchCount,
+    avgSwitchesPerMinute: Math.round((switchCount / durationMinutes) * 10) / 10,
+    dominantLanguage,
+    isCodeSwitched,
+  };
 }

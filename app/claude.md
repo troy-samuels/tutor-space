@@ -1419,7 +1419,7 @@ SUPABASE_S3_BUCKET=recordings
 6. Student can replay specific moments
 
 **Database tables**:
-- `lesson_recordings` - Enhanced with `ai_summary`, `key_moments` (JSONB), `fluency_score`
+- `lesson_recordings` - Enhanced with `ai_summary`, `key_moments` (JSONB), `fluency_score`, `code_switching_metrics` (JSONB), `detected_languages` (TEXT[])
 - `lesson_drills` - Generated drills linked to booking
 - `processing_logs` - Pipeline audit trail
 
@@ -1462,6 +1462,49 @@ SUPABASE_S3_BUCKET=recordings
 - `detectL1Interference(studentAnalysis, nativeLanguage, targetLanguage)` - Identifies L1 interference patterns
 - `matchErrorsToL1Patterns(errors, patterns)` - Enriches detected errors with L1 pattern metadata
 - `generateAdaptiveDrills(input)` - Creates targeted exercises
+
+---
+
+### Feature: Code Switching Detection
+
+**What it does**: Analyzes multilingual lessons to detect and quantify language mixing patterns between native and target languages.
+
+**Where the code lives**:
+- Processor: `/lib/analysis/enhanced-processor.ts`
+- Diarization: `/lib/analysis/speaker-diarization.ts`
+- Deepgram config: `/lib/deepgram.ts`
+- Migration: `/supabase/migrations/20251223100000_add_code_switching_fields.sql`
+
+**Database Schema**:
+- `lesson_recordings.code_switching_metrics` (JSONB) - Multilingual analysis metrics
+- `lesson_recordings.detected_languages` (TEXT[]) - BCP-47 language codes detected
+
+**Metrics Computed**:
+```typescript
+interface CodeSwitchingMetrics {
+  totalWords: number;                    // Total word count analyzed
+  wordsByLanguage: Record<string, number>; // Word distribution by BCP-47 code
+  switchCount: number;                   // Number of language switches
+  avgSwitchesPerMinute: number;          // Normalized metric per minute
+  dominantLanguage: string;              // Most-used language
+  isCodeSwitched: boolean;               // True if multiple languages detected
+}
+```
+
+**How it works**:
+1. Deepgram transcribes with Nova-3 multi-language mode (when enabled)
+2. Each word includes a `language` field (BCP-47 code)
+3. `computeCodeSwitchingMetrics()` iterates through speaker segments
+4. Counts words per language and tracks language transitions
+5. Results saved to `lesson_recordings` table with GIN index for efficient queries
+
+**Supported Languages** (Nova-3):
+English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese, Hindi (11 total)
+
+**Key functions**:
+- `shouldEnableCodeSwitching(nativeLang, targetLang)` - Checks if language pair supports multi-language mode
+- `buildTranscriptionOptions(studentProfile)` - Configures Deepgram with language settings
+- `computeCodeSwitchingMetrics(segments)` - Computes all code switching metrics
 
 ---
 
@@ -1549,6 +1592,12 @@ SUPABASE_S3_BUCKET=recordings
 - `GET /api/admin/export/revenue` - Export revenue data (CSV)
 - `GET /api/admin/export/students` - Export student data (CSV)
 - `GET /api/admin/analytics/page-views` - Page view analytics
+
+**OG Images**:
+- `GET /api/og/[username]` - Dynamic Open Graph image for tutor profiles (1200x630 PNG, Edge runtime)
+
+**SEO & Discovery**:
+- `GET /llms.txt` - AI assistant discovery document (text/plain, 1-hour cache)
 
 **Pricing**:
 - `GET /api/pricing/founder` - Founder pricing info
@@ -1857,6 +1906,33 @@ Located in `/lib/actions/`:
 
 **Trial** (`trial.ts`):
 - `createAutoTrial()` - Create 14-day free trial on signup
+
+### SEO Utilities
+
+Located in `/lib/utils/`:
+
+**SEO Generators** (`seo-generators.ts`):
+Generates unique, page-type-specific SEO metadata for tutor pages to avoid duplicate content issues.
+
+Functions:
+- `generatePageTitle(profile, pageType)` - Unique titles per page type
+- `generatePageDescription(profile, pageType)` - Contextual meta descriptions
+- `generateKeywords(profile, pageType)` - Semantic keyword arrays
+- `generateCanonicalUrl(username, pageType)` - Proper canonical URLs
+- `getOpenGraphType(pageType)` - OpenGraph type selection (profile, product.group, website)
+- `generateDefaultTagline(profile)` - Fallback taglines when not provided
+
+Page types: `site`, `profile`, `bio`, `book`, `products`, `reviews`
+
+**Structured Data** (`structured-data.ts`):
+Generates JSON-LD structured data for search engines.
+
+Functions:
+- `generateTutorPersonSchema()` - Person + EducationalOrganization
+- `generateCompleteProfileSchema()` - Person, Services, Reviews combined
+- `generateProductCatalogSchema()` - ItemList of Products
+- `generateLinkListSchema()` - ItemList for bio pages
+- `generateBookingActionSchema()` - ReserveAction for CTAs
 
 ---
 
@@ -2280,6 +2356,34 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ## IMPLEMENTATION LOG
 
+### 23 December 2025: SEO & Discovery Enhancements
+
+**Dynamic OG Images**:
+- Added `/api/og/[username]` route for dynamic Open Graph images
+- Generates 1200x630 PNG images with tutor profile data
+- Edge runtime for fast rendering from CDN
+- Features: avatar, name, languages, rating, student count, booking CTA
+
+**llms.txt AI Discovery**:
+- Added `/llms.txt` route for AI assistant discovery
+- Machine-readable platform info for Claude, ChatGPT, Gemini, etc.
+- Dynamic tutor count and language list from database
+- Guidelines for AI assistants helping users find tutors
+
+**Code Switching Detection**:
+- Added `code_switching_metrics` (JSONB) and `detected_languages` (TEXT[]) to lesson_recordings
+- Deepgram Nova-3 multi-language mode for 11 supported languages
+- Computes: wordsByLanguage, switchCount, avgSwitchesPerMinute, dominantLanguage
+- GIN index for efficient queries on detected languages
+
+**SEO Generators Utility**:
+- Added `/lib/utils/seo-generators.ts` for page-type-specific metadata
+- Functions: generatePageTitle, generatePageDescription, generateKeywords, generateCanonicalUrl
+- Supports 6 page types: site, profile, bio, book, products, reviews
+- Avoids duplicate content across similar tutor pages
+
+---
+
 ### 17 December 2025: AI Practice Freemium Model
 
 **Model Change**:
@@ -2449,4 +2553,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 17 December 2025*
+*Last updated: 23 December 2025*

@@ -9,6 +9,7 @@ import {
   BLOCK_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
+import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 import { HOMEWORK_STATUSES } from "@/lib/types/progress";
 import { sendHomeworkAssignedEmail } from "@/lib/emails/ops-emails";
 
@@ -122,6 +123,18 @@ export interface HomeworkAssignment {
   recording_id?: string | null;
   tutor_reviewed?: boolean;
   tutor_reviewed_at?: string | null;
+  latest_submission?: HomeworkSubmissionSummary | null;
+}
+
+export type HomeworkReviewStatus = "pending" | "reviewed" | "needs_revision";
+
+export interface HomeworkSubmissionSummary {
+  id: string;
+  homework_id: string;
+  tutor_feedback: string | null;
+  review_status: HomeworkReviewStatus;
+  reviewed_at: string | null;
+  submitted_at: string;
 }
 
 // HOMEWORK_STATUSES moved to @/lib/types/progress to allow export from "use server" file
@@ -267,6 +280,23 @@ export async function getStudentProgress(
       .limit(25),
   ]);
 
+  let resolvedHomeworkResult = homeworkResult;
+  if (homeworkResult.error) {
+    console.warn(
+      "[getStudentProgress] Homework join failed, retrying without practice assignments.",
+      homeworkResult.error
+    );
+    resolvedHomeworkResult = await serviceClient
+      .from("homework_assignments")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("tutor_id", scopedTutorId)
+      .neq("status", "draft")
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(25);
+  }
+
   // Deduplicate assessments to get latest per skill
   const latestAssessments = Object.values(
     (assessmentsResult.data || []).reduce((acc, assessment) => {
@@ -277,7 +307,30 @@ export async function getStudentProgress(
     }, {} as Record<string, ProficiencyAssessment>)
   );
 
-  const homeworkAssignments = ((homeworkResult.data || []) as any[]).map((assignment) => {
+  const homeworkRows = (resolvedHomeworkResult.data || []) as any[];
+  let latestSubmissions: Record<string, HomeworkSubmissionSummary> = {};
+
+  if (homeworkRows.length > 0) {
+    const homeworkIds = homeworkRows.map((assignment) => assignment.id);
+    const { data: submissions, error: submissionsError } = await serviceClient
+      .from("homework_submissions")
+      .select("id, homework_id, tutor_feedback, review_status, reviewed_at, submitted_at")
+      .eq("student_id", studentId)
+      .in("homework_id", homeworkIds)
+      .order("submitted_at", { ascending: false });
+
+    if (submissionsError) {
+      console.warn("[getStudentProgress] Failed to load homework submissions.", submissionsError);
+    } else {
+      (submissions || []).forEach((submission) => {
+        if (!latestSubmissions[submission.homework_id]) {
+          latestSubmissions[submission.homework_id] = submission as HomeworkSubmissionSummary;
+        }
+      });
+    }
+  }
+
+  const homeworkAssignments = homeworkRows.map((assignment) => {
     // Normalize the joined practice_assignment (could be array or object depending on Supabase)
     const practiceRaw = assignment.practice_assignment;
     const practiceAssignment = Array.isArray(practiceRaw) ? practiceRaw[0] || null : practiceRaw || null;
@@ -286,6 +339,7 @@ export async function getStudentProgress(
       ...(assignment as HomeworkAssignment),
       attachments: normalizeAttachments((assignment as any).attachments),
       practice_assignment: practiceAssignment,
+      latest_submission: latestSubmissions[assignment.id] ?? null,
     };
   }) as HomeworkAssignment[];
 
@@ -386,7 +440,23 @@ export async function getTutorStudentProgress(studentId: string): Promise<{
       .limit(25),
   ]);
 
-  const homeworkAssignments = ((homeworkResult.data || []) as any[]).map((assignment) => {
+  let resolvedHomeworkResult = homeworkResult;
+  if (homeworkResult.error) {
+    console.warn(
+      "[getTutorStudentProgress] Homework join failed, retrying without practice assignments.",
+      homeworkResult.error
+    );
+    resolvedHomeworkResult = await serviceClient
+      .from("homework_assignments")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("tutor_id", user.id)
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(25);
+  }
+
+  const homeworkAssignments = ((resolvedHomeworkResult.data || []) as any[]).map((assignment) => {
     // Normalize the joined practice_assignment (could be array or object depending on Supabase)
     const practiceRaw = assignment.practice_assignment;
     const practiceAssignment = Array.isArray(practiceRaw) ? practiceRaw[0] || null : practiceRaw || null;
@@ -812,7 +882,7 @@ export async function getTutorStudentPracticeData(studentId: string): Promise<{
   // Verify tutor owns this student
   const { data: student } = await supabase
     .from("students")
-    .select("id, ai_practice_enabled, ai_practice_current_period_end")
+    .select("*")
     .eq("id", studentId)
     .eq("tutor_id", user.id)
     .single();
@@ -822,9 +892,10 @@ export async function getTutorStudentPracticeData(studentId: string): Promise<{
   }
 
   // Check subscription status
-  const isSubscribed = student.ai_practice_enabled === true &&
+  const isSubscribed = (student.ai_practice_enabled === true &&
     (!student.ai_practice_current_period_end ||
-      new Date(student.ai_practice_current_period_end) > new Date());
+      new Date(student.ai_practice_current_period_end) > new Date())) ||
+    student.ai_practice_free_tier_enabled === true;
 
   // Fetch assignments
   const { data: assignments } = await supabase
@@ -933,7 +1004,7 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
   // Get student record for this user
   let studentQuery = serviceClient
     .from("students")
-    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end, ai_practice_subscription_id")
+    .select("*")
     .eq("user_id", user.id);
 
   if (tutorId) {
@@ -947,9 +1018,29 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
   }
 
   // Check if subscription is active
-  const isSubscribed = student.ai_practice_enabled === true &&
+  const hasPracticeEnabledColumn = Object.prototype.hasOwnProperty.call(
+    student,
+    "ai_practice_enabled"
+  );
+  const hasFreeTierColumn = Object.prototype.hasOwnProperty.call(
+    student,
+    "ai_practice_free_tier_enabled"
+  );
+  const isPaidActive = student.ai_practice_enabled === true &&
     (!student.ai_practice_current_period_end ||
       new Date(student.ai_practice_current_period_end) > new Date());
+  const isFreeActive = student.ai_practice_free_tier_enabled === true;
+  let isSubscribed = isPaidActive || isFreeActive;
+
+  if (!hasPracticeEnabledColumn && !hasFreeTierColumn) {
+    const tutorHasPracticeAccess = await getTutorHasPracticeAccess(
+      serviceClient,
+      student.tutor_id
+    );
+    if (tutorHasPracticeAccess) {
+      isSubscribed = true;
+    }
+  }
 
   // Fetch assignments with scenarios
   const { data: assignments } = await serviceClient
@@ -1105,7 +1196,7 @@ export async function getStudentPracticeAnalytics(
   // Verify tutor owns this student
   const { data: student } = await serviceClient
     .from("students")
-    .select("id, ai_practice_enabled, tutor_id")
+    .select("*")
     .eq("id", studentId)
     .eq("tutor_id", user.id)
     .single();
@@ -1124,7 +1215,7 @@ export async function getStudentPracticeAnalytics(
 
   if (summary) {
     return {
-      isSubscribed: student.ai_practice_enabled || false,
+      isSubscribed: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
       summary: {
         total_sessions: summary.total_sessions || 0,
         completed_sessions: summary.completed_sessions || 0,
@@ -1148,7 +1239,10 @@ export async function getStudentPracticeAnalytics(
     .eq("tutor_id", user.id);
 
   if (!sessions || sessions.length === 0) {
-    return { isSubscribed: student.ai_practice_enabled || false, summary: null };
+    return {
+      isSubscribed: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
+      summary: null,
+    };
   }
 
   const totalSessions = sessions.length;
@@ -1180,7 +1274,7 @@ export async function getStudentPracticeAnalytics(
   )[0];
 
   return {
-    isSubscribed: student.ai_practice_enabled || false,
+    isSubscribed: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
     summary: {
       total_sessions: totalSessions,
       completed_sessions: completedSessions,

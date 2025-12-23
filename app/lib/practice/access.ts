@@ -63,9 +63,7 @@ export async function getStudentPracticeAccess(
     .from("students")
     .select(
       `
-      id,
-      tutor_id,
-      ai_practice_free_tier_enabled,
+      *,
       profiles:tutor_id (
         id,
         full_name,
@@ -170,4 +168,3 @@ export function hasExhaustedFreeAllowance(
   }
   return allowance.textTurnsRemaining <= 0;
 }
-

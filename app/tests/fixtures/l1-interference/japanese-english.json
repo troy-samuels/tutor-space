@@ -1,0 +1,141 @@
+{
+  "languagePair": {
+    "native": "ja",
+    "target": "en"
+  },
+  "description": "Japanese to English L1 interference patterns",
+  "patterns": [
+    {
+      "patternType": "article_omission",
+      "patternName": "Missing Articles",
+      "description": "Japanese lacks articles, leading to omission of 'a', 'an', 'the' in English",
+      "frequencyRank": 1,
+      "difficultyToCorrect": "hard",
+      "detectionKeywords": ["the", "a", "an"],
+      "testCases": [
+        {
+          "input": "I went to park",
+          "expected": "I went to the park",
+          "context": "Missing definite article before specific place"
+        },
+        {
+          "input": "I saw dog",
+          "expected": "I saw a dog",
+          "context": "Missing indefinite article before singular countable noun"
+        },
+        {
+          "input": "She is teacher",
+          "expected": "She is a teacher",
+          "context": "Missing article before profession"
+        },
+        {
+          "input": "I need umbrella",
+          "expected": "I need an umbrella",
+          "context": "Missing 'an' before vowel sound"
+        }
+      ]
+    },
+    {
+      "patternType": "plural_marking",
+      "patternName": "Missing Plural Markers",
+      "description": "Japanese nouns don't change for plural, leading to missing -s/-es in English",
+      "frequencyRank": 2,
+      "difficultyToCorrect": "medium",
+      "detectionKeywords": ["many", "several", "few", "three", "four", "five"],
+      "testCases": [
+        {
+          "input": "I have three book",
+          "expected": "I have three books",
+          "context": "Missing plural after number"
+        },
+        {
+          "input": "Many student are here",
+          "expected": "Many students are here",
+          "context": "Missing plural after 'many'"
+        },
+        {
+          "input": "I bought some apple",
+          "expected": "I bought some apples",
+          "context": "Missing plural after 'some'"
+        }
+      ]
+    },
+    {
+      "patternType": "be_verb_overuse",
+      "patternName": "Unnecessary 'Be' Verb",
+      "description": "Overuse of 'be' verb due to Japanese copula usage",
+      "frequencyRank": 3,
+      "difficultyToCorrect": "medium",
+      "testCases": [
+        {
+          "input": "I am agree with you",
+          "expected": "I agree with you",
+          "context": "Unnecessary 'am' before verb"
+        },
+        {
+          "input": "She is like coffee",
+          "expected": "She likes coffee",
+          "context": "Unnecessary 'is' before verb"
+        }
+      ]
+    },
+    {
+      "patternType": "subject_omission",
+      "patternName": "Missing Subject",
+      "description": "Japanese is a pro-drop language, leading to subject omission in English",
+      "frequencyRank": 4,
+      "difficultyToCorrect": "medium",
+      "testCases": [
+        {
+          "input": "Is very good",
+          "expected": "It is very good",
+          "context": "Missing subject 'it'"
+        },
+        {
+          "input": "Want to go there",
+          "expected": "I want to go there",
+          "context": "Missing subject 'I'"
+        }
+      ]
+    },
+    {
+      "patternType": "word_order",
+      "patternName": "SOV Word Order Transfer",
+      "description": "Japanese SOV order interfering with English SVO",
+      "frequencyRank": 5,
+      "difficultyToCorrect": "hard",
+      "testCases": [
+        {
+          "input": "I yesterday there went",
+          "expected": "I went there yesterday",
+          "context": "Verb at end of sentence (Japanese pattern)"
+        },
+        {
+          "input": "She English can speak",
+          "expected": "She can speak English",
+          "context": "Modal verb placement error"
+        }
+      ]
+    },
+    {
+      "patternType": "r_l_confusion",
+      "patternName": "R/L Confusion",
+      "description": "Japanese doesn't distinguish between R and L sounds",
+      "frequencyRank": 6,
+      "difficultyToCorrect": "hard",
+      "category": "pronunciation",
+      "testCases": [
+        {
+          "input": "I like lice",
+          "expected": "I like rice",
+          "context": "L substituted for R"
+        },
+        {
+          "input": "Turn reft",
+          "expected": "Turn left",
+          "context": "R substituted for L"
+        }
+      ]
+    }
+  ]
+}

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     // Verify student belongs to user and fetch assigned tutor
     const { data: student } = await supabase
       .from("students")
-      .select("id, email, full_name, ai_practice_customer_id, tutor_id, ai_practice_free_tier_enabled, ai_practice_block_subscription_item_id")
+      .select("*")
       .eq("id", studentId)
       .eq("user_id", user.id)
       .single();
@@ -228,7 +228,7 @@ export async function GET() {
     // Get student record
     const { data: student } = await supabase
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_practice_subscription_id, ai_practice_block_subscription_item_id")
+      .select("*")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
@@ -242,7 +242,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      hasAccess: student.ai_practice_enabled || student.ai_practice_free_tier_enabled,
+      hasAccess: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
       isFreeUser: student.ai_practice_free_tier_enabled === true,
       hasBlockSubscription: !!student.ai_practice_block_subscription_item_id,
       // Legacy subscription (for backwards compatibility)

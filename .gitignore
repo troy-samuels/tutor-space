@@ -26,3 +26,12 @@ supabase/.temp
 # MCP config (contains access tokens)
 .mcp.json
 .vercel
+.env*.local
+
+# Playwright MCP screenshots
+.playwright-mcp/
+
+# Test artifacts
+app/test-results/
+app/playwright-report/
+app/supabase/.temp/

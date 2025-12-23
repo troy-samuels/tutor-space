@@ -20,7 +20,7 @@ export default async function SubscribePage() {
   // Get student record
   const { data: student } = await supabase
     .from("students")
-    .select("id, tutor_id, ai_practice_enabled, ai_practice_current_period_end, profiles:tutor_id(full_name)")
+    .select("*, profiles:tutor_id(full_name)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -30,9 +30,10 @@ export default async function SubscribePage() {
   }
 
   // Check if already subscribed
-  const isSubscribed = student.ai_practice_enabled === true &&
+  const isSubscribed = (student.ai_practice_enabled === true &&
     (!student.ai_practice_current_period_end ||
-      new Date(student.ai_practice_current_period_end) > new Date());
+      new Date(student.ai_practice_current_period_end) > new Date())) ||
+    student.ai_practice_free_tier_enabled === true;
 
   if (isSubscribed) {
     redirect("/student/progress");

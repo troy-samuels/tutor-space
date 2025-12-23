@@ -108,27 +108,27 @@ export default async function BlogPostPage({ params }: PageProps) {
       <ReadingProgress />
 
       {/* Article Header */}
-      <header className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white">
+      <header className="relative overflow-hidden bg-gradient-to-br from-foreground via-foreground to-accent text-white">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
+          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10" />
         </div>
 
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-blue-200/80 mb-8">
+          <nav className="flex items-center gap-2 text-sm text-white/70 mb-8">
             <Link href="/" className="hover:text-white transition-colors">
               Home
             </Link>
-            <svg className="w-4 h-4 text-blue-300/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             <Link href="/blog" className="hover:text-white transition-colors">
               Blog
             </Link>
-            <svg className="w-4 h-4 text-blue-300/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             <span className="text-white font-medium truncate max-w-[200px]">{post.category}</span>
@@ -142,7 +142,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm text-blue-100 ring-1 ring-white/10"
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm text-white/80 ring-1 ring-white/10"
               >
                 {tag}
               </span>
@@ -155,7 +155,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           </h1>
 
           {/* Description */}
-          <p className="text-lg sm:text-xl text-blue-100/90 mb-8 max-w-3xl leading-relaxed">
+          <p className="text-lg sm:text-xl text-white/80 mb-8 max-w-3xl leading-relaxed">
             {post.description}
           </p>
 
@@ -163,12 +163,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             {/* Author */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/20">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/20">
                 {post.author.split(" ").map(n => n[0]).join("")}
               </div>
               <div>
                 <p className="text-sm font-medium text-white">{post.author}</p>
-                <p className="text-xs text-blue-200/70">TutorLingua Team</p>
+                <p className="text-xs text-white/60">TutorLingua Team</p>
               </div>
             </div>
 
@@ -176,7 +176,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <div className="hidden sm:block w-px h-8 bg-white/20" />
 
             {/* Date */}
-            <div className="flex items-center gap-2 text-sm text-blue-200/80">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -188,7 +188,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </div>
 
             {/* Reading Time */}
-            <div className="flex items-center gap-2 text-sm text-blue-200/80">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -196,7 +196,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </div>
 
             {/* Word Count */}
-            <div className="hidden sm:flex items-center gap-2 text-sm text-blue-200/80">
+            <div className="hidden sm:flex items-center gap-2 text-sm text-white/70">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -238,7 +238,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               prose-h3:text-xl prose-h3:sm:text-2xl prose-h3:mt-10 prose-h3:mb-4 prose-h3:scroll-mt-24
               prose-h4:text-lg prose-h4:mt-8 prose-h4:mb-3
               prose-p:text-gray-700 prose-p:leading-[1.8] prose-p:mb-6
-              prose-a:text-blue-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline prose-a:underline-offset-2
+              prose-a:text-primary prose-a:font-medium prose-a:no-underline hover:prose-a:underline prose-a:underline-offset-2
               prose-strong:text-gray-900 prose-strong:font-semibold
               prose-ul:my-6 prose-ul:space-y-2
               prose-ol:my-6 prose-ol:space-y-2
@@ -248,7 +248,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               prose-td:p-4 prose-td:border prose-td:border-gray-200
               prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-medium prose-code:text-gray-800 prose-code:before:content-none prose-code:after:content-none
               prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl prose-pre:shadow-xl prose-pre:overflow-x-auto
-              prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50/50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:italic prose-blockquote:text-gray-700 prose-blockquote:not-italic prose-blockquote:font-medium
+              prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-primary/5 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:italic prose-blockquote:text-gray-700 prose-blockquote:not-italic prose-blockquote:font-medium
               prose-img:rounded-xl prose-img:shadow-lg
               prose-hr:border-gray-200 prose-hr:my-12"
             dangerouslySetInnerHTML={{ __html: post.content }}
@@ -312,7 +312,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </div>
 
             {/* CTA Box */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-2xl p-8 sm:p-10 mb-12">
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-accent rounded-2xl p-8 sm:p-10 mb-12">
               {/* Background decoration */}
               <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute -top-20 -right-20 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
@@ -323,7 +323,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
                   Ready to Keep More of Your Tutoring Income?
                 </h3>
-                <p className="text-blue-100 mb-6 leading-relaxed">
+                <p className="text-white/80 mb-6 leading-relaxed">
                   TutorLingua gives you everything you need to accept direct
                   bookings: professional booking page, payment processing, automated
                   reminders, and student management.
@@ -331,7 +331,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
                     href="/signup"
-                    className="inline-flex items-center justify-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                    className="inline-flex items-center justify-center gap-2 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-primary/10 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Start Free Today
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,10 +361,10 @@ export default async function BlogPostPage({ params }: PageProps) {
                       href={`/blog/${relatedPost.slug}`}
                       className="group bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-1"
                     >
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/10 mb-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary ring-1 ring-inset ring-primary/10 mb-3">
                         {relatedPost.category}
                       </span>
-                      <h4 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                      <h4 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                         {relatedPost.title}
                       </h4>
                       <div className="flex items-center gap-2 text-sm text-gray-500">

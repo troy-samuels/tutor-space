@@ -218,6 +218,15 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        const roomEgresses = await listRoomEgress(roomName);
+        const matchesRoom = roomEgresses.some((egress) => egress.egressId === egressId);
+        if (!matchesRoom) {
+          return NextResponse.json(
+            { error: "Recording not found for this room" },
+            { status: 404 }
+          );
+        }
+
         const result = await stopRoomRecording(egressId);
         return NextResponse.json({
           message: "Recording stopped",

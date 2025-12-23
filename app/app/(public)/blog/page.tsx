@@ -48,12 +48,12 @@ function BlogCard({ post, featured = false }: { post: BlogPostMeta; featured?: b
     >
       <Link href={`/blog/${post.slug}`} className="block h-full">
         {/* Gradient accent on hover */}
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-accent transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
 
         <div className={`p-6 ${featured ? "md:p-8" : ""} h-full flex flex-col`}>
           {/* Category & Featured Badge */}
           <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/10">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary ring-1 ring-inset ring-primary/10">
               {post.category}
             </span>
             {post.featured && (
@@ -68,7 +68,7 @@ function BlogCard({ post, featured = false }: { post: BlogPostMeta; featured?: b
 
           {/* Title */}
           <h2
-            className={`font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 ${
+            className={`font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors line-clamp-2 ${
               featured ? "text-2xl md:text-3xl" : "text-lg"
             }`}
           >
@@ -105,7 +105,7 @@ function BlogCard({ post, featured = false }: { post: BlogPostMeta; featured?: b
 
           {/* Read more arrow */}
           <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white shadow-lg">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -174,15 +174,15 @@ function TopicCard({
       className="group relative bg-white rounded-2xl p-6 border border-gray-100 hover:border-gray-200 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 hover:-translate-y-1"
     >
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform duration-300">
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+          <h3 className="font-bold text-gray-900 mb-1 group-hover:text-primary transition-colors">
             {title}
           </h3>
           <p className="text-sm text-gray-500 line-clamp-2 mb-3">{description}</p>
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-blue-600">
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
             {count} articles
             <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -234,11 +234,11 @@ export default function BlogIndexPage() {
       />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-16 sm:py-20 lg:py-24">
+      <section className="relative overflow-hidden bg-gradient-to-br from-muted via-muted/40 to-white py-16 sm:py-20 lg:py-24">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-gradient-to-br from-blue-200/40 to-indigo-200/40 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-gradient-to-br from-indigo-200/40 to-purple-200/40 blur-3xl" />
+          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-gradient-to-br from-accent/20 to-accent/10 blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -251,7 +251,7 @@ export default function BlogIndexPage() {
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
               The TutorLingua{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
                 Blog
               </span>
             </h1>
@@ -265,8 +265,8 @@ export default function BlogIndexPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-8 text-sm">
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">T</div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">L</div>
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">T</div>
+                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">L</div>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white">+</div>
                 </div>
                 <span className="text-gray-600">Written by tutoring experts</span>
@@ -424,7 +424,7 @@ export default function BlogIndexPage() {
       {/* Newsletter Signup */}
       <section className="py-16 sm:py-20 bg-gray-50/50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-3xl p-8 sm:p-12 lg:p-16 text-center">
+          <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-accent rounded-3xl p-8 sm:p-12 lg:p-16 text-center">
             {/* Background decoration */}
             <div className="absolute inset-0 overflow-hidden">
               <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
@@ -442,7 +442,7 @@ export default function BlogIndexPage() {
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
                 Get Tutoring Tips in Your Inbox
               </h2>
-              <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
+              <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
                 Join thousands of language tutors who receive our weekly newsletter
                 with actionable strategies to grow their business.
               </p>
@@ -459,7 +459,7 @@ export default function BlogIndexPage() {
                   Subscribe
                 </button>
               </form>
-              <p className="mt-4 text-sm text-blue-200">
+              <p className="mt-4 text-sm text-white/70">
                 No spam, unsubscribe anytime. We respect your privacy.
               </p>
             </div>

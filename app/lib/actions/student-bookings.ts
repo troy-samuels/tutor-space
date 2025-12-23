@@ -277,23 +277,42 @@ export async function getStudentBookings(): Promise<{
   const studentIds = students.map((s) => s.id);
 
   // Get upcoming bookings
-  const { data: bookings, error } = await adminClient
-    .from("bookings")
-    .select(`
-      id,
-      scheduled_at,
-      duration_minutes,
-      status,
-      notes,
-      meeting_url,
-      meeting_provider,
-      tutor_id,
-      service_id
-    `)
-    .in("student_id", studentIds)
-    .gte("scheduled_at", new Date().toISOString())
-    .not("status", "in", '("cancelled_by_tutor","cancelled_by_student")')
-    .order("scheduled_at", { ascending: true });
+  const selectBase = `
+    id,
+    scheduled_at,
+    duration_minutes,
+    status,
+    meeting_url,
+    meeting_provider,
+    tutor_id,
+    service_id
+  `;
+  const isMissingColumn = (error: { code?: string; message?: string } | null, column: string) =>
+    Boolean(
+      error &&
+        (error.code === "42703" ||
+          (error.message || "").toLowerCase().includes(`column bookings.${column}`))
+    );
+  const buildBookingsQuery = (selectClause: string) =>
+    adminClient
+      .from("bookings")
+      .select(selectClause)
+      .in("student_id", studentIds)
+      .gte("scheduled_at", new Date().toISOString())
+      .not("status", "in", '("cancelled_by_tutor","cancelled_by_student")')
+      .order("scheduled_at", { ascending: true });
+
+  let { data: bookings, error } = await buildBookingsQuery(
+    `${selectBase}, notes:student_notes`
+  );
+
+  if (isMissingColumn(error, "student_notes")) {
+    ({ data: bookings, error } = await buildBookingsQuery(`${selectBase}, notes`));
+  }
+
+  if (isMissingColumn(error, "notes")) {
+    ({ data: bookings, error } = await buildBookingsQuery(selectBase));
+  }
 
   if (error) {
     console.error("Failed to get bookings:", error);
@@ -323,7 +342,7 @@ export async function getStudentBookings(): Promise<{
     scheduled_at: booking.scheduled_at,
     duration_minutes: booking.duration_minutes,
     status: booking.status,
-    notes: booking.notes,
+    notes: "notes" in booking ? (booking as { notes: string | null }).notes : null,
     meeting_url: booking.meeting_url,
     meeting_provider: booking.meeting_provider,
     tutor: tutorMap.get(booking.tutor_id) || {

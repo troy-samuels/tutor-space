@@ -5,6 +5,12 @@ import path from "path";
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(__dirname, ".env.local") });
 
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "http://localhost:3000";
+const baseURLPort = new URL(baseURL).port || "3000";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -13,7 +19,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
     video: "on-first-retry", // Capture video for animation debugging
   },
@@ -25,11 +31,41 @@ export default defineConfig({
     // Mobile browsers
     { name: "mobile-chrome", use: { ...devices["Pixel 5"] } },
     { name: "mobile-safari", use: { ...devices["iPhone 13"] } },
+    // Feature-specific test suites
+    {
+      name: "studio",
+      testDir: "./e2e/studio",
+      use: {
+        ...devices["Desktop Chrome"],
+        video: "on",
+        trace: "retain-on-failure",
+      },
+    },
+    {
+      name: "homework",
+      testDir: "./e2e/homework",
+      use: {
+        ...devices["Desktop Chrome"],
+        trace: "retain-on-failure",
+      },
+    },
+    {
+      name: "practice",
+      testDir: "./e2e/practice",
+      use: {
+        ...devices["Desktop Chrome"],
+        actionTimeout: 60000, // AI responses may take longer
+        trace: "retain-on-failure",
+      },
+    },
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
+    url: baseURL,
     reuseExistingServer: true, // Always reuse existing server
     timeout: 120000,
+    env: {
+      PORT: baseURLPort,
+    },
   },
 });

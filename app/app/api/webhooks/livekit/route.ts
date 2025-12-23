@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CallbackUrl, type PrerecordedSchema } from "@deepgram/sdk";
+import { CallbackUrl } from "@deepgram/sdk";
 import { WebhookReceiver } from "livekit-server-sdk";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { getDeepgramClient, isDeepgramConfigured } from "@/lib/deepgram";
+import {
+  getDeepgramClient,
+  isDeepgramConfigured,
+  buildTranscriptionOptions,
+  shouldEnableCodeSwitching,
+} from "@/lib/deepgram";
 
 export const runtime = "nodejs";
 
@@ -149,7 +154,7 @@ export async function POST(request: NextRequest) {
 
       const { data: languageProfile } = await supabase
         .from("student_language_profiles")
-        .select("target_language, dialect_variant")
+        .select("native_language, target_language, dialect_variant")
         .eq("student_id", booking.student_id)
         .order("lessons_analyzed", { ascending: false })
         .limit(1)
@@ -176,23 +181,19 @@ export async function POST(request: NextRequest) {
       console.log(`[LiveKit Webhook] Starting Deepgram transcription for: ${urlForDeepgram}`);
 
       try {
-        const deepgramLanguage =
-          typeof languageProfile?.dialect_variant === "string" && languageProfile.dialect_variant.trim().length > 0
-            ? languageProfile.dialect_variant
-            : typeof languageProfile?.target_language === "string" && languageProfile.target_language.trim().length > 0
-              ? languageProfile.target_language
-              : null;
+        // Build transcription options with code-switching support
+        const transcriptionOptions = buildTranscriptionOptions({
+          nativeLanguage: languageProfile?.native_language,
+          targetLanguage: languageProfile?.target_language,
+          dialectVariant: languageProfile?.dialect_variant,
+        });
 
-        const transcriptionOptions: PrerecordedSchema = {
-          model: "nova-3",
-          smart_format: true,
-          punctuate: true,
-          diarize: true,
-          utterances: true,
-          paragraphs: true,
-          filler_words: true,
-          ...(deepgramLanguage ? { language: deepgramLanguage } : { detect_language: true }),
-        };
+        // Log code-switching decision for debugging
+        const codeSwitchingStatus = shouldEnableCodeSwitching(
+          languageProfile?.native_language,
+          languageProfile?.target_language
+        );
+        console.log(`[LiveKit Webhook] Code-switching: ${codeSwitchingStatus.reason}`);
 
         const callbackBase = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "");
         const useCallback = process.env.NODE_ENV === "production" && callbackBase.startsWith("https://");

@@ -50,14 +50,7 @@ export async function GET() {
     // Get the student record
     const { data: student } = await supabase
       .from("students")
-      .select(`
-        id,
-        tutor_id,
-        ai_practice_enabled,
-        ai_practice_free_tier_enabled,
-        ai_practice_subscription_id,
-        ai_practice_block_subscription_item_id
-      `)
+      .select("*")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();

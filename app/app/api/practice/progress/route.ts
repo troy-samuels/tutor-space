@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     // Verify tutor owns this student
     const { data: student, error: studentError } = await supabase
       .from("students")
-      .select("id, ai_practice_enabled, tutor_id")
+      .select("*")
       .eq("id", studentId)
       .eq("tutor_id", user.id)
       .single();
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
       if (!sessions || sessions.length === 0) {
         return NextResponse.json({
-          isSubscribed: student.ai_practice_enabled,
+          isSubscribed: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
           summary: null,
         });
       }
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
       )[0];
 
       return NextResponse.json({
-        isSubscribed: student.ai_practice_enabled,
+        isSubscribed: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
         summary: {
           total_sessions: totalSessions,
           completed_sessions: completedSessions,
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      isSubscribed: student.ai_practice_enabled,
+      isSubscribed: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
       summary: {
         total_sessions: summary.total_sessions || 0,
         completed_sessions: summary.completed_sessions || 0,

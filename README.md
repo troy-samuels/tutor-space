@@ -7,7 +7,8 @@ TutorLingua is the operating system for independent language tutors: direct book
 - **Student CRM & portal:** Labels, notes, lesson history, access requests, learning goals, proficiency assessments, homework assignments and submissions (text/audio/files), student portal for bookings/messages/practice/subscriptions/progress.
 - **Messaging & notifications:** Realtime tutor-student messaging with attachments and voice notes, notification center with 14+ event types and read states.
 - **Marketing & sales:** Tutor sites with cultural archetypes and page builder, link-in-bio, digital products marketplace with tiered commissions, email campaigns, SEO blog content.
-- **AI & Studio:** AI Practice companion with scenario builder, grammar/pronunciation tracking, usage-based billing; AI drills (match, gap-fill, scramble); LiveKit classroom with recording and Deepgram transcription; Enterprise lesson analysis with L1 interference detection and adaptive drills for Studio tier.
+- **AI & Studio:** AI Practice companion with scenario builder, grammar/pronunciation tracking, usage-based billing; AI drills (match, gap-fill, scramble); LiveKit classroom with recording and Deepgram transcription; Enterprise lesson analysis with L1 interference detection, code switching detection for multilingual lessons, and adaptive drills for Studio tier.
+- **SEO & Discovery:** Dynamic OG images for social sharing, llms.txt for AI assistant discovery, SEO generators for optimized metadata, structured data (JSON-LD) for rich search results.
 - **Analytics & admin:** Revenue/booking/student analytics, demand heatmap, calendar smart management, onboarding wizard and upgrade gates, admin health dashboard, moderation queue, support tickets.
 
 ## Tech Stack
@@ -22,6 +23,7 @@ TutorLingua is the operating system for independent language tutors: direct book
 - **Dashboard:** `/dashboard`, `/bookings`, `/availability`, `/students`, `/students/[studentId]`, `/services`, `/practice-scenarios`, `/messages`, `/digital-products`, `/marketplace`, `/calendar`, `/analytics`, `/notifications`, `/settings/*`, `/onboarding`, `/upgrade`, `/admin/*`, `/classroom/[bookingId]`, `/student/review/[bookingId]`.
 - **Public:** `/[username]`, `/bio/[username]`, `/profile/[username]`, `/book/[username]`, `/products/[username]`, `/page/[username]`, `/for/[slug]` (niche landing pages), `/help`, `/help/[slug]`, `/signup`, `/login`, `/blog/[slug]`, `/{lang}/blog/[slug]` (en, es, fr, pt, de, it, ja, ko, nl, zh).
 - **Student portal:** `/student/progress`, `/student/practice/[assignmentId]`, `/student/messages`, `/student/subscriptions`, `/student/drills`, `/student/library`.
+- **API & Discovery:** `/api/og/[username]` (dynamic OG images), `/llms.txt` (AI assistant discovery).
 
 ## Key Flows
 - **Onboarding:** 6-step wizard (profile, professional info, services, availability, calendar sync, Stripe/alternate payments) gates dashboard access.
@@ -181,4 +183,4 @@ Supports English, Spanish, French, Portuguese, German, Italian, Japanese, Korean
 ## License
 Proprietary — All rights reserved
 
-*Last updated: December 17, 2025*
+*Last updated: December 23, 2025*

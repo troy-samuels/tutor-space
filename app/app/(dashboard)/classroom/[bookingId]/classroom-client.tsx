@@ -84,6 +84,13 @@ export default function ClassroomClient() {
               message: "Booking not found. Please check your link.",
               isAccessDenied: false,
             });
+          } else if (response.status === 503) {
+            setError({
+              message:
+                data.error ||
+                "Video classroom isn't configured yet. Please contact support.",
+              isAccessDenied: false,
+            });
           } else {
             setError({
               message: data.error || "Failed to join the classroom.",

@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     // Verify user owns this session via student record
     const { data: student } = await adminClient
       .from("students")
-      .select("id, ai_practice_enabled, ai_practice_free_tier_enabled, ai_practice_subscription_id, ai_practice_block_subscription_item_id, tutor_id")
+      .select("*")
       .eq("id", session.student_id)
       .eq("user_id", user.id)
       .single();

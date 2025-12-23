@@ -26,6 +26,7 @@ import {
 import {
   type HomeworkAssignment,
   type HomeworkStatus,
+  type HomeworkReviewStatus,
   type StudentPracticeData,
   markHomeworkCompleted,
 } from "@/lib/actions/progress";
@@ -62,6 +63,12 @@ export function HomeworkList({
     submitted: { label: "Submitted", className: "bg-purple-100 text-purple-800" },
     completed: { label: "Completed", className: "bg-green-100 text-green-800" },
     cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-700" },
+  };
+
+  const reviewStatusStyles: Record<HomeworkReviewStatus, { label: string; className: string }> = {
+    pending: { label: "Pending review", className: "bg-blue-100 text-blue-800" },
+    reviewed: { label: "Reviewed", className: "bg-emerald-100 text-emerald-800" },
+    needs_revision: { label: "Needs revision", className: "bg-amber-100 text-amber-800" },
   };
 
   const openHomework = homeworkItems
@@ -160,6 +167,10 @@ export function HomeworkList({
                 label: item.status,
                 className: "bg-muted text-foreground",
               };
+              const latestSubmission = item.latest_submission ?? null;
+              const reviewBadge = latestSubmission
+                ? reviewStatusStyles[latestSubmission.review_status]
+                : null;
               const isOverdue = item.due_date
                 ? new Date(item.due_date) < new Date() && item.status !== "completed"
                 : false;
@@ -177,6 +188,11 @@ export function HomeworkList({
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-foreground">{item.title}</p>
                         <Badge className={`text-[11px] ${status.className}`}>{status.label}</Badge>
+                        {reviewBadge ? (
+                          <Badge className={`text-[11px] ${reviewBadge.className}`}>
+                            {reviewBadge.label}
+                          </Badge>
+                        ) : null}
                       </div>
                       {item.instructions ? (
                         <p className="text-sm text-muted-foreground">{item.instructions}</p>
@@ -235,6 +251,15 @@ export function HomeworkList({
                               </span>
                             </a>
                           ))}
+                        </div>
+                      ) : null}
+                      {latestSubmission?.tutor_feedback &&
+                      latestSubmission.review_status !== "pending" ? (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-xs font-semibold text-primary">Tutor feedback</p>
+                          <p className="text-sm text-foreground">
+                            {latestSubmission.tutor_feedback}
+                          </p>
                         </div>
                       ) : null}
                     </div>
@@ -329,20 +354,50 @@ export function HomeworkList({
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Recently completed
             </p>
-            <div className="mt-2 space-y-1.5">
-              {completedHomework.slice(0, completedLimit).map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 text-foreground">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                    <span className="font-medium">{item.title}</span>
+            <div className="mt-3 space-y-3">
+              {completedHomework.slice(0, completedLimit).map((item) => {
+                const latestSubmission = item.latest_submission ?? null;
+                const reviewBadge = latestSubmission
+                  ? reviewStatusStyles[latestSubmission.review_status]
+                  : null;
+                const completedStatus = homeworkStatusStyles.completed;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-border/60 bg-background/80 p-3"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-2 text-foreground">
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        <span className="font-medium">{item.title}</span>
+                        <Badge className={`text-[10px] ${completedStatus.className}`}>
+                          {completedStatus.label}
+                        </Badge>
+                        {reviewBadge ? (
+                          <Badge className={`text-[10px] ${reviewBadge.className}`}>
+                            {reviewBadge.label}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {item.completed_at
+                          ? formatDistanceToNow(new Date(item.completed_at), { addSuffix: true })
+                          : "Completed"}
+                      </span>
+                    </div>
+                    {latestSubmission?.tutor_feedback &&
+                    latestSubmission.review_status !== "pending" ? (
+                      <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <p className="text-xs font-semibold text-primary">Tutor feedback</p>
+                        <p className="text-sm text-foreground">
+                          {latestSubmission.tutor_feedback}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {item.completed_at
-                      ? formatDistanceToNow(new Date(item.completed_at), { addSuffix: true })
-                      : "Completed"}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : null}

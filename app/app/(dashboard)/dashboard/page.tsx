@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
@@ -13,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import { TrialExpiredBanner } from "@/components/billing/TrialExpiredBanner";
+import { CopilotWidgetServer } from "@/components/copilot/copilot-widget-server";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export default async function DashboardPage() {
@@ -161,6 +163,13 @@ export default async function DashboardPage() {
         upcomingSessions={upcomingBookings.length}
         revenueThisMonthCents={revenueThisMonth}
       />
+
+      {/* AI Copilot Widget - Studio only */}
+      {!showStudioDiscovery && (
+        <Suspense fallback={null}>
+          <CopilotWidgetServer />
+        </Suspense>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
         {/* Row 1, Col 1: UP NEXT */}

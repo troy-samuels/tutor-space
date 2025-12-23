@@ -5,7 +5,11 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
 
-const initialState: AuthActionState = { error: undefined, success: undefined };
+const initialState: AuthActionState = {
+  error: undefined,
+  success: undefined,
+  redirectTo: undefined,
+};
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";

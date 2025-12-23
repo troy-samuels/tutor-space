@@ -35,10 +35,7 @@ export async function POST(request: Request) {
     const { data: student } = await supabase
       .from("students")
       .select(`
-        id,
-        tutor_id,
-        ai_practice_enabled,
-        ai_practice_free_tier_enabled,
+        *,
         profiles:tutor_id (
           id,
           full_name
@@ -54,6 +51,18 @@ export async function POST(request: Request) {
 
     if (!student.tutor_id) {
       return NextResponse.json({ error: "No tutor assigned" }, { status: 400 });
+    }
+
+    const hasPracticeColumns = Object.prototype.hasOwnProperty.call(
+      student,
+      "ai_practice_free_tier_enabled"
+    );
+
+    if (!hasPracticeColumns) {
+      return NextResponse.json(
+        { error: "AI Practice is not configured for this environment." },
+        { status: 503 }
+      );
     }
 
     // Check if already enabled

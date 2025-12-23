@@ -1,0 +1,152 @@
+{
+  "languagePair": {
+    "native": "es",
+    "target": "en"
+  },
+  "description": "Spanish to English L1 interference patterns",
+  "patterns": [
+    {
+      "patternType": "adjective_order",
+      "patternName": "Adjective Placement",
+      "description": "Spanish places adjectives after nouns, while English places them before",
+      "frequencyRank": 1,
+      "difficultyToCorrect": "medium",
+      "testCases": [
+        {
+          "input": "I have a house big",
+          "expected": "I have a big house",
+          "context": "Adjective after noun (Spanish pattern)"
+        },
+        {
+          "input": "She has hair long and black",
+          "expected": "She has long, black hair",
+          "context": "Multiple adjectives after noun"
+        },
+        {
+          "input": "I want the car red",
+          "expected": "I want the red car",
+          "context": "Color adjective after noun"
+        }
+      ]
+    },
+    {
+      "patternType": "false_cognate",
+      "patternName": "False Friends",
+      "description": "Words that look similar but have different meanings",
+      "frequencyRank": 2,
+      "difficultyToCorrect": "medium",
+      "testCases": [
+        {
+          "input": "I am embarrassed (meaning pregnant)",
+          "expected": "I am pregnant",
+          "context": "Embarazada ≠ embarrassed"
+        },
+        {
+          "input": "He is very sensible (meaning sensitive)",
+          "expected": "He is very sensitive",
+          "context": "Sensible ≠ sensible"
+        },
+        {
+          "input": "I need to assist to class (meaning attend)",
+          "expected": "I need to attend class",
+          "context": "Asistir ≠ assist"
+        }
+      ]
+    },
+    {
+      "patternType": "ser_estar",
+      "patternName": "Be Verb Confusion",
+      "description": "Spanish has two 'be' verbs (ser/estar), causing usage errors",
+      "frequencyRank": 3,
+      "difficultyToCorrect": "medium",
+      "testCases": [
+        {
+          "input": "I am agree",
+          "expected": "I agree",
+          "context": "Adding 'be' verb where not needed"
+        },
+        {
+          "input": "The soup is being hot",
+          "expected": "The soup is hot",
+          "context": "Unnecessary progressive for states"
+        }
+      ]
+    },
+    {
+      "patternType": "double_negative",
+      "patternName": "Double Negative",
+      "description": "Spanish uses double negatives, which are non-standard in English",
+      "frequencyRank": 4,
+      "difficultyToCorrect": "easy",
+      "testCases": [
+        {
+          "input": "I don't have nothing",
+          "expected": "I don't have anything",
+          "context": "Double negative from Spanish 'No tengo nada'"
+        },
+        {
+          "input": "She doesn't never come",
+          "expected": "She never comes",
+          "context": "Double negative with 'never'"
+        }
+      ]
+    },
+    {
+      "patternType": "preposition_por_para",
+      "patternName": "Preposition Errors",
+      "description": "Spanish preposition mappings don't directly translate",
+      "frequencyRank": 5,
+      "difficultyToCorrect": "hard",
+      "testCases": [
+        {
+          "input": "I am waiting you",
+          "expected": "I am waiting for you",
+          "context": "Missing preposition 'for'"
+        },
+        {
+          "input": "I depend of my parents",
+          "expected": "I depend on my parents",
+          "context": "Wrong preposition (de → on, not of)"
+        },
+        {
+          "input": "I am interested on science",
+          "expected": "I am interested in science",
+          "context": "Wrong preposition for 'interested'"
+        }
+      ]
+    },
+    {
+      "patternType": "subject_pronoun_overuse",
+      "patternName": "Subject Pronoun Overuse",
+      "description": "Spanish often omits subject pronouns; learners may overcorrect",
+      "frequencyRank": 6,
+      "difficultyToCorrect": "easy",
+      "testCases": [
+        {
+          "input": "He likes his car. He drives his car every day. He washes his car.",
+          "expected": "He likes his car. He drives it every day. He washes it.",
+          "context": "Overuse of subject pronoun where pronoun would suffice"
+        }
+      ]
+    },
+    {
+      "patternType": "present_tense_overuse",
+      "patternName": "Present Tense Overuse",
+      "description": "Using present tense where English requires different tenses",
+      "frequencyRank": 7,
+      "difficultyToCorrect": "medium",
+      "testCases": [
+        {
+          "input": "I live here since 2020",
+          "expected": "I have lived here since 2020",
+          "context": "Present perfect required for duration"
+        },
+        {
+          "input": "I am here since morning",
+          "expected": "I have been here since morning",
+          "context": "Present perfect continuous required"
+        }
+      ]
+    }
+  ]
+}

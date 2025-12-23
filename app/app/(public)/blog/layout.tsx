@@ -107,7 +107,7 @@ function MobileMenu() {
             <div className="pt-4 mt-4 border-t">
               <Link
                 href="/signup"
-                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25"
+                className="flex items-center justify-center gap-2 w-full bg-primary text-white px-4 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/25"
               >
                 Get Started Free
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +130,7 @@ export default function BlogLayout({
   return (
     <div className="min-h-screen bg-white antialiased">
       {/* Blog Header - Sticky with blur */}
-      <header className="sticky top-0 z-40 w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+      <header className="sticky top-0 z-40 w-full bg-primary text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <nav className="flex h-16 items-center justify-between">
             {/* Logo */}
@@ -167,7 +167,7 @@ export default function BlogLayout({
               <div className="ml-4 pl-4 border-l border-white/20">
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2 rounded-full text-sm font-semibold hover:bg-blue-50 transition-all shadow-lg shadow-black/10 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 bg-white text-primary px-5 py-2 rounded-full text-sm font-semibold hover:bg-primary/10 transition-all shadow-lg shadow-black/10 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Get Started Free
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@ export default function BlogLayout({
       <main className="flex-1">{children}</main>
 
       {/* Blog Footer CTA */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 text-white py-20 sm:py-24">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-accent text-white py-20 sm:py-24">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
@@ -211,7 +211,7 @@ export default function BlogLayout({
             </span>
           </h2>
 
-          <p className="text-lg sm:text-xl text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
             TutorLingua gives you everything you need to accept direct bookings:
             professional booking page, payments, automated reminders, and student
             management.
@@ -220,7 +220,7 @@ export default function BlogLayout({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/signup"
-              className="group inline-flex items-center justify-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-50 transition-all shadow-xl shadow-black/20 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-full text-lg font-semibold hover:bg-primary/10 transition-all shadow-xl shadow-black/20 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98]"
             >
               Start Free Today
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,7 +235,7 @@ export default function BlogLayout({
             </Link>
           </div>
 
-          <p className="mt-6 text-sm text-blue-200">
+          <p className="mt-6 text-sm text-white/70">
             No credit card required • Free 14-day trial • Cancel anytime
           </p>
         </div>
@@ -338,7 +338,7 @@ export default function BlogLayout({
           {/* Bottom bar */}
           <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <span className="text-white font-bold">T</span>
               </div>
               <span className="text-sm">

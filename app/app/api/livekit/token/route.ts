@@ -7,16 +7,14 @@ import type { PlatformBillingPlan } from "@/lib/types/payments";
 // Force dynamic rendering - auth-dependent route
 export const dynamic = "force-dynamic";
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Check if LiveKit is configured
-    if (!isLiveKitConfigured()) {
-      return NextResponse.json(
-        { error: "LiveKit is not configured" },
-        { status: 503 }
-      );
-    }
-
     // Get query params
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get("booking_id");
@@ -36,11 +34,11 @@ export async function GET(request: NextRequest) {
     // Handle test room requests (standalone studio access)
     if (roomType === "test") {
       // Fetch user's profile to check tier
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, tier, full_name")
-        .eq("id", user.id)
-        .single();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, tier, plan, full_name")
+      .eq("id", user.id)
+      .single();
 
       if (profileError || !profile) {
         return NextResponse.json(
@@ -50,10 +48,20 @@ export async function GET(request: NextRequest) {
       }
 
       // Check if user has Studio tier
-      if (profile.tier !== "studio") {
+    const tutorPlan = (profile.plan as PlatformBillingPlan) ?? "professional";
+    const tutorHasStudio = profile.tier === "studio" || hasStudioAccess(tutorPlan);
+
+    if (!tutorHasStudio) {
+      return NextResponse.json(
+        { error: "Test Studio requires Studio tier subscription" },
+        { status: 403 }
+        );
+      }
+
+      if (!isLiveKitConfigured()) {
         return NextResponse.json(
-          { error: "Test Studio requires Studio tier subscription" },
-          { status: 403 }
+          { error: "LiveKit is not configured" },
+          { status: 503 }
         );
       }
 
@@ -77,6 +85,13 @@ export async function GET(request: NextRequest) {
     if (!bookingId) {
       return NextResponse.json(
         { error: "Missing booking_id parameter" },
+        { status: 400 }
+      );
+    }
+
+    if (!isUuid(bookingId)) {
+      return NextResponse.json(
+        { error: "Invalid booking_id parameter" },
         { status: 400 }
       );
     }
@@ -147,6 +162,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: "Upgrade to Studio to use the Native Classroom." },
         { status: 403 }
+      );
+    }
+
+    if (!isLiveKitConfigured()) {
+      return NextResponse.json(
+        { error: "LiveKit is not configured" },
+        { status: 503 }
       );
     }
 

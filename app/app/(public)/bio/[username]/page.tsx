@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { LinkRecord } from "@/lib/actions/links";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 import { BioLinkList } from "@/components/bio/BioLinkList";
+import { generateProfilePageSchema, generateLinkListSchema } from "@/lib/utils/structured-data";
 
 type BioProfile = {
   id: string;
@@ -99,8 +100,43 @@ export default async function BioPage({ params }: { params: Promise<BioParams> }
     button_style: link.button_style ?? "default",
   }));
 
+  // Generate structured data for bio page
+  const usernameForSchema = profile.username || resolvedParams.username;
+  const profileSchema = generateProfilePageSchema(
+    {
+      username: usernameForSchema,
+      full_name: profile.full_name || usernameForSchema,
+      tagline: profile.tagline || undefined,
+      avatar_url: profile.avatar_url || undefined,
+    },
+    linkCards.map(l => ({ url: l.url, title: l.title }))
+  );
+
+  const linkListSchema = generateLinkListSchema(
+    {
+      username: usernameForSchema,
+      full_name: profile.full_name || usernameForSchema,
+    },
+    linkCards.map(l => ({ url: l.url, title: l.title }))
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted via-muted/60 to-white">
+      {/* Structured Data for SEO & LLMs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(profileSchema),
+        }}
+      />
+      {linkListSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(linkListSchema),
+          }}
+        />
+      )}
       <header className="border-b border-border bg-white/70 backdrop-blur">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-6 sm:px-6">
           <Link
