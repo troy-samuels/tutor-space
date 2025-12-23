@@ -1,0 +1,173 @@
+# HawkScan DAST Configuration for Google Calendar OAuth Verification
+# This config targets 50+ paths including OAuth endpoints for Google API verification
+# Documentation: https://docs.stackhawk.com/hawkscan/
+
+app:
+  applicationId: 2ca4a573-8115-451d-87d3-158c3d720a79
+  env: GoogleVerification
+  host: https://tutorlingua.co
+
+  # Authentication configuration for scanning protected routes
+  authentication:
+    loggedInIndicator: "\\Qdashboard\\E|\\QLog out\\E|\\QSign out\\E"
+    loggedOutIndicator: "\\QLog in\\E|\\QSign up\\E|\\Qlogin\\E"
+    usernamePassword:
+      type: FORM
+      loginPagePath: /login
+      loginPath: /login
+      usernameField: email
+      passwordField: password
+      scanUsername: ${HAWKSCAN_TUTOR_EMAIL}
+      scanPassword: ${HAWKSCAN_TUTOR_PASSWORD}
+    cookieAuthorization:
+      cookieNames:
+        - sb-ptvphehyuxnmshxoebeq-auth-token
+        - sb-ptvphehyuxnmshxoebeq-auth-token.0
+        - sb-ptvphehyuxnmshxoebeq-auth-token.1
+    testPath:
+      path: /dashboard
+      success: ".*200.*"
+
+  # Minimal exclusions - OAuth endpoints are INCLUDED for Google verification
+  excludePaths:
+    # Payment endpoints (sensitive, not relevant to OAuth)
+    - /api/stripe/.*
+    # Webhooks (not user-facing)
+    - /api/webhooks/.*
+    # Cron jobs (internal)
+    - /api/cron/.*
+    # Admin routes (separate security scope)
+    - /api/admin/.*
+    # File uploads (separate security scope)
+    - /api/upload.*
+    - /api/site-assets/.*
+    # Email operations (internal)
+    - /api/email/.*
+    # Refunds (sensitive financial)
+    - /api/refunds/.*
+    # Password gate (separate feature)
+    - /password-gate
+    - /api/password-gate/.*
+    # LiveKit recording (separate security scope)
+    - /api/livekit/recording
+    # Static assets
+    - /_next/.*
+    - /favicon.ico
+    - /robots.txt
+    - /sitemap.xml
+
+hawk:
+  spider:
+    base: true
+    ajax: false
+    maxDurationMinutes: 30
+    # Comprehensive seed paths (50+ URLs) for Google OAuth verification
+    seedPaths:
+      # ==========================================
+      # GOOGLE OAUTH ENDPOINTS (Primary targets)
+      # ==========================================
+      - /api/calendar/oauth/google
+      - /calendar-callback
+      - /settings/calendar
+
+      # ==========================================
+      # PUBLIC PAGES - Landing & Marketing
+      # ==========================================
+      - /
+      - /login
+      - /signup
+      - /pricing
+      - /terms
+      - /privacy
+      - /forgot-password
+      - /reset-password
+
+      # ==========================================
+      # HELP CENTER (10 paths)
+      # ==========================================
+      - /help
+      - /help/getting-started
+      - /help/booking
+      - /help/payments
+      - /help/calendar
+      - /help/students
+      - /help/marketing
+      - /help/studio
+      - /help/ai-practice
+      - /help/account
+
+      # ==========================================
+      # BLOG
+      # ==========================================
+      - /blog
+
+      # ==========================================
+      # STUDENT PORTAL
+      # ==========================================
+      - /student/login
+      - /student/signup
+      - /student/progress
+      - /student/practice
+      - /student/messages
+
+      # ==========================================
+      # TUTOR DASHBOARD - Core (15 paths)
+      # ==========================================
+      - /dashboard
+      - /bookings
+      - /bookings/new
+      - /students
+      - /students/import
+      - /services
+      - /availability
+      - /calendar
+      - /messages
+      - /notifications
+      - /copilot
+      - /copilot/briefing
+
+      # ==========================================
+      # ANALYTICS (3 paths)
+      # ==========================================
+      - /analytics
+      - /analytics/students
+      - /analytics/revenue
+
+      # ==========================================
+      # PRODUCTS & PAGES (4 paths)
+      # ==========================================
+      - /digital-products
+      - /pages
+      - /marketing
+      - /practice-scenarios
+
+      # ==========================================
+      # SETTINGS (6 paths)
+      # ==========================================
+      - /settings
+      - /settings/profile
+      - /settings/payments
+      - /settings/calendar
+      - /settings/billing
+      - /settings/notifications
+
+      # ==========================================
+      # OTHER TUTOR PAGES (4 paths)
+      # ==========================================
+      - /upgrade
+      - /onboarding
+      - /classroom
+      - /ai
+
+      # ==========================================
+      # API ROUTES - Safe read-only endpoints (10 paths)
+      # ==========================================
+      - /api/auth/me
+      - /api/pricing/founder
+      - /api/calendar/oauth/google
+      - /api/booking/inline
+      - /api/practice/usage
+      - /api/practice/scenarios
+      - /api/practice/stats
+      - /api/livekit/token
+      - /llms.txt

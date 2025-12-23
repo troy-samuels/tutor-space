@@ -159,7 +159,11 @@ export function StepLanguagesServices({
         });
 
         if (!result.success) {
-          console.error("Background save failed for step 3:", result.error);
+          console.error("Background save failed for step 3:", {
+            success: result.success,
+            error: result.error,
+            fullResult: result,
+          });
           onSaveError?.(result.error || "Failed to save languages and service");
         }
 

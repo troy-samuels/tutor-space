@@ -124,7 +124,7 @@ export async function saveOnboardingStep(
 
       case 3: {
         // Languages and services - use atomic RPC function
-        const { data: result, error: rpcError } = await supabase.rpc("save_onboarding_step_3", {
+        const rpcParams = {
           p_user_id: user.id,
           p_languages_taught: data.languages_taught || [],
           p_booking_currency: data.currency?.toUpperCase() || "USD",
@@ -133,10 +133,31 @@ export async function saveOnboardingStep(
           p_service_price: data.service ? Math.round(data.service.price * 100) : null,
           p_service_currency: data.service?.currency?.toUpperCase() || null,
           p_offer_type: data.service?.offer_type ?? "one_off",
+        };
+
+        console.log("[Onboarding Step 3] Calling RPC with:", {
+          p_user_id: rpcParams.p_user_id,
+          p_languages_taught: rpcParams.p_languages_taught,
+          p_service_name: rpcParams.p_service_name,
+          p_service_price: rpcParams.p_service_price,
         });
 
-        if (rpcError) throw rpcError;
-        if (result && !result.success) {
+        const { data: result, error: rpcError } = await supabase.rpc("save_onboarding_step_3", rpcParams);
+
+        console.log("[Onboarding Step 3] RPC result:", JSON.stringify(result));
+        if (rpcError) {
+          console.error("[Onboarding Step 3] RPC error:", rpcError);
+          throw rpcError;
+        }
+
+        // Defensive null check for result
+        if (result === null || result === undefined) {
+          console.error("[Onboarding Step 3] RPC returned null/undefined result");
+          return { success: false, error: "Failed to save - please try again" };
+        }
+
+        if (result.success === false) {
+          console.error("[Onboarding Step 3] RPC returned failure:", result.error);
           return { success: false, error: result.error || "Failed to save languages and service" };
         }
         break;

@@ -27,7 +27,8 @@
     "i18n:scan": "node --loader ./scripts/ts-loader.mjs --no-warnings ./scripts/scan-hardcoded-i18n.ts",
     "dast:local": "hawk scan",
     "dast:ci": "hawk scan",
-    "dast:report": "mkdir -p reports && hawk scan"
+    "dast:report": "mkdir -p reports && hawk scan",
+    "dast:google": "hawk scan stackhawk-google-oauth.yml"
   },
   "dependencies": {
     "@deepgram/sdk": "^4.11.2",
