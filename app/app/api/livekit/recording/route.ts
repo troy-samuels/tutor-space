@@ -13,6 +13,11 @@ import type { PlatformBillingPlan } from "@/lib/types/payments";
 // Force dynamic rendering - auth-dependent route
 export const dynamic = "force-dynamic";
 
+const LIVEKIT_URL =
+  process.env.LIVEKIT_URL ??
+  process.env.LIVEKIT_SERVER_URL ??
+  process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-    console.log("[LiveKit Recording] LiveKit URL:", process.env.NEXT_PUBLIC_LIVEKIT_URL);
+    console.log("[LiveKit Recording] LiveKit URL:", LIVEKIT_URL);
 
     // Parse request body
     const body = await request.json();

@@ -11,6 +11,50 @@ import {
 
 export const runtime = "nodejs";
 
+const STORAGE_ENDPOINT =
+  process.env.DIGITALOCEAN_SPACES_ENDPOINT ??
+  process.env.S3_ENDPOINT ??
+  process.env.SUPABASE_S3_ENDPOINT;
+const STORAGE_ENDPOINT_HOST = (() => {
+  const normalized = normalizeStorageEndpoint(STORAGE_ENDPOINT);
+  if (!normalized) return null;
+  try {
+    return new URL(normalized).host;
+  } catch {
+    return null;
+  }
+})();
+
+function normalizeStorageEndpoint(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) return null;
+  if (/^https?:\/\//.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
+function buildPublicObjectUrl(bucket: string, objectPath: string): string | null {
+  const endpoint = normalizeStorageEndpoint(STORAGE_ENDPOINT);
+  if (!endpoint) return null;
+  const base = endpoint.replace(/\/+$/, "");
+  const safeBucket = bucket.replace(/^\/+|\/+$/g, "");
+  const safeObjectPath = objectPath.replace(/^\/+/, "");
+  return `${base}/${safeBucket}/${safeObjectPath}`;
+}
+
+function redactUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value.split("?")[0] ?? value;
+  }
+}
+
 /**
  * LiveKit Webhook Handler
  *
@@ -27,6 +71,11 @@ function extractStorageObjectPath(location: string, fallbackBucket: string): {
 } {
   if (!location) return { bucket: fallbackBucket, objectPath: null };
 
+  const s3Match = location.match(/^s3:\/\/([^/]+)\/(.+)$/i);
+  if (s3Match) {
+    return { bucket: s3Match[1]!, objectPath: s3Match[2]! };
+  }
+
   try {
     const url = new URL(location);
     const pathname = url.pathname;
@@ -39,6 +88,25 @@ function extractStorageObjectPath(location: string, fallbackBucket: string): {
     const matchPublic = pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
     if (matchPublic) {
       return { bucket: matchPublic[1]!, objectPath: matchPublic[2]! };
+    }
+
+    if (url.hostname.endsWith(".digitaloceanspaces.com")) {
+      const hostParts = url.hostname.split(".");
+      const bucket = hostParts.length > 3 ? hostParts[0] : null;
+      const objectPath = pathname.replace(/^\/+/, "");
+      if (bucket && objectPath) {
+        return { bucket, objectPath };
+      }
+    }
+
+    if (STORAGE_ENDPOINT_HOST && url.hostname === STORAGE_ENDPOINT_HOST) {
+      const parts = pathname.split("/").filter(Boolean);
+      if (parts.length >= 2) {
+        return {
+          bucket: parts[0]!,
+          objectPath: parts.slice(1).join("/"),
+        };
+      }
     }
   } catch {
     // Not a URL; treat as a raw object path.
@@ -160,10 +228,20 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-      let publicUrl: string | null = null;
-      if (objectPath) {
-        const signed = await supabase.storage.from(bucket).createSignedUrl(objectPath, 6 * 60 * 60);
+    let publicUrl: string | null = null;
+      const locationIsSupabase =
+        fileResult.location.includes(".supabase.co") ||
+        fileResult.location.includes("/storage/v1/");
+
+      if (objectPath && locationIsSupabase) {
+        const signed = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(objectPath, 6 * 60 * 60);
         publicUrl = signed.data?.signedUrl ?? null;
+      }
+
+      if (!publicUrl && objectPath) {
+        publicUrl = buildPublicObjectUrl(bucket, objectPath);
       }
 
       // Fallback if we couldn't parse the object path (legacy / misconfigured location).
@@ -178,7 +256,9 @@ export async function POST(request: NextRequest) {
       }
 
       const urlForDeepgram = publicUrl || fileResult.location;
-      console.log(`[LiveKit Webhook] Starting Deepgram transcription for: ${urlForDeepgram}`);
+      console.log(
+        `[LiveKit Webhook] Starting Deepgram transcription for: ${redactUrl(urlForDeepgram)}`
+      );
 
       try {
         // Build transcription options with code-switching support

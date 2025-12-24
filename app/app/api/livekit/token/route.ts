@@ -7,10 +7,42 @@ import type { PlatformBillingPlan } from "@/lib/types/payments";
 // Force dynamic rendering - auth-dependent route
 export const dynamic = "force-dynamic";
 
+const DEFAULT_MAX_TOKEN_TTL_SECONDS = 6 * 60 * 60;
+const DEFAULT_TEST_TOKEN_TTL_SECONDS = 2 * 60 * 60;
+const MIN_TOKEN_TTL_SECONDS = 15 * 60;
+const TOKEN_BUFFER_MINUTES = 30;
+
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
   );
+}
+
+function parsePositiveInt(value?: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function getMaxTokenTtlSeconds(): number {
+  return parsePositiveInt(process.env.LIVEKIT_TOKEN_TTL_SECONDS) ?? DEFAULT_MAX_TOKEN_TTL_SECONDS;
+}
+
+function resolveTokenTtlSeconds(durationMinutes?: number | null): number {
+  const maxTtlSeconds = getMaxTokenTtlSeconds();
+
+  if (!durationMinutes || durationMinutes <= 0) {
+    return maxTtlSeconds;
+  }
+
+  const ttlSeconds = Math.round((durationMinutes + TOKEN_BUFFER_MINUTES) * 60);
+  return Math.min(Math.max(ttlSeconds, MIN_TOKEN_TTL_SECONDS), maxTtlSeconds);
+}
+
+function jsonResponse(data: unknown, init?: ResponseInit): NextResponse {
+  const response = NextResponse.json(data, init);
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -28,38 +60,38 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonResponse({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Handle test room requests (standalone studio access)
     if (roomType === "test") {
       // Fetch user's profile to check tier
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, tier, plan, full_name")
-      .eq("id", user.id)
-      .single();
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, tier, plan, full_name")
+        .eq("id", user.id)
+        .single();
 
       if (profileError || !profile) {
-        return NextResponse.json(
+        return jsonResponse(
           { error: "Profile not found" },
           { status: 404 }
         );
       }
 
       // Check if user has Studio tier
-    const tutorPlan = (profile.plan as PlatformBillingPlan) ?? "professional";
-    const tutorHasStudio = profile.tier === "studio" || hasStudioAccess(tutorPlan);
+      const tutorPlan = (profile.plan as PlatformBillingPlan) ?? "professional";
+      const tutorHasStudio = profile.tier === "studio" || hasStudioAccess(tutorPlan);
 
-    if (!tutorHasStudio) {
-      return NextResponse.json(
-        { error: "Test Studio requires Studio tier subscription" },
-        { status: 403 }
+      if (!tutorHasStudio) {
+        return jsonResponse(
+          { error: "Test Studio requires Studio tier subscription" },
+          { status: 403 }
         );
       }
 
       if (!isLiveKitConfigured()) {
-        return NextResponse.json(
+        return jsonResponse(
           { error: "LiveKit is not configured" },
           { status: 503 }
         );
@@ -67,12 +99,17 @@ export async function GET(request: NextRequest) {
 
       // Generate token for test room
       const roomName = `test-${user.id}`;
+      const testTokenTtlSeconds = Math.min(
+        DEFAULT_TEST_TOKEN_TTL_SECONDS,
+        getMaxTokenTtlSeconds()
+      );
       const token = await createAccessToken(user.id, roomName, {
         isTutor: true,
         participantName: profile.full_name || "Tutor",
+        tokenTtlSeconds: testTokenTtlSeconds,
       });
 
-      return NextResponse.json({
+      return jsonResponse({
         token,
         isTutor: true,
         isTestRoom: true,
@@ -83,14 +120,14 @@ export async function GET(request: NextRequest) {
 
     // Regular booking-based flow requires booking_id
     if (!bookingId) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "Missing booking_id parameter" },
         { status: 400 }
       );
     }
 
     if (!isUuid(bookingId)) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "Invalid booking_id parameter" },
         { status: 400 }
       );
@@ -121,7 +158,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (bookingError || !booking) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "Booking not found" },
         { status: 404 }
       );
@@ -134,7 +171,7 @@ export async function GET(request: NextRequest) {
     const isStudent = student?.user_id === user.id;
 
     if (!isTutor && !isStudent) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "You are not authorized to join this lesson" },
         { status: 403 }
       );
@@ -148,7 +185,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError || !tutorProfile) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "Tutor profile not found" },
         { status: 404 }
       );
@@ -159,14 +196,14 @@ export async function GET(request: NextRequest) {
 
     // Check if tutor has Studio tier/plan
     if (!tutorHasStudio) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "Upgrade to Studio to use the Native Classroom." },
         { status: 403 }
       );
     }
 
     if (!isLiveKitConfigured()) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "LiveKit is not configured" },
         { status: 503 }
       );
@@ -180,15 +217,17 @@ export async function GET(request: NextRequest) {
     // Generate LiveKit token
     // Room name is the booking_id (UUID)
     // Identity is the user_id
+    const tokenTtlSeconds = resolveTokenTtlSeconds(booking.duration_minutes);
     const token = await createAccessToken(user.id, bookingId, {
       isTutor,
       participantName,
+      tokenTtlSeconds,
     });
 
     // Extract service info
     const service = booking.services as unknown as { id: string; name: string } | null;
 
-    return NextResponse.json({
+    return jsonResponse({
       token,
       isTutor,
       roomName: bookingId,
@@ -203,7 +242,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[LiveKit] Token generation error:", error);
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Failed to generate token" },
       { status: 500 }
     );

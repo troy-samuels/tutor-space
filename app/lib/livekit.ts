@@ -4,17 +4,60 @@ import {
   EgressClient,
   EncodedFileOutput,
   EncodedFileType,
+  TrackSource,
 } from "livekit-server-sdk";
 
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY!;
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET!;
-const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL!;
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
+const LIVEKIT_URL = normalizeLiveKitUrl(
+  process.env.LIVEKIT_URL ??
+    process.env.LIVEKIT_SERVER_URL ??
+    process.env.NEXT_PUBLIC_LIVEKIT_URL
+);
 
-// S3-compatible storage credentials (Supabase Storage)
-const SUPABASE_S3_ENDPOINT = process.env.SUPABASE_S3_ENDPOINT;
-const SUPABASE_S3_ACCESS_KEY = process.env.SUPABASE_S3_ACCESS_KEY;
-const SUPABASE_S3_SECRET_KEY = process.env.SUPABASE_S3_SECRET_KEY;
-const SUPABASE_S3_BUCKET = process.env.SUPABASE_S3_BUCKET || "recordings";
+// S3-compatible storage credentials (DigitalOcean Spaces)
+const S3_ENDPOINT = normalizeS3Endpoint(
+  process.env.DIGITALOCEAN_SPACES_ENDPOINT ??
+    process.env.S3_ENDPOINT ??
+    process.env.SUPABASE_S3_ENDPOINT
+);
+const S3_ACCESS_KEY =
+  process.env.DIGITALOCEAN_ACCESS_KEY ?? process.env.SUPABASE_S3_ACCESS_KEY;
+const S3_SECRET_KEY =
+  process.env.DIGITALOCEAN_SECRET_KEY ?? process.env.SUPABASE_S3_SECRET_KEY;
+const S3_BUCKET = process.env.SUPABASE_S3_BUCKET || process.env.S3_BUCKET || "recordings";
+
+const MAX_PARTICIPANT_NAME_LENGTH = 120;
+
+function normalizeLiveKitUrl(value?: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) return null;
+  if (/^(wss?|https?):\/\//.test(trimmed)) {
+    return trimmed;
+  }
+  return null;
+}
+
+function toHttpUrl(url: string): string {
+  if (url.startsWith("wss://")) {
+    return url.replace(/^wss:\/\//, "https://");
+  }
+  if (url.startsWith("ws://")) {
+    return url.replace(/^ws:\/\//, "http://");
+  }
+  return url;
+}
+
+function normalizeS3Endpoint(value?: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) return null;
+  if (/^https?:\/\//.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
 
 /**
  * LiveKit Room Service Client
@@ -26,11 +69,7 @@ export function getRoomServiceClient() {
   }
 
   // Convert ws(s):// to http(s):// for REST API
-  const httpUrl = LIVEKIT_URL.startsWith("wss://")
-    ? LIVEKIT_URL.replace(/^wss:\/\//, "https://")
-    : LIVEKIT_URL.startsWith("ws://")
-      ? LIVEKIT_URL.replace(/^ws:\/\//, "http://")
-      : LIVEKIT_URL;
+  const httpUrl = toHttpUrl(LIVEKIT_URL);
 
   return new RoomServiceClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 }
@@ -49,22 +88,37 @@ export async function createAccessToken(
   options?: {
     isTutor?: boolean;
     participantName?: string;
+    tokenTtlSeconds?: number;
   }
 ): Promise<string> {
   if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
     throw new Error("LiveKit API credentials are not configured");
   }
 
+  if (!identity?.trim()) {
+    throw new Error("LiveKit identity is required");
+  }
+
+  if (!roomName?.trim()) {
+    throw new Error("LiveKit room name is required");
+  }
+
+  const participantName = options?.participantName?.trim();
+  const safeParticipantName = participantName
+    ? participantName.slice(0, MAX_PARTICIPANT_NAME_LENGTH)
+    : undefined;
+
   const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
     identity,
-    name: options?.participantName,
-    ttl: "6h", // Token valid for 6 hours
+    name: safeParticipantName,
+    ttl: options?.tokenTtlSeconds ?? "6h",
   });
 
   token.addGrant({
     room: roomName,
     roomJoin: true,
     canPublish: true,
+    canPublishSources: [TrackSource.MICROPHONE],
     canSubscribe: true,
     // Required for in-room chat and interactive features.
     canPublishData: true,
@@ -90,11 +144,7 @@ export function getEgressClient(): EgressClient {
   }
 
   // Convert ws(s):// to http(s):// for REST API
-  const httpUrl = LIVEKIT_URL.startsWith("wss://")
-    ? LIVEKIT_URL.replace(/^wss:\/\//, "https://")
-    : LIVEKIT_URL.startsWith("ws://")
-      ? LIVEKIT_URL.replace(/^ws:\/\//, "http://")
-      : LIVEKIT_URL;
+  const httpUrl = toHttpUrl(LIVEKIT_URL);
 
   return new EgressClient(httpUrl, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 }
@@ -104,9 +154,9 @@ export function getEgressClient(): EgressClient {
  */
 export function isS3Configured(): boolean {
   return !!(
-    SUPABASE_S3_ENDPOINT &&
-    SUPABASE_S3_ACCESS_KEY &&
-    SUPABASE_S3_SECRET_KEY
+    S3_ENDPOINT &&
+    S3_ACCESS_KEY &&
+    S3_SECRET_KEY
   );
 }
 
@@ -119,16 +169,16 @@ export function getS3OutputConfig(filepath: string): EncodedFileOutput {
   }
 
   return new EncodedFileOutput({
-    fileType: EncodedFileType.MP4,
+    fileType: EncodedFileType.OGG,
     filepath,
     output: {
       case: "s3",
       value: {
-        accessKey: SUPABASE_S3_ACCESS_KEY!,
-        secret: SUPABASE_S3_SECRET_KEY!,
-        bucket: SUPABASE_S3_BUCKET,
-        endpoint: SUPABASE_S3_ENDPOINT!,
-        forcePathStyle: true, // Required for Supabase S3
+        accessKey: S3_ACCESS_KEY!,
+        secret: S3_SECRET_KEY!,
+        bucket: S3_BUCKET,
+        endpoint: S3_ENDPOINT!,
+        forcePathStyle: true, // Required for DigitalOcean Spaces
       },
     },
   });
@@ -141,14 +191,14 @@ export function getS3OutputConfig(filepath: string): EncodedFileOutput {
 export async function startRoomRecording(roomName: string) {
   const egressClient = getEgressClient();
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filepath = `bookings/${roomName}/${timestamp}.mp4`;
+  const filepath = `bookings/${roomName}/${timestamp}.ogg`;
 
   console.log("[LiveKit Recording] S3 config:", {
-    endpoint: SUPABASE_S3_ENDPOINT,
-    bucket: SUPABASE_S3_BUCKET,
+    endpoint: S3_ENDPOINT,
+    bucket: S3_BUCKET,
     filepath,
-    hasAccessKey: !!SUPABASE_S3_ACCESS_KEY,
-    hasSecretKey: !!SUPABASE_S3_SECRET_KEY,
+    hasAccessKey: !!S3_ACCESS_KEY,
+    hasSecretKey: !!S3_SECRET_KEY,
   });
 
   const output = getS3OutputConfig(filepath);
@@ -158,10 +208,7 @@ export async function startRoomRecording(roomName: string) {
     roomName,
     { file: output },
     {
-      layout: "grid",
-      // Optional: customize video settings
-      // videoOnly: false,
-      // audioOnly: false,
+      audioOnly: true,
     }
   );
 

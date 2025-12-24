@@ -109,11 +109,18 @@ function createMockLanguageProfile(overrides: Partial<LanguageProfile> = {}): La
 // HELPER FUNCTIONS (mirroring production)
 // =============================================================================
 
+const STORAGE_ENDPOINT_HOST = "nyc3.digitaloceanspaces.com";
+
 function extractStorageObjectPath(location: string, fallbackBucket: string): {
   bucket: string;
   objectPath: string | null;
 } {
   if (!location) return { bucket: fallbackBucket, objectPath: null };
+
+  const s3Match = location.match(/^s3:\/\/([^/]+)\/(.+)$/i);
+  if (s3Match) {
+    return { bucket: s3Match[1]!, objectPath: s3Match[2]! };
+  }
 
   try {
     const url = new URL(location);
@@ -127,6 +134,25 @@ function extractStorageObjectPath(location: string, fallbackBucket: string): {
     const matchPublic = pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
     if (matchPublic) {
       return { bucket: matchPublic[1]!, objectPath: matchPublic[2]! };
+    }
+
+    if (url.hostname.endsWith(".digitaloceanspaces.com")) {
+      const hostParts = url.hostname.split(".");
+      const bucket = hostParts.length > 3 ? hostParts[0] : null;
+      const objectPath = pathname.replace(/^\/+/, "");
+      if (bucket && objectPath) {
+        return { bucket, objectPath };
+      }
+    }
+
+    if (url.hostname === STORAGE_ENDPOINT_HOST) {
+      const parts = pathname.split("/").filter(Boolean);
+      if (parts.length >= 2) {
+        return {
+          bucket: parts[0]!,
+          objectPath: parts.slice(1).join("/"),
+        };
+      }
     }
   } catch {
     // Not a URL; treat as a raw object path.
@@ -188,6 +214,30 @@ describe("LiveKit to Deepgram Webhook Flow", () => {
 
       assert.equal(result.bucket, "recordings");
       assert.equal(result.objectPath, "booking123/file.mp4");
+    });
+
+    it("extracts bucket and path from s3:// URL", () => {
+      const location = "s3://recordings/booking123/file.ogg";
+      const result = extractStorageObjectPath(location, "fallback");
+
+      assert.equal(result.bucket, "recordings");
+      assert.equal(result.objectPath, "booking123/file.ogg");
+    });
+
+    it("extracts bucket and path from DigitalOcean virtual-hosted URL", () => {
+      const location = "https://recordings.nyc3.digitaloceanspaces.com/booking123/file.ogg";
+      const result = extractStorageObjectPath(location, "fallback");
+
+      assert.equal(result.bucket, "recordings");
+      assert.equal(result.objectPath, "booking123/file.ogg");
+    });
+
+    it("extracts bucket and path from DigitalOcean path-style URL", () => {
+      const location = "https://nyc3.digitaloceanspaces.com/recordings/booking123/file.ogg";
+      const result = extractStorageObjectPath(location, "fallback");
+
+      assert.equal(result.bucket, "recordings");
+      assert.equal(result.objectPath, "booking123/file.ogg");
     });
 
     it("handles raw path (no URL)", () => {
