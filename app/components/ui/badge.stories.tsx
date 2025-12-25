@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Badge, badgeVariants } from "./badge";
+import { Badge } from "./badge";
 
 const meta: Meta<typeof Badge> = {
   title: "UI/Badge",
