@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { buildVerifyEmailUrl } from "@/lib/auth/redirects";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { TutorSearch } from "@/components/student-auth/TutorSearch";
 import { UpcomingLessons } from "@/components/student-auth/UpcomingLessons";
@@ -24,6 +25,16 @@ export default async function StudentSearchPage({ searchParams }: PageProps) {
 
   if (!user) {
     redirect("/student/login?redirect=/student/search");
+  }
+
+  if (!user.email_confirmed_at) {
+    redirect(
+      buildVerifyEmailUrl({
+        role: "student",
+        email: user.email,
+        next: "/student/search",
+      })
+    );
   }
 
   const params = await searchParams;

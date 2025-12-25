@@ -78,6 +78,12 @@ export function RequestAccessForm({
         return;
       }
 
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+        router.refresh();
+        return;
+      }
+
       // Show success message
       setSuccess(true);
 

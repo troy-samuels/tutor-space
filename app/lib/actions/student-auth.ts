@@ -1,8 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
+import { buildAuthCallbackUrl, buildVerifyEmailUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
 import { sendAccessRequestNotification } from "@/lib/emails/access-emails";
 
 export type AccessStatus = "pending" | "approved" | "denied" | "suspended" | "no_record";
@@ -137,6 +138,7 @@ export async function signupAndRequestAccess(params: {
 
     // Create auth user via client-side Supabase (for proper session)
     const supabase = await createClient();
+    const bookPath = `/book/${params.tutorUsername}`;
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: params.email,
       password: params.password,
@@ -145,7 +147,7 @@ export async function signupAndRequestAccess(params: {
           role: "student",
           full_name: params.fullName,
         },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/book/${params.tutorUsername}`,
+        emailRedirectTo: buildAuthCallbackUrl(bookPath),
       },
     });
 
@@ -153,6 +155,11 @@ export async function signupAndRequestAccess(params: {
       console.error("Auth signup error:", authError);
       return { error: authError?.message || "Failed to create account" };
     }
+
+    const requiresEmailConfirmation = !authData.session;
+    const verifyEmailRedirect = requiresEmailConfirmation
+      ? buildVerifyEmailUrl({ role: "student", email: params.email, next: bookPath })
+      : undefined;
 
     // Create or update student record
     let studentId: string;
@@ -243,7 +250,10 @@ export async function signupAndRequestAccess(params: {
 
     return {
       success: true,
-      message: "Access request submitted! You'll receive an email when approved.",
+      message: requiresEmailConfirmation
+        ? "Check your email to confirm your account."
+        : "Access request submitted! You'll receive an email when approved.",
+      redirectTo: verifyEmailRedirect,
     };
   } catch (error) {
     console.error("Error in signupAndRequestAccess:", error);
@@ -292,19 +302,34 @@ async function autoApproveStudentAccess(studentId: string, tutorId: string) {
 /**
  * Student login
  */
-export async function studentLogin(params: { email: string; password: string }) {
+export async function studentLogin(params: {
+  email: string;
+  password: string;
+}): Promise<{ success?: boolean; error?: string; redirectTo?: string }> {
   const supabase = await createClient();
+  const email = params.email?.trim().toLowerCase();
 
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: params.email,
+    email,
     password: params.password,
   });
 
   if (error) {
-    return { error: error.message };
+    const message = error.message ?? "";
+    if (message.toLowerCase().includes("email not confirmed")) {
+      return {
+        success: true,
+        redirectTo: buildVerifyEmailUrl({
+          role: "student",
+          email,
+          next: "/student/search",
+        }),
+      };
+    }
+    return { error: message };
   }
 
-  return { success: true, user: data.user };
+  return { success: true };
 }
 
 /**
@@ -332,7 +357,8 @@ export async function studentSignup(params: {
   password: string;
   fullName: string;
   timezone?: string;
-}): Promise<{ success?: boolean; error?: string }> {
+  redirectTo?: string;
+}): Promise<{ success?: boolean; error?: string; redirectTo?: string }> {
   const supabase = await createClient();
   const email = params.email?.trim().toLowerCase();
   const fullName = params.fullName?.trim();
@@ -347,6 +373,7 @@ export async function studentSignup(params: {
     return { error: "Password must be at least 8 characters" };
   }
 
+  const nextPath = sanitizeRedirectPath(params.redirectTo) ?? "/student/search";
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password: params.password,
@@ -356,7 +383,7 @@ export async function studentSignup(params: {
         full_name: fullName,
         timezone,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/student/search`,
+      emailRedirectTo: buildAuthCallbackUrl(nextPath),
     },
   });
 
@@ -456,6 +483,17 @@ export async function studentSignup(params: {
 
     console.error("Student signup error:", authError);
     return { error: message || "Failed to create account" };
+  }
+
+  if (!authData.session) {
+    return {
+      success: true,
+      redirectTo: buildVerifyEmailUrl({
+        role: "student",
+        email,
+        next: nextPath,
+      }),
+    };
   }
 
   return { success: true };
@@ -585,6 +623,7 @@ export async function signupWithInviteLink(params: {
   error?: string;
   tutorUsername?: string;
   serviceIds?: string[];
+  redirectTo?: string;
 }> {
   const adminClient = createServiceRoleClient();
 
@@ -629,6 +668,10 @@ export async function signupWithInviteLink(params: {
 
     // Create auth user
     const supabase = await createClient();
+    const bookPath =
+      serviceIds.length > 0
+        ? `/book/${tutorUsername}?services=${serviceIds.join(",")}`
+        : `/book/${tutorUsername}`;
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: params.email,
       password: params.password,
@@ -637,7 +680,7 @@ export async function signupWithInviteLink(params: {
           role: "student",
           full_name: params.fullName,
         },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/book/${tutorUsername}`,
+        emailRedirectTo: buildAuthCallbackUrl(bookPath),
       },
     });
 
@@ -645,6 +688,11 @@ export async function signupWithInviteLink(params: {
       console.error("Auth signup error:", authError);
       return { error: authError?.message || "Failed to create account" };
     }
+
+    const requiresEmailConfirmation = !authData.session;
+    const verifyEmailRedirect = requiresEmailConfirmation
+      ? buildVerifyEmailUrl({ role: "student", email: params.email, next: bookPath })
+      : undefined;
 
     // Create or update student record - AUTO APPROVED via invite link
     let studentId: string;
@@ -721,6 +769,7 @@ export async function signupWithInviteLink(params: {
       success: true,
       tutorUsername,
       serviceIds,
+      redirectTo: verifyEmailRedirect,
     };
   } catch (error) {
     console.error("Error in signupWithInviteLink:", error);

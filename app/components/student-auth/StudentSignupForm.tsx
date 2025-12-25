@@ -56,11 +56,20 @@ export function StudentSignupForm() {
         password,
         fullName,
         timezone,
+        redirectTo: tutorParam
+          ? `/student/search?prefill=${encodeURIComponent(tutorParam)}`
+          : "/student/search",
       });
 
       if (result.error) {
         setError(result.error);
         setLoading(false);
+        return;
+      }
+
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+        router.refresh();
         return;
       }
 

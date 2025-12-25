@@ -33,6 +33,12 @@ export function StudentLoginForm({ searchParams }: StudentLoginFormProps) {
         return;
       }
 
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+        router.refresh();
+        return;
+      }
+
       // Get redirect parameters
       const params = await searchParams;
       const redirectUrl =

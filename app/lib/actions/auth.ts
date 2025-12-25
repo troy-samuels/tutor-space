@@ -9,27 +9,17 @@ import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 import type { ServiceRoleClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
 import { rateLimitServerAction } from "@/lib/middleware/rate-limit";
+import { buildAuthCallbackUrl, buildVerifyEmailUrl, getAppUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 const DASHBOARD_ROUTE = "/calendar";
 const ONBOARDING_ROUTE = "/onboarding";
 const STUDENT_HOME_ROUTE = "/student/search";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Check stripe config at runtime, not module load time
 function isStripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
-}
-
-function sanitizeRedirectPath(path: FormDataEntryValue | null): string | null {
-  if (typeof path !== "string") return null;
-  const trimmed = path.trim();
-
-  // Require a relative path on this domain
-  if (!trimmed.startsWith("/")) return null;
-  if (trimmed.startsWith("//")) return null;
-  if (trimmed.includes("://")) return null;
-
-  return trimmed || null;
 }
 
 function isStudentPath(path: string) {
@@ -110,7 +100,7 @@ async function startSubscriptionCheckout(params: {
   }
 
   const trialPeriodDays = plan.endsWith("_annual") ? 14 : 7;
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "");
+  const appUrl = getAppUrl();
   const successUrl = `${appUrl}/onboarding?subscription=success`;
   const cancelUrl = `${appUrl}/signup?checkout=cancelled`;
 
@@ -163,6 +153,11 @@ export type AuthActionState = {
   error?: string;
   success?: string;
   redirectTo?: string;
+};
+
+export type EmailVerificationState = {
+  error?: string;
+  success?: string;
 };
 
 export async function signUp(
@@ -251,7 +246,12 @@ export async function signUp(
 
   const supabase = await createClient();
   const adminClient = createServiceRoleClient();
-  const emailRedirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/dashboard`;
+  const emailRedirectTo = buildAuthCallbackUrl(ONBOARDING_ROUTE);
+  const verifyEmailRedirect = buildVerifyEmailUrl({
+    role: "tutor",
+    email,
+    next: ONBOARDING_ROUTE,
+  });
 
   let existingUser: User | null = null;
 
@@ -309,43 +309,6 @@ export async function signUp(
       };
     }
 
-    if (adminClient) {
-      try {
-        const { error: confirmExistingError } = await adminClient.auth.admin.updateUserById(
-          existingUser.id,
-          { email_confirm: true }
-        );
-
-        if (!confirmExistingError) {
-          const { data: immediateSignInData, error: immediateSignInError } =
-            await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-          if (!immediateSignInError && immediateSignInData?.session) {
-            revalidatePath("/", "layout");
-            return { success: "Account confirmed", redirectTo: ONBOARDING_ROUTE };
-          }
-
-          if (immediateSignInError) {
-            console.error(
-              "[Auth] Immediate sign-in failed after confirming existing user",
-              immediateSignInError
-            );
-            return {
-              success: "Your account is confirmed. Please sign in to continue.",
-              redirectTo: "/login",
-            };
-          }
-        } else {
-          console.error("[Auth] Auto-confirmation failed for existing user", confirmExistingError);
-        }
-      } catch (confirmExistingError) {
-        console.error("[Auth] Unexpected error while confirming existing user", confirmExistingError);
-      }
-    }
-
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email,
@@ -363,8 +326,8 @@ export async function signUp(
     }
 
     return {
-      success: "This email is already registered but still waiting for confirmation. Try logging in.",
-      redirectTo: "/login",
+      success: "This email is already registered but still waiting for confirmation.",
+      redirectTo: verifyEmailRedirect,
     };
   }
 
@@ -413,14 +376,14 @@ export async function signUp(
 
       if (!resendError) {
         return {
-          success: "This email is already registered. Try logging in now.",
-          redirectTo: "/login",
+          success: "This email is already registered. Please confirm your email to continue.",
+          redirectTo: verifyEmailRedirect,
         };
       }
 
       console.error("[Auth] Failed to resend confirmation email after signup error", resendError);
       return {
-        error: "That email is already registered. Please log in instead.",
+        error: "That email is already registered. Please confirm your email to continue.",
       };
     }
 
@@ -521,59 +484,9 @@ export async function signUp(
   }
 
   if (!data.session) {
-    if (adminClient && data.user) {
-      try {
-        const { error: autoConfirmError } = await adminClient.auth.admin.updateUserById(
-          data.user.id,
-          { email_confirm: true }
-        );
-
-        if (!autoConfirmError) {
-          const { data: immediateSignInData, error: immediateSignInError } =
-            await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-          if (!immediateSignInError && immediateSignInData?.session) {
-            revalidatePath("/", "layout");
-
-            // Redirect to Stripe checkout if needed (paid plan)
-            console.log("[Auth] About to call startSubscriptionCheckout with finalPlan:", finalPlan);
-            const checkoutUrl = await startSubscriptionCheckout({
-              user: data.user,
-              plan: finalPlan,
-              fullName,
-              adminClient,
-            });
-            console.log("[Auth] startSubscriptionCheckout returned:", checkoutUrl);
-
-            if (checkoutUrl) {
-              console.log("[Auth] Redirecting to Stripe checkout:", checkoutUrl);
-              return { success: "Account created", redirectTo: checkoutUrl };
-            }
-
-            console.log("[Auth] No checkout URL, redirecting to onboarding");
-            return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
-          }
-
-          if (immediateSignInError) {
-            console.error(
-              "[Auth] Immediate sign-in failed after auto-confirmation",
-              immediateSignInError
-            );
-          }
-        } else {
-          console.error("[Auth] Auto-confirmation failed after signup", autoConfirmError);
-        }
-      } catch (autoConfirmError) {
-        console.error("[Auth] Unexpected auto-confirmation error after signup", autoConfirmError);
-      }
-    }
-
     return {
-      success: "Account created. Please log in to continue.",
-      redirectTo: "/login",
+      success: "Check your email to confirm your account.",
+      redirectTo: verifyEmailRedirect,
     };
   }
 
@@ -633,38 +546,13 @@ export async function signIn(
   }
 
   if (existingUser && !existingUser.email_confirmed_at) {
-    if (adminClient) {
-      try {
-        const { error: autoConfirmError } = await adminClient.auth.admin.updateUserById(
-          existingUser.id,
-          { email_confirm: true }
-        );
-
-        if (!autoConfirmError) {
-          const { data: immediateData, error: immediateError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (!immediateError && immediateData?.session) {
-            revalidatePath("/", "layout");
-            return { success: "Login successful", redirectTo: DASHBOARD_ROUTE };
-          }
-
-          if (immediateError) {
-            console.error("[Auth] Immediate sign-in failed after auto-confirm during login", immediateError);
-          }
-        } else {
-          console.error("[Auth] Auto-confirm during login failed", autoConfirmError);
-        }
-      } catch (autoConfirmError) {
-        console.error("[Auth] Unexpected auto-confirm error during login", autoConfirmError);
-      }
-    }
-
     return {
-      error:
-        "Your account is almost ready. Please try logging in again in a few seconds or contact hello@tutorlingua.co.",
+      success: "Check your email to confirm your account.",
+      redirectTo: buildVerifyEmailUrl({
+        role: "tutor",
+        email,
+        next: ONBOARDING_ROUTE,
+      }),
     };
   }
 
@@ -679,7 +567,12 @@ export async function signIn(
 
     if (message.includes("email not confirmed")) {
       return {
-        error: "We couldn't finish signing you in yet. Please try again in a few seconds.",
+        success: "Check your email to confirm your account.",
+        redirectTo: buildVerifyEmailUrl({
+          role: "tutor",
+          email,
+          next: ONBOARDING_ROUTE,
+        }),
       };
     }
 
@@ -752,6 +645,56 @@ export async function signIn(
   return { success: "Login successful", redirectTo: destination };
 }
 
+export async function resendSignupConfirmation(
+  _prevState: EmailVerificationState,
+  formData: FormData
+): Promise<EmailVerificationState> {
+  const headersList = await headers();
+  const rateLimitResult = await rateLimitServerAction(headersList, {
+    limit: 3,
+    window: 60 * 60 * 1000, // 3 requests per hour
+    prefix: "resend-confirmation",
+  });
+
+  if (!rateLimitResult.success) {
+    return { error: rateLimitResult.error };
+  }
+
+  const email = (formData.get("email") as string | null)?.trim().toLowerCase() ?? "";
+  const role = formData.get("role") === "student" ? "student" : "tutor";
+  const nextPath =
+    sanitizeRedirectPath(formData.get("next")) ??
+    (role === "student" ? STUDENT_HOME_ROUTE : ONBOARDING_ROUTE);
+
+  if (!email) {
+    return { error: "Please enter an email address." };
+  }
+
+  if (!EMAIL_PATTERN.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  const supabase = await createClient();
+  const emailRedirectTo = buildAuthCallbackUrl(nextPath);
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: {
+      emailRedirectTo,
+    },
+  });
+
+  if (error) {
+    console.error("[Auth] Failed to resend confirmation email", error);
+    return {
+      error: "We couldn't resend the confirmation email yet. Please try again in a minute.",
+    };
+  }
+
+  return { success: "Confirmation email sent. Please check your inbox." };
+}
+
 export async function signOut() {
   const supabase = await createClient();
 
@@ -768,7 +711,7 @@ export async function signInWithOAuth(provider: OAuthProvider, redirectTarget?: 
   const supabase = await createClient();
 
   // Build callback URL with redirect parameter
-  const callbackUrl = new URL("/auth/callback", process.env.NEXT_PUBLIC_APP_URL);
+  const callbackUrl = new URL("/auth/callback", getAppUrl());
   if (redirectTarget) {
     callbackUrl.searchParams.set("next", redirectTarget);
   }

@@ -11,6 +11,7 @@ export const RESERVED_USERNAMES = new Set([
   'forgot-password',
   'reset-password',
   'email-unsubscribe',
+  'verify-email',
   'student-auth',
 
   // Public routes
