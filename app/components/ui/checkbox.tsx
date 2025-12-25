@@ -3,9 +3,34 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Checkbox input component with indeterminate state support.
+ *
+ * @example
+ * // Basic checkbox
+ * <Checkbox id="terms" />
+ * <Label htmlFor="terms">Accept terms</Label>
+ *
+ * @example
+ * // Controlled checkbox
+ * <Checkbox
+ *   checked={isChecked}
+ *   onCheckedChange={setIsChecked}
+ * />
+ *
+ * @example
+ * // Indeterminate state (partial selection)
+ * <Checkbox indeterminate />
+ *
+ * @example
+ * // Disabled checkbox
+ * <Checkbox disabled checked />
+ */
 export interface CheckboxProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+  /** When true, shows indeterminate/partial state (e.g., for "select all" with partial selection) */
   indeterminate?: boolean;
+  /** Callback when checked state changes. Simpler than onChange for boolean state. */
   onCheckedChange?: (checked: boolean) => void;
 }
 

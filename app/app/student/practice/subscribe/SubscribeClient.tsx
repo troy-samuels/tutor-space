@@ -222,7 +222,7 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Set Up Automatic Credits
+                    Unlock more practice ($${blockPriceDollars})
                   </>
                 )}
               </Button>

@@ -4,6 +4,35 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Collapsible section component for expandable content.
+ * Features a header with title, optional icon, and badge.
+ *
+ * @example
+ * // Basic collapsible
+ * <Collapsible title="Details">
+ *   <p>Hidden content here...</p>
+ * </Collapsible>
+ *
+ * @example
+ * // With icon and defaultOpen
+ * <Collapsible
+ *   title="Settings"
+ *   icon={<Settings className="h-4 w-4" />}
+ *   defaultOpen
+ * >
+ *   <SettingsForm />
+ * </Collapsible>
+ *
+ * @example
+ * // With badge (e.g., count indicator)
+ * <Collapsible
+ *   title="Notifications"
+ *   badge={<Badge variant="destructive">5</Badge>}
+ * >
+ *   <NotificationList />
+ * </Collapsible>
+ */
 type CollapsibleProps = {
   title: string;
   icon?: ReactNode;

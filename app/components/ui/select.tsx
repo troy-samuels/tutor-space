@@ -3,6 +3,33 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Custom Select component system with dropdown functionality.
+ * Provides a consistent select/dropdown interface across the design system.
+ *
+ * @example
+ * // Basic select
+ * <Select value={selected} onValueChange={setSelected}>
+ *   <SelectTrigger>
+ *     <SelectValue placeholder="Choose an option" />
+ *   </SelectTrigger>
+ *   <SelectContent>
+ *     <SelectItem value="option1">Option 1</SelectItem>
+ *     <SelectItem value="option2">Option 2</SelectItem>
+ *     <SelectItem value="option3">Option 3</SelectItem>
+ *   </SelectContent>
+ * </Select>
+ *
+ * @example
+ * // Disabled select
+ * <Select disabled>
+ *   <SelectTrigger>
+ *     <SelectValue placeholder="Unavailable" />
+ *   </SelectTrigger>
+ *   <SelectContent>...</SelectContent>
+ * </Select>
+ */
+
 type SelectContextValue = {
   value?: string;
   label?: string;
@@ -23,13 +50,23 @@ function useSelectContext() {
   return context;
 }
 
+/**
+ * Select root component props.
+ */
 export interface SelectProps {
+  /** Controlled value */
   value?: string;
+  /** Initial value for uncontrolled usage */
   defaultValue?: string;
+  /** Placeholder text when no value is selected */
   placeholder?: string;
+  /** Disables the select */
   disabled?: boolean;
+  /** Callback when selection changes */
   onValueChange?: (value: string) => void;
+  /** SelectTrigger and SelectContent */
   children: React.ReactNode;
+  /** Additional CSS classes */
   className?: string;
 }
 

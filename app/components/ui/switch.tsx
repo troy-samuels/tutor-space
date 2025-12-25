@@ -5,6 +5,33 @@ import * as SwitchPrimitives from "@radix-ui/react-switch";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Toggle switch component for boolean on/off states.
+ * Built on Radix UI Switch for accessibility.
+ *
+ * @example
+ * // Basic switch
+ * <Switch id="notifications" />
+ * <Label htmlFor="notifications">Enable notifications</Label>
+ *
+ * @example
+ * // Controlled switch
+ * <Switch
+ *   checked={isEnabled}
+ *   onCheckedChange={setIsEnabled}
+ * />
+ *
+ * @example
+ * // Disabled switch
+ * <Switch disabled checked />
+ *
+ * @example
+ * // With label using Radix Label
+ * <div className="flex items-center gap-2">
+ *   <Switch id="dark-mode" />
+ *   <Label htmlFor="dark-mode">Dark mode</Label>
+ * </div>
+ */
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>

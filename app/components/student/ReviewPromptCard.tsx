@@ -12,7 +12,7 @@ type ReviewPromptCardProps = {
 
 export function ReviewPromptCard({ tutor, onReviewClick }: ReviewPromptCardProps) {
   return (
-    <div className="flex min-w-[260px] flex-col gap-4 rounded-3xl border border-border/60 bg-background/90 p-4 shadow-sm backdrop-blur">
+    <div className="flex min-w-[260px] flex-col gap-4 rounded-3xl border border-border bg-background/90 p-4 shadow-sm backdrop-blur">
       <div className="flex items-center gap-3">
         <Avatar className="h-12 w-12">
           <AvatarImage src={tutor.tutorAvatarUrl || undefined} alt={tutor.tutorName} />

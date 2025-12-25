@@ -217,6 +217,55 @@ export function proxy(request: NextRequest) {
       return nextResponse();
     }
 
+    // =====================================================
+    // STUDENT/TUTOR ROUTE SEPARATION (Enterprise Grade)
+    // Ensures students NEVER get redirected to tutor flows
+    // =====================================================
+
+    // STUDENT ROUTES - Allow through immediately
+    // Student pages handle their own auth via student_auth_token cookie or user_id
+    if (normalizedPathname.startsWith("/student")) {
+      const headers = new Headers();
+      appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+      return nextResponse(headers);
+    }
+
+    // TUTOR-ONLY ROUTES - Protected by dashboard layout
+    // These routes should ONLY be accessible to authenticated tutors
+    // The dashboard layout.tsx handles the actual role verification
+    const TUTOR_PROTECTED_ROUTES = [
+      "/dashboard",
+      "/bookings",
+      "/students",
+      "/services",
+      "/availability",
+      "/pages",
+      "/settings",
+      "/analytics",
+      "/calendar",
+      "/digital-products",
+      "/messages",
+      "/classroom",
+      "/practice-scenarios",
+      "/marketplace",
+      "/ai",
+      "/copilot",
+      "/notifications",
+      "/upgrade",
+      "/onboarding",
+    ];
+
+    const isTutorRoute = TUTOR_PROTECTED_ROUTES.some(
+      (route) => normalizedPathname === route || normalizedPathname.startsWith(route + "/")
+    );
+
+    if (isTutorRoute) {
+      // Tutor routes proceed to layout.tsx for full auth/role verification
+      const headers = new Headers();
+      appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+      return nextResponse(headers);
+    }
+
     const headers = new Headers();
     appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
     return nextResponse(headers);

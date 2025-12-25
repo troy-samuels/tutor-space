@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Package, CreditCard, Search, Ticket } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PackageCard } from "./PackageCard";
 import { SubscriptionCard } from "./SubscriptionCard";
 import type { StudentPackageCredit, StudentSubscriptionCredit } from "@/lib/actions/student-bookings";
@@ -79,7 +80,7 @@ export function StudentPurchasesClient({
 
       {/* Empty state */}
       {isEmpty && !error && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/50 px-6 py-12 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <Ticket className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -89,13 +90,12 @@ export function StudentPurchasesClient({
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             When you purchase packages or subscribe to lesson plans from your tutors, they&apos;ll appear here.
           </p>
-          <Link
-            href="/student/search"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 transition"
-          >
-            <Search className="h-4 w-4" />
-            Browse Tutors
-          </Link>
+          <Button asChild className="mt-4">
+            <Link href="/student/search">
+              <Search className="mr-2 h-4 w-4" />
+              Browse Tutors
+            </Link>
+          </Button>
         </div>
       )}
 

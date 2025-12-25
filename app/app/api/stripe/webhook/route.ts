@@ -155,11 +155,11 @@ export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const connectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
 
-  if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET is not set");
+  if (!webhookSecret && !connectWebhookSecret) {
+    console.error("Stripe webhook secrets are not set");
     void recordSystemEvent({
       source: "stripe_webhook",
-      message: "STRIPE_WEBHOOK_SECRET is not set",
+      message: "Stripe webhook secrets are not set",
       meta: { correlationId },
     });
     return NextResponse.json(
@@ -173,10 +173,17 @@ export async function POST(req: NextRequest) {
   // Try main webhook secret first, then Connect webhook secret
   // This handles both Account events (payments) and Connect events (tutor onboarding)
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    if (webhookSecret) {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } else if (connectWebhookSecret) {
+      event = stripe.webhooks.constructEvent(body, signature, connectWebhookSecret);
+      console.log("Event verified with Connect webhook secret");
+    } else {
+      throw new Error("Stripe webhook secrets are not configured");
+    }
   } catch (err) {
     // If main secret fails and we have a Connect secret, try that
-    if (connectWebhookSecret) {
+    if (webhookSecret && connectWebhookSecret) {
       try {
         event = stripe.webhooks.constructEvent(body, signature, connectWebhookSecret);
         console.log("Event verified with Connect webhook secret");

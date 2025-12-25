@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Studio Tier Database Initialization
--- Migration: 20251209_init_studio_tier.sql
+-- Migration: 20251209090000_init_studio_tier.sql
 -- Description: Initialize database schema for Studio tier features
 -- ============================================================================
 

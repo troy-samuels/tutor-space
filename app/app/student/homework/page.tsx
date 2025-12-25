@@ -28,42 +28,44 @@ export default async function HomeworkPage() {
   if (studentTokenCookie?.value) {
     const { data: student } = await supabase
       .from("students")
-      .select("id, name")
+      .select("*")
       .eq("access_token", studentTokenCookie.value)
       .maybeSingle();
 
     if (student) {
       studentId = student.id;
-      studentName = student.name;
+      studentName = student.full_name ?? student.name ?? null;
     }
   }
 
   if (!studentId && user) {
     const { data: student } = await supabase
       .from("students")
-      .select("id, name")
+      .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (student) {
       studentId = student.id;
-      studentName = student.name;
+      studentName = student.full_name ?? student.name ?? null;
     }
   }
 
-  if (!studentId) {
+  if (!studentId && !user) {
     redirect("/student/login?redirect=/student/homework");
   }
 
-  const [progressData, practiceData, drillCounts, drillsData, subscriptionSummaryResult, avatarUrl] =
+  const [progressData, practiceData, subscriptionSummaryResult, avatarUrl] =
     await Promise.all([
-      getStudentProgress(undefined, studentId),
+      getStudentProgress(undefined, studentId ?? undefined),
       getStudentPracticeData(),
-      getDrillCounts(studentId),
-      getStudentDrills(studentId),
       getStudentSubscriptionSummary(),
       getStudentAvatarUrl(),
     ]);
+
+  const [drillCounts, drillsData] = studentId
+    ? await Promise.all([getDrillCounts(studentId), getStudentDrills(studentId)])
+    : [null, { pending: [], completed: [] }];
 
   const subscriptionSummary = subscriptionSummaryResult.data;
   const openHomeworkCount = progressData.homework.filter(
@@ -72,10 +74,15 @@ export default async function HomeworkPage() {
   const lessonsCompleted =
     progressData.stats?.lessons_completed ?? progressData.stats?.total_lessons ?? 0;
   const hasCompletedFirstClass = lessonsCompleted > 0;
+  const displayName =
+    studentName ??
+    (user?.user_metadata as { full_name?: string } | null)?.full_name ??
+    user?.email ??
+    null;
 
   return (
     <StudentPortalLayout
-      studentName={studentName ?? user?.email ?? null}
+      studentName={displayName}
       avatarUrl={avatarUrl}
       subscriptionSummary={subscriptionSummary}
       homeworkCount={openHomeworkCount}

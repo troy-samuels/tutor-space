@@ -4,6 +4,27 @@ import { useEffect, useState } from "react";
 import { CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Welcome toast component for post-signup success messages.
+ * Reads from sessionStorage and auto-dismisses after display.
+ *
+ * @example
+ * // Add to layout (renders when toast is queued)
+ * <WelcomeToast />
+ *
+ * @example
+ * // Queue a toast before navigation
+ * import { setWelcomeToast } from "@/components/ui/welcome-toast";
+ *
+ * // In signup handler:
+ * setWelcomeToast("Welcome! Your account has been created.");
+ * router.push("/dashboard");
+ *
+ * @example
+ * // Custom duration
+ * setWelcomeToast("Success!", 6000); // 6 seconds
+ */
+
 const TOAST_STORAGE_KEY = "signup_welcome_toast";
 const DEFAULT_DURATION = 4000;
 

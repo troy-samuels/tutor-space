@@ -74,6 +74,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // MODE ENFORCEMENT: If sessionId provided, verify session is audio mode
+    if (sessionId) {
+      const { data: session } = await adminClient
+        .from("student_practice_sessions")
+        .select("mode")
+        .eq("id", sessionId)
+        .single();
+
+      if (session && session.mode === "text") {
+        return NextResponse.json(
+          { error: "This session is text-only. Type your response instead.", code: "MODE_MISMATCH" },
+          { status: 400 }
+        );
+      }
+    }
+
     // FREEMIUM MODEL: Check if tutor has Studio tier (access gate)
     if (!student.tutor_id) {
       return NextResponse.json(

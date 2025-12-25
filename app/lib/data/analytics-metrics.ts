@@ -708,7 +708,7 @@ export async function getRecentActivity(
   const [bookingsResult, paymentsResult, studentsResult] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, scheduled_at, payment_amount, currency, students(name, email)")
+      .select("id, scheduled_at, payment_amount, currency, students(full_name, email)")
       .eq("tutor_id", tutorId)
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false })
@@ -716,7 +716,7 @@ export async function getRecentActivity(
 
     supabase
       .from("payments_audit")
-      .select("id, amount_cents, currency, created_at, students(name, email)")
+      .select("id, amount_cents, currency, created_at, profiles:profiles!payments_audit_student_id_fkey(full_name, email)")
       .eq("tutor_id", tutorId)
       .gt("amount_cents", 0)
       .gte("created_at", sevenDaysAgo)
@@ -736,12 +736,12 @@ export async function getRecentActivity(
 
   // Add bookings
   for (const booking of bookingsResult.data ?? []) {
-    const student = booking.students as { name?: string; email?: string } | null;
+    const student = booking.students as { full_name?: string; email?: string } | null;
     activities.push({
       id: `booking-${booking.id}`,
       type: "booking",
       title: "Lesson booked",
-      subtitle: student?.name ?? student?.email ?? "Unknown student",
+      subtitle: student?.full_name ?? student?.email ?? "Unknown student",
       timestamp: booking.scheduled_at,
       amount: booking.payment_amount ? booking.payment_amount / 100 : undefined,
       currency: booking.currency ?? "usd",
@@ -750,12 +750,12 @@ export async function getRecentActivity(
 
   // Add payments
   for (const payment of paymentsResult.data ?? []) {
-    const student = payment.students as { name?: string; email?: string } | null;
+    const student = payment.profiles as { full_name?: string; email?: string } | null;
     activities.push({
       id: `payment-${payment.id}`,
       type: "payment",
       title: "Payment received",
-      subtitle: student?.name ?? student?.email ?? "Unknown student",
+      subtitle: student?.full_name ?? student?.email ?? "Unknown student",
       timestamp: payment.created_at,
       amount: payment.amount_cents / 100,
       currency: payment.currency ?? "usd",

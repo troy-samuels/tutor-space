@@ -82,7 +82,7 @@ export default function NotificationsPage() {
 
   async function fetchNotifications() {
     setLoading(true);
-    const result = await getNotifications({ limit: 100 });
+    const result = await getNotifications({ limit: 100, userRole: "tutor" });
     setNotifications(result.notifications);
     setUnreadCount(result.unreadCount);
     setLoading(false);
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
 
   async function handleMarkAllAsRead() {
     setMarkingAllRead(true);
-    await markAllNotificationsAsRead();
+    await markAllNotificationsAsRead({ userRole: "tutor" });
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     setMarkingAllRead(false);

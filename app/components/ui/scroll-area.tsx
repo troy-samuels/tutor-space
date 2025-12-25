@@ -5,6 +5,29 @@ import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Custom scroll area with styled scrollbars.
+ * Built on Radix UI ScrollArea for consistent cross-browser scrollbars.
+ *
+ * @example
+ * // Vertical scroll area
+ * <ScrollArea className="h-72">
+ *   <div className="p-4">
+ *     {longContent.map((item) => (
+ *       <p key={item.id}>{item.text}</p>
+ *     ))}
+ *   </div>
+ * </ScrollArea>
+ *
+ * @example
+ * // Horizontal scroll area
+ * <ScrollArea className="w-full whitespace-nowrap">
+ *   <div className="flex space-x-4 p-4">
+ *     {items.map((item) => <Card key={item.id} />)}
+ *   </div>
+ *   <ScrollBar orientation="horizontal" />
+ * </ScrollArea>
+ */
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>

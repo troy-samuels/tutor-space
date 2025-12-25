@@ -42,6 +42,8 @@ export async function getStudentStripePayments(
     return { data: null, error: "Student not found" };
   }
 
+  const studentProfileId = student.user_id ?? null;
+
   // Get tutor's Stripe Connect account
   const { data: tutorProfile } = await supabase
     .from("profiles")
@@ -51,7 +53,7 @@ export async function getStudentStripePayments(
 
   // If Stripe Connect is not set up or not enabled, fall back to audit table
   if (!tutorProfile?.stripe_account_id || !tutorProfile.stripe_charges_enabled) {
-    return getPaymentsFromAuditTable(studentId, user.id, supabase);
+    return getPaymentsFromAuditTable(studentProfileId, user.id, supabase);
   }
 
   try {
@@ -119,7 +121,7 @@ export async function getStudentStripePayments(
   } catch (err) {
     console.error("[getStudentStripePayments] Stripe API error:", err);
     // Fall back to audit table on error
-    return getPaymentsFromAuditTable(studentId, user.id, supabase);
+    return getPaymentsFromAuditTable(studentProfileId, user.id, supabase);
   }
 }
 
@@ -159,17 +161,30 @@ function mapStripeChargeToPaymentRecord(charge: Stripe.Charge): StripePaymentRec
  * Used when Stripe Connect is not set up or API call fails
  */
 async function getPaymentsFromAuditTable(
-  studentId: string,
+  studentProfileId: string | null,
   tutorId: string,
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<GetStudentStripePaymentsResult> {
+  if (!studentProfileId) {
+    return {
+      data: {
+        totalPaidCents: 0,
+        totalRefundedCents: 0,
+        currency: "USD",
+        payments: [],
+        source: "audit",
+      },
+      error: null,
+    };
+  }
+
   const { data: auditRecords, error } = await supabase
     .from("payments_audit")
     .select(
       "id, amount_cents, currency, stripe_charge_id, stripe_payment_intent_id, created_at"
     )
     .eq("tutor_id", tutorId)
-    .eq("student_id", studentId)
+    .eq("student_id", studentProfileId)
     .order("created_at", { ascending: false })
     .limit(100);
 

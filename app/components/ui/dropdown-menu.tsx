@@ -3,6 +3,39 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Dropdown menu component system for contextual actions.
+ * Manages open state and click-outside behavior automatically.
+ *
+ * @example
+ * // Basic dropdown
+ * <DropdownMenu>
+ *   <DropdownMenuTrigger>
+ *     <Button variant="outline">Actions</Button>
+ *   </DropdownMenuTrigger>
+ *   <DropdownMenuContent>
+ *     <DropdownMenuItem>Edit</DropdownMenuItem>
+ *     <DropdownMenuItem>Duplicate</DropdownMenuItem>
+ *     <DropdownMenuSeparator />
+ *     <DropdownMenuItem>Delete</DropdownMenuItem>
+ *   </DropdownMenuContent>
+ * </DropdownMenu>
+ *
+ * @example
+ * // With labels and sections
+ * <DropdownMenu>
+ *   <DropdownMenuTrigger asChild>
+ *     <Button size="icon"><MoreVertical /></Button>
+ *   </DropdownMenuTrigger>
+ *   <DropdownMenuContent align="end">
+ *     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+ *     <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+ *     <DropdownMenuSeparator />
+ *     <DropdownMenuItem onClick={handleDelete}>Delete</DropdownMenuItem>
+ *   </DropdownMenuContent>
+ * </DropdownMenu>
+ */
+
 type DropdownContextValue = {
   open: boolean;
   setOpen: (open: boolean) => void;

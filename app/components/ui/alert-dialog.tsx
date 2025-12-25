@@ -6,6 +6,38 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
+/**
+ * Alert Dialog component system for important confirmations.
+ * Built on Radix UI AlertDialog for accessibility.
+ * Blocks interaction with the page until dismissed.
+ *
+ * @example
+ * // Destructive action confirmation
+ * <AlertDialog>
+ *   <AlertDialogTrigger asChild>
+ *     <Button variant="destructive">Delete Account</Button>
+ *   </AlertDialogTrigger>
+ *   <AlertDialogContent>
+ *     <AlertDialogHeader>
+ *       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+ *       <AlertDialogDescription>
+ *         This action cannot be undone. This will permanently delete your account.
+ *       </AlertDialogDescription>
+ *     </AlertDialogHeader>
+ *     <AlertDialogFooter>
+ *       <AlertDialogCancel>Cancel</AlertDialogCancel>
+ *       <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+ *     </AlertDialogFooter>
+ *   </AlertDialogContent>
+ * </AlertDialog>
+ *
+ * @example
+ * // Controlled alert dialog
+ * const [open, setOpen] = useState(false);
+ * <AlertDialog open={open} onOpenChange={setOpen}>
+ *   ...
+ * </AlertDialog>
+ */
 const AlertDialog = AlertDialogPrimitive.Root;
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;

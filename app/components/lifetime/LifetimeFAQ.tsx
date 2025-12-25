@@ -7,7 +7,7 @@ const faqs = [
   {
     question: "What exactly do I get with the lifetime deal?",
     answer:
-      "You get Pro + Studio features, forever. Pro includes booking, CRM, payments, website builder, messaging, analytics, and digital products. Studio adds video classroom, lesson recordings, AI transcription, auto-generated drills, marketing clips, and learning roadmaps. No hidden fees or upsells.",
+      "You get Pro + Studio features, forever. Pro includes booking, CRM, payments, website builder, messaging, analytics, and digital products. Studio adds audio classroom, lesson recordings, AI transcription, auto-generated drills, marketing clips, and learning roadmaps. No hidden fees or upsells.",
   },
   {
     question: "What does 'lifetime' mean?",

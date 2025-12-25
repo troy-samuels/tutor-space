@@ -79,11 +79,11 @@ export function NotificationBell({ userRole = "tutor" }: NotificationBellProps) 
   const [open, setOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    const result = await getNotifications({ limit: 10 });
+    const result = await getNotifications({ limit: 10, userRole });
     setNotifications(result.notifications);
     setUnreadCount(result.unreadCount);
     setLoading(false);
-  }, []);
+  }, [userRole]);
 
   useEffect(() => {
     fetchNotifications();
@@ -112,7 +112,7 @@ export function NotificationBell({ userRole = "tutor" }: NotificationBellProps) 
 
   const handleMarkAllAsRead = async () => {
     setMarkingAllRead(true);
-    await markAllNotificationsAsRead();
+    await markAllNotificationsAsRead({ userRole });
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     setMarkingAllRead(false);

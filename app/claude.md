@@ -439,6 +439,15 @@ app/
     - One redemption per booking
     - Refund support for cancellations
 
+54. **lesson_briefings**
+    - AI-generated pre-lesson briefings
+    - booking_id (FK to bookings)
+    - student_context (TEXT) - Summary of student data
+    - engagement_indicators (JSONB) - Activity metrics
+    - suggested_activities (JSONB) - Lesson activity recommendations
+    - conversation_starters (TEXT[]) - Opening conversation prompts
+    - generated_at timestamp
+
 ---
 
 ## 3. CORE FEATURES (Working & Functional)
@@ -1321,14 +1330,15 @@ spanish-conversation, business-english, exam-prep-ielts, kids-tutoring, accent-r
 6. VideoConference component renders full video room
 7. On disconnect, user is redirected to `/dashboard`
 
-**Recording Flow**:
+**Recording Flow** (Audio-Only):
 1. Tutor clicks "Start Recording"
 2. Recording consent modal shown to all participants
 3. All participants must consent
-4. `/api/livekit/recording` starts S3 egress
+4. `/api/livekit/recording` starts audio-only S3 egress (OGG format)
 5. `egress_id` stored in booking record
-6. Recording saved to S3-compatible storage (Supabase)
+6. Audio recording saved to S3-compatible storage (Supabase)
 7. On lesson end, recording stops automatically
+8. Deepgram transcribes audio for AI analysis (transcription, summaries, drills)
 
 **Error Handling**:
 - 401: Not authenticated → "Please sign in" message
@@ -1388,7 +1398,7 @@ SUPABASE_S3_BUCKET=recordings
 
 ### Feature: Lesson Review & Post-Lesson Insights
 
-**What it does**: Post-lesson review page with video replay, AI-generated summaries, key moments, auto-generated drills, and fluency feedback.
+**What it does**: Post-lesson review page with audio playback, AI-generated summaries, key moments, auto-generated drills, and fluency feedback.
 
 **Where the code lives**:
 - Page: `/app/(dashboard)/student/review/[bookingId]/page.tsx`
@@ -1411,7 +1421,7 @@ SUPABASE_S3_BUCKET=recordings
 6. `processing_logs` tracks pipeline status
 
 **Review Page Features**:
-1. Video replay with seeking to key moments
+1. Audio playback of lesson recording
 2. AI-generated lesson summary
 3. Key moments timeline with clickable timestamps
 4. Auto-generated drills based on lesson content
@@ -1508,6 +1518,63 @@ English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese,
 
 ---
 
+### Feature: Tutor Copilot (Lesson Briefings)
+
+**What it does**: AI-powered pre-lesson briefings that provide tutors with student context, engagement indicators, activity suggestions, and conversation starters before each lesson.
+
+**Where the code lives**:
+- Page: `/app/(dashboard)/copilot/briefing/[bookingId]/page.tsx`
+- Cron: `/app/api/cron/generate-briefings/route.ts`
+- Actions: `/lib/actions/copilot.ts`
+- Generator: `/lib/copilot/briefing-generator.ts`
+- Activity Suggester: `/lib/copilot/activity-suggester.ts`
+- Components: `/components/copilot/`
+  - `copilot-widget.tsx` - Main widget for dashboard
+  - `copilot-widget-server.tsx` - Server component wrapper
+  - `lesson-briefing-card.tsx` - Briefing display card
+  - `engagement-indicator.tsx` - Student engagement visualization
+
+**How it works**:
+
+**Briefing Generation Pipeline**:
+1. Cron job `/api/cron/generate-briefings` runs before lesson times
+2. Fetches upcoming bookings without briefings
+3. For each booking, calls `generateLessonBriefing()` with:
+   - Student profile and learning goals
+   - Recent lesson history and notes
+   - Homework status and AI practice data
+   - Grammar issues and proficiency assessments
+4. OpenAI generates structured briefing with:
+   - Student context summary (2-3 sentences)
+   - Engagement indicators (attendance, homework, practice)
+   - 3-5 activity suggestions with time estimates
+   - 3-5 conversation starters
+5. Briefing saved to `lesson_briefings` table
+
+**Briefing Page Features**:
+1. Student context card with profile summary
+2. Engagement indicators showing recent activity
+3. Suggested activities with difficulty and duration
+4. Conversation starters for lesson opening
+5. Quick actions: view student profile, start classroom
+
+**Database Schema**:
+- `lesson_briefings` table:
+  - `booking_id` (FK to bookings)
+  - `student_context` (TEXT)
+  - `engagement_indicators` (JSONB)
+  - `suggested_activities` (JSONB)
+  - `conversation_starters` (TEXT[])
+  - `generated_at` (TIMESTAMPTZ)
+
+**Key functions**:
+- `generateLessonBriefing(bookingId)` - Main briefing generator
+- `getStudentContext(studentId)` - Aggregates student data
+- `suggestActivities(context)` - AI activity recommendations
+- `getLessonBriefing(bookingId)` - Fetch existing briefing
+
+---
+
 ### Feature: Studio Tier Discovery UI & Feature Gating
 
 **What it does**: Studio feature gating and locked-state UI for users without Studio access.
@@ -1557,6 +1624,7 @@ English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese,
 - `POST /api/cron/send-reminders` - Send lesson reminders
 - `POST /api/cron/homework-reminders` - Send homework reminders
 - `POST /api/cron/lesson-analysis` - Analyze recordings and generate AI insights (Studio)
+- `POST /api/cron/generate-briefings` - Generate AI lesson briefings for upcoming lessons
 
 **AI Practice**:
 - `POST /api/practice/chat` - AI conversation with grammar corrections
@@ -1907,6 +1975,12 @@ Located in `/lib/actions/`:
 **Trial** (`trial.ts`):
 - `createAutoTrial()` - Create 14-day free trial on signup
 
+**Copilot** (`copilot.ts`):
+- `getLessonBriefing(bookingId)` - Fetch lesson briefing
+- `generateLessonBriefing(bookingId)` - Generate AI briefing
+- `getStudentContext(studentId)` - Aggregate student data for briefing
+- `getUpcomingLessonsWithBriefings()` - Dashboard widget data
+
 ### SEO Utilities
 
 Located in `/lib/utils/`:
@@ -2088,6 +2162,12 @@ Located in `/components/ui/`:
 - Moderation queue interface
 - Health monitoring dashboard
 - `TutorPlanManager` - Manage tutor plans
+
+**Copilot** (`/components/copilot/`):
+- `copilot-widget.tsx` - Dashboard lesson briefing widget
+- `copilot-widget-server.tsx` - Server component wrapper
+- `lesson-briefing-card.tsx` - Briefing content display
+- `engagement-indicator.tsx` - Student engagement visualization
 
 ---
 
@@ -2356,6 +2436,42 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ## IMPLEMENTATION LOG
 
+### 24 December 2025: Tutor Copilot, Audio-Only Recording & Onboarding Improvements
+
+**Audio-Only Recording (Cost Optimization)**:
+- Switched LiveKit recording from video (MP4) to audio-only (OGG) format
+- Reduces egress costs by ~70% ($0.325 → $0.10 per lesson)
+- Reduces storage costs by ~96% (375MB → 15MB per 50min lesson)
+- Updated `/lib/livekit.ts`: `EncodedFileType.OGG` with `audioOnly: true`
+- Updated `RecordingConsentModal.tsx`: Changed icon to Mic, updated consent text
+- Updated student review page: Replaced video player with audio player
+- Deepgram transcription and AI analysis pipeline unchanged (works with OGG)
+
+**Tutor Copilot (Lesson Briefings)**:
+- Added `/copilot/briefing/[bookingId]` page for pre-lesson briefings
+- New `lesson_briefings` table for storing AI-generated briefings
+- Components: `copilot-widget.tsx`, `copilot-widget-server.tsx`, `lesson-briefing-card.tsx`, `engagement-indicator.tsx`
+- Actions in `/lib/actions/copilot.ts` for briefing CRUD operations
+- Briefing generator in `/lib/copilot/briefing-generator.ts` with OpenAI integration
+- Activity suggester in `/lib/copilot/activity-suggester.ts` for lesson recommendations
+- Cron job `/api/cron/generate-briefings` for automated briefing generation
+- Features: student context summary, engagement indicators, activity suggestions, conversation starters
+
+**Onboarding Improvements**:
+- Enhanced Step 3 error handling for service creation failures
+- Added `timezone` column to `students` table for proper timezone handling
+- Improved error state UI with fallback options
+
+**Testing Infrastructure**:
+- Added new E2E tests: `homework/assignment-workflow.spec.ts`, `practice/ai-practice-session.spec.ts`, `studio/classroom-recording.spec.ts`
+- Added unit tests for analysis modules: `interaction-analyzer.test.ts`, `l1-interference.test.ts`, `speaker-diarization.test.ts`
+- Added integration tests: `recording-transcription-drills.test.ts`, `livekit-to-deepgram.test.ts`
+- Added workflow tests: `homework-assignment-submission-review.test.ts`, `practice-session-corrections.test.ts`
+- New test mocks: `deepgram-mocks.ts`, `livekit-mocks.ts`, `openai-mocks.ts`
+- New test utilities: `assertions.ts`, `test-database.ts`
+
+---
+
 ### 23 December 2025: SEO & Discovery Enhancements
 
 **Dynamic OG Images**:
@@ -2553,4 +2669,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 23 December 2025*
+*Last updated: 24 December 2025*

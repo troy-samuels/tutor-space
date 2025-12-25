@@ -1,7 +1,8 @@
 "use server";
 
 import type OpenAI from "openai";
-import type { ChatCompletion } from "openai/resources/chat/completions";
+import type { ChatCompletion, ChatCompletionChunk } from "openai/resources/chat/completions";
+import type { Stream } from "openai/streaming";
 
 type RetryOptions = {
   maxRetries?: number;
@@ -10,6 +11,7 @@ type RetryOptions = {
 };
 
 type ChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParamsNonStreaming;
+type ChatCompletionStreamParams = OpenAI.Chat.ChatCompletionCreateParamsStreaming;
 
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_BASE_DELAY_MS = 500;
@@ -88,4 +90,18 @@ export async function createPracticeChatCompletion(
     (client) => client.chat.completions.create({ ...params, stream: false }),
     retryOptions
   );
+}
+
+/**
+ * Creates a streaming chat completion for AI Practice.
+ * Returns an async iterator that yields content chunks.
+ */
+export async function createPracticeChatStream(
+  params: Omit<ChatCompletionStreamParams, "stream">
+): Promise<Stream<ChatCompletionChunk>> {
+  const client = await getPracticeOpenAIClient();
+  return client.chat.completions.create({
+    ...params,
+    stream: true,
+  });
 }

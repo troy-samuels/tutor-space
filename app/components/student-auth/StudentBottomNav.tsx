@@ -49,12 +49,12 @@ export function StudentBottomNav({ unreadCount, homeworkCount }: StudentBottomNa
                 isActive && "stroke-[2.5]"
               )}
             />
-            <span className="text-[10px]">{item.label}</span>
+            <span className="text-xs">{item.label}</span>
             {item.href === "/student/messages" && hasUnread && (
               <span className="absolute right-6 top-2 h-2.5 w-2.5 rounded-full bg-primary" />
             )}
             {item.href === "/student/homework" && hasHomework && (
-              <span className="absolute right-6 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+              <span className="absolute right-6 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground">
                 {homeworkCount! > 9 ? "9+" : homeworkCount}
               </span>
             )}

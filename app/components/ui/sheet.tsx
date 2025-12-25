@@ -3,6 +3,41 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Sheet (Side Drawer) component system for slide-out panels.
+ * Can slide in from any side of the screen.
+ *
+ * @example
+ * // Left sidebar sheet
+ * const [open, setOpen] = useState(false);
+ *
+ * <Sheet open={open} onOpenChange={setOpen} side="left">
+ *   <SheetOverlay onClick={() => setOpen(false)} />
+ *   <SheetContent>
+ *     <nav>Navigation items...</nav>
+ *   </SheetContent>
+ * </Sheet>
+ *
+ * @example
+ * // Right panel sheet
+ * <Sheet open={open} onOpenChange={setOpen} side="right">
+ *   <SheetOverlay onClick={() => setOpen(false)} />
+ *   <SheetContent className="w-96">
+ *     <h2>Details Panel</h2>
+ *     <p>Content here...</p>
+ *   </SheetContent>
+ * </Sheet>
+ *
+ * @example
+ * // Bottom sheet (mobile-style)
+ * <Sheet open={open} onOpenChange={setOpen} side="bottom">
+ *   <SheetOverlay onClick={() => setOpen(false)} />
+ *   <SheetContent>
+ *     <div className="p-4">Bottom sheet content</div>
+ *   </SheetContent>
+ * </Sheet>
+ */
+
 type SheetSide = "left" | "right" | "top" | "bottom";
 
 type SheetContextValue = {

@@ -6,6 +6,34 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
+/**
+ * Color picker component with preset swatches and hex input.
+ * Used for theme customization in the tutor site builder.
+ *
+ * @example
+ * // Basic color picker
+ * <ColorPicker
+ *   value={primaryColor}
+ *   onChange={setPrimaryColor}
+ *   label="Primary Color"
+ * />
+ *
+ * @example
+ * // Custom presets
+ * <ColorPicker
+ *   value={accentColor}
+ *   onChange={setAccentColor}
+ *   presets={["#FF5733", "#33FF57", "#3357FF"]}
+ * />
+ *
+ * @example
+ * // In a form
+ * <div className="flex items-center gap-2">
+ *   <ColorPicker value={color} onChange={setColor} />
+ *   <span className="text-sm">{color}</span>
+ * </div>
+ */
+
 // Default preset colors (balanced light/dark palette)
 const DEFAULT_PRESETS = [
   "#FFFFFF", "#F1F5F9", "#FAF7F5", "#FAF5FF", "#FEF3C7",

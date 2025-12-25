@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -17,6 +18,7 @@ import {
   normalizeGrammarCategorySlug,
 } from "@/lib/practice/grammar-categories";
 import { getTutorHasPracticeAccess } from "@/lib/practice/access";
+import { parseSanitizedJson } from "@/lib/utils/sanitize";
 
 // Usage allowance constants
 const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
@@ -41,34 +43,66 @@ const MAX_OUTPUT_TOKENS_PER_CALL = 200;
 
 type ServiceRoleClient = SupabaseClient;
 
+type PracticeChatRequest = {
+  sessionId?: string;
+  message?: string;
+};
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeFocusList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0);
+}
+
 export async function POST(request: Request) {
   let studentId: string | null = null;
   let adminClient: ServiceRoleClient | null = null;
   let reservedMessageCount: number | null = null;
   let initialMessageCount = 0;
   let sessionIdForCleanup: string | null = null;
+  const requestId = randomUUID();
 
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized", code: "UNAUTHORIZED", requestId },
+        { status: 401 }
+      );
     }
 
-    const { sessionId, message } = await request.json();
-
-    if (!sessionId || !message) {
+    const body = await parseSanitizedJson<PracticeChatRequest>(request);
+    if (!body) {
       return NextResponse.json(
-        { error: "Session ID and message are required" },
+        { error: "Invalid request", code: "INVALID_REQUEST", requestId },
         { status: 400 }
       );
     }
 
+    const { sessionId, message } = body;
+
+    if (!isNonEmptyString(sessionId) || !isNonEmptyString(message)) {
+      return NextResponse.json(
+        { error: "Session ID and message are required", code: "INVALID_INPUT", requestId },
+        { status: 400 }
+      );
+    }
+
+    const sessionIdValue = sessionId.trim();
+    const sanitizedMessage = message.replace(/\u0000/g, "");
+    const trimmedMessage = sanitizedMessage.trim();
+
     adminClient = createServiceRoleClient();
     if (!adminClient) {
       return NextResponse.json(
-        { error: "Service unavailable" },
+        { error: "Service unavailable", code: "SERVICE_UNAVAILABLE", requestId },
         { status: 503 }
       );
     }
@@ -83,6 +117,7 @@ export async function POST(request: Request) {
         language,
         level,
         topic,
+        mode,
         message_count,
         ended_at,
         scenario_id,
@@ -93,24 +128,33 @@ export async function POST(request: Request) {
           max_messages
         )
       `)
-      .eq("id", sessionId)
+      .eq("id", sessionIdValue)
       .single();
 
     if (sessionError || !session) {
       return NextResponse.json(
-        { error: "Session not found" },
+        { error: "Session not found", code: "SESSION_NOT_FOUND", requestId },
         { status: 404 }
       );
     }
 
     if (session.ended_at) {
       return NextResponse.json(
-        { error: "Session has ended" },
+        { error: "Session has ended", code: "SESSION_ENDED", requestId },
         { status: 400 }
       );
     }
 
-    sessionIdForCleanup = sessionId;
+    // MODE ENFORCEMENT: This endpoint only accepts text mode sessions
+    // Audio mode sessions must use /api/practice/audio for speech input
+    if (session.mode === "audio") {
+      return NextResponse.json(
+        { error: "This session is audio-only. Use the microphone to speak.", code: "MODE_MISMATCH", requestId },
+        { status: 400 }
+      );
+    }
+
+    sessionIdForCleanup = sessionIdValue;
     initialMessageCount = session.message_count || 0;
 
     // Verify user owns this session via student record
@@ -125,7 +169,7 @@ export async function POST(request: Request) {
 
     if (!student) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", code: "UNAUTHORIZED", requestId },
         { status: 403 }
       );
     }
@@ -133,7 +177,7 @@ export async function POST(request: Request) {
     // Check if student has AI practice enabled (either free tier or legacy subscription)
     if (!student.ai_practice_enabled && !student.ai_practice_free_tier_enabled) {
       return NextResponse.json(
-        { error: "AI Practice not enabled. Please enable it first." },
+        { error: "AI Practice not enabled. Please enable it first.", code: "PRACTICE_DISABLED", requestId },
         { status: 403 }
       );
     }
@@ -141,7 +185,7 @@ export async function POST(request: Request) {
     // FREEMIUM MODEL: Check if tutor has Studio tier (access gate)
     if (!student.tutor_id) {
       return NextResponse.json(
-        { error: "No tutor assigned", code: "NO_TUTOR" },
+        { error: "No tutor assigned", code: "NO_TUTOR", requestId },
         { status: 403 }
       );
     }
@@ -149,7 +193,7 @@ export async function POST(request: Request) {
     const tutorHasStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
     if (!tutorHasStudio) {
       return NextResponse.json(
-        { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO" },
+        { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO", requestId },
         { status: 403 }
       );
     }
@@ -159,7 +203,7 @@ export async function POST(request: Request) {
     const maxMessages = scenario?.max_messages || 20;
     if ((session.message_count || 0) + 2 > maxMessages) {
       return NextResponse.json(
-        { error: "Message limit reached for this practice session" },
+        { error: "Message limit reached for this practice session", code: "MESSAGE_LIMIT_REACHED", requestId },
         { status: 400 }
       );
     }
@@ -168,14 +212,14 @@ export async function POST(request: Request) {
     const { data: reservedSession, error: reserveError } = await adminClient
       .from("student_practice_sessions")
       .update({ message_count: (session.message_count || 0) + 2 })
-      .eq("id", sessionId)
+      .eq("id", sessionIdValue)
       .eq("message_count", session.message_count || 0)
       .select("message_count")
       .maybeSingle();
 
     if (reserveError || !reservedSession) {
       return NextResponse.json(
-        { error: "Message limit reached or session is busy, please retry" },
+        { error: "Message limit reached or session is busy, please retry", code: "SESSION_BUSY", requestId },
         { status: 409 }
       );
     }
@@ -194,7 +238,7 @@ export async function POST(request: Request) {
     if (periodError || !usagePeriod) {
       console.error("[Practice Chat] Failed to get/create usage period:", periodError);
       return NextResponse.json(
-        { error: "Unable to track usage. Please try again or contact support." },
+        { error: "Unable to track usage. Please try again or contact support.", code: "USAGE_PERIOD_ERROR", requestId },
         { status: 500 }
       );
     }
@@ -218,6 +262,7 @@ export async function POST(request: Request) {
               blocks_consumed: usagePeriod.blocks_consumed,
             },
             upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
+            requestId,
           },
           { status: 402 } // Payment Required
         );
@@ -233,17 +278,20 @@ export async function POST(request: Request) {
     const { data: previousMessages } = await adminClient
       .from("student_practice_messages")
       .select("role, content, created_at")
-      .eq("session_id", sessionId)
+      .eq("session_id", sessionIdValue)
       .order("created_at", { ascending: false })
       .limit(MAX_INPUT_MESSAGES);
 
     // Build messages array for OpenAI
+    const vocabularyFocus = normalizeFocusList(scenario?.vocabulary_focus);
+    const grammarFocus = normalizeFocusList(scenario?.grammar_focus);
+
     const systemPrompt = scenario?.system_prompt || buildDefaultSystemPrompt(
       session.language,
       session.level,
       session.topic,
-      scenario?.vocabulary_focus,
-      scenario?.grammar_focus
+      vocabularyFocus,
+      grammarFocus
     );
 
     const openAIMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
@@ -254,44 +302,77 @@ export async function POST(request: Request) {
     const history = (previousMessages || []).slice().reverse();
     for (const msg of history) {
       if (msg.role === "user" || msg.role === "assistant") {
-        openAIMessages.push({ role: msg.role, content: msg.content });
+        const content = typeof msg.content === "string" ? msg.content : "";
+        if (content) {
+          openAIMessages.push({ role: msg.role, content });
+        }
       }
     }
 
     // Add current user message (clipped to reduce prompt cost)
-    const clippedMessage = message.length > MAX_USER_MESSAGE_CHARS
-      ? message.slice(0, MAX_USER_MESSAGE_CHARS)
-      : message;
+    const clippedMessage = trimmedMessage.length > MAX_USER_MESSAGE_CHARS
+      ? trimmedMessage.slice(0, MAX_USER_MESSAGE_CHARS)
+      : trimmedMessage;
 
     openAIMessages.push({ role: "user", content: clippedMessage });
 
     // Save user message first
-    await adminClient.from("student_practice_messages").insert({
-      session_id: sessionId,
+    const { error: userMsgError } = await adminClient.from("student_practice_messages").insert({
+      session_id: sessionIdValue,
       role: "user",
-      content: message,
+      content: sanitizedMessage,
     });
+
+    if (userMsgError) {
+      console.error("[Practice Chat] Failed to save user message:", userMsgError);
+      const err = new Error("Failed to save message");
+      (err as any).code = "DATABASE_ERROR";
+      (err as any).retryable = true;
+      throw err;
+    }
 
     // Call OpenAI with retry/backoff
-    const completion = await createPracticeChatCompletion({
-      model: "gpt-4o-mini",
-      messages: openAIMessages,
-      temperature: 0.8,
-      max_tokens: MAX_OUTPUT_TOKENS_PER_CALL,
-    });
+    let completion;
+    try {
+      completion = await createPracticeChatCompletion({
+        model: "gpt-4o-mini",
+        messages: openAIMessages,
+        temperature: 0.8,
+        max_tokens: MAX_OUTPUT_TOKENS_PER_CALL,
+      });
+      console.log("[Practice Chat] OpenAI success:", {
+        model: "gpt-4o-mini",
+        tokens: completion.usage?.total_tokens,
+        finish_reason: completion.choices[0]?.finish_reason,
+      });
+    } catch (openaiError) {
+      console.error("[Practice Chat] OpenAI API error:", openaiError);
+      const err = new Error("AI service temporarily unavailable");
+      (err as any).code = "OPENAI_ERROR";
+      (err as any).retryable = true;
+      throw err;
+    }
 
-    const rawContent = completion.choices[0]?.message?.content || "";
+    const rawContent = Array.isArray(completion.choices)
+      ? completion.choices[0]?.message?.content
+      : null;
+    if (!rawContent) {
+      const err = new Error("AI service returned an empty response");
+      (err as any).code = "OPENAI_EMPTY_RESPONSE";
+      (err as any).retryable = true;
+      throw err;
+    }
     const tokensUsed = completion.usage?.total_tokens || 0;
 
     // Parse structured corrections and phonetic errors from the response
     const { cleanContent, corrections, phoneticErrors } = parseStructuredResponse(rawContent);
-    const vocabularyUsed = parseVocabulary(rawContent, scenario?.vocabulary_focus || []);
+    const vocabularyUsed = parseVocabulary(rawContent, vocabularyFocus);
 
     // Save assistant message with structured data
-    const { data: assistantMsg } = await adminClient
+    const { data: assistantMsg, error: assistantMsgError } = await adminClient
       .from("student_practice_messages")
       .insert({
-        session_id: sessionId,
+        session_id: sessionIdValue,
         role: "assistant",
         content: cleanContent,
         corrections: corrections.length > 0 ? corrections : null,
@@ -303,11 +384,19 @@ export async function POST(request: Request) {
       .select()
       .single();
 
+    if (assistantMsgError) {
+      console.error("[Practice Chat] Failed to save assistant message:", assistantMsgError);
+      const err = new Error("Failed to save AI response");
+      (err as any).code = "DATABASE_ERROR";
+      (err as any).retryable = true;
+      throw err;
+    }
+
     // Save individual grammar errors to the tracking table
     if (corrections.length > 0 && assistantMsg) {
       const grammarErrorRecords = corrections.map((c) => ({
         message_id: assistantMsg.id,
-        session_id: sessionId,
+        session_id: sessionIdValue,
         student_id: session.student_id,
         tutor_id: session.tutor_id,
         category_slug: c.category,
@@ -317,14 +406,18 @@ export async function POST(request: Request) {
         language: session.language,
       }));
 
-      await adminClient.from("grammar_errors").insert(grammarErrorRecords);
+      const { error: grammarInsertError } = await adminClient.from("grammar_errors").insert(grammarErrorRecords);
+      if (grammarInsertError) {
+        // Log but don't fail - grammar tracking is non-critical
+        console.error("[Practice Chat] Failed to save grammar errors:", grammarInsertError);
+      }
     }
 
     // Save phonetic errors to the tracking table
     if (phoneticErrors.length > 0 && assistantMsg) {
       const phoneticErrorRecords = phoneticErrors.map((p) => ({
         message_id: assistantMsg.id,
-        session_id: sessionId,
+        session_id: sessionIdValue,
         student_id: session.student_id,
         tutor_id: session.tutor_id,
         misspelled_word: p.misspelled,
@@ -333,7 +426,11 @@ export async function POST(request: Request) {
         language: session.language,
       }));
 
-      await adminClient.from("phonetic_errors").insert(phoneticErrorRecords);
+      const { error: phoneticInsertError } = await adminClient.from("phonetic_errors").insert(phoneticErrorRecords);
+      if (phoneticInsertError) {
+        // Log but don't fail - phonetic tracking is non-critical
+        console.error("[Practice Chat] Failed to save phonetic errors:", phoneticInsertError);
+      }
     }
 
     // Update session stats including error counts
@@ -349,7 +446,7 @@ export async function POST(request: Request) {
         grammar_errors_count: currentGrammar + corrections.length,
         phonetic_errors_count: currentPhonetic + phoneticErrors.length,
       })
-      .eq("id", sessionId);
+      .eq("id", sessionIdValue);
 
     const incrementResult = await incrementTextTurnWithBillingFreemium({
       adminClient,
@@ -389,7 +486,11 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("[Practice Chat] Error:", error);
+    console.error("[Practice Chat] Error:", {
+      requestId,
+      sessionId: sessionIdForCleanup,
+      error,
+    });
 
     // Best-effort rollback of reserved message slots on failure
     if (adminClient && sessionIdForCleanup && reservedMessageCount !== null) {
@@ -405,23 +506,76 @@ export async function POST(request: Request) {
     }
 
     const errorCode = (error as any)?.code;
+    const isRetryable = (error as any)?.retryable ?? false;
+
+    if (errorCode === "OPENAI_ERROR") {
+      return NextResponse.json(
+        {
+          error: "AI service temporarily unavailable",
+          code: "OPENAI_ERROR",
+          retryable: true,
+          requestId,
+        },
+        { status: 503 }
+      );
+    }
+
+    if (errorCode === "OPENAI_EMPTY_RESPONSE") {
+      return NextResponse.json(
+        {
+          error: "AI service temporarily unavailable",
+          code: "OPENAI_EMPTY_RESPONSE",
+          retryable: true,
+          requestId,
+        },
+        { status: 503 }
+      );
+    }
+
+    if (errorCode === "DATABASE_ERROR") {
+      return NextResponse.json(
+        {
+          error: "Failed to save message. Please try again.",
+          code: "DATABASE_ERROR",
+          retryable: true,
+          requestId,
+        },
+        { status: 500 }
+      );
+    }
+
     if (errorCode === "BLOCK_SUBSCRIPTION_ITEM_MISSING") {
       return NextResponse.json(
-        { error: "Subscription is missing a metered block item. Please re-subscribe to continue." },
+        {
+          error: "Subscription is missing a metered block item. Please re-subscribe to continue.",
+          code: "BLOCK_SUBSCRIPTION_ITEM_MISSING",
+          retryable: false,
+          requestId,
+        },
         { status: 400 }
       );
     }
 
     if (errorCode === "STRIPE_USAGE_FAILED") {
       return NextResponse.json(
-        { error: "Unable to bill the add-on block right now. Please try again." },
+        {
+          error: "Unable to bill the add-on block right now. Please try again.",
+          code: "STRIPE_USAGE_FAILED",
+          retryable: true,
+          requestId,
+        },
         { status: 502 }
       );
     }
 
     if (errorCode === "TEXT_INCREMENT_FAILED") {
       return NextResponse.json(
-        { error: "Unable to track usage at the moment. Please retry." },
+        {
+          error: "Unable to track usage at the moment. Please retry.",
+          code: "TEXT_INCREMENT_FAILED",
+          retryable: true,
+          requestId,
+        },
         { status: 409 }
       );
     }
@@ -433,13 +587,21 @@ export async function POST(request: Request) {
           code: "FREE_TIER_EXHAUSTED",
           usage: (error as any).usage,
           upgradeUrl: `/student/practice/buy-credits?student=${studentId ?? ""}`,
+          retryable: false,
+          requestId,
         },
         { status: 402 }
       );
     }
 
+    // Generic fallback with retryable context preserved
     return NextResponse.json(
-      { error: "Failed to process message" },
+      {
+        error: error instanceof Error ? error.message : "Failed to process message",
+        code: errorCode || "UNKNOWN_ERROR",
+        retryable: isRetryable,
+        requestId,
+      },
       { status: 500 }
     );
   }

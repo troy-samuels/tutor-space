@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Play, X, ExternalLink, ArrowLeft, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type LibraryItem = {
   id: string;
@@ -51,7 +52,7 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
   return (
     <>
       {totalItems === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border bg-white/90 p-8 text-center">
+        <div className="rounded-3xl border border-dashed border-border bg-background p-8 text-center">
           <p className="text-lg font-semibold text-foreground">No purchases yet</p>
           <p className="mt-1 text-sm text-muted-foreground">Bought lessons and products will appear here.</p>
         </div>
@@ -64,7 +65,7 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
                 key={item.id}
                 type="button"
                 onClick={() => setActive(item)}
-                className="group relative block overflow-hidden rounded-2xl border border-border/70 bg-stone-100 shadow-sm transition hover:-translate-y-1 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="group relative block overflow-hidden rounded-2xl border border-border bg-stone-100 shadow-sm transition hover:-translate-y-1 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <div
                   className="relative aspect-[3/4] w-full"
@@ -99,7 +100,7 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
 
       {active ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8">
-          <div className="relative w-full max-w-4xl rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-4xl rounded-3xl bg-background p-6 shadow-2xl">
             <button
               type="button"
               onClick={() => {
@@ -112,7 +113,7 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="mb-4 flex flex-col items-center gap-3 border-b border-border/50 pb-4 text-center">
+            <div className="mb-4 flex flex-col items-center gap-3 border-b border-border pb-4 text-center">
               <div className="flex w-full items-center justify-between text-sm text-muted-foreground">
                 <button
                   type="button"
@@ -140,15 +141,12 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
                   <div className="space-y-4">
                     <div className="flex gap-3">
                       {link ? (
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90"
-                        >
-                          <Download className="h-4 w-4" />
-                          Download PDF
-                        </a>
+                        <Button asChild size="sm">
+                          <a href={link} target="_blank" rel="noreferrer">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                          </a>
+                        </Button>
                       ) : null}
                     </div>
                     <div className="relative h-[70vh] overflow-hidden rounded-2xl border border-border bg-stone-50">
@@ -178,14 +176,11 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
                         Duplicate this to your workspace and start using it right away.
                       </p>
                       {link ? (
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90"
-                        >
-                          Open in Notion ↗
-                        </a>
+                        <Button asChild size="sm" className="mt-4">
+                          <a href={link} target="_blank" rel="noreferrer">
+                            Open in Notion ↗
+                          </a>
+                        </Button>
                       ) : (
                         <p className="mt-4 text-xs text-destructive">No link available.</p>
                       )}
@@ -220,13 +215,12 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => setCompleted(true)}
-                      className={`inline-flex w-full items-center justify-center rounded-full px-4 py-3 text-sm font-semibold shadow ${completed ? "bg-emerald-600 text-white" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+                      className={`w-full ${completed ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}
                     >
                       {completed ? "Marked as Complete" : "Mark as Complete"}
-                    </button>
+                    </Button>
                   </div>
                 );
               }
@@ -234,22 +228,19 @@ export function StudentLibraryGrid({ items }: { items: LibraryItem[] }) {
               return (
                 <div className="space-y-3">
                   <div
-                    className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-border/60"
+                    className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-border"
                     style={getCoverStyle(active)}
                   />
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     {active.description || "Open to view your resource."}
                   </p>
                   {link ? (
-                    <a
-                      href={link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Open resource
-                    </a>
+                    <Button asChild className="w-full">
+                      <a href={link} target="_blank" rel="noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Open resource
+                      </a>
+                    </Button>
                   ) : (
                     <p className="text-xs text-destructive">No access link available.</p>
                   )}

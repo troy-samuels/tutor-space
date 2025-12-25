@@ -21,7 +21,7 @@
 - Charts/cards: revenue → `RevenueChart` (Recharts); bookings trend → `BookingsChart` from `bookingsByPeriod`; student insights → `StudentMetricsCard`; service mix → `ServicePopularityChart`; booking stats → `BookingStatsCard`. Loading + empty states are built-in; errors only log to console.
 
 ## Access Control and RLS Notes
-- API relies on the user-bound Supabase client (`createClient`) so RLS policies apply: `payments_audit` has tutor_id filter; `bookings`, `students`, and `services` have tutor-owned policies (see `20251129100000_security_hardening_and_schema.sql` and `20251203110002_ensure_rls_enabled.sql`).
+- API relies on the user-bound Supabase client (`createClient`) so RLS policies apply: `payments_audit` has tutor_id filter; `bookings`, `students`, and `services` have tutor-owned policies (see `20251112000000_security_hardening_and_schema.sql` and `20251203110002_ensure_rls_enabled.sql`).
 - Tutor ID query param is sanitized server-side; admins cannot override via the client fetch.
 - Environment: requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the user client; Stripe webhook + payment summary endpoints require `SUPABASE_SERVICE_ROLE_KEY` and `NEXT_PUBLIC_APP_URL`.
 
@@ -35,4 +35,3 @@
 - Week sorting: `getBookingsByPeriod` labels weeks as strings (e.g., "Nov 8") and then sorts with `localeCompare`, which can misorder periods across months. Sorting by the actual week start date would keep charts chronological.
 - Error visibility: the client swallows fetch errors (console only) and shows empty states, so backend failures are silent to tutors. Optional toast/error banner could improve clarity.
 - Pending definition: pending count treats `pending` and `confirmed` as the same state; if other statuses (e.g., `rescheduled`) exist, they will fall into the "pending" bucket.
-

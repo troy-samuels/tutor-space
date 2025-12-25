@@ -43,3 +43,6 @@ next-env.d.ts
 # HawkScan DAST reports
 /reports/
 .env*.local
+
+*storybook.log
+storybook-static

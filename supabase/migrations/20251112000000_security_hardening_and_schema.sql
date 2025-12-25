@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS availability (
 CREATE TABLE IF NOT EXISTS bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tutor_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES students(id) ON DELETE SET NULL,
+  student_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   service_id UUID REFERENCES services(id) ON DELETE SET NULL,
   scheduled_at TIMESTAMPTZ NOT NULL,
   duration_minutes INTEGER NOT NULL DEFAULT 60,
@@ -281,7 +281,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS payments_audit (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tutor_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES students(id) ON DELETE SET NULL,
+  student_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
   digital_product_purchase_id UUID REFERENCES digital_product_purchases(id) ON DELETE SET NULL,
   amount_cents INTEGER NOT NULL,

@@ -60,9 +60,9 @@ export function DrillProgressCard({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-white shadow-sm">
+    <div className="rounded-2xl border border-border bg-background shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -103,7 +103,7 @@ export function DrillProgressCard({
 
       {/* Recent drills */}
       {recentDrills.length > 0 && (
-        <div className="divide-y divide-border/50">
+        <div className="divide-y divide-border">
           {recentDrills.slice(0, 3).map((drill) => {
             const config = drillTypeConfig[drill.drill_type] || drillTypeConfig.grammar;
             const Icon = config.icon;
@@ -141,7 +141,7 @@ export function DrillProgressCard({
       )}
 
       {/* Footer */}
-      <div className="border-t border-border/50 px-4 py-3">
+      <div className="border-t border-border px-4 py-3">
         <Link href="/student/drills">
           <Button variant="outline" size="sm" className="w-full gap-1">
             View All Drills

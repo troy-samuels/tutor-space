@@ -5,6 +5,35 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Popover component system for floating content panels.
+ * Built on Radix UI Popover for accessibility and positioning.
+ *
+ * @example
+ * // Basic popover
+ * <Popover>
+ *   <PopoverTrigger>
+ *     <Button>Open Popover</Button>
+ *   </PopoverTrigger>
+ *   <PopoverContent>
+ *     <p>Popover content here</p>
+ *   </PopoverContent>
+ * </Popover>
+ *
+ * @example
+ * // Popover with form
+ * <Popover>
+ *   <PopoverTrigger asChild>
+ *     <Button variant="outline">Edit</Button>
+ *   </PopoverTrigger>
+ *   <PopoverContent className="w-80">
+ *     <div className="grid gap-4">
+ *       <Label>Name</Label>
+ *       <Input placeholder="Enter name" />
+ *     </div>
+ *   </PopoverContent>
+ * </Popover>
+ */
 const Popover = PopoverPrimitive.Root;
 
 const PopoverTrigger = PopoverPrimitive.Trigger;

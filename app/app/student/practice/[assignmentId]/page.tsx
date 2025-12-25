@@ -106,53 +106,26 @@ export default async function PracticeSessionPage({ params }: PageProps) {
     notFound();
   }
 
-  // Get or create active session for this assignment
-  let { data: session } = await adminClient
+  // Check for existing active session (don't create one - let client handle via mode selection)
+  const { data: session } = await adminClient
     .from("student_practice_sessions")
-    .select("id, message_count, started_at, ended_at")
+    .select("id, mode, message_count, started_at, ended_at")
     .eq("assignment_id", assignmentId)
     .is("ended_at", null)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  // If no active session, create one
-  if (!session) {
-    const scenario = assignment.scenario as any;
-    const { data: newSession, error } = await adminClient
-      .from("student_practice_sessions")
-      .insert({
-        student_id: student.id,
-        tutor_id: student.tutor_id,
-        assignment_id: assignmentId,
-        scenario_id: scenario?.id || null,
-        language: scenario?.language || "English",
-        level: scenario?.level || null,
-        topic: scenario?.topic || null,
-      })
-      .select("id, message_count, started_at, ended_at")
-      .single();
-
-    if (error) {
-      console.error("[Practice Session] Failed to create session:", error);
-      notFound();
-    }
-
-    session = newSession;
-
-    // Update assignment status to in_progress
-    await adminClient
-      .from("practice_assignments")
-      .update({ status: "in_progress" })
-      .eq("id", assignmentId);
+  // Get existing messages if session exists
+  let messages: any[] = [];
+  if (session) {
+    const { data: existingMessages } = await adminClient
+      .from("student_practice_messages")
+      .select("id, role, content, corrections, vocabulary_used, created_at")
+      .eq("session_id", session.id)
+      .order("created_at", { ascending: true });
+    messages = existingMessages || [];
   }
-
-  // Get existing messages
-  const { data: messages } = await adminClient
-    .from("student_practice_messages")
-    .select("id, role, content, corrections, vocabulary_used, created_at")
-    .eq("session_id", session.id)
-    .order("created_at", { ascending: true });
 
   // Get current usage period
   let initialUsage: PracticeUsage | null = null;
@@ -204,7 +177,8 @@ export default async function PracticeSessionPage({ params }: PageProps) {
     <StudentPortalLayout studentName={user.email} hideNav subscriptionSummary={subscriptionSummary}>
       <div className="h-[calc(100vh-64px)]">
         <PracticeSessionClient
-          sessionId={session.id}
+          sessionId={session?.id || null}
+          sessionMode={session?.mode as "text" | "audio" | null}
           assignmentId={assignment.id}
           assignmentTitle={assignment.title}
           language={scenario?.language || "English"}
@@ -213,7 +187,7 @@ export default async function PracticeSessionPage({ params }: PageProps) {
           systemPrompt={scenario?.system_prompt}
           maxMessages={scenario?.max_messages || 20}
           initialUsage={initialUsage}
-          initialMessages={(messages || []).map((m: any) => ({
+          initialMessages={messages.map((m: any) => ({
             id: m.id,
             role: m.role,
             content: m.content,

@@ -80,7 +80,7 @@ export default async function UpgradeSuccessPage({
           <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-center text-white">
             <h3 className="text-lg font-semibold">Ready to get started?</h3>
             <p className="mt-1 text-sm text-purple-100">
-              Test your new video classroom to make sure everything is set up
+              Test your new audio classroom to make sure everything is set up
               correctly.
             </p>
             <Link

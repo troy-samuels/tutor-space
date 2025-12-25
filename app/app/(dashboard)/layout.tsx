@@ -32,11 +32,36 @@ export default async function DashboardGroupLayout({
     .eq("id", user.id)
     .single();
 
-  if (profile?.role && profile.role !== "tutor") {
-    redirect("/student/login");
+  // =====================================================
+  // ENTERPRISE-GRADE ROLE VERIFICATION
+  // Ensures students NEVER see tutor UI or onboarding
+  // =====================================================
+
+  // SAFETY: No profile = not a tutor
+  if (!profile) {
+    // Check if this is a registered student with an auth account
+    const { data: student } = await supabase
+      .from("students")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (student) {
+      // This is a student, send them to student portal
+      redirect("/student/search");
+    }
+    // Unknown user with no profile - send to login
+    redirect("/login");
   }
 
-  if (!profile?.onboarding_completed) {
+  // SAFETY: If role is explicitly not "tutor", redirect to student portal
+  // This catches cases where role is "student", null, or any other value
+  if (profile.role !== "tutor") {
+    redirect("/student/search");
+  }
+
+  // Only verified tutors reach this point
+  if (!profile.onboarding_completed) {
     redirect("/onboarding");
   }
 

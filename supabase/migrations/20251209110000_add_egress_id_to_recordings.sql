@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Add egress_id column to lesson_recordings
--- Migration: 20251209_add_egress_id_to_recordings.sql
+-- Migration: 20251209110000_add_egress_id_to_recordings.sql
 -- Description: Add LiveKit egress ID for tracking recordings from webhook
 -- ============================================================================
 

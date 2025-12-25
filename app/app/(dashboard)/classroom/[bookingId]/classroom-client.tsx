@@ -11,7 +11,7 @@ import {
 import { Loader2, ShieldAlert, ArrowLeft, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
-import { VideoStage, type LayoutMode } from "@/components/classroom/VideoStage";
+import { AudioStage } from "@/components/classroom/AudioStage";
 import { StudioSidebar, type BookingInfo } from "@/components/classroom/StudioSidebar";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
 import { ConnectionToast } from "@/components/classroom/ConnectionToast";
@@ -46,12 +46,9 @@ export default function ClassroomClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinSettings, setJoinSettings] = useState<{
-    videoEnabled: boolean;
     audioEnabled: boolean;
-    videoDeviceId?: string;
     audioDeviceId?: string;
   } | null>(null);
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("grid");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -88,7 +85,7 @@ export default function ClassroomClient() {
             setError({
               message:
                 data.error ||
-                "Video classroom isn't configured yet. Please contact support.",
+                "Audio classroom isn't configured yet. Please contact support.",
               isAccessDenied: false,
             });
           } else {
@@ -195,7 +192,7 @@ export default function ClassroomClient() {
             Configuration Error
           </h1>
           <p className="text-muted-foreground">
-            Video service is not configured. Please contact support at support@tutorlingua.co.
+            Audio service is not configured. Please contact support at support@tutorlingua.co.
           </p>
         </div>
       </div>
@@ -225,12 +222,6 @@ export default function ClassroomClient() {
       : joinSettings?.audioDeviceId
         ? { deviceId: joinSettings.audioDeviceId }
         : true;
-  const video =
-    joinSettings?.videoEnabled === false
-      ? false
-      : joinSettings?.videoDeviceId
-        ? { deviceId: joinSettings.videoDeviceId }
-        : true;
 
   return (
     <div className="min-h-[100dvh] bg-background p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-6 flex flex-col">
@@ -254,14 +245,14 @@ export default function ClassroomClient() {
         </Button>
       </div>
 
-      {/* Main Content - Video + Sidebar */}
+      {/* Main Content - Audio + Sidebar */}
       <div className="flex-1 min-h-0">
         <LiveKitRoom
           token={token}
           serverUrl={serverUrl}
           connect={true}
           audio={audio}
-          video={video}
+          video={false}
           className="flex h-full flex-col gap-3 min-h-0 relative lg:flex-row lg:gap-6"
         >
           <LiveKitConnectionWatcher
@@ -270,16 +261,10 @@ export default function ClassroomClient() {
             onGiveUp={() => router.push("/dashboard")}
           />
 
-          {/* Video Card - 75% */}
+          {/* Audio Stage - 75% */}
           <div className="flex-1 relative min-h-0 lg:flex-[3]">
             <div className="h-full rounded-2xl shadow-lg overflow-hidden sm:rounded-[2rem]">
-              <VideoStage
-                roomName={resolvedRoomName}
-                bookingId={bookingId}
-                isTutor={isTutor}
-                layoutMode={layoutMode}
-                onLayoutModeChange={setLayoutMode}
-              />
+              <AudioStage roomName={resolvedRoomName} isTutor={isTutor} />
             </div>
           </div>
 

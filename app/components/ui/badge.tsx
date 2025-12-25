@@ -3,7 +3,38 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Badge component props for status indicators and labels.
+ *
+ * @example
+ * // Default badge (primary color)
+ * <Badge>New</Badge>
+ *
+ * @example
+ * // Success status
+ * <Badge variant="success">Active</Badge>
+ *
+ * @example
+ * // Destructive/error status
+ * <Badge variant="destructive">Failed</Badge>
+ *
+ * @example
+ * // Outline style
+ * <Badge variant="outline">Draft</Badge>
+ *
+ * @example
+ * // Secondary style
+ * <Badge variant="secondary">Archived</Badge>
+ */
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * Badge style variant.
+   * - `default`: Primary brand color (orange)
+   * - `secondary`: Secondary muted style
+   * - `outline`: Bordered with transparent background
+   * - `success`: Green for positive states (Active, Complete)
+   * - `destructive`: Red for errors or warnings (Failed, Expired)
+   */
   variant?: "default" | "secondary" | "outline" | "success" | "destructive";
 }
 

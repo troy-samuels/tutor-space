@@ -5,6 +5,30 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Tabs component system for organizing content into switchable panels.
+ * Built on Radix UI Tabs for accessibility and keyboard navigation.
+ *
+ * @example
+ * // Basic tabs
+ * <Tabs defaultValue="overview">
+ *   <TabsList>
+ *     <TabsTrigger value="overview">Overview</TabsTrigger>
+ *     <TabsTrigger value="details">Details</TabsTrigger>
+ *     <TabsTrigger value="settings">Settings</TabsTrigger>
+ *   </TabsList>
+ *   <TabsContent value="overview">Overview content here</TabsContent>
+ *   <TabsContent value="details">Details content here</TabsContent>
+ *   <TabsContent value="settings">Settings content here</TabsContent>
+ * </Tabs>
+ *
+ * @example
+ * // Controlled tabs
+ * const [tab, setTab] = useState("overview");
+ * <Tabs value={tab} onValueChange={setTab}>
+ *   ...
+ * </Tabs>
+ */
 const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<

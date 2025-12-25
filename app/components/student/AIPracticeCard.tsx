@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Bot,
   MessageSquare,
@@ -137,7 +138,7 @@ export function AIPracticeCard({
   // Not subscribed - show free tier CTA (freemium model)
   if (!isSubscribed) {
     return (
-      <Card className="border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+      <Card className="border-dashed border-primary bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
@@ -151,7 +152,7 @@ export function AIPracticeCard({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-xl border border-border/60 bg-background/80 p-4">
+          <div className="rounded-xl border border-border bg-background/80 p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
                 <Sparkles className="h-5 w-5 text-emerald-600" />
@@ -169,20 +170,20 @@ export function AIPracticeCard({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="rounded-lg border border-border bg-muted/50 p-3">
               <MessageSquare className="h-5 w-5 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1">
                 {FREE_TEXT_TURNS} text turns
               </p>
             </div>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+            <div className="rounded-lg border border-border bg-muted/50 p-3">
               <Mic className="h-5 w-5 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1">
                 {FREE_AUDIO_MINUTES} audio min
               </p>
             </div>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+            <div className="rounded-lg border border-border bg-muted/50 p-3">
               <Zap className="h-5 w-5 mx-auto text-muted-foreground" />
               <p className="text-xs text-muted-foreground mt-1">
                 +${blockPriceDollars}/block
@@ -194,14 +195,13 @@ export function AIPracticeCard({
             Free tier resets monthly. Buy extra blocks only when you need more.
           </p>
 
-          <Link
-            href={`/student/practice/subscribe?student=${studentId}`}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-          >
-            <Sparkles className="h-4 w-4" />
-            Start Practicing Free
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <Button asChild className="w-full">
+            <Link href={`/student/practice/subscribe?student=${studentId}`}>
+              <Sparkles className="h-4 w-4" />
+              Start Practicing Free
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -227,7 +227,7 @@ export function AIPracticeCard({
       <CardContent className="space-y-4">
         {/* Usage meters */}
         {usage && (
-          <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
+          <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-foreground">Monthly Usage</span>
               <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ export function AIPracticeCard({
             </div>
 
             {usage.blocksConsumed > 0 && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Current tier: ${(usage.currentTierPriceCents / 100).toFixed(0)}/mo
                 {usage.periodEnd && (
                   <> · Resets {formatDistanceToNow(new Date(usage.periodEnd), { addSuffix: true })}</>
@@ -295,31 +295,31 @@ export function AIPracticeCard({
 
         {/* Mini stats row */}
         {stats && (stats.sessions_completed > 0 || stats.practice_minutes > 0) && (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 text-center">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-lg border border-border bg-muted/50 p-2.5 text-center">
               <p className="text-lg font-bold text-foreground">
                 {stats.sessions_completed}
               </p>
-              <p className="text-[11px] text-muted-foreground">Sessions</p>
+              <p className="text-xs text-muted-foreground">Sessions</p>
             </div>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 text-center">
+            <div className="rounded-lg border border-border bg-muted/50 p-2.5 text-center">
               <p className="text-lg font-bold text-foreground">
                 {formatMinutes(stats.practice_minutes)}
               </p>
-              <p className="text-[11px] text-muted-foreground">Practice time</p>
+              <p className="text-xs text-muted-foreground">Practice time</p>
             </div>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 text-center">
+            <div className="rounded-lg border border-border bg-muted/50 p-2.5 text-center">
               <p className="text-lg font-bold text-foreground">
                 {stats.messages_sent}
               </p>
-              <p className="text-[11px] text-muted-foreground">Messages</p>
+              <p className="text-xs text-muted-foreground">Messages</p>
             </div>
           </div>
         )}
 
         {/* Open assignments */}
         {openAssignments.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border bg-muted/50 p-4 text-center text-sm text-muted-foreground">
             <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No practice assignments yet.</p>
             <p className="text-xs mt-1">
@@ -342,7 +342,7 @@ export function AIPracticeCard({
                 <Link
                   key={assignment.id}
                   href={`/student/practice/${assignment.id}`}
-                  className="block rounded-xl border border-border/70 bg-background/80 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md"
+                  className="block rounded-xl border border-border bg-background/80 p-4 shadow-sm transition hover:border-primary hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1.5 flex-1 min-w-0">
@@ -350,7 +350,7 @@ export function AIPracticeCard({
                         <p className="font-semibold text-foreground truncate">
                           {assignment.title}
                         </p>
-                        <Badge className={`text-[11px] shrink-0 ${status.className}`}>
+                        <Badge className={`text-xs shrink-0 ${status.className}`}>
                           {status.label}
                         </Badge>
                       </div>
@@ -394,7 +394,7 @@ export function AIPracticeCard({
 
         {/* Show completed count if any */}
         {completedCount > 0 && (
-          <div className="flex items-center justify-between border-t border-border/50 pt-3 text-sm">
+          <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <CheckCircle className="h-4 w-4 text-emerald-500" />
               <span>{completedCount} completed</span>
@@ -410,13 +410,12 @@ export function AIPracticeCard({
 
         {/* Quick start button */}
         {openAssignments.length > 0 && (
-          <Link
-            href={`/student/practice/${openAssignments[0].id}`}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Start Practice
-          </Link>
+          <Button asChild className="w-full">
+            <Link href={`/student/practice/${openAssignments[0].id}`}>
+              <MessageSquare className="h-4 w-4" />
+              Start Practice
+            </Link>
+          </Button>
         )}
       </CardContent>
     </Card>

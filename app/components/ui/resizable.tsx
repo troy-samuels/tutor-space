@@ -6,6 +6,44 @@ import * as ResizablePrimitive from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Resizable panel layout system for adjustable split views.
+ * Built on react-resizable-panels for drag-to-resize functionality.
+ *
+ * @example
+ * // Horizontal split (sidebar + content)
+ * <ResizablePanelGroup direction="horizontal">
+ *   <ResizablePanel defaultSize={25} minSize={15}>
+ *     <Sidebar />
+ *   </ResizablePanel>
+ *   <ResizableHandle withHandle />
+ *   <ResizablePanel defaultSize={75}>
+ *     <MainContent />
+ *   </ResizablePanel>
+ * </ResizablePanelGroup>
+ *
+ * @example
+ * // Vertical split (editor + preview)
+ * <ResizablePanelGroup direction="vertical">
+ *   <ResizablePanel>
+ *     <Editor />
+ *   </ResizablePanel>
+ *   <ResizableHandle />
+ *   <ResizablePanel>
+ *     <Preview />
+ *   </ResizablePanel>
+ * </ResizablePanelGroup>
+ *
+ * @example
+ * // Three-panel layout
+ * <ResizablePanelGroup direction="horizontal">
+ *   <ResizablePanel defaultSize={20}><Nav /></ResizablePanel>
+ *   <ResizableHandle />
+ *   <ResizablePanel defaultSize={60}><Content /></ResizablePanel>
+ *   <ResizableHandle />
+ *   <ResizablePanel defaultSize={20}><Aside /></ResizablePanel>
+ * </ResizablePanelGroup>
+ */
 function ResizablePanelGroup({
   className,
   ...props

@@ -3,6 +3,26 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Input component props. Extends all standard HTML input attributes.
+ *
+ * @example
+ * // Basic text input
+ * <Input placeholder="Enter your name" />
+ *
+ * @example
+ * // Email input with label
+ * <Label htmlFor="email">Email</Label>
+ * <Input id="email" type="email" placeholder="you@example.com" />
+ *
+ * @example
+ * // Disabled input
+ * <Input disabled value="Cannot edit" />
+ *
+ * @example
+ * // With custom className
+ * <Input className="max-w-sm" placeholder="Short input" />
+ */
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(

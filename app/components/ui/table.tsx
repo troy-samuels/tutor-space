@@ -3,6 +3,35 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Table component system for displaying tabular data.
+ * Semantic HTML table with consistent styling.
+ *
+ * @example
+ * // Basic table
+ * <Table>
+ *   <TableHeader>
+ *     <TableRow>
+ *       <TableHead>Name</TableHead>
+ *       <TableHead>Email</TableHead>
+ *       <TableHead>Status</TableHead>
+ *     </TableRow>
+ *   </TableHeader>
+ *   <TableBody>
+ *     <TableRow>
+ *       <TableCell>John Doe</TableCell>
+ *       <TableCell>john@example.com</TableCell>
+ *       <TableCell><Badge>Active</Badge></TableCell>
+ *     </TableRow>
+ *   </TableBody>
+ * </Table>
+ *
+ * @example
+ * // Scrollable table wrapper
+ * <div className="rounded-md border overflow-x-auto">
+ *   <Table>...</Table>
+ * </div>
+ */
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
     <table

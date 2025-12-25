@@ -10,8 +10,8 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invoice_line_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS invoice_line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
@@ -111,43 +111,53 @@ CREATE POLICY "Students can view their bookings"
 -- INVOICES TABLE POLICIES
 -- ============================================================================
 
-DROP POLICY IF EXISTS "Tutors manage their invoices" ON invoices;
-DROP POLICY IF EXISTS "Students can view their invoices" ON invoices;
+DO $$
+BEGIN
+  IF to_regclass('public.invoices') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Tutors manage their invoices" ON invoices;
+    DROP POLICY IF EXISTS "Students can view their invoices" ON invoices;
 
--- Tutors can manage their own invoices
-CREATE POLICY "Tutors manage their invoices"
-  ON invoices FOR ALL
-  USING (tutor_id = auth.uid())
-  WITH CHECK (tutor_id = auth.uid());
+    -- Tutors can manage their own invoices
+    CREATE POLICY "Tutors manage their invoices"
+      ON invoices FOR ALL
+      USING (tutor_id = auth.uid())
+      WITH CHECK (tutor_id = auth.uid());
 
--- Students can view invoices for their bookings
-CREATE POLICY "Students can view their invoices"
-  ON invoices FOR SELECT
-  USING (
-    student_id IN (
-      SELECT id FROM students WHERE user_id = auth.uid()
-    )
-  );
+    -- Students can view invoices for their bookings
+    CREATE POLICY "Students can view their invoices"
+      ON invoices FOR SELECT
+      USING (
+        student_id IN (
+          SELECT id FROM students WHERE user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ============================================================================
 -- INVOICE LINE ITEMS TABLE POLICIES
 -- ============================================================================
 
-DROP POLICY IF EXISTS "Tutors manage invoice line items" ON invoice_line_items;
+DO $$
+BEGIN
+  IF to_regclass('public.invoice_line_items') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Tutors manage invoice line items" ON invoice_line_items;
 
--- Tutors can manage line items for their invoices
-CREATE POLICY "Tutors manage invoice line items"
-  ON invoice_line_items FOR ALL
-  USING (
-    invoice_id IN (
-      SELECT id FROM invoices WHERE tutor_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    invoice_id IN (
-      SELECT id FROM invoices WHERE tutor_id = auth.uid()
-    )
-  );
+    -- Tutors can manage line items for their invoices
+    CREATE POLICY "Tutors manage invoice line items"
+      ON invoice_line_items FOR ALL
+      USING (
+        invoice_id IN (
+          SELECT id FROM invoices WHERE tutor_id = auth.uid()
+        )
+      )
+      WITH CHECK (
+        invoice_id IN (
+          SELECT id FROM invoices WHERE tutor_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ============================================================================
 -- AVAILABILITY TABLE POLICIES

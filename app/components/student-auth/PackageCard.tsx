@@ -45,7 +45,7 @@ export function PackageCard({ pkg }: PackageCardProps) {
   const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-border bg-background p-4 shadow-sm">
       <div className="flex items-start gap-3">
         {/* Tutor avatar */}
         <Avatar className="h-10 w-10 shrink-0">

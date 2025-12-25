@@ -69,7 +69,7 @@ function DrillCard({ drill }: { drill: DrillWithContext }) {
 
   return (
     <Link href={`/student/drills/${drill.id}`}>
-      <div className="group relative overflow-hidden rounded-xl border border-border bg-white p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+      <div className="group relative overflow-hidden rounded-xl border border-border bg-background p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
         <div className="flex items-start gap-3">
           <div
             className={cn(
@@ -138,7 +138,7 @@ function CompletedDrillCard({ drill }: { drill: DrillWithContext }) {
   const Icon = config.icon;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 p-3">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
         <CheckCircle2 className="h-4 w-4" />
       </div>
@@ -239,7 +239,7 @@ export function DrillsListClient({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
+        <div className="rounded-xl border border-dashed border-border bg-muted/50 p-8 text-center">
           <Sparkles className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 font-medium text-foreground">All caught up!</p>
           <p className="mt-1 text-sm text-muted-foreground">

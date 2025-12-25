@@ -8,9 +8,9 @@ import {
   LiveKitRoom,
   RoomAudioRenderer,
 } from "@livekit/components-react";
-import { Loader2, ShieldAlert, ArrowLeft, Video } from "lucide-react";
+import { Loader2, ShieldAlert, ArrowLeft, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { VideoStage, type LayoutMode } from "@/components/classroom/VideoStage";
+import { AudioStage } from "@/components/classroom/AudioStage";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
 
 export default function TestStudioClient() {
@@ -25,12 +25,9 @@ export default function TestStudioClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasJoined, setHasJoined] = useState(false);
   const [joinSettings, setJoinSettings] = useState<{
-    videoEnabled: boolean;
     audioEnabled: boolean;
-    videoDeviceId?: string;
     audioDeviceId?: string;
   } | null>(null);
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("grid");
 
   useEffect(() => {
     async function fetchToken() {
@@ -58,7 +55,7 @@ export default function TestStudioClient() {
             setError({
               message:
                 data.error ||
-                "Video service isn't configured yet. Please contact support.",
+                "Audio service isn't configured yet. Please contact support.",
               isAccessDenied: false,
             });
           } else {
@@ -163,7 +160,7 @@ export default function TestStudioClient() {
             Configuration Error
           </h1>
           <p className="text-muted-foreground">
-            Video service is not configured. Please contact support at support@tutorlingua.co.
+            Audio service is not configured. Please contact support at support@tutorlingua.co.
           </p>
         </div>
       </div>
@@ -190,12 +187,6 @@ export default function TestStudioClient() {
       : joinSettings?.audioDeviceId
         ? { deviceId: joinSettings.audioDeviceId }
         : true;
-  const video =
-    joinSettings?.videoEnabled === false
-      ? false
-      : joinSettings?.videoDeviceId
-        ? { deviceId: joinSettings.videoDeviceId }
-        : true;
 
   return (
     <div className="min-h-[100dvh] bg-background p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-6 flex flex-col">
@@ -211,33 +202,27 @@ export default function TestStudioClient() {
         </Button>
 
         {/* Test Studio Badge */}
-        <div className="flex w-fit items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full">
-          <Video className="h-4 w-4" />
+        <div className="flex w-fit items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full">
+          <Mic className="h-4 w-4" />
           <span className="font-medium text-sm">Test Studio</span>
         </div>
       </div>
 
-      {/* Main Content - Video Only (no sidebar for test) */}
+      {/* Main Content - Audio Only (no sidebar for test) */}
       <div className="flex-1 min-h-0">
         <LiveKitRoom
           token={token}
           serverUrl={serverUrl}
           connect={true}
           audio={audio}
-          video={video}
+          video={false}
           onDisconnected={handleDisconnected}
           className="flex h-full min-h-0 relative"
         >
-          {/* Video Card - Full width for test */}
+          {/* Audio Card - Full width for test */}
           <div className="flex-1 relative min-h-0">
             <div className="h-full rounded-2xl shadow-lg border border-border overflow-hidden sm:rounded-[2rem]">
-              <VideoStage
-                roomName={roomName || "test"}
-                isTutor={true}
-                layoutMode={layoutMode}
-                onLayoutModeChange={setLayoutMode}
-                recordingEnabled={false}
-              />
+              <AudioStage roomName={roomName || "test"} isTutor={true} recordingEnabled={false} />
             </div>
           </div>
 
@@ -248,7 +233,7 @@ export default function TestStudioClient() {
       {/* Helper text */}
       <div className="mt-4 text-center">
         <p className="text-sm text-muted-foreground">
-          Use this room to test your camera and microphone setup. This is a private test room.
+          Use this room to test your microphone setup. This is a private test room.
         </p>
       </div>
     </div>

@@ -4,6 +4,43 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Dialog (Modal) component system for overlays and popups.
+ * Built with accessibility in mind - manages focus, body scroll lock, and backdrop.
+ *
+ * @example
+ * // Basic dialog
+ * const [open, setOpen] = useState(false);
+ *
+ * <Button onClick={() => setOpen(true)}>Open Dialog</Button>
+ * <Dialog open={open} onOpenChange={setOpen}>
+ *   <DialogContent>
+ *     <DialogHeader>
+ *       <DialogTitle>Confirm Action</DialogTitle>
+ *       <DialogDescription>Are you sure you want to continue?</DialogDescription>
+ *     </DialogHeader>
+ *     <DialogBody>
+ *       <p>This action cannot be undone.</p>
+ *     </DialogBody>
+ *     <DialogFooter>
+ *       <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+ *       <Button onClick={handleConfirm}>Confirm</Button>
+ *     </DialogFooter>
+ *   </DialogContent>
+ * </Dialog>
+ *
+ * @example
+ * // Full-width dialog for complex content
+ * <Dialog open={open} onOpenChange={setOpen}>
+ *   <DialogContent size="full">
+ *     <DialogHeader>
+ *       <DialogTitle>Full Page Editor</DialogTitle>
+ *     </DialogHeader>
+ *     <DialogBody>{children}</DialogBody>
+ *   </DialogContent>
+ * </Dialog>
+ */
+
 type DialogContextValue = {
   open: boolean;
   setOpen?: (open: boolean) => void;
@@ -11,9 +48,15 @@ type DialogContextValue = {
 
 const DialogContext = React.createContext<DialogContextValue | null>(null);
 
+/**
+ * Dialog root component. Controls open state and provides context.
+ */
 export interface DialogProps {
+  /** Whether the dialog is open */
   open: boolean;
+  /** Callback when open state should change (e.g., clicking backdrop or close button) */
   onOpenChange?: (open: boolean) => void;
+  /** Dialog content and related components */
   children: React.ReactNode;
 }
 
@@ -44,7 +87,18 @@ function useDialogContext() {
   return context;
 }
 
+/**
+ * Dialog content container. Renders the modal panel with backdrop.
+ */
 export interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * Dialog width size.
+   * - `sm`: max-w-md (448px) - Simple confirmations
+   * - `md`: max-w-2xl (672px) - Forms
+   * - `lg`: max-w-4xl (896px) - Complex content (default)
+   * - `xl`: max-w-6xl (1152px) - Large forms/tables
+   * - `full`: max-w-[95vw] - Full screen content
+   */
   size?: "sm" | "md" | "lg" | "xl" | "full";
 }
 

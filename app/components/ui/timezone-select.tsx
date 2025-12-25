@@ -6,6 +6,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { cn } from "@/lib/utils";
 import { detectUserTimezone, formatTimezonePreview, groupTimezones } from "@/lib/utils/timezones";
 
+/**
+ * Timezone selector with search, auto-detection, and current time preview.
+ * Groups timezones by region for easier navigation.
+ *
+ * @example
+ * // Basic timezone select
+ * <TimezoneSelect
+ *   value={timezone}
+ *   onChange={setTimezone}
+ * />
+ *
+ * @example
+ * // Disable auto-detection
+ * <TimezoneSelect
+ *   value={timezone}
+ *   onChange={setTimezone}
+ *   autoDetect={false}
+ *   placeholder="Choose your timezone"
+ * />
+ *
+ * @example
+ * // In a form with label
+ * <Label htmlFor="tz">Timezone</Label>
+ * <TimezoneSelect
+ *   id="tz"
+ *   name="timezone"
+ *   value={timezone}
+ *   onChange={setTimezone}
+ * />
+ */
 type TimezoneSelectProps = {
   value: string;
   onChange: (value: string) => void;

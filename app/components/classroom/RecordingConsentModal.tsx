@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Video, AlertCircle } from "lucide-react";
+import { Mic, AlertCircle } from "lucide-react";
 
 interface RecordingConsentModalProps {
   open: boolean;
@@ -42,12 +42,12 @@ export function RecordingConsentModal({
       <DialogContent className="sm:max-w-md rounded-3xl">
         <DialogHeader className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-red-50 flex items-center justify-center">
-            <Video className="h-6 w-6 text-red-500" />
+            <Mic className="h-6 w-6 text-red-500" />
           </div>
           <DialogTitle className="text-xl">Record this lesson?</DialogTitle>
           <DialogDescription className="text-muted-foreground pt-2">
-            Recording will capture audio and video from all participants. The
-            recording can be used to generate practice materials.
+            Recording will capture audio from all participants. The
+            recording can be used to generate transcripts and practice materials.
           </DialogDescription>
         </DialogHeader>
 

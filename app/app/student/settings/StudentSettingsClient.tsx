@@ -345,7 +345,7 @@ export function StudentSettingsClient({
               </div>
 
               {/* Save Button */}
-              <div className="pt-4 border-t border-border/50">
+              <div className="pt-4 border-t border-border">
                 <Button
                   onClick={handleSavePreferences}
                   disabled={prefsSaving}
@@ -380,7 +380,7 @@ export function StudentSettingsClient({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="divide-y divide-border/50">
+              <div className="divide-y divide-border">
                 {/* Booking Reminders */}
                 <div className="flex items-center justify-between py-4 first:pt-0">
                   <div>
@@ -440,7 +440,7 @@ export function StudentSettingsClient({
               </div>
 
               {/* Save Button */}
-              <div className="pt-4 border-t border-border/50">
+              <div className="pt-4 border-t border-border">
                 <Button
                   onClick={handleSaveEmailPreferences}
                   disabled={emailSaving}
@@ -527,7 +527,7 @@ export function StudentSettingsClient({
               </div>
 
               {/* Change Password Button */}
-              <div className="pt-4 border-t border-border/50">
+              <div className="pt-4 border-t border-border">
                 <Button
                   onClick={handleChangePassword}
                   disabled={

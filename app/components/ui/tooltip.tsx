@@ -5,6 +5,40 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Tooltip component system for showing contextual information on hover.
+ * Built on Radix UI Tooltip for accessibility and positioning.
+ *
+ * @example
+ * // Basic tooltip
+ * <Tooltip>
+ *   <TooltipTrigger>Hover me</TooltipTrigger>
+ *   <TooltipContent>Helpful information</TooltipContent>
+ * </Tooltip>
+ *
+ * @example
+ * // Tooltip on a button
+ * <Tooltip>
+ *   <TooltipTrigger asChild>
+ *     <Button size="icon" variant="ghost">
+ *       <HelpCircle className="h-4 w-4" />
+ *     </Button>
+ *   </TooltipTrigger>
+ *   <TooltipContent>
+ *     Click for more info
+ *   </TooltipContent>
+ * </Tooltip>
+ *
+ * @example
+ * // Tooltip with side positioning
+ * <Tooltip>
+ *   <TooltipTrigger>Hover</TooltipTrigger>
+ *   <TooltipContent side="right">
+ *     Positioned to the right
+ *   </TooltipContent>
+ * </Tooltip>
+ */
+
 function TooltipProvider({
   delayDuration = 0,
   ...props

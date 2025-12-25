@@ -202,13 +202,13 @@ export function DrillPlayerClient({
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-border bg-white p-4 text-center">
+              <div className="rounded-xl border border-border bg-background p-4 text-center">
                 <p className="text-2xl font-bold">{attempts}</p>
                 <p className="text-xs text-muted-foreground">
                   {attempts === 1 ? "Attempt" : "Attempts"}
                 </p>
               </div>
-              <div className="rounded-xl border border-border bg-white p-4 text-center">
+              <div className="rounded-xl border border-border bg-background p-4 text-center">
                 <p className="text-2xl font-bold">{timeSpent}</p>
                 <p className="text-xs text-muted-foreground">Time</p>
               </div>
@@ -235,7 +235,7 @@ export function DrillPlayerClient({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
+    <div className="min-h-screen bg-gradient-to-b from-muted/50 to-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
@@ -277,7 +277,7 @@ export function DrillPlayerClient({
       <main className="mx-auto max-w-lg px-4 pb-32 pt-6">
         {/* Prompt/Instructions */}
         {drill.content?.prompt && (
-          <div className="mb-6 rounded-xl border border-border bg-white p-4">
+          <div className="mb-6 rounded-xl border border-border bg-background p-4">
             <p className="text-sm font-medium text-foreground">
               {drill.content.prompt}
             </p>
@@ -298,7 +298,7 @@ export function DrillPlayerClient({
         )}
 
         {/* Game Component */}
-        <div className="rounded-2xl border border-border bg-white p-5">
+        <div className="rounded-2xl border border-border bg-background p-5">
           {gameType === "scramble" && gameData && (
             <ScrambleGame
               data={gameData as ScrambleData}
@@ -358,7 +358,7 @@ export function DrillPlayerClient({
       </main>
 
       {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-white p-4 safe-area-inset-bottom">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background p-4 safe-area-inset-bottom">
         <div className="mx-auto max-w-lg">
           <Button
             size="lg"

@@ -35,6 +35,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-button: var(--primary-button);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -84,6 +85,8 @@ html {
   /* Primary: Burnt Orange */
   --primary: #D36135;
   --primary-foreground: #ffffff;
+  /* Primary Button: Darker for WCAG AA contrast (4.5:1 with white) */
+  --primary-button: #B85129;
 
   /* Secondary: Warm Cream */
   --secondary: #F5EDE8;
@@ -148,6 +151,8 @@ html {
   /* Primary: Lighter orange for dark mode contrast */
   --primary: #E8784D;
   --primary-foreground: #1A1917;
+  /* Primary Button: Maintains contrast in dark mode */
+  --primary-button: #E8784D;
 
   /* Secondary */
   --secondary: #2D2A26;

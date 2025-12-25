@@ -3,6 +3,31 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Card container component for grouping related content.
+ * Uses rounded corners (rounded-3xl), subtle shadow, and backdrop blur.
+ *
+ * @example
+ * // Basic card with header and content
+ * <Card>
+ *   <CardHeader>
+ *     <CardTitle>Lesson Summary</CardTitle>
+ *     <CardDescription>Your progress this week</CardDescription>
+ *   </CardHeader>
+ *   <CardContent>
+ *     <p>You completed 5 lessons!</p>
+ *   </CardContent>
+ *   <CardFooter>
+ *     <Button>View Details</Button>
+ *   </CardFooter>
+ * </Card>
+ *
+ * @example
+ * // Simple card without header
+ * <Card className="p-6">
+ *   <p>Quick content card</p>
+ * </Card>
+ */
 export function Card({
   className,
   ...props
@@ -18,6 +43,10 @@ export function Card({
   );
 }
 
+/**
+ * Card header section. Contains title and description.
+ * Applies vertical spacing (space-y-1.5) between children.
+ */
 export function CardHeader({
   className,
   ...props
@@ -27,6 +56,10 @@ export function CardHeader({
   );
 }
 
+/**
+ * Card title component. Renders as h3 with semibold weight.
+ * Use inside CardHeader for proper spacing.
+ */
 export function CardTitle({
   className,
   ...props
@@ -36,6 +69,10 @@ export function CardTitle({
   );
 }
 
+/**
+ * Card description component. Renders muted text below the title.
+ * Use inside CardHeader for proper spacing.
+ */
 export function CardDescription({
   className,
   ...props
@@ -48,6 +85,10 @@ export function CardDescription({
   );
 }
 
+/**
+ * Card content section. The main body of the card.
+ * Has top margin (mt-4) and fills available space (flex-1).
+ */
 export function CardContent({
   className,
   ...props
@@ -55,6 +96,10 @@ export function CardContent({
   return <div className={cn("mt-4 flex-1", className)} {...props} />;
 }
 
+/**
+ * Card footer section. Typically contains action buttons.
+ * Has top padding (pt-4) to separate from content.
+ */
 export function CardFooter({
   className,
   ...props

@@ -15,7 +15,6 @@ import { StepPayments } from "./steps/StepPayments";
 import {
   checkOnboardingStatus,
   completeOnboarding,
-  finalizeOnboardingAfterCheckout,
 } from "@/lib/actions/onboarding";
 import { WelcomeToast } from "@/components/ui/welcome-toast";
 
@@ -81,10 +80,6 @@ export function OnboardingTimeline({
   const [showStripeReturnBanner, setShowStripeReturnBanner] = useState(false);
   const [stripeRefresh, setStripeRefresh] = useState(false);
   const [stripeReturnDetected, setStripeReturnDetected] = useState(false);
-  const [subscriptionSuccess, setSubscriptionSuccess] = useState(false);
-  const [finalizeAttempts, setFinalizeAttempts] = useState(0);
-
-  const maxFinalizeAttempts = 5;
 
   // Read URL params after mount to avoid hydration issues with useSearchParams
   useEffect(() => {
@@ -106,7 +101,6 @@ export function OnboardingTimeline({
     }
     if (subscriptionSuccess) {
       setShowSubscriptionBanner(true);
-      setSubscriptionSuccess(true);
     }
   }, []);
 
@@ -139,37 +133,6 @@ export function OnboardingTimeline({
       isMounted = false;
     };
   }, []);
-
-  // Finalize onboarding after Stripe checkout completes
-  useEffect(() => {
-    if (!subscriptionSuccess) return;
-
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const finalize = async () => {
-      const result = await finalizeOnboardingAfterCheckout();
-      if (cancelled) return;
-
-      if (result.success) {
-        router.push("/dashboard");
-        return;
-      }
-
-      if (finalizeAttempts < maxFinalizeAttempts - 1) {
-        retryTimer = setTimeout(() => {
-          setFinalizeAttempts((attempt) => attempt + 1);
-        }, 1500);
-      }
-    };
-
-    finalize();
-
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
-  }, [subscriptionSuccess, finalizeAttempts, router]);
 
   // Auto-dismiss Stripe return banner after 8 seconds
   useEffect(() => {

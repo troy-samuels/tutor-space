@@ -215,13 +215,13 @@ export default async function LessonReviewPage({
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Card title="Replay" icon={<PlayCircle className="h-5 w-5 text-slate-600" />} status={isTutor ? recording.status : undefined}>
+          <Card title="Listen to Recording" icon={<PlayCircle className="h-5 w-5 text-slate-600" />} status={isTutor ? recording.status : undefined}>
             {isProcessing || !recordingUrl ? (
-              <div className="h-[260px] rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-sm">
+              <div className="h-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-sm">
                 Processing the recording…
               </div>
             ) : (
-              <video controls className="w-full h-[260px] rounded-xl bg-black object-contain" src={recordingUrl} />
+              <audio controls className="w-full" src={recordingUrl} />
             )}
           </Card>
 

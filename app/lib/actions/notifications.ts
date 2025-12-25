@@ -47,6 +47,7 @@ export interface Notification {
 export async function getNotifications(options?: {
   limit?: number;
   unreadOnly?: boolean;
+  userRole?: "tutor" | "student";
 }): Promise<{ notifications: Notification[]; unreadCount: number }> {
   const supabase = await createClient();
 
@@ -66,6 +67,10 @@ export async function getNotifications(options?: {
     .order("created_at", { ascending: false })
     .limit(limit);
 
+  if (options?.userRole) {
+    query = query.eq("user_role", options.userRole);
+  }
+
   if (options?.unreadOnly) {
     query = query.eq("read", false);
   }
@@ -78,11 +83,17 @@ export async function getNotifications(options?: {
   }
 
   // Get unread count
-  const { count } = await supabase
+  let unreadQuery = supabase
     .from("notifications")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("read", false);
+
+  if (options?.userRole) {
+    unreadQuery = unreadQuery.eq("user_role", options.userRole);
+  }
+
+  const { count } = await unreadQuery;
 
   return {
     notifications: (notifications || []) as Notification[],
@@ -93,7 +104,9 @@ export async function getNotifications(options?: {
 /**
  * Get unread notification count
  */
-export async function getUnreadNotificationCount(): Promise<number> {
+export async function getUnreadNotificationCount(options?: {
+  userRole?: "tutor" | "student";
+}): Promise<number> {
   const supabase = await createClient();
 
   const {
@@ -103,11 +116,17 @@ export async function getUnreadNotificationCount(): Promise<number> {
     return 0;
   }
 
-  const { count } = await supabase
+  let unreadQuery = supabase
     .from("notifications")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("read", false);
+
+  if (options?.userRole) {
+    unreadQuery = unreadQuery.eq("user_role", options.userRole);
+  }
+
+  const { count } = await unreadQuery;
 
   return count || 0;
 }
@@ -147,7 +166,9 @@ export async function markNotificationAsRead(
 /**
  * Mark all notifications as read
  */
-export async function markAllNotificationsAsRead(): Promise<{
+export async function markAllNotificationsAsRead(options?: {
+  userRole?: "tutor" | "student";
+}): Promise<{
   success: boolean;
   error?: string;
 }> {
@@ -160,7 +181,7 @@ export async function markAllNotificationsAsRead(): Promise<{
     return { success: false, error: "Not authenticated" };
   }
 
-  const { error } = await supabase
+  let markQuery = supabase
     .from("notifications")
     .update({
       read: true,
@@ -168,6 +189,12 @@ export async function markAllNotificationsAsRead(): Promise<{
     })
     .eq("user_id", user.id)
     .eq("read", false);
+
+  if (options?.userRole) {
+    markQuery = markQuery.eq("user_role", options.userRole);
+  }
+
+  const { error } = await markQuery;
 
   if (error) {
     console.error("Error marking all notifications as read:", error);
