@@ -112,7 +112,7 @@ export const WithAttachments: Story = {
         due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
         attachments: [
           { label: "Lesson Notes PDF", url: "#", type: "pdf" as const },
-          { label: "Practice Audio", url: "#", type: "audio" as const },
+          { label: "Practice Audio", url: "#", type: "file" as const },
           { label: "Grammar Explanation Video", url: "#", type: "video" as const },
           { label: "Interactive Quiz", url: "https://example.com", type: "link" as const },
           { label: "Vocabulary Flashcards", url: "#", type: "image" as const },
