@@ -30,7 +30,9 @@
     "dast:report": "mkdir -p reports && hawk scan",
     "dast:google": "hawk scan stackhawk-google-oauth.yml",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "deploy": "cd .. && npx vercel --prod",
+    "deploy:preview": "cd .. && npx vercel"
   },
   "dependencies": {
     "@deepgram/sdk": "^4.11.2",

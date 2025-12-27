@@ -16,6 +16,12 @@ import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 
+const liveKitConfigured = Boolean(
+  process.env.NEXT_PUBLIC_LIVEKIT_URL &&
+    process.env.LIVEKIT_API_KEY &&
+    process.env.LIVEKIT_API_SECRET
+);
+
 function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,6 +36,7 @@ function createAdminClient() {
 }
 
 test.describe("Studio Classroom Recording", () => {
+  test.skip(!liveKitConfigured, "LiveKit is not configured in the test environment.");
   test.setTimeout(3 * 60 * 1000); // 3 minutes max
 
   const runId = randomUUID();
@@ -84,7 +91,7 @@ test.describe("Studio Classroom Recording", () => {
       onboarding_completed: true,
       timezone: "America/New_York",
       languages_taught: ["English"],
-      currency: "USD",
+      booking_currency: "USD",
     });
 
     // Create student user
@@ -179,36 +186,48 @@ test.describe("Studio Classroom Recording", () => {
     // Navigate to classroom
     await page.goto(`${appUrl}/classroom/${bookingId}`);
 
-    // Check for Studio tier access
-    // If LiveKit is not configured, we should see an appropriate message
-    // If configured, we should see the classroom interface
-
     // Wait for page to load
-    await page.waitForLoadState("networkidle", { timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
     // Check for either:
-    // 1. LiveKit video room (if configured)
-    // 2. LiveKit not configured message
+    // 1. Test mode classroom (E2E_TEST_MODE=true and no LiveKit config)
+    // 2. LiveKit video room (if configured)
     // 3. Pre-join screen
+    // 4. Access denied (should not happen for Studio tutor)
 
+    const hasTestModeClassroom = await page.locator('[data-testid="test-mode-classroom"]').isVisible().catch(() => false);
+    const hasPreJoin = await page.locator('[data-testid="classroom-prejoin"]').isVisible().catch(() => false);
     const hasVideoRoom = await page.locator('[data-lk-theme="default"]').isVisible().catch(() => false);
-    const hasNotConfigured = await page.getByText(/LiveKit not configured|not available/i).isVisible().catch(() => false);
-    const hasPreJoin = await page.getByText(/Join Room|Enter Classroom|Pre-join/i).isVisible().catch(() => false);
-    const hasAccessDenied = await page.getByText(/Access Denied|upgrade|Studio/i).isVisible().catch(() => false);
+    const hasAccessDenied = await page.getByText(/Access Denied/i).isVisible().catch(() => false);
 
-    // At least one of these should be true
-    const hasExpectedState = hasVideoRoom || hasNotConfigured || hasPreJoin || !hasAccessDenied;
-    expect(hasExpectedState).toBeTruthy();
+    // Should have some form of classroom access (test mode, pre-join, or live video)
+    const hasClassroomAccess = hasTestModeClassroom || hasPreJoin || hasVideoRoom;
+    expect(hasClassroomAccess).toBeTruthy();
+    expect(hasAccessDenied).toBeFalsy();
 
-    // If video room is available, check for recording controls
-    if (hasVideoRoom || hasPreJoin) {
-      // Look for recording-related UI elements
-      const recordingControls = page.getByRole("button", { name: /record/i });
-      const sessionInfo = page.getByText(/lesson|session/i);
+    // In test mode, check for recording controls using data-testid
+    if (hasTestModeClassroom) {
+      // Recording start button should be visible for tutor
+      const recordStartButton = page.locator('[data-testid="classroom-record-start"]');
+      const hasRecordStart = await recordStartButton.isVisible().catch(() => false);
+      expect(hasRecordStart).toBeTruthy();
 
-      // At least session info should be visible
-      const hasSessionInfo = await sessionInfo.first().isVisible().catch(() => false);
-      expect(hasSessionInfo || hasPreJoin || hasNotConfigured).toBeTruthy();
+      // Mic control should be visible
+      const micButton = page.locator('[data-testid="classroom-mic-mute"], [data-testid="classroom-mic-unmute"]');
+      const hasMicControl = await micButton.first().isVisible().catch(() => false);
+      expect(hasMicControl).toBeTruthy();
+
+      // Leave button should be visible
+      const leaveButton = page.locator('[data-testid="classroom-leave-button"]');
+      const hasLeaveButton = await leaveButton.isVisible().catch(() => false);
+      expect(hasLeaveButton).toBeTruthy();
+    }
+
+    // If pre-join screen, click join to enter
+    if (hasPreJoin) {
+      const joinButton = page.locator('[data-testid="classroom-join-button"]');
+      const hasJoinButton = await joinButton.isVisible().catch(() => false);
+      expect(hasJoinButton).toBeTruthy();
     }
   });
 
@@ -270,7 +289,7 @@ test.describe("Studio Classroom Recording", () => {
       await page.goto(`${appUrl}/classroom/${bookingId}`);
 
       // Should see access denied or upgrade prompt
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       const accessDenied = await page.getByText(/Access Denied|Forbidden|upgrade|Studio|not authorized/i).isVisible().catch(() => false);
       const notFound = await page.getByText(/not found|404/i).isVisible().catch(() => false);
@@ -306,17 +325,26 @@ test.describe("Studio Classroom Recording", () => {
       await page.goto(`${appUrl}/classroom/${bookingId}`);
 
       // Wait for page load
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // Student should have access (tutor has Studio tier)
+      // Check for classroom access using data-testid selectors
+      const hasTestModeClassroom = await page.locator('[data-testid="test-mode-classroom"]').isVisible().catch(() => false);
+      const hasPreJoin = await page.locator('[data-testid="classroom-prejoin"]').isVisible().catch(() => false);
       const hasVideoRoom = await page.locator('[data-lk-theme="default"]').isVisible().catch(() => false);
-      const hasNotConfigured = await page.getByText(/LiveKit not configured|not available/i).isVisible().catch(() => false);
-      const hasPreJoin = await page.getByText(/Join Room|Enter Classroom|Pre-join/i).isVisible().catch(() => false);
       const hasAccessDenied = await page.getByText(/Access Denied/i).isVisible().catch(() => false);
 
-      // If LiveKit is configured, student should have access
-      // If not configured, should see appropriate message
-      expect(hasVideoRoom || hasNotConfigured || hasPreJoin || !hasAccessDenied).toBeTruthy();
+      // Should have classroom access
+      const hasClassroomAccess = hasTestModeClassroom || hasPreJoin || hasVideoRoom;
+      expect(hasClassroomAccess).toBeTruthy();
+      expect(hasAccessDenied).toBeFalsy();
+
+      // In test mode, student should NOT see recording controls (tutor-only)
+      if (hasTestModeClassroom) {
+        const recordButton = page.locator('[data-testid="classroom-record-start"], [data-testid="classroom-record-stop"]');
+        const hasRecordButton = await recordButton.first().isVisible().catch(() => false);
+        expect(hasRecordButton).toBeFalsy(); // Students don't control recording
+      }
     } finally {
       await context.close();
     }
@@ -329,7 +357,7 @@ test.describe("Studio Classroom Recording", () => {
     await page.goto(`${appUrl}/classroom/${bookingId}`);
 
     // Should be redirected to login or see unauthorized message
-    await page.waitForLoadState("networkidle", { timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
     const isRedirectedToLogin = page.url().includes("/login");
     const hasUnauthorized = await page.getByText(/sign in|log in|unauthorized/i).isVisible().catch(() => false);

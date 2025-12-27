@@ -2,10 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
+import { rescheduleBooking as rescheduleBookingAction } from "@/lib/actions/bookings";
+import { getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
+import { validateBooking } from "@/lib/utils/booking-conflicts";
 import { z } from "zod";
-import { checkBookingConflict } from "@/lib/utils/booking-conflicts";
-import { sendBookingRescheduledEmails } from "@/lib/emails/ops-emails";
 
 const rescheduleSchema = z.object({
   bookingId: z.string().uuid(),
@@ -45,140 +45,16 @@ export async function rescheduleBooking(
 
   const { bookingId, newScheduledAt, reason, requestedBy } = result.data;
 
-  const serviceClient = createServiceRoleClient();
-  if (!serviceClient) {
-    return { success: false, error: "Database connection failed" };
+  const actionResult = await rescheduleBookingAction({
+    bookingId,
+    newStart: newScheduledAt,
+    requestedBy,
+    reason,
+  });
+
+  if (actionResult.error) {
+    return { success: false, error: actionResult.error };
   }
-
-  // Get the booking to verify ownership and get details
-  const { data: booking, error: fetchError } = await serviceClient
-    .from("bookings")
-    .select("*, students(email, full_name), services(name)")
-    .eq("id", bookingId)
-    .single();
-
-  if (fetchError || !booking) {
-    return { success: false, error: "Booking not found" };
-  }
-
-  // Verify the user has permission (tutor or student who owns the booking)
-  const isOwner = booking.tutor_id === user.id;
-
-  // Check if user is the student
-  const { data: studentRecord } = await serviceClient
-    .from("students")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("id", booking.student_id)
-    .single();
-
-  const isStudent = !!studentRecord;
-
-  if (!isOwner && !isStudent) {
-    return { success: false, error: "Not authorized to reschedule this booking" };
-  }
-
-  // Check if booking can be rescheduled (not cancelled or completed)
-  if (booking.status === "cancelled" || booking.status === "completed") {
-    return { success: false, error: "Cannot reschedule a cancelled or completed booking" };
-  }
-
-  // Get existing bookings to check for conflicts
-  const { data: existingBookings } = await serviceClient
-    .from("bookings")
-    .select("id, scheduled_at, duration_minutes, status")
-    .eq("tutor_id", booking.tutor_id)
-    .neq("id", bookingId)
-    .not("status", "in", '("cancelled_by_tutor","cancelled_by_student")');
-
-  // Check for conflicts
-  const conflictCheck = checkBookingConflict(
-    newScheduledAt,
-    booking.duration_minutes,
-    existingBookings || []
-  );
-
-  if (conflictCheck.hasConflict) {
-    return { success: false, error: conflictCheck.message || "The new time conflicts with existing bookings" };
-  }
-
-  const previousSchedule = {
-    scheduledAt: booking.scheduled_at,
-    timezone: booking.timezone || "UTC",
-    durationMinutes: booking.duration_minutes,
-    meetingUrl: (booking as any).meeting_url ?? null,
-    meetingProvider: (booking as any).meeting_provider ?? null,
-  };
-
-  // Update the booking
-  const { error: updateError } = await serviceClient
-    .from("bookings")
-    .update({
-      scheduled_at: newScheduledAt,
-      reschedule_requested_at: new Date().toISOString(),
-      reschedule_requested_by: requestedBy,
-      reschedule_reason: reason || null,
-    })
-    .eq("id", bookingId);
-
-  if (updateError) {
-    console.error("Error rescheduling booking:", updateError);
-    return { success: false, error: "Failed to reschedule booking" };
-  }
-
-  try {
-    const { data: updated } = await serviceClient
-      .from("bookings")
-      .select(
-        `
-        scheduled_at,
-        duration_minutes,
-        timezone,
-        meeting_url,
-        meeting_provider,
-        students(full_name, email),
-        services(name),
-        tutor:profiles!bookings_tutor_id_fkey(full_name, email)
-      `
-      )
-      .eq("id", bookingId)
-      .single<{
-        scheduled_at: string;
-        duration_minutes: number | null;
-        timezone: string | null;
-        meeting_url: string | null;
-        meeting_provider: string | null;
-        students: { full_name: string | null; email: string | null } | Array<{ full_name: string | null; email: string | null }>;
-        services: { name: string | null } | Array<{ name: string | null }>;
-        tutor: { full_name: string | null; email: string | null } | Array<{ full_name: string | null; email: string | null }>;
-      }>();
-
-    if (updated) {
-      const student = Array.isArray(updated.students) ? updated.students[0] : updated.students;
-      const tutor = Array.isArray(updated.tutor) ? updated.tutor[0] : updated.tutor;
-
-      await sendBookingRescheduledEmails({
-        studentEmail: student?.email,
-        tutorEmail: tutor?.email,
-        studentName: student?.full_name || "Student",
-        tutorName: tutor?.full_name || "Your tutor",
-        serviceName: (Array.isArray(updated.services) ? updated.services[0]?.name : updated.services?.name) || "Lesson",
-        oldScheduledAt: previousSchedule.scheduledAt,
-        newScheduledAt: updated.scheduled_at,
-        timezone: updated.timezone || previousSchedule.timezone,
-        durationMinutes: updated.duration_minutes || previousSchedule.durationMinutes,
-        meetingUrl: updated.meeting_url || previousSchedule.meetingUrl || undefined,
-        meetingProvider: updated.meeting_provider || previousSchedule.meetingProvider || undefined,
-        rescheduleUrl: `${(process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/+$/, "")}/bookings`,
-      });
-    }
-  } catch (emailError) {
-    console.error("[rescheduleBooking] Failed to send emails", emailError);
-  }
-
-  revalidatePath("/bookings");
-  revalidatePath("/calendar");
-  revalidatePath("/student/bookings");
 
   return { success: true };
 }
@@ -237,7 +113,7 @@ export async function canRescheduleBooking(
   }
 
   // Check status
-  if (booking.status === "cancelled") {
+  if (booking.status?.startsWith("cancelled")) {
     return { canReschedule: false, reason: "Cannot reschedule a cancelled booking" };
   }
 
@@ -296,9 +172,10 @@ export async function getAvailableRescheduleTimes(
 
   const { data: availability } = await serviceClient
     .from("availability")
-    .select("start_time, end_time")
+    .select("day_of_week, start_time, end_time, is_available")
     .eq("tutor_id", booking.tutor_id)
-    .eq("day_of_week", dayOfWeek);
+    .eq("day_of_week", dayOfWeek)
+    .eq("is_available", true);
 
   if (!availability || availability.length === 0) {
     return { times: [] };
@@ -312,16 +189,48 @@ export async function getAvailableRescheduleTimes(
 
   const { data: existingBookings } = await serviceClient
     .from("bookings")
-    .select("scheduled_at, duration_minutes")
+    .select("scheduled_at, duration_minutes, status")
     .eq("tutor_id", booking.tutor_id)
     .neq("id", bookingId) // Exclude current booking
-    .neq("status", "cancelled")
+    .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")')
     .gte("scheduled_at", startOfDay.toISOString())
     .lte("scheduled_at", endOfDay.toISOString());
 
+  const { data: tutorProfile } = await serviceClient
+    .from("profiles")
+    .select("buffer_time_minutes, timezone")
+    .eq("id", booking.tutor_id)
+    .single();
+
+  const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
+  const tutorTimezone = tutorProfile?.timezone || booking.timezone || "UTC";
+
+  const busyResult = await getCalendarBusyWindowsWithStatus({
+    tutorId: booking.tutor_id,
+    start: startOfDay,
+    days: 2,
+  });
+
+  if (busyResult.unverifiedProviders.length) {
+    return {
+      times: [],
+      error:
+        "We couldn't verify your external calendar. Please refresh and try again, or reconnect your calendar.",
+    };
+  }
+
+  if (busyResult.staleProviders.length) {
+    return {
+      times: [],
+      error:
+        "External calendar sync looks stale. Please refresh your calendar connection before rescheduling.",
+    };
+  }
+
   // Calculate available slots
   const availableTimes: string[] = [];
-  const durationMs = booking.duration_minutes * 60 * 1000;
+  const bookingDuration = booking.duration_minutes || 60;
+  const durationMs = bookingDuration * 60 * 1000;
 
   for (const slot of availability) {
     const [startHour, startMin] = slot.start_time.split(":").map(Number);
@@ -336,19 +245,17 @@ export async function getAvailableRescheduleTimes(
     while (slotTime.getTime() + durationMs <= slotEnd.getTime()) {
       const slotEndTime = new Date(slotTime.getTime() + durationMs);
 
-      // Check for conflicts with existing bookings
-      const hasConflict = existingBookings?.some((existing) => {
-        const existingStart = new Date(existing.scheduled_at);
-        const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
-
-        return (
-          (slotTime >= existingStart && slotTime < existingEnd) ||
-          (slotEndTime > existingStart && slotEndTime <= existingEnd) ||
-          (slotTime <= existingStart && slotEndTime >= existingEnd)
-        );
+      const validation = validateBooking({
+        scheduledAt: slotTime.toISOString(),
+        durationMinutes: bookingDuration,
+        availability: availability || [],
+        existingBookings: existingBookings || [],
+        bufferMinutes,
+        busyWindows: busyResult.windows,
+        timezone: tutorTimezone,
       });
 
-      if (!hasConflict && slotTime > new Date()) {
+      if (validation.isValid && slotTime > new Date()) {
         availableTimes.push(slotTime.toISOString());
       }
 

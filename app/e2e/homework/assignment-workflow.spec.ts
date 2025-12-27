@@ -87,7 +87,7 @@ test.describe("Homework Assignment Workflow", () => {
       onboarding_completed: true,
       timezone: "America/New_York",
       languages_taught: ["Spanish"],
-      currency: "USD",
+      booking_currency: "USD",
     });
 
     // Create student user
@@ -148,7 +148,7 @@ test.describe("Homework Assignment Workflow", () => {
 
     // Navigate to student detail page
     await page.goto(`${appUrl}/students/${studentRecordId}`);
-    await page.waitForLoadState("networkidle", { timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
     // Look for homework/assignments section or tab
     const homeworkTab = page.getByRole("tab", { name: /homework|assignment/i });
@@ -157,11 +157,11 @@ test.describe("Homework Assignment Workflow", () => {
     }
 
     // Look for "Assign Homework" or similar button
-    const assignButton = page.getByRole("button", { name: /assign|add homework|new assignment/i });
-    const hasAssignButton = await assignButton.first().isVisible({ timeout: 10000 }).catch(() => false);
+    const openAssignButton = page.getByRole("button", { name: /assign|add homework|new assignment/i });
+    const hasOpenAssignButton = await openAssignButton.first().isVisible({ timeout: 10000 }).catch(() => false);
 
-    if (hasAssignButton) {
-      await assignButton.first().click();
+    if (hasOpenAssignButton) {
+      await openAssignButton.first().click();
 
       // Fill homework form
       const titleField = page.getByLabel(/title/i);
@@ -182,9 +182,17 @@ test.describe("Homework Assignment Workflow", () => {
         await dueDateField.fill(dueDate.toISOString().split("T")[0]);
       }
 
-      // Submit the form
-      const submitButton = page.getByRole("button", { name: /assign|save|create/i });
-      await submitButton.click();
+      // Submit the form - use data-testid for reliable targeting
+      const assignButton = page.locator('[data-testid="homework-assign-button"]');
+      const hasAssignButtonTestId = await assignButton.isVisible().catch(() => false);
+
+      if (hasAssignButtonTestId) {
+        await assignButton.click();
+      } else {
+        // Fallback to role-based selector if data-testid not found
+        const submitButton = page.getByRole("button", { name: /^assign$/i });
+        await submitButton.click();
+      }
 
       // Wait for success indication
       await page.waitForTimeout(2000);
@@ -242,7 +250,7 @@ test.describe("Homework Assignment Workflow", () => {
 
       // Navigate to progress/library page
       await page.goto(`${appUrl}/student/progress`);
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // Look for homework section
       const homeworkSection = page.getByText(/homework|assignment/i);
@@ -256,7 +264,7 @@ test.describe("Homework Assignment Workflow", () => {
       } else {
         // Try library page
         await page.goto(`${appUrl}/student/library`);
-        await page.waitForLoadState("networkidle", { timeout: 15000 });
+        await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
         const homeworkItem = page.getByText(homeworkTitle);
         const hasHomeworkItem = await homeworkItem.isVisible({ timeout: 5000 }).catch(() => false);
@@ -290,7 +298,7 @@ test.describe("Homework Assignment Workflow", () => {
 
       // Navigate to progress/library
       await page.goto(`${appUrl}/student/progress`);
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // Try to find and click on homework
       const homeworkItem = page.getByText(homeworkTitle);
@@ -361,7 +369,7 @@ test.describe("Homework Assignment Workflow", () => {
 
     // Navigate to student detail page
     await page.goto(`${appUrl}/students/${studentRecordId}`);
-    await page.waitForLoadState("networkidle", { timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
     // Look for homework tab
     const homeworkTab = page.getByRole("tab", { name: /homework|assignment/i });
@@ -443,7 +451,7 @@ test.describe("Homework Assignment Workflow", () => {
 
       // Navigate to progress page
       await page.goto(`${appUrl}/student/progress`);
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // Look for completed homework section
       const homeworkItem = page.getByText(homeworkTitle);

@@ -112,7 +112,7 @@ test.describe("Stripe Payment Flows", () => {
 
         // Navigate to billing settings
         await page.goto(`${appUrl}/settings/billing`);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
 
         // Verify subscription options are visible
         const proOption = page.locator('text="Pro"').first();
@@ -243,7 +243,7 @@ test.describe("Stripe Payment Flows", () => {
 
         // Navigate to payment settings
         await page.goto(`${appUrl}/settings/payments`);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
 
         // Verify payment settings page loaded
         await expect(page.locator("body")).toBeVisible();
@@ -312,7 +312,7 @@ test.describe("Stripe Payment Flows", () => {
 
         // Navigate to payment settings
         await page.goto(`${appUrl}/settings/payments`);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
 
         // Should show option to connect Stripe
         await expect(page.locator("body")).toBeVisible();
@@ -375,7 +375,7 @@ test.describe("Stripe Payment Flows", () => {
         if (services && services.length > 0) {
           // Visit public booking page
           await page.goto(`${appUrl}/book/${testData.username}`);
-          await page.waitForLoadState("networkidle");
+          await page.waitForLoadState("domcontentloaded");
 
           // Booking page should load
           await expect(page.locator("body")).toBeVisible();
@@ -448,7 +448,7 @@ test.describe("Stripe Payment Flows", () => {
       try {
         // Visit booking page
         await page.goto(`${appUrl}/book/${testData.username}`);
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
 
         // Page should load without crashing
         await expect(page.locator("body")).toBeVisible();

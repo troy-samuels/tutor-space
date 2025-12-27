@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 /**
  * Translate the marketing landing copy (landingCopyEn) to a target language via DeepL.
  *

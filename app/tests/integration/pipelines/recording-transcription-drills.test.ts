@@ -832,8 +832,8 @@ describe("Recording → Transcription → Drills Pipeline", () => {
       assert.equal(result.l1InterferenceAnalysis.overallLevel, "low");
 
       assert.ok(result.codeSwitchingMetrics);
-      assert.ok(result.summaryMd.includes("Lesson Analysis Report"));
-      assert.ok(result.keyPoints.length > 0);
+      assert.ok(result.summaryMd?.includes("Lesson Analysis Report"));
+      assert.ok((result.keyPoints?.length ?? 0) > 0);
     });
 
     it("handles lesson with high L1 interference", () => {

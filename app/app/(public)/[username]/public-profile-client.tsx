@@ -214,7 +214,7 @@ export default function PublicProfileClient({
         )}
 
         {/* Content */}
-        <main className="mx-auto w-full max-w-3xl px-4 pb-24 sm:px-6">
+        <main className="mx-auto w-full max-w-3xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6">
           {activeTab === "services" && visibility.services && services.length > 0 && (
             <ServicesList
               services={services}
@@ -333,15 +333,15 @@ function CreatorProfileHeader({
       </div>
 
       {/* 3. Identity Block - Generous spacing */}
-      <div className="mt-6 text-center space-y-3">
+      <div className="mt-6 space-y-3 text-center">
         <h1
-          className="text-3xl font-semibold text-stone-900 md:text-4xl"
+          className="text-3xl font-semibold text-stone-900 break-words md:text-4xl"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {name}
         </h1>
         {tagline && (
-          <p className="text-sm text-stone-500">{tagline}</p>
+          <p className="text-sm text-stone-500 break-words">{tagline}</p>
         )}
       </div>
 
@@ -380,7 +380,7 @@ function CreatorProfileHeader({
       {/* 6. About Block - max-w-xs mx-auto */}
       {showAbout && bio && (
         <div className="mx-auto mt-4 w-full max-w-3xl px-4 text-center sm:px-6">
-          <p className="text-sm leading-relaxed text-stone-600 md:text-base">{bio}</p>
+          <p className="text-sm leading-relaxed text-stone-600 break-words md:text-base">{bio}</p>
         </div>
       )}
 
@@ -437,14 +437,14 @@ function ServicesList({
               </span>
             )}
             <div className="flex items-start justify-between">
-              <div className="flex-1 pr-4">
+              <div className="min-w-0 flex-1 pr-4">
                 <p className={cn(
-                  "font-medium text-stone-900",
+                  "font-medium text-stone-900 break-words",
                   isSignature ? "text-base" : "text-sm"
                 )}>{service.name}</p>
                 {service.description && (
                   <p className={cn(
-                    "mt-1 text-stone-500 line-clamp-2",
+                    "mt-1 text-stone-500 line-clamp-2 break-words",
                     isSignature ? "text-sm" : "text-xs"
                   )}>{service.description}</p>
                 )}
@@ -498,9 +498,9 @@ function ProductsList({
             key={product.id}
             className="rounded-xl border border-black/5 bg-white/80 p-4"
           >
-            <p className="text-sm font-medium text-stone-900">{product.title}</p>
+            <p className="text-sm font-medium text-stone-900 break-words">{product.title}</p>
             {product.description && (
-              <p className="text-xs text-stone-500 mt-1 line-clamp-2">{product.description}</p>
+              <p className="mt-1 text-xs text-stone-500 line-clamp-2 break-words">{product.description}</p>
             )}
             <p className="text-sm font-semibold text-stone-900 mt-2">
               {product.price_cents != null
@@ -534,8 +534,8 @@ function ReviewsList({ reviews }: { reviews: ReviewData[] }) {
             key={`${review.author}-${idx}`}
             className="rounded-xl border border-black/5 bg-stone-50 p-4"
           >
-            <p className="text-sm text-stone-700">&ldquo;{review.quote}&rdquo;</p>
-            <p className="mt-2 text-xs font-medium text-stone-500">&mdash; {review.author}</p>
+            <p className="text-sm text-stone-700 break-words">&ldquo;{review.quote}&rdquo;</p>
+            <p className="mt-2 text-xs font-medium text-stone-500 break-words">&mdash; {review.author}</p>
           </div>
         ))}
       </div>
@@ -561,20 +561,20 @@ function MobileCTA({
   formatPriceLabel: (amount?: number | null, currency?: string | null) => string;
 }) {
   return (
-    <div className="fixed bottom-0 left-0 z-50 w-full border-t border-black/5 bg-white/90 p-4 backdrop-blur-md md:hidden">
-      <div className="mx-auto flex max-w-3xl items-center justify-between">
-        <div>
+    <div className="fixed bottom-0 left-0 z-50 w-full border-t border-black/5 bg-white/90 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-md md:hidden">
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           {selectedService ? (
             <>
               <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
-              <p className="text-sm font-medium text-stone-900">
+              <p className="text-sm font-medium text-stone-900 break-words">
                 {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
               </p>
             </>
           ) : nextSlot ? (
             <>
               <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Next Available</p>
-              <p className="text-sm font-medium text-stone-900">{nextSlot}</p>
+              <p className="text-sm font-medium text-stone-900 break-words">{nextSlot}</p>
             </>
           ) : (
             <p className="text-sm font-medium text-stone-500">Choose a service to book</p>
@@ -585,7 +585,7 @@ function MobileCTA({
           onClick={onBook}
           disabled={!selectedService}
           className={cn(
-            "rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
+            "shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
             selectedService
               ? "text-white"
               : "cursor-not-allowed bg-stone-200 text-stone-400"
@@ -619,19 +619,19 @@ function DesktopCTA({
   return (
     <div className="hidden md:block">
       <div className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6">
-        <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/90 px-6 py-4 shadow-sm">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white/90 px-6 py-4 shadow-sm">
+          <div className="min-w-0 flex-1">
             {selectedService ? (
               <>
                 <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
-                <p className="text-sm font-medium text-stone-900">
+                <p className="text-sm font-medium text-stone-900 break-words">
                   {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
                 </p>
               </>
             ) : nextSlot ? (
               <>
                 <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Next Available</p>
-                <p className="text-sm font-medium text-stone-900">{nextSlot}</p>
+                <p className="text-sm font-medium text-stone-900 break-words">{nextSlot}</p>
               </>
             ) : (
               <p className="text-sm font-medium text-stone-500">Choose a service to book</p>
@@ -642,7 +642,7 @@ function DesktopCTA({
             onClick={onBook}
             disabled={!selectedService}
             className={cn(
-              "rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
+              "shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
               selectedService
                 ? "text-white"
                 : "cursor-not-allowed bg-stone-200 text-stone-400"
@@ -671,11 +671,11 @@ function FaqList({ items }: { items: FAQItem[] }) {
         >
           <summary className="cursor-pointer list-none text-sm font-medium text-stone-900">
             <span className="flex items-center justify-between gap-3">
-              <span>{item.q}</span>
+              <span className="min-w-0 flex-1 break-words">{item.q}</span>
               <span className="text-stone-400 transition-transform group-open:rotate-180">▾</span>
             </span>
           </summary>
-          <div className="mt-3 text-sm leading-relaxed text-stone-600">
+          <div className="mt-3 text-sm leading-relaxed text-stone-600 break-words">
             {item.a}
           </div>
         </details>
@@ -750,7 +750,7 @@ function SignatureBlock({ firstName }: { firstName: string }) {
 
       {/* Signature */}
       <p
-        className="mt-6 text-2xl text-stone-700"
+        className="mt-6 text-2xl text-stone-700 break-words"
         style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
       >
         {firstName}

@@ -1,6 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { differenceInCalendarDays, endOfDay, endOfWeek, startOfDay, startOfWeek } from "date-fns";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
@@ -20,6 +23,8 @@ import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
 import {
   createCalendarEventForBooking,
   getCalendarBusyWindowsWithStatus,
+  updateCalendarEventForBooking,
+  deleteCalendarEventsForBooking,
 } from "@/lib/calendar/busy-windows";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
 
@@ -54,6 +59,10 @@ export type BookingRecord = {
   } | null;
 };
 
+const MAX_RESCHEDULES = 3;
+const isCancelledStatus = (status?: string | null) =>
+  Boolean(status && status.startsWith("cancelled"));
+
 async function requireTutor() {
   const supabase = await createClient();
   const {
@@ -82,6 +91,158 @@ async function ensureConversationThread(
   if (error && error.code !== "23505") {
     console.error("Failed to create conversation thread:", error);
   }
+}
+
+async function checkAdvanceBookingWindow(params: {
+  adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>;
+  tutorId: string;
+  scheduledAt: string;
+  timezone?: string | null;
+}): Promise<{ ok: true } | { error: string }> {
+  const { adminClient, tutorId, scheduledAt, timezone } = params;
+
+  const { data: profile, error } = await adminClient
+    .from("profiles")
+    .select("advance_booking_days_min, advance_booking_days_max")
+    .eq("id", tutorId)
+    .single();
+
+  if (error) {
+    console.error("[Bookings] Failed to load booking window settings", error);
+    return { error: "Unable to validate booking window. Please try again." };
+  }
+
+  const minDays = profile?.advance_booking_days_min ?? 0;
+  const maxDays = profile?.advance_booking_days_max ?? 365;
+  const now = new Date();
+  const scheduledDate = new Date(scheduledAt);
+  let zonedNow = now;
+  let zonedScheduled = scheduledDate;
+
+  if (timezone) {
+    try {
+      zonedNow = toZonedTime(now, timezone);
+      zonedScheduled = toZonedTime(scheduledDate, timezone);
+    } catch (timezoneError) {
+      console.warn("[Bookings] Invalid timezone for booking window check", timezoneError);
+    }
+  }
+
+  const daysAhead = differenceInCalendarDays(startOfDay(zonedScheduled), startOfDay(zonedNow));
+
+  if (daysAhead < minDays) {
+    return {
+      error: `Bookings must be at least ${minDays} day${minDays === 1 ? "" : "s"} in advance.`,
+    };
+  }
+
+  if (daysAhead > maxDays) {
+    return {
+      error: `Bookings cannot be more than ${maxDays} day${maxDays === 1 ? "" : "s"} in advance.`,
+    };
+  }
+
+  return { ok: true };
+}
+
+async function checkBookingLimits(params: {
+  adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>;
+  tutorId: string;
+  scheduledAt: string;
+  timezone?: string | null;
+  excludeBookingId?: string;
+}): Promise<{ ok: true } | { error: string }> {
+  const { adminClient, tutorId, scheduledAt, timezone, excludeBookingId } = params;
+
+  const { data: profile, error } = await adminClient
+    .from("profiles")
+    .select("max_lessons_per_day, max_lessons_per_week")
+    .eq("id", tutorId)
+    .single();
+
+  if (error) {
+    console.error("[Bookings] Failed to load booking limits", error);
+    return { error: "Unable to validate booking limits. Please try again." };
+  }
+
+  const maxDaily = profile?.max_lessons_per_day ?? null;
+  const maxWeekly = profile?.max_lessons_per_week ?? null;
+
+  if (!maxDaily && !maxWeekly) {
+    return { ok: true };
+  }
+
+  const scheduledDate = new Date(scheduledAt);
+  let zonedScheduled = scheduledDate;
+  if (timezone) {
+    try {
+      zonedScheduled = toZonedTime(scheduledDate, timezone);
+    } catch (timezoneError) {
+      console.warn("[Bookings] Invalid timezone for booking limit check", timezoneError);
+    }
+  }
+  const dayStartZoned = startOfDay(zonedScheduled);
+  const dayEndZoned = endOfDay(zonedScheduled);
+  const weekStartZoned = startOfWeek(zonedScheduled, { weekStartsOn: 0 });
+  const weekEndZoned = endOfWeek(zonedScheduled, { weekStartsOn: 0 });
+
+  let dayStart = dayStartZoned;
+  let dayEnd = dayEndZoned;
+  let weekStart = weekStartZoned;
+  let weekEnd = weekEndZoned;
+
+  if (timezone) {
+    try {
+      dayStart = fromZonedTime(dayStartZoned, timezone);
+      dayEnd = fromZonedTime(dayEndZoned, timezone);
+      weekStart = fromZonedTime(weekStartZoned, timezone);
+      weekEnd = fromZonedTime(weekEndZoned, timezone);
+    } catch (timezoneError) {
+      console.warn("[Bookings] Invalid timezone for booking limit boundaries", timezoneError);
+    }
+  }
+
+  const buildCountQuery = (start: Date, end: Date) => {
+    let query = adminClient
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("tutor_id", tutorId)
+      .in("status", ["pending", "confirmed"])
+      .gte("scheduled_at", start.toISOString())
+      .lte("scheduled_at", end.toISOString());
+
+    if (excludeBookingId) {
+      query = query.neq("id", excludeBookingId);
+    }
+
+    return query;
+  };
+
+  if (maxDaily) {
+    const { count: dailyCount, error: dailyError } = await buildCountQuery(dayStart, dayEnd);
+    if (dailyError) {
+      console.error("[Bookings] Failed to check daily booking limit", dailyError);
+      return { error: "Unable to validate daily booking limit. Please try again." };
+    }
+
+    if ((dailyCount ?? 0) >= maxDaily) {
+      return { error: `This tutor has reached the daily booking limit (${maxDaily}).` };
+    }
+  }
+
+  if (maxWeekly) {
+    const { count: weeklyCount, error: weeklyError } = await buildCountQuery(weekStart, weekEnd);
+    if (weeklyError) {
+      console.error("[Bookings] Failed to check weekly booking limit", weeklyError);
+      return { error: "Unable to validate weekly booking limit. Please try again." };
+    }
+
+    if ((weeklyCount ?? 0) >= maxWeekly) {
+      return { error: `This tutor has reached the weekly booking limit (${maxWeekly}).` };
+    }
+  }
+
+  return { ok: true };
 }
 
 export async function listBookings(): Promise<BookingRecord[]> {
@@ -131,6 +292,36 @@ export async function checkSlotAvailabilityForTutor(params: {
   const end = new Date(start.getTime() + params.durationMinutes * 60000);
   const windowStart = new Date(start.getTime() - 3 * 60 * 60000);
   const windowEnd = new Date(end.getTime() + 3 * 60 * 60000);
+
+  const { data: tutorProfile } = await adminClient
+    .from("profiles")
+    .select("timezone")
+    .eq("id", params.tutorId)
+    .single();
+
+  const tutorTimezone = tutorProfile?.timezone ?? "UTC";
+
+  const bookingWindow = await checkAdvanceBookingWindow({
+    adminClient,
+    tutorId: params.tutorId,
+    scheduledAt: params.startISO,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingWindow) {
+    return { error: bookingWindow.error };
+  }
+
+  const bookingLimits = await checkBookingLimits({
+    adminClient,
+    tutorId: params.tutorId,
+    scheduledAt: params.startISO,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingLimits) {
+    return { error: bookingLimits.error };
+  }
 
   const { data: bookings } = await adminClient
     .from("bookings")
@@ -222,6 +413,36 @@ export async function createBooking(input: CreateBookingInput) {
     };
   }
 
+  const { data: tutorProfile } = await adminClient
+    .from("profiles")
+    .select("timezone, max_lessons_per_day, max_lessons_per_week, advance_booking_days_min, advance_booking_days_max")
+    .eq("id", user.id)
+    .single();
+
+  const tutorTimezone = tutorProfile?.timezone || input.timezone || "UTC";
+
+  const bookingWindow = await checkAdvanceBookingWindow({
+    adminClient,
+    tutorId: user.id,
+    scheduledAt: input.scheduled_at,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingWindow) {
+    return { error: bookingWindow.error };
+  }
+
+  const bookingLimits = await checkBookingLimits({
+    adminClient,
+    tutorId: user.id,
+    scheduledAt: input.scheduled_at,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingLimits) {
+    return { error: bookingLimits.error };
+  }
+
   // Create the booking atomically to avoid race conditions
   const { data: bookingResult, error: bookingError } = await adminClient.rpc(
     "create_booking_atomic",
@@ -231,7 +452,7 @@ export async function createBooking(input: CreateBookingInput) {
       p_service_id: input.service_id,
       p_scheduled_at: input.scheduled_at,
       p_duration_minutes: input.duration_minutes,
-      p_timezone: input.timezone,
+      p_timezone: tutorTimezone,
       p_status: "confirmed",
       p_payment_status: "unpaid",
       p_payment_amount: 0,
@@ -299,6 +520,34 @@ export async function createBooking(input: CreateBookingInput) {
 
   if (error) {
     return { error: "We couldn't load the new booking. Please try again." };
+  }
+
+  try {
+    const student = Array.isArray(data.students) ? data.students[0] : data.students;
+    const service = Array.isArray(data.services) ? data.services[0] : data.services;
+    const studentName = student?.full_name ?? "Student";
+    const serviceName = service?.name ?? "Lesson";
+    const startDate = new Date(data.scheduled_at);
+    const endDate = new Date(startDate.getTime() + data.duration_minutes * 60000);
+
+    const descriptionLines = [
+      `TutorLingua booking - ${serviceName}`,
+      `Student: ${studentName}`,
+      `Booking ID: ${data.id}`,
+    ];
+
+    await createCalendarEventForBooking({
+      tutorId: user.id,
+      bookingId: data.id,
+      title: `${serviceName} with ${studentName}`,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      description: descriptionLines.join("\n"),
+      studentEmail: student?.email ?? undefined,
+      timezone: tutorTimezone,
+    });
+  } catch (calendarError) {
+    console.error("[createBooking] Failed to create calendar event", calendarError);
   }
 
   return { data };
@@ -418,6 +667,28 @@ export async function createBookingAndCheckout(params: {
     const bufferMinutes = tutorSettings?.buffer_time_minutes ?? 0;
     const tutorTimezone = tutorSettings?.timezone || params.timezone;
 
+    const bookingWindow = await checkAdvanceBookingWindow({
+      adminClient,
+      tutorId: params.tutorId,
+      scheduledAt: params.scheduledAt,
+      timezone: tutorTimezone,
+    });
+
+    if ("error" in bookingWindow) {
+      return { error: bookingWindow.error };
+    }
+
+    const bookingLimits = await checkBookingLimits({
+      adminClient,
+      tutorId: params.tutorId,
+      scheduledAt: params.scheduledAt,
+      timezone: tutorTimezone,
+    });
+
+    if ("error" in bookingLimits) {
+      return { error: bookingLimits.error };
+    }
+
     // 1. Get tutor's availability to validate booking
     const { data: availability } = await adminClient
       .from("availability")
@@ -463,6 +734,7 @@ export async function createBookingAndCheckout(params: {
       existingBookings: existingBookings || [],
       bufferMinutes,
       busyWindows,
+      timezone: tutorTimezone,
     });
 
     if (!validation.isValid) {
@@ -919,6 +1191,7 @@ export async function createBookingAndCheckout(params: {
 
         createCalendarEventForBooking({
           tutorId: params.tutorId,
+          bookingId: booking.id,
           title: eventTitle,
           start: startDate.toISOString(),
           end: endDate.toISOString(),
@@ -1056,7 +1329,8 @@ export async function markBookingAsPaid(bookingId: string) {
         services (
           name,
           price_amount,
-          price_currency
+          price_currency,
+          duration_minutes
         ),
         students (
           full_name,
@@ -1124,6 +1398,33 @@ export async function markBookingAsPaid(bookingId: string) {
     });
   }
 
+  try {
+    const serviceName = service?.name ?? "Lesson";
+    const studentName = student?.full_name ?? "Student";
+    const startDate = new Date(booking.scheduled_at);
+    const durationMinutes = service?.duration_minutes ?? 60;
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+
+    const descriptionLines = [
+      `TutorLingua booking - ${serviceName}`,
+      `Student: ${studentName}`,
+      `Booking ID: ${bookingId}`,
+    ];
+
+    await createCalendarEventForBooking({
+      tutorId: user.id,
+      bookingId,
+      title: `${serviceName} with ${studentName}`,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      description: descriptionLines.join("\n"),
+      studentEmail: studentEmail || undefined,
+      timezone: booking.timezone ?? "UTC",
+    });
+  } catch (calendarError) {
+    console.error("[markBookingAsPaid] Failed to create calendar event", calendarError);
+  }
+
   return { success: true };
 }
 
@@ -1137,6 +1438,8 @@ export async function rescheduleBooking(params: {
   newStart: string;
   durationMinutes?: number;
   timezone?: string;
+  requestedBy?: "tutor" | "student";
+  reason?: string | null;
 }) {
   const supabase = await createClient();
   const adminClient = createServiceRoleClient();
@@ -1164,6 +1467,7 @@ export async function rescheduleBooking(params: {
       duration_minutes,
       status,
       timezone,
+      reschedule_count,
       payment_status,
       payment_amount,
       currency,
@@ -1200,9 +1504,25 @@ export async function rescheduleBooking(params: {
     return { error: "You are not allowed to move this booking." };
   }
 
+  if (isCancelledStatus(booking.status)) {
+    return { error: "Cannot reschedule a cancelled booking." };
+  }
+
+  if (booking.status === "completed") {
+    return { error: "Cannot reschedule a completed booking." };
+  }
+
+  if (new Date(booking.scheduled_at) < new Date()) {
+    return { error: "Cannot reschedule a past booking." };
+  }
+
+  if ((booking.reschedule_count ?? 0) >= MAX_RESCHEDULES) {
+    return { error: `Maximum reschedules (${MAX_RESCHEDULES}) reached.` };
+  }
+
   const { data: tutorProfile } = await adminClient
     .from("profiles")
-    .select("buffer_time_minutes, timezone, full_name, email")
+    .select("buffer_time_minutes, timezone, full_name, email, advance_booking_days_min, advance_booking_days_max, max_lessons_per_day, max_lessons_per_week")
     .eq("id", booking.tutor_id)
     .single();
 
@@ -1265,6 +1585,30 @@ export async function rescheduleBooking(params: {
     meetingProvider: booking.meeting_provider ?? null,
   };
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+  const requestedBy = params.requestedBy ?? (isTutor ? "tutor" : "student");
+
+  const bookingWindow = await checkAdvanceBookingWindow({
+    adminClient,
+    tutorId: booking.tutor_id,
+    scheduledAt: params.newStart,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingWindow) {
+    return { error: bookingWindow.error };
+  }
+
+  const bookingLimits = await checkBookingLimits({
+    adminClient,
+    tutorId: booking.tutor_id,
+    scheduledAt: params.newStart,
+    timezone: tutorTimezone,
+    excludeBookingId: params.bookingId,
+  });
+
+  if ("error" in bookingLimits) {
+    return { error: bookingLimits.error };
+  }
 
   const validation = validateBooking({
     scheduledAt: params.newStart,
@@ -1273,6 +1617,7 @@ export async function rescheduleBooking(params: {
     existingBookings: existingBookings || [],
     bufferMinutes,
     busyWindows,
+    timezone: tutorTimezone,
   });
 
   if (!validation.isValid) {
@@ -1285,6 +1630,10 @@ export async function rescheduleBooking(params: {
       scheduled_at: params.newStart,
       duration_minutes: durationMinutes,
       timezone: tutorTimezone,
+      reschedule_count: (booking.reschedule_count ?? 0) + 1,
+      reschedule_requested_at: new Date().toISOString(),
+      reschedule_requested_by: requestedBy,
+      reschedule_reason: params.reason ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.bookingId)
@@ -1297,12 +1646,15 @@ export async function rescheduleBooking(params: {
   }
 
   try {
+    const updatedStudent = Array.isArray(updated.students) ? updated.students[0] : updated.students;
+    const updatedService = Array.isArray(updated.services) ? updated.services[0] : updated.services;
+
     await sendBookingRescheduledEmails({
-      studentEmail: updated.students?.email,
+      studentEmail: updatedStudent?.email,
       tutorEmail: tutorProfile?.email,
-      studentName: updated.students?.full_name ?? "Student",
+      studentName: updatedStudent?.full_name ?? "Student",
       tutorName: tutorProfile?.full_name ?? "Your tutor",
-      serviceName: updated.services?.name ?? "Lesson",
+      serviceName: updatedService?.name ?? "Lesson",
       oldScheduledAt: previousSchedule.scheduledAt,
       newScheduledAt: updated.scheduled_at,
       timezone: updated.timezone ?? tutorTimezone,
@@ -1314,6 +1666,47 @@ export async function rescheduleBooking(params: {
   } catch (emailError) {
     console.error("[rescheduleBooking] Failed to send reschedule emails", emailError);
   }
+
+  try {
+    const updatedStudent = Array.isArray(updated.students) ? updated.students[0] : updated.students;
+    const updatedService = Array.isArray(updated.services) ? updated.services[0] : updated.services;
+    const studentName = updatedStudent?.full_name ?? "Student";
+    const serviceName = updatedService?.name ?? "Lesson";
+    const startDate = new Date(updated.scheduled_at);
+    const previousStart = new Date(previousSchedule.scheduledAt);
+    const previousEnd = new Date(
+      previousStart.getTime() + (previousSchedule.durationMinutes ?? durationMinutes) * 60000
+    );
+    const endDate = new Date(
+      startDate.getTime() + (updated.duration_minutes ?? durationMinutes) * 60000
+    );
+
+    const descriptionLines = [
+      `TutorLingua booking - ${serviceName}`,
+      `Student: ${studentName}`,
+      `Booking ID: ${updated.id}`,
+    ];
+
+    await updateCalendarEventForBooking({
+      tutorId: booking.tutor_id,
+      bookingId: updated.id,
+      title: `${serviceName} with ${studentName}`,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      previousStart: previousStart.toISOString(),
+      previousEnd: previousEnd.toISOString(),
+      description: descriptionLines.join("\n"),
+      studentEmail: updatedStudent?.email ?? undefined,
+      timezone: updated.timezone ?? tutorTimezone,
+      createIfMissing: updated.status === "confirmed" || updated.status === "completed",
+    });
+  } catch (calendarError) {
+    console.error("[rescheduleBooking] Failed to update calendar event", calendarError);
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/calendar");
+  revalidatePath("/student/bookings");
 
   return { success: true, booking: updated };
 }
@@ -1481,9 +1874,11 @@ export async function cancelBooking(bookingId: string) {
         tutor_id,
         status,
         scheduled_at,
+        duration_minutes,
         timezone,
         services (
-          name
+          name,
+          duration_minutes
         ),
         students (
           full_name,
@@ -1509,8 +1904,13 @@ export async function cancelBooking(bookingId: string) {
   const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
   const tutorProfile = Array.isArray(booking.tutor) ? booking.tutor[0] : booking.tutor;
   const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+  const studentName = student?.full_name ?? "Student";
+  const serviceName = service?.name ?? "Lesson";
+  const durationMinutes = booking.duration_minutes ?? service?.duration_minutes ?? 60;
+  const startDate = new Date(booking.scheduled_at);
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
 
-  if (booking.status === "cancelled") {
+  if (isCancelledStatus(booking.status)) {
     return { error: "Booking is already cancelled." };
   }
 
@@ -1519,9 +1919,12 @@ export async function cancelBooking(bookingId: string) {
     .from("bookings")
     .update({
       status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: "tutor",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", bookingId);
+    .eq("id", bookingId)
+    .eq("tutor_id", user.id);
 
   if (updateError) {
     console.error("Failed to cancel booking:", updateError);
@@ -1537,13 +1940,20 @@ export async function cancelBooking(bookingId: string) {
     // Don't fail the cancellation if refund fails - just log it
   }
 
+  const { refundSubscriptionLesson } = await import("@/lib/actions/lesson-subscriptions");
+  const subscriptionRefund = await refundSubscriptionLesson(bookingId);
+
+  if (!subscriptionRefund.success) {
+    console.warn("Failed to refund subscription lesson:", subscriptionRefund.error);
+  }
+
   const studentEmail = student?.email;
   if (studentEmail) {
     await sendBookingCancelledEmail({
-      studentName: student?.full_name ?? "Student",
+      studentName,
       studentEmail,
       tutorName: tutorProfile?.full_name ?? "Your tutor",
-      serviceName: service?.name ?? "Lesson",
+      serviceName,
       scheduledAt: booking.scheduled_at,
       timezone: booking.timezone ?? "UTC",
     });
@@ -1553,8 +1963,8 @@ export async function cancelBooking(bookingId: string) {
     await sendTutorCancellationEmail({
       tutorEmail: tutorProfile?.email ?? null,
       tutorName: tutorProfile?.full_name ?? "Tutor",
-      studentName: student?.full_name ?? "Student",
-      serviceName: service?.name ?? "Lesson",
+      studentName,
+      serviceName,
       scheduledAt: booking.scheduled_at,
       timezone: booking.timezone ?? "UTC",
       rescheduleUrl: `${(process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").replace(/\/$/, "")}/bookings`,
@@ -1581,7 +1991,7 @@ export async function cancelBooking(bookingId: string) {
           userId: studentRecord.user_id,
           userRole: "student",
           otherPartyName: tutorProfile?.full_name ?? "Your tutor",
-          serviceName: service?.name ?? "Lesson",
+          serviceName,
           scheduledAt: booking.scheduled_at,
           bookingId,
         });
@@ -1590,6 +2000,24 @@ export async function cancelBooking(bookingId: string) {
       console.error("[cancelBooking] notification error:", notificationError);
     }
   }
+
+  try {
+    await deleteCalendarEventsForBooking({
+      tutorId: user.id,
+      bookingId,
+      match: {
+        title: `${serviceName} with ${studentName}`,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+      },
+    });
+  } catch (calendarError) {
+    console.error("[cancelBooking] Failed to delete calendar event", calendarError);
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/calendar");
+  revalidatePath("/student/bookings");
 
   return { success: true };
 }

@@ -120,7 +120,7 @@ async function fetchTutorLinguaBookings(
     .eq("tutor_id", tutorId)
     .gte("scheduled_at", start.toISOString())
     .lte("scheduled_at", end.toISOString())
-    .neq("status", "cancelled")
+    .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")')
     .order("scheduled_at", { ascending: true });
 
   if (error) {

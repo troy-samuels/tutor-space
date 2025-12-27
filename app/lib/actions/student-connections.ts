@@ -918,7 +918,7 @@ export async function getTutorBookings(tutorId: string): Promise<{
     .eq("tutor_id", tutorId)
     .gte("scheduled_at", startDate.toISOString())
     .lte("scheduled_at", endDate.toISOString())
-    .not("status", "in", '("cancelled_by_tutor","cancelled_by_student")');
+    .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")');
 
   return { bookings: bookings || [] };
 }

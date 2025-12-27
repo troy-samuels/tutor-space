@@ -254,8 +254,8 @@ export function CalendarPageClient({
 
   const containerHeightClass =
     view === "month"
-      ? "lg:min-h-[calc(100vh-4rem)]"
-      : "lg:h-[calc(100vh-4rem)]";
+      ? "h-[calc(100vh-11.5rem-env(safe-area-inset-bottom))] lg:h-[calc(100vh-8rem)]"
+      : "h-[calc(100vh-11.5rem-env(safe-area-inset-bottom))] lg:h-[calc(100vh-8rem)]";
 
   const primaryTimezone = useMemo(
     () => tutorTimezone || detectUserTimezone(),
@@ -349,6 +349,7 @@ export function CalendarPageClient({
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setView(value)}
+                    data-testid={`calendar-view-${value}`}
                     className={[
                       "relative flex items-center gap-1.5 px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                       isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -423,16 +424,13 @@ export function CalendarPageClient({
 
       {/* Main Content Area - Calendar + Sidebar */}
       <div
-        className={[
-          "flex min-h-0 flex-col overflow-y-auto bg-background/40 transition-all duration-300 lg:flex-row",
-          view !== "month" ? "flex-1" : "",
-        ].join(" ")}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40 transition-all duration-300 lg:flex-row"
       >
         {/* Calendar Views */}
         <div
           className={[
-            "relative flex-1 min-w-0 px-4 py-6 transition-all duration-300 sm:px-6 lg:flex-[2] lg:px-8",
-            view === "month" ? "overflow-visible" : "overflow-x-auto",
+            "relative flex-1 min-w-0 min-h-0 flex flex-col px-4 py-4 transition-all duration-300 sm:px-6 lg:flex-[2] lg:px-8",
+            view === "month" ? "overflow-hidden" : "overflow-x-auto overflow-y-auto",
           ].join(" ")}
         >
           {view === "month" && (

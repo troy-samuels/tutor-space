@@ -512,12 +512,14 @@ function googleDateToIso(value?: { dateTime?: string; date?: string } | null): s
 // Calendar event creation params
 export type CreateCalendarEventParams = {
   tutorId: string;
+  bookingId?: string;
   title: string;
   start: string; // ISO datetime
   end: string; // ISO datetime
   description?: string;
   studentEmail?: string;
   timezone?: string; // IANA timezone (e.g., "America/New_York")
+  forceCreate?: boolean;
 };
 
 /**
@@ -531,6 +533,49 @@ export async function createCalendarEventForBooking(
   if (!adminClient) {
     console.warn("[CalendarEvent] Service role client unavailable.");
     return { success: false, error: "Service unavailable" };
+  }
+
+  if (params.bookingId && !params.forceCreate) {
+    const { data: existing, error: existingError } = await adminClient
+      .from("calendar_events")
+      .select("id")
+      .eq("tutor_id", params.tutorId)
+      .eq("booking_id", params.bookingId)
+      .is("deleted_at", null)
+      .limit(1);
+
+    if (existingError) {
+      console.error("[CalendarEvent] Failed to check existing booking events", existingError);
+    } else if (existing && existing.length > 0) {
+      return { success: true };
+    }
+
+    const { data: legacyMatch, error: legacyError } = await adminClient
+      .from("calendar_events")
+      .select("id")
+      .eq("tutor_id", params.tutorId)
+      .is("booking_id", null)
+      .is("deleted_at", null)
+      .eq("start_at", params.start)
+      .eq("end_at", params.end)
+      .ilike("summary", `${params.title}%`)
+      .limit(1);
+
+    if (legacyError) {
+      console.error("[CalendarEvent] Failed to check legacy events", legacyError);
+    } else if (legacyMatch && legacyMatch.length > 0) {
+      const nowIso = new Date().toISOString();
+      const { error: linkError } = await adminClient
+        .from("calendar_events")
+        .update({ booking_id: params.bookingId, updated_at: nowIso })
+        .eq("id", legacyMatch[0].id);
+
+      if (linkError) {
+        console.error("[CalendarEvent] Failed to link legacy event", linkError);
+      }
+
+      return { success: true };
+    }
   }
 
   const { data, error } = await fetchCalendarConnections(
@@ -629,11 +674,12 @@ export async function createCalendarEventForBooking(
 
   if (eventsToPersist.length > 0) {
     const nowIso = new Date().toISOString();
-    const upsertPayload = eventsToPersist.map((evt) => ({
-      tutor_id: params.tutorId,
-      provider: evt.provider,
-      provider_account_id: evt.providerAccountId,
-      provider_event_id: evt.providerEventId,
+      const upsertPayload = eventsToPersist.map((evt) => ({
+        tutor_id: params.tutorId,
+        booking_id: params.bookingId ?? null,
+        provider: evt.provider,
+        provider_account_id: evt.providerAccountId,
+        provider_event_id: evt.providerEventId,
       calendar_id: evt.calendarId,
       recurrence_master_id: evt.recurrenceMasterId,
       recurrence_instance_start: evt.recurrenceInstanceStart,
@@ -658,6 +704,618 @@ export async function createCalendarEventForBooking(
   }
 
   return { success: false, error: lastError || "No calendar to create event in" };
+}
+
+type BookingCalendarEventRecord = {
+  id: string;
+  provider: CalendarProvider;
+  provider_account_id?: string | null;
+  provider_event_id: string;
+  calendar_id?: string | null;
+};
+
+type ProviderUpdateResult =
+  | { event: ProviderEventResult }
+  | { notFound: true };
+
+type ProviderDeleteResult =
+  | { deleted: true }
+  | { notFound: true };
+
+export async function updateCalendarEventForBooking(
+  params: CreateCalendarEventParams & {
+    bookingId: string;
+    createIfMissing?: boolean;
+    previousStart?: string;
+    previousEnd?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    console.warn("[CalendarEvent] Service role client unavailable.");
+    return { success: false, error: "Service unavailable" };
+  }
+
+  const { data: existingEvents, error: existingError } = await adminClient
+    .from("calendar_events")
+    .select("id, provider, provider_account_id, provider_event_id, calendar_id")
+    .eq("tutor_id", params.tutorId)
+    .eq("booking_id", params.bookingId)
+    .is("deleted_at", null);
+
+  if (existingError) {
+    console.error("[CalendarEvent] Failed to load booking events", existingError);
+    return { success: false, error: "Failed to load calendar events" };
+  }
+
+  const nowIso = new Date().toISOString();
+  let resolvedEvents = (existingEvents as BookingCalendarEventRecord[] | null) ?? [];
+
+  if (
+    resolvedEvents.length === 0 &&
+    params.previousStart &&
+    params.previousEnd
+  ) {
+    const { data: legacyEvents, error: legacyError } = await adminClient
+      .from("calendar_events")
+      .select("id, provider, provider_account_id, provider_event_id, calendar_id")
+      .eq("tutor_id", params.tutorId)
+      .is("booking_id", null)
+      .is("deleted_at", null)
+      .eq("start_at", params.previousStart)
+      .eq("end_at", params.previousEnd)
+      .ilike("summary", `${params.title}%`);
+
+    if (legacyError) {
+      console.error("[CalendarEvent] Failed to load legacy booking events", legacyError);
+    } else if (legacyEvents && legacyEvents.length > 0) {
+      await adminClient
+        .from("calendar_events")
+        .update({ booking_id: params.bookingId, updated_at: nowIso })
+        .in("id", legacyEvents.map((event) => event.id));
+      resolvedEvents = legacyEvents as BookingCalendarEventRecord[];
+    }
+  }
+
+  if (resolvedEvents.length === 0) {
+    if (params.createIfMissing) {
+      const { createIfMissing, previousStart, previousEnd, ...createParams } = params;
+      return createCalendarEventForBooking({ ...createParams, forceCreate: true });
+    }
+    return { success: true };
+  }
+
+  const { data: connections, error: connectionsError } = await fetchCalendarConnections(
+    adminClient,
+    params.tutorId,
+    "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
+  );
+
+  if (connectionsError || !connections) {
+    console.error("[CalendarEvent] Failed to load calendar connections", connectionsError);
+    return { success: false, error: "Failed to load calendar connections" };
+  }
+
+  let updatedAny = false;
+  let lastError: string | undefined;
+
+  for (const record of resolvedEvents as BookingCalendarEventRecord[]) {
+    const connection =
+      connections.find(
+        (item) =>
+          item.provider === record.provider &&
+          (item.provider_account_id ?? null) === (record.provider_account_id ?? null)
+      ) ?? connections.find((item) => item.provider === record.provider);
+
+    if (!connection || connection.sync_enabled === false || (connection.sync_status && !SYNCABLE_STATUSES.has(connection.sync_status))) {
+      await adminClient
+        .from("calendar_events")
+        .update({
+          status: "cancelled",
+          deleted_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", record.id);
+      updatedAny = true;
+      continue;
+    }
+
+    const accessToken = await ensureFreshAccessToken(connection, adminClient);
+    if (!accessToken) {
+      lastError = "Failed to get access token";
+      continue;
+    }
+
+    try {
+      let updatedEvent: ProviderUpdateResult | null = null;
+      if (record.provider === "google") {
+        updatedEvent = await updateGoogleCalendarEvent(
+          accessToken,
+          record,
+          params
+        );
+      } else if (record.provider === "outlook") {
+        updatedEvent = await updateOutlookCalendarEvent(
+          accessToken,
+          record,
+          params
+        );
+      }
+
+      if (!updatedEvent) {
+        continue;
+      }
+
+      if ("notFound" in updatedEvent) {
+        if (params.createIfMissing) {
+          const recreated = await recreateProviderEvent(connection, params);
+          if (recreated) {
+            updatedAny = true;
+            await adminClient
+              .from("calendar_events")
+              .update({
+                provider_event_id: recreated.providerEventId,
+                calendar_id: recreated.calendarId ?? record.calendar_id ?? null,
+                start_at: recreated.start,
+                end_at: recreated.end,
+                summary: recreated.summary ?? params.title ?? null,
+                status: recreated.status ?? "confirmed",
+                recurrence_master_id: recreated.recurrenceMasterId ?? null,
+                recurrence_instance_start: recreated.recurrenceInstanceStart ?? recreated.start ?? null,
+                is_all_day: recreated.isAllDay ?? false,
+                deleted_at: null,
+                last_seen_at: nowIso,
+                updated_at: nowIso,
+              })
+              .eq("id", record.id);
+
+            await adminClient
+              .from("calendar_connections")
+              .update({
+                sync_status: "healthy",
+                last_synced_at: nowIso,
+                error_message: null,
+              })
+              .eq("id", connection.id);
+          } else {
+            await adminClient
+              .from("calendar_events")
+              .update({
+                status: "cancelled",
+                deleted_at: nowIso,
+                updated_at: nowIso,
+              })
+              .eq("id", record.id);
+          }
+        } else {
+          await adminClient
+            .from("calendar_events")
+            .update({
+              status: "cancelled",
+              deleted_at: nowIso,
+              updated_at: nowIso,
+            })
+            .eq("id", record.id);
+        }
+        continue;
+      }
+
+      const event = updatedEvent.event;
+      updatedAny = true;
+      await adminClient
+        .from("calendar_events")
+        .update({
+          start_at: event.start,
+          end_at: event.end,
+          summary: event.summary ?? params.title ?? null,
+          status: event.status ?? "confirmed",
+          deleted_at: null,
+          last_seen_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", record.id);
+
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "healthy",
+          last_synced_at: nowIso,
+          error_message: null,
+        })
+        .eq("id", connection.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update event";
+      lastError = message;
+      console.error("[CalendarEvent] Failed to update booking event:", err);
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "error",
+          error_message: message,
+        })
+        .eq("id", connection.id);
+    }
+  }
+
+  if (updatedAny) {
+    return { success: true };
+  }
+
+  return { success: false, error: lastError || "No calendar events updated" };
+}
+
+export async function deleteCalendarEventsForBooking(params: {
+  tutorId: string;
+  bookingId: string;
+  match?: {
+    title?: string;
+    start?: string;
+    end?: string;
+  };
+}): Promise<{ success: boolean; error?: string }> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    console.warn("[CalendarEvent] Service role client unavailable.");
+    return { success: false, error: "Service unavailable" };
+  }
+
+  const { data: existingEvents, error: existingError } = await adminClient
+    .from("calendar_events")
+    .select("id, provider, provider_account_id, provider_event_id, calendar_id")
+    .eq("tutor_id", params.tutorId)
+    .eq("booking_id", params.bookingId)
+    .is("deleted_at", null);
+
+  if (existingError) {
+    console.error("[CalendarEvent] Failed to load booking events", existingError);
+    return { success: false, error: "Failed to load calendar events" };
+  }
+
+  const nowIso = new Date().toISOString();
+  let resolvedEvents = (existingEvents as BookingCalendarEventRecord[] | null) ?? [];
+
+  if (
+    resolvedEvents.length === 0 &&
+    params.match?.start &&
+    params.match?.end &&
+    params.match?.title
+  ) {
+    const { data: legacyEvents, error: legacyError } = await adminClient
+      .from("calendar_events")
+      .select("id, provider, provider_account_id, provider_event_id, calendar_id")
+      .eq("tutor_id", params.tutorId)
+      .is("booking_id", null)
+      .is("deleted_at", null)
+      .eq("start_at", params.match.start)
+      .eq("end_at", params.match.end)
+      .ilike("summary", `${params.match.title}%`);
+
+    if (legacyError) {
+      console.error("[CalendarEvent] Failed to load legacy booking events", legacyError);
+    } else if (legacyEvents && legacyEvents.length > 0) {
+      await adminClient
+        .from("calendar_events")
+        .update({ booking_id: params.bookingId, updated_at: nowIso })
+        .in("id", legacyEvents.map((event) => event.id));
+      resolvedEvents = legacyEvents as BookingCalendarEventRecord[];
+    }
+  }
+
+  if (resolvedEvents.length === 0) {
+    return { success: true };
+  }
+
+  const { data: connections, error: connectionsError } = await fetchCalendarConnections(
+    adminClient,
+    params.tutorId,
+    "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
+  );
+
+  if (connectionsError || !connections) {
+    console.error("[CalendarEvent] Failed to load calendar connections", connectionsError);
+    return { success: false, error: "Failed to load calendar connections" };
+  }
+
+  let deletedAny = false;
+  let lastError: string | undefined;
+
+  for (const record of resolvedEvents as BookingCalendarEventRecord[]) {
+    const connection =
+      connections.find(
+        (item) =>
+          item.provider === record.provider &&
+          (item.provider_account_id ?? null) === (record.provider_account_id ?? null)
+      ) ?? connections.find((item) => item.provider === record.provider);
+
+    if (!connection || connection.sync_enabled === false || (connection.sync_status && !SYNCABLE_STATUSES.has(connection.sync_status))) {
+      await adminClient
+        .from("calendar_events")
+        .update({
+          status: "cancelled",
+          deleted_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", record.id);
+      deletedAny = true;
+      continue;
+    }
+
+    const accessToken = await ensureFreshAccessToken(connection, adminClient);
+    if (!accessToken) {
+      lastError = "Failed to get access token";
+      continue;
+    }
+
+    try {
+      let deleteResult: ProviderDeleteResult | null = null;
+      if (record.provider === "google") {
+        deleteResult = await deleteGoogleCalendarEvent(
+          accessToken,
+          record
+        );
+      } else if (record.provider === "outlook") {
+        deleteResult = await deleteOutlookCalendarEvent(
+          accessToken,
+          record
+        );
+      }
+
+      if (!deleteResult) {
+        continue;
+      }
+
+      deletedAny = true;
+      await adminClient
+        .from("calendar_events")
+        .update({
+          status: "cancelled",
+          deleted_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", record.id);
+
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "healthy",
+          last_synced_at: nowIso,
+          error_message: null,
+        })
+        .eq("id", connection.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete event";
+      lastError = message;
+      console.error("[CalendarEvent] Failed to delete booking event:", err);
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "error",
+          error_message: message,
+        })
+        .eq("id", connection.id);
+    }
+  }
+
+  if (deletedAny) {
+    return { success: true };
+  }
+
+  return { success: false, error: lastError || "No calendar events deleted" };
+}
+
+async function recreateProviderEvent(
+  connection: CalendarConnectionRecord,
+  params: CreateCalendarEventParams & { bookingId: string }
+): Promise<ProviderEventResult | null> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    return null;
+  }
+
+  const accessToken = await ensureFreshAccessToken(connection, adminClient);
+  if (!accessToken) {
+    return null;
+  }
+
+  if (connection.provider === "google") {
+    return createGoogleCalendarEvent(accessToken, params);
+  }
+
+  if (connection.provider === "outlook") {
+    return createOutlookCalendarEvent(accessToken, params);
+  }
+
+  return null;
+}
+
+async function updateGoogleCalendarEvent(
+  accessToken: string,
+  record: BookingCalendarEventRecord,
+  params: CreateCalendarEventParams
+): Promise<ProviderUpdateResult> {
+  const eventTimezone = params.timezone || "UTC";
+  const event = {
+    summary: params.title,
+    description: params.description || "Booked via TutorLingua",
+    start: {
+      dateTime: params.start,
+      timeZone: eventTimezone,
+    },
+    end: {
+      dateTime: params.end,
+      timeZone: eventTimezone,
+    },
+    attendees: params.studentEmail ? [{ email: params.studentEmail }] : undefined,
+    reminders: {
+      useDefault: true,
+    },
+  };
+
+  const calendarId = record.calendar_id || "primary";
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(record.provider_event_id)}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    }
+  );
+
+  if (response.status === 404 || response.status === 410) {
+    return { notFound: true };
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Google Calendar API error ${response.status}: ${errorText}`);
+  }
+
+  const eventData = await response.json();
+  const startIso = eventData?.start?.dateTime || eventData?.start?.date;
+  const endIso = eventData?.end?.dateTime || eventData?.end?.date;
+
+  if (!eventData?.id || !startIso || !endIso) {
+    throw new Error("Google Calendar API response missing event data");
+  }
+
+  return {
+    event: {
+      providerEventId: eventData.id as string,
+      calendarId: eventData?.organizer?.email ?? calendarId,
+      start: new Date(startIso).toISOString(),
+      end: new Date(endIso).toISOString(),
+      summary: eventData?.summary ?? params.title ?? null,
+      status: eventData?.status ?? "confirmed",
+      recurrenceMasterId: eventData?.recurringEventId ?? null,
+      recurrenceInstanceStart:
+        eventData?.originalStartTime?.dateTime ||
+        eventData?.originalStartTime?.date ||
+        startIso,
+      isAllDay: Boolean(eventData?.start?.date && !eventData?.start?.dateTime),
+    },
+  };
+}
+
+async function updateOutlookCalendarEvent(
+  accessToken: string,
+  record: BookingCalendarEventRecord,
+  params: CreateCalendarEventParams
+): Promise<ProviderUpdateResult> {
+  const eventTimezone = params.timezone || "UTC";
+  const event = {
+    subject: params.title,
+    body: {
+      contentType: "text",
+      content: params.description || "Booked via TutorLingua",
+    },
+    start: {
+      dateTime: params.start,
+      timeZone: eventTimezone,
+    },
+    end: {
+      dateTime: params.end,
+      timeZone: eventTimezone,
+    },
+  };
+
+  const response = await fetch(
+    `https://graph.microsoft.com/v1.0/me/events/${encodeURIComponent(record.provider_event_id)}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    }
+  );
+
+  if (response.status === 404 || response.status === 410) {
+    return { notFound: true };
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Microsoft Graph API error ${response.status}: ${errorText}`);
+  }
+
+  const eventData = await response.json();
+  const startIso = graphDateTimeToIso(eventData?.start);
+  const endIso = graphDateTimeToIso(eventData?.end);
+
+  if (!eventData?.id || !startIso || !endIso) {
+    throw new Error("Microsoft Graph API response missing event data");
+  }
+
+  return {
+    event: {
+      providerEventId: eventData.id as string,
+      calendarId: null,
+      start: startIso,
+      end: endIso,
+      summary: eventData?.subject ?? params.title ?? null,
+      status: eventData?.status ?? "confirmed",
+      recurrenceMasterId: eventData?.seriesMasterId ?? null,
+      recurrenceInstanceStart: startIso,
+      isAllDay: Boolean(eventData?.isAllDay),
+    },
+  };
+}
+
+async function deleteGoogleCalendarEvent(
+  accessToken: string,
+  record: BookingCalendarEventRecord
+): Promise<ProviderDeleteResult> {
+  const calendarId = record.calendar_id || "primary";
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(record.provider_event_id)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (response.status === 404 || response.status === 410) {
+    return { notFound: true };
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Google Calendar API error ${response.status}: ${errorText}`);
+  }
+
+  return { deleted: true };
+}
+
+async function deleteOutlookCalendarEvent(
+  accessToken: string,
+  record: BookingCalendarEventRecord
+): Promise<ProviderDeleteResult> {
+  const response = await fetch(
+    `https://graph.microsoft.com/v1.0/me/events/${encodeURIComponent(record.provider_event_id)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (response.status === 404 || response.status === 410) {
+    return { notFound: true };
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Microsoft Graph API error ${response.status}: ${errorText}`);
+  }
+
+  return { deleted: true };
 }
 
 async function createGoogleCalendarEvent(

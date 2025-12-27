@@ -128,7 +128,7 @@ export function PreJoinScreen({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
+    <div data-testid="classroom-prejoin" className="min-h-[100dvh] bg-background flex items-center justify-center p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:p-6">
       <div className="max-w-xl w-full space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-semibold text-foreground">
@@ -238,6 +238,7 @@ export function PreJoinScreen({
         <Button
           onClick={handleJoin}
           size="lg"
+          data-testid="classroom-join-button"
           className="w-full rounded-full h-14 text-lg"
         >
           Join Lesson

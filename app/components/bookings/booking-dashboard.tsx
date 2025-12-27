@@ -803,12 +803,13 @@ function BookingListItem({
   const isPaid = booking.payment_status === "paid";
   const isPendingPayment = booking.payment_status === "unpaid";
   const isConfirmed = booking.status === "confirmed";
+  const isCancelled = booking.status?.startsWith("cancelled");
   const [showRefund, setShowRefund] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundBusy, setRefundBusy] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
 
-  const canReschedule = booking.status !== "cancelled" &&
+  const canReschedule = !isCancelled &&
     booking.status !== "completed" &&
     new Date(booking.scheduled_at) > new Date();
 

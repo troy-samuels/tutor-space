@@ -83,8 +83,14 @@ export async function getStudentPracticeAccess(
     return { hasAccess: false, reason: "no_tutor" };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tutorProfile = student.profiles as any;
+  const profileRaw = Array.isArray(student.profiles)
+    ? student.profiles[0]
+    : student.profiles;
+  const tutorProfile = profileRaw as {
+    full_name?: string | null;
+    tier?: string | null;
+    plan?: string | null;
+  } | null;
   const plan =
     (tutorProfile?.plan as PlatformBillingPlan | null) ?? "professional";
   const hasStudio =

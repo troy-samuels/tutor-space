@@ -1,4 +1,5 @@
 import { parseISO, addMinutes, areIntervalsOverlapping } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 type Booking = {
   id?: string;
@@ -16,6 +17,9 @@ export interface ConflictCheck {
   };
   message?: string;
 }
+
+const isCancelledStatus = (status?: string | null) =>
+  Boolean(status && status.startsWith("cancelled"));
 
 /**
  * Check if a new booking would conflict with existing bookings
@@ -36,10 +40,7 @@ export function checkBookingConflict(
 
   for (const booking of existingBookings) {
     // Skip cancelled bookings
-    if (
-      booking.status === "cancelled_by_tutor" ||
-      booking.status === "cancelled_by_student"
-    ) {
+    if (isCancelledStatus(booking.status)) {
       continue;
     }
 
@@ -91,17 +92,31 @@ export function checkWithinAvailability(
     start_time: string;
     end_time: string;
     is_available: boolean;
-  }>
+  }>,
+  timezone?: string
 ): { isWithinAvailability: boolean; message?: string } {
   const bookingStart = parseISO(scheduledAt);
   const bookingEnd = addMinutes(bookingStart, durationMinutes);
 
-  const dayOfWeek = bookingStart.getDay();
-  const bookingStartTime = `${String(bookingStart.getHours()).padStart(2, "0")}:${String(
-    bookingStart.getMinutes()
+  let zonedStart = bookingStart;
+  let zonedEnd = bookingEnd;
+
+  if (timezone) {
+    try {
+      zonedStart = toZonedTime(bookingStart, timezone);
+      zonedEnd = toZonedTime(bookingEnd, timezone);
+    } catch {
+      zonedStart = bookingStart;
+      zonedEnd = bookingEnd;
+    }
+  }
+
+  const dayOfWeek = zonedStart.getDay();
+  const bookingStartTime = `${String(zonedStart.getHours()).padStart(2, "0")}:${String(
+    zonedStart.getMinutes()
   ).padStart(2, "0")}`;
-  const bookingEndTime = `${String(bookingEnd.getHours()).padStart(2, "0")}:${String(
-    bookingEnd.getMinutes()
+  const bookingEndTime = `${String(zonedEnd.getHours()).padStart(2, "0")}:${String(
+    zonedEnd.getMinutes()
   ).padStart(2, "0")}`;
 
   // Find availability slots for this day
@@ -117,8 +132,11 @@ export function checkWithinAvailability(
   }
 
   // Check if booking fits within any availability slot
+  // Normalize times to HH:mm format (remove seconds if present)
   for (const slot of dayAvailability) {
-    if (bookingStartTime >= slot.start_time && bookingEndTime <= slot.end_time) {
+    const slotStart = slot.start_time.substring(0, 5); // "09:00:00" -> "09:00"
+    const slotEnd = slot.end_time.substring(0, 5);     // "17:00:00" -> "17:00"
+    if (bookingStartTime >= slotStart && bookingEndTime <= slotEnd) {
       return {
         isWithinAvailability: true,
       };
@@ -159,10 +177,7 @@ export function checkBufferTime(
 
   for (const booking of existingBookings) {
     // Skip cancelled bookings
-    if (
-      booking.status === "cancelled_by_tutor" ||
-      booking.status === "cancelled_by_student"
-    ) {
+    if (isCancelledStatus(booking.status)) {
       continue;
     }
 
@@ -251,6 +266,7 @@ export function validateBooking(params: {
   existingBookings: Partial<Booking>[];
   bufferMinutes?: number;
   busyWindows?: BusyWindow[];
+  timezone?: string;
 }): {
   isValid: boolean;
   errors: string[];
@@ -262,6 +278,7 @@ export function validateBooking(params: {
     existingBookings,
     bufferMinutes = 0,
     busyWindows = [],
+    timezone,
   } = params;
 
   const errors: string[] = [];
@@ -276,7 +293,8 @@ export function validateBooking(params: {
   const availabilityCheck = checkWithinAvailability(
     scheduledAt,
     durationMinutes,
-    availability
+    availability,
+    timezone
   );
   if (!availabilityCheck.isWithinAvailability && availabilityCheck.message) {
     errors.push(availabilityCheck.message);

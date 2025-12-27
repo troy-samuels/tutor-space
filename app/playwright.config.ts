@@ -10,9 +10,13 @@ const baseURL =
   process.env.NEXT_PUBLIC_APP_URL ||
   "http://localhost:3000";
 const baseURLPort = new URL(baseURL).port || "3000";
+const runFullMatrix =
+  process.env.CI === "true" || process.env.PLAYWRIGHT_FULL_MATRIX === "true";
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/fixtures/global-setup.ts",
+  globalTeardown: "./e2e/fixtures/global-teardown.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -26,11 +30,15 @@ export default defineConfig({
   projects: [
     // Desktop browsers
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
-    // Mobile browsers
-    { name: "mobile-chrome", use: { ...devices["Pixel 5"] } },
-    { name: "mobile-safari", use: { ...devices["iPhone 13"] } },
+    ...(runFullMatrix
+      ? [
+          { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+          { name: "webkit", use: { ...devices["Desktop Safari"] } },
+          // Mobile browsers
+          { name: "mobile-chrome", use: { ...devices["Pixel 5"] } },
+          { name: "mobile-safari", use: { ...devices["iPhone 13"] } },
+        ]
+      : []),
     // Feature-specific test suites
     {
       name: "studio",
@@ -66,6 +74,7 @@ export default defineConfig({
     timeout: 120000,
     env: {
       PORT: baseURLPort,
+      E2E_TEST_MODE: "true", // Enable test mode for classroom/LiveKit
     },
   },
 });

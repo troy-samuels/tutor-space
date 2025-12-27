@@ -303,6 +303,7 @@ export function ControlBar({
                 onClick={handleToggleRecording}
                 disabled={isRecordingLoading}
                 aria-label={isRecording ? "Stop recording" : "Start recording"}
+                data-testid={isRecording ? "classroom-record-stop" : "classroom-record-start"}
                 className={cn(
                   "h-10 w-10 rounded-full transition-all duration-300 relative overflow-hidden flex-shrink-0",
                   isRecording

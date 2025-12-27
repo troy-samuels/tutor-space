@@ -3,6 +3,7 @@ import { InviteSignupForm } from "@/components/invite/InviteSignupForm";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
 interface JoinPageProps {
@@ -94,9 +95,11 @@ export default async function JoinPage({ params }: JoinPageProps) {
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-8 text-center">
               {/* Avatar */}
               {tutorAvatarUrl ? (
-                <img
+                <Image
                   src={tutorAvatarUrl}
                   alt={tutorFullName || tutorUsername}
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-white shadow-lg object-cover"
                 />
               ) : (

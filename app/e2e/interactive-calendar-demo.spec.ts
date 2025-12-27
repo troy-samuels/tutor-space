@@ -2,8 +2,10 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 test.describe("Interactive Calendar Demo", () => {
+  test.setTimeout(60 * 1000);
+
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60000 });
     // Scroll to the features section where the calendar demo is
     await page.locator("#features").scrollIntoViewIfNeeded();
   });

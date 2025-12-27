@@ -15,6 +15,7 @@ import { AudioStage } from "@/components/classroom/AudioStage";
 import { StudioSidebar, type BookingInfo } from "@/components/classroom/StudioSidebar";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
 import { ConnectionToast } from "@/components/classroom/ConnectionToast";
+import { TestModeClassroom } from "@/components/classroom/TestModeClassroom";
 import { useLiveKitConnectionMonitor } from "@/lib/hooks/useLiveKitConnectionMonitor";
 
 function LiveKitConnectionWatcher({
@@ -38,6 +39,7 @@ export default function ClassroomClient() {
   const [token, setToken] = useState<string | null>(null);
   const [roomName, setRoomName] = useState<string | null>(null);
   const [isTutor, setIsTutor] = useState(false);
+  const [isTestMode, setIsTestMode] = useState(false);
   const [bookingInfo, setBookingInfo] = useState<BookingInfo | null>(null);
   const [error, setError] = useState<{
     message: string;
@@ -100,6 +102,7 @@ export default function ClassroomClient() {
         const data = await response.json();
         setToken(data.token);
         setIsTutor(data.isTutor ?? false);
+        setIsTestMode(data.isTestMode ?? false);
         setRoomName(data.roomName ?? bookingId);
         if (data.bookingInfo) {
           setBookingInfo(data.bookingInfo);
@@ -180,6 +183,17 @@ export default function ClassroomClient() {
   // No token (shouldn't happen if no error, but safety check)
   if (!token) {
     return null;
+  }
+
+  // E2E Test Mode: Render mock classroom UI
+  if (isTestMode) {
+    return (
+      <TestModeClassroom
+        bookingId={bookingId}
+        bookingInfo={bookingInfo ?? undefined}
+        isTutor={isTutor}
+      />
+    );
   }
 
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;

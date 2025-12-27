@@ -382,7 +382,7 @@ export function AIPracticeChat({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div data-testid="practice-chat-interface" className="flex h-full flex-col">
       {/* Limit Reached Overlay */}
       {showLimitOverlay && (
         <LimitReachedOverlay
@@ -456,6 +456,7 @@ export function AIPracticeChat({
               size="sm"
               onClick={handleEndSession}
               disabled={isLoading}
+              data-testid="practice-end-session"
             >
               End Session
             </Button>
@@ -820,12 +821,14 @@ export function AIPracticeChat({
                   placeholder={`Type in ${language}...`}
                   rows={1}
                   disabled={isLoading}
+                  data-testid="practice-message-input"
                   className="flex-1 resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                 />
                 <Button
                   onClick={() => handleSend()}
                   disabled={!input.trim() || isLoading}
                   size="icon"
+                  data-testid="practice-send-button"
                   className="h-10 w-10 shrink-0 rounded-xl"
                 >
                   {isLoading ? (

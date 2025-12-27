@@ -681,6 +681,7 @@ async function handleCheckoutSessionCompleted(
 
       createCalendarEventForBooking({
         tutorId,
+        bookingId,
         title: `${bookingDetails?.services?.name ?? "Lesson"} with ${bookingDetails?.students?.full_name ?? "Student"}`,
         start: startDate.toISOString(),
         end: endDate.toISOString(),

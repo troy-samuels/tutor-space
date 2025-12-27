@@ -78,7 +78,7 @@ test.describe("Smoke | Tutor golden path", () => {
       tagline: "Helping busy learners stay fluent every week",
       bio: "I specialize in practical conversation drills, cultural notes, and confidence building.",
       languages_taught: ["English"],
-      currency: "USD",
+      booking_currency: "USD",
     });
 
     if (profileError) {

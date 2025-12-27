@@ -66,6 +66,8 @@ export const BOOKING_STATUS = {
   CONFIRMED: "confirmed",
   /** Lesson has been completed */
   COMPLETED: "completed",
+  /** Booking cancelled */
+  CANCELLED: "cancelled",
   /** Booking cancelled by tutor */
   CANCELLED_BY_TUTOR: "cancelled_by_tutor",
   /** Booking cancelled by student */
@@ -142,6 +144,7 @@ export function isStudentActive(status: StudentStatus | null): boolean {
 
 export function isBookingCancelled(status: BookingStatus | null): boolean {
   return (
+    status === BOOKING_STATUS.CANCELLED ||
     status === BOOKING_STATUS.CANCELLED_BY_TUTOR ||
     status === BOOKING_STATUS.CANCELLED_BY_STUDENT
   );

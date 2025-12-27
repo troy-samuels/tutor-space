@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
 
@@ -93,6 +94,7 @@ export async function GET(
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
+                alt={`${name} avatar`}
                 width={180}
                 height={180}
                 style={{

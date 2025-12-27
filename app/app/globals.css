@@ -233,6 +233,16 @@ html {
   animation: shake 0.5s ease-in-out;
 }
 
+/* Hide scrollbars while preserving scroll behavior */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Range slider touch-friendly styling */
 input[type="range"] {
   -webkit-appearance: none;

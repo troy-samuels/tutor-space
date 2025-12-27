@@ -6,7 +6,8 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { ConversationMessage, ConversationThread } from "@/lib/actions/messaging";
 
 type UseRealtimeMessagesOptions = {
-  tutorId: string;
+  tutorId?: string;
+  studentIds?: string[];
   threadId?: string | null;
   onNewMessage?: (message: ConversationMessage) => void;
   onThreadUpdate?: (thread: Partial<ConversationThread> & { id: string }) => void;
@@ -14,6 +15,7 @@ type UseRealtimeMessagesOptions = {
 
 export function useRealtimeMessages({
   tutorId,
+  studentIds,
   threadId,
   onNewMessage,
   onThreadUpdate,
@@ -33,10 +35,12 @@ export function useRealtimeMessages({
   }, [onThreadUpdate]);
 
   useEffect(() => {
-    if (!tutorId) return;
+    const studentList = studentIds ?? [];
+    const studentIdsKey = studentList.join(",");
+    if (!tutorId && studentIdsKey.length === 0) return;
 
     const supabase = createClient();
-    const channelName = `messaging-${tutorId}-${threadId ?? "all"}`;
+    const channelName = `messaging-${tutorId ?? "student"}-${threadId ?? "all"}-${studentIdsKey || "none"}`;
     const channel = supabase.channel(channelName);
 
     // Listen to new messages in the specific thread
@@ -56,32 +60,64 @@ export function useRealtimeMessages({
     }
 
     // Listen to thread updates for sidebar
-    channel.on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "conversation_threads",
-        filter: `tutor_id=eq.${tutorId}`,
-      },
-      (payload) => {
-        onThreadUpdateRef.current?.(payload.new as Partial<ConversationThread> & { id: string });
-      }
-    );
+    if (tutorId) {
+      channel.on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversation_threads",
+          filter: `tutor_id=eq.${tutorId}`,
+        },
+        (payload) => {
+          onThreadUpdateRef.current?.(payload.new as Partial<ConversationThread> & { id: string });
+        }
+      );
 
-    // Also listen for new threads
-    channel.on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "conversation_threads",
-        filter: `tutor_id=eq.${tutorId}`,
-      },
-      (payload) => {
-        onThreadUpdateRef.current?.(payload.new as Partial<ConversationThread> & { id: string });
-      }
-    );
+      // Also listen for new threads
+      channel.on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "conversation_threads",
+          filter: `tutor_id=eq.${tutorId}`,
+        },
+        (payload) => {
+          onThreadUpdateRef.current?.(payload.new as Partial<ConversationThread> & { id: string });
+        }
+      );
+    }
+
+    if (studentList.length > 0) {
+      studentList.forEach((studentId) => {
+        channel.on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "conversation_threads",
+            filter: `student_id=eq.${studentId}`,
+          },
+          (payload) => {
+            onThreadUpdateRef.current?.(payload.new as Partial<ConversationThread> & { id: string });
+          }
+        );
+
+        channel.on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "conversation_threads",
+            filter: `student_id=eq.${studentId}`,
+          },
+          (payload) => {
+            onThreadUpdateRef.current?.(payload.new as Partial<ConversationThread> & { id: string });
+          }
+        );
+      });
+    }
 
     channel.subscribe();
     channelRef.current = channel;
@@ -90,7 +126,7 @@ export function useRealtimeMessages({
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [tutorId, threadId]);
+  }, [tutorId, threadId, studentIds]);
 
   return channelRef;
 }

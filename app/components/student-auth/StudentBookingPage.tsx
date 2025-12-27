@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CalendarX, Loader2, Search, Package, CreditCard, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,14 +46,7 @@ export function StudentBookingPage({ tutors, tutorsError }: StudentBookingPagePr
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-select tutor if only one
-  useEffect(() => {
-    if (tutors.length === 1 && !selectedTutorId) {
-      handleTutorSelect(tutors[0].id);
-    }
-  }, [tutors]);
-
-  const handleTutorSelect = (tutorId: string) => {
+  const handleTutorSelect = useCallback((tutorId: string) => {
     setSelectedTutorId(tutorId);
     setSelectedService(null);
     setSelectedSlot(null);
@@ -70,7 +63,14 @@ export function StudentBookingPage({ tutors, tutorsError }: StudentBookingPagePr
         setTutorDetails(result.data);
       }
     });
-  };
+  }, [startTransition]);
+
+  // Auto-select tutor if only one
+  useEffect(() => {
+    if (tutors.length === 1 && !selectedTutorId) {
+      handleTutorSelect(tutors[0].id);
+    }
+  }, [tutors, selectedTutorId, handleTutorSelect]);
 
   const handleServiceSelect = (service: SelectedService) => {
     if (!service || !selectedTutorId) return;

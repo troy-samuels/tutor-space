@@ -10,6 +10,7 @@ const eslintConfig = [{
     "**/.next/**",
     "**/out/**",
     "**/build/**",
+    "**/storybook-static/**",
     "**/playwright-report/**",
     "**/test-results/**",
     "next-env.d.ts",

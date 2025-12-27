@@ -358,7 +358,7 @@ test.describe("Page Builder", () => {
 
     test("passes axe accessibility checks for style controls", async ({ page }) => {
       // Wait for page to fully load
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const results = await new AxeBuilder({ page })
         .include("main")

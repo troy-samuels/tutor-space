@@ -485,6 +485,7 @@ export function HomeworkTab({ studentId, studentName, assignments, drafts = [], 
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={`What should ${studentName} work on?`}
                 rows={1}
+                data-testid="homework-composer-input"
                 className="flex-1 resize-none border-0 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none min-h-[36px]"
                 style={{ height: 'auto' }}
                 onInput={(e) => {
@@ -562,6 +563,7 @@ export function HomeworkTab({ studentId, studentName, assignments, drafts = [], 
                   type="button"
                   onClick={handleAssign}
                   disabled={!title.trim() || isPending}
+                  data-testid="homework-assign-button"
                   className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
                 >
                   {isPending ? (
@@ -868,6 +870,7 @@ export function HomeworkTab({ studentId, studentName, assignments, drafts = [], 
               return (
                 <motion.div
                   key={item.id}
+                  data-testid={`homework-item-${item.id}`}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03 }}
@@ -880,6 +883,7 @@ export function HomeworkTab({ studentId, studentName, assignments, drafts = [], 
                       whileTap={{ scale: 0.9 }}
                       onClick={() => toggleComplete(item.id, item.status)}
                       disabled={isPending}
+                      data-testid={`homework-complete-toggle-${item.id}`}
                       className="mt-0.5 flex-shrink-0"
                     >
                       <Circle className="h-5 w-5 text-muted-foreground/50 hover:text-primary transition-colors" />

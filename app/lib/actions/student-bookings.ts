@@ -299,7 +299,7 @@ export async function getStudentBookings(): Promise<{
       .select(selectClause)
       .in("student_id", studentIds)
       .gte("scheduled_at", new Date().toISOString())
-      .not("status", "in", '("cancelled_by_tutor","cancelled_by_student")')
+      .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")')
       .order("scheduled_at", { ascending: true });
 
   let { data: bookings, error } = await buildBookingsQuery(
@@ -556,7 +556,7 @@ export async function getAvailableSlots(
 
         // Check if slot conflicts with existing bookings
         const hasConflict = existingBookings.some((booking) => {
-          if (booking.status === "cancelled_by_tutor" || booking.status === "cancelled_by_student") {
+          if (booking.status?.startsWith("cancelled")) {
             return false;
           }
           const bookingStart = new Date(booking.scheduled_at);

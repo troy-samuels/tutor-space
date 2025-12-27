@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { MessageComposer } from "@/components/messaging/message-composer";
 import { MessageDisplay } from "@/components/messaging/message-display";
 import { useRealtimeMessages } from "@/lib/hooks/useRealtimeMessages";
+import { createClient } from "@/lib/supabase/client";
 import type { ConversationThread, ConversationMessage } from "@/lib/actions/messaging";
 
 type Props = {
@@ -26,6 +27,7 @@ export function RealtimeMessagesContainer({
 }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const activeThreadId = searchParams.get("thread") ?? initialActiveThreadId;
 
   const [threads, setThreads] = useState(initialThreads);
@@ -57,8 +59,25 @@ export function RealtimeMessagesContainer({
         if (prev.some((m) => m.id === newMessage.id)) return prev;
         return [...prev, newMessage];
       });
+
+      if (newMessage.sender_role === "student" && activeThreadId) {
+        setThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === activeThreadId ? { ...thread, tutor_unread: false } : thread
+          )
+        );
+        void supabase
+          .from("conversation_messages")
+          .update({ read_by_tutor: true })
+          .eq("thread_id", activeThreadId)
+          .eq("read_by_tutor", false);
+        void supabase
+          .from("conversation_threads")
+          .update({ tutor_unread: false })
+          .eq("id", activeThreadId);
+      }
     },
-    [activeThreadId]
+    [activeThreadId, supabase]
   );
 
   const handleThreadUpdate = useCallback(
@@ -66,12 +85,16 @@ export function RealtimeMessagesContainer({
       setThreads((prev) => {
         // Check if thread already exists
         const existingIndex = prev.findIndex((t) => t.id === updatedThread.id);
+        const normalizedThread =
+          updatedThread.id === activeThreadId
+            ? { ...updatedThread, tutor_unread: false }
+            : updatedThread;
 
         let newThreads: ConversationThread[];
         if (existingIndex >= 0) {
           // Update existing thread
           newThreads = prev.map((t) =>
-            t.id === updatedThread.id ? { ...t, ...updatedThread } : t
+            t.id === normalizedThread.id ? { ...t, ...normalizedThread } : t
           );
         } else {
           // New thread - add to list (will need full data from server eventually)
@@ -88,7 +111,7 @@ export function RealtimeMessagesContainer({
         });
       });
     },
-    [router]
+    [activeThreadId, router]
   );
 
   // Subscribe to realtime updates

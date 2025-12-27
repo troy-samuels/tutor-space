@@ -131,7 +131,7 @@ export function checkSlotConflict(
 ): boolean {
   return existingBookings.some((booking) => {
     // Skip cancelled bookings
-    if (booking.status === "cancelled_by_tutor" || booking.status === "cancelled_by_student") {
+    if (booking.status?.startsWith("cancelled")) {
       return false;
     }
 

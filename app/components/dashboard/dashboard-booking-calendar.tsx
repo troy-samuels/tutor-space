@@ -97,7 +97,7 @@ export function DashboardBookingCalendar({
   };
 
   return (
-    <section className="rounded-3xl border border-border bg-background/70 p-0 shadow-sm overflow-hidden">
+    <section data-testid="dashboard-calendar" className="flex-1 flex flex-col min-h-0 rounded-3xl border border-border bg-background/70 p-0 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-primary" />
@@ -111,6 +111,7 @@ export function DashboardBookingCalendar({
             type="button"
             onClick={handlePrev}
             disabled={!canGoPrev}
+            data-testid="calendar-nav-prev"
             className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -118,6 +119,7 @@ export function DashboardBookingCalendar({
           <button
             type="button"
             onClick={handleNext}
+            data-testid="calendar-nav-next"
             className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted"
           >
             <ChevronRight className="h-4 w-4" />
@@ -125,16 +127,30 @@ export function DashboardBookingCalendar({
         </div>
       </div>
 
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-7 text-center text-xs font-semibold text-muted-foreground">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-            <div key={day} className="py-2">
-              {day}
+      <div className="flex-1 flex flex-col min-h-0 px-4 pb-2">
+        <div data-testid="calendar-day-headers" className="grid grid-cols-7 text-center text-xs font-semibold text-muted-foreground shrink-0">
+          {[
+            { short: "S", full: "Sun" },
+            { short: "M", full: "Mon" },
+            { short: "T", full: "Tue" },
+            { short: "W", full: "Wed" },
+            { short: "T", full: "Thu" },
+            { short: "F", full: "Fri" },
+            { short: "S", full: "Sat" },
+          ].map(({ short, full }) => (
+            <div
+              key={full}
+              className="py-2"
+              aria-label={full}
+              data-testid={`calendar-header-${full.toLowerCase()}`}
+            >
+              <span className="sm:hidden">{short}</span>
+              <span className="hidden sm:inline">{full}</span>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7">
+        <div className="flex-1 grid grid-cols-7 auto-rows-fr min-h-0">
           {gridDates.map((date) => {
             const key = formatKey(date);
             const dayInfo = bookingsByDay[key];
@@ -158,7 +174,7 @@ export function DashboardBookingCalendar({
                 }}
                 disabled={disabled || !isCurrentMonth}
                 className={[
-                  "relative flex min-h-[110px] flex-col items-center justify-between rounded-2xl p-3 text-center text-sm font-medium transition-all",
+                  "relative flex h-full min-h-[60px] flex-col items-center justify-between rounded-2xl p-2 text-center text-sm font-medium transition-all",
                   isCurrentMonth ? "text-foreground" : "text-muted-foreground/40 cursor-default",
                   disabled ? "cursor-not-allowed opacity-40" : "",
                   "hover:bg-stone-100",
@@ -166,7 +182,7 @@ export function DashboardBookingCalendar({
               >
                 <div
                   className={[
-                    "flex h-9 w-9 items-center justify-center rounded-full text-base font-semibold",
+                    "flex h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-full text-sm sm:text-base font-semibold shrink-0",
                     isTodayDate ? "bg-primary text-white" : "text-foreground",
                     selected && !isTodayDate ? "ring-2 ring-primary/40" : "",
                   ].join(" ")}
@@ -174,19 +190,19 @@ export function DashboardBookingCalendar({
                   {format(date, "d")}
                 </div>
 
-                <div className="mb-1 flex items-center justify-center gap-1">
+                <div className="mt-auto flex items-center justify-center gap-0.5 sm:gap-1">
                   {bookingCount === 0 ? null : dotColors.length > 0 ? (
                     dotColors.map((color, index) => (
                       <span
                         key={index}
-                        className={`h-2 w-2 rounded-full ${color} ring-2 ring-white`}
+                        className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${color} ring-1 sm:ring-2 ring-white`}
                       />
                     ))
                   ) : (
                     Array.from({ length: Math.min(bookingCount, 3) }).map((_, index) => (
                       <span
                         key={index}
-                        className="h-2 w-2 rounded-full bg-primary ring-2 ring-white"
+                        className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary ring-1 sm:ring-2 ring-white"
                       />
                     ))
                   )}

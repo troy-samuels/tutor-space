@@ -81,8 +81,10 @@ export async function POST(request: Request) {
     );
 
     if (!tutorHasStudio) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tutorName = (student.profiles as any)?.full_name || "Your tutor";
+      const profileRaw = Array.isArray(student.profiles)
+        ? student.profiles[0]
+        : student.profiles;
+      const tutorName = profileRaw?.full_name || "Your tutor";
       return NextResponse.json(
         {
           error: `${tutorName} needs a Studio subscription to enable AI Practice for students`,

@@ -114,7 +114,7 @@ test.describe("AI Practice Session", () => {
       onboarding_completed: true,
       timezone: "America/New_York",
       languages_taught: ["Spanish"],
-      currency: "USD",
+      booking_currency: "USD",
     });
 
     // Create student user
@@ -228,7 +228,7 @@ test.describe("AI Practice Session", () => {
 
       // Navigate to practice page
       await page.goto(`${appUrl}/student/practice`);
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // Should see practice interface or assignments
       const practiceHeading = page.getByRole("heading", { name: /practice|ai|conversation/i });
@@ -262,7 +262,7 @@ test.describe("AI Practice Session", () => {
 
       // Navigate directly to practice assignment
       await page.goto(`${appUrl}/student/practice/${practiceAssignmentId}`);
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // With mode-enforced practice, first check for mode selection screen
       const modeSelectionText = page.getByText(/How do you want to practice/i);
@@ -273,18 +273,25 @@ test.describe("AI Practice Session", () => {
       const hasTextMode = await textModeCard.isVisible({ timeout: 3000 }).catch(() => false);
       const hasAudioMode = await audioModeCard.isVisible({ timeout: 3000 }).catch(() => false);
 
-      // Check for practice interface elements (in case session already exists)
-      const chatInterface = page.locator('[data-testid="chat-interface"]');
-      const messageInput = page.getByRole("textbox", { name: /message|type/i });
-      const startButton = page.getByRole("button", { name: /start|begin|practice/i });
+      // Check for practice interface elements using data-testid selectors
+      const chatInterface = page.locator('[data-testid="practice-chat-interface"]');
+      const messageInput = page.locator('[data-testid="practice-message-input"]');
+      const sendButton = page.locator('[data-testid="practice-send-button"]');
+      const endSessionButton = page.locator('[data-testid="practice-end-session"]');
 
       const hasChatInterface = await chatInterface.isVisible({ timeout: 5000 }).catch(() => false);
       const hasMessageInput = await messageInput.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasSendButton = await sendButton.isVisible({ timeout: 5000 }).catch(() => false);
+      const hasEndSession = await endSessionButton.isVisible({ timeout: 5000 }).catch(() => false);
+
+      // Also check for start button (role-based fallback)
+      const startButton = page.getByRole("button", { name: /start|begin|practice/i });
       const hasStartButton = await startButton.isVisible({ timeout: 5000 }).catch(() => false);
 
       // Mode selection OR chat UI should be present
       const hasExpectedUI = hasModeSelection || hasTextMode || hasAudioMode ||
-                           hasChatInterface || hasMessageInput || hasStartButton;
+                           hasChatInterface || hasMessageInput || hasSendButton ||
+                           hasEndSession || hasStartButton;
 
       // If OpenAI is not configured, might see error message
       const notConfigured = page.getByText(/not configured|unavailable|error/i);
@@ -546,7 +553,11 @@ test.describe("AI Practice Session", () => {
 
       // Try to access practice
       await page.goto(`${appUrl}/student/practice`);
-      await page.waitForLoadState("networkidle", { timeout: 15000 });
+      await page.waitForURL(
+        (url) => url.pathname.includes("/student/practice") || url.pathname.includes("/student/progress"),
+        { timeout: 15000 }
+      );
+      await page.waitForLoadState("domcontentloaded", { timeout: 15000 });
 
       // Should see message about tutor needing Studio tier
       const studioRequired = page.getByText(/studio|upgrade|not available|tutor/i);
@@ -560,12 +571,21 @@ test.describe("AI Practice Session", () => {
       const emptyState = page.getByText(/start practicing|get started|assigned/i);
       const hasEmptyState = await emptyState.isVisible({ timeout: 3000 }).catch(() => false);
 
-      // Check for navigation items that indicate we're on the practice page
-      const practicePageLoaded = page.locator('h1, h2, [role="heading"]').filter({ hasText: /practice/i });
-      const hasPracticePage = await practicePageLoaded.isVisible({ timeout: 3000 }).catch(() => false);
+      // Check for headings that indicate we're on the progress/practice surface
+      const practiceHeading = page.getByRole("heading", { name: /practice|conversation practice/i });
+      const hasPracticeHeading = await practiceHeading.isVisible({ timeout: 3000 }).catch(() => false);
 
-      // Either restriction message, no assignments, empty state, or just the practice page loaded
-      expect(hasStudioMessage || hasNoAssignments || hasEmptyState || hasPracticePage).toBeTruthy();
+      const progressHeading = page.getByRole("heading", { name: /my progress/i });
+      const hasProgressHeading = await progressHeading.isVisible({ timeout: 3000 }).catch(() => false);
+
+      // Either restriction message, no assignments, empty state, or the progress/practice UI loaded
+      expect(
+        hasStudioMessage ||
+        hasNoAssignments ||
+        hasEmptyState ||
+        hasPracticeHeading ||
+        hasProgressHeading
+      ).toBeTruthy();
     } finally {
       if (nonStudioStudentRecordId) {
         await adminClient.from("students").delete().eq("id", nonStudioStudentRecordId);

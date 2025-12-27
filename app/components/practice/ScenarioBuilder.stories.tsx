@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ScenarioBuilder, PracticeScenario } from "./ScenarioBuilder";
 
 const meta: Meta<typeof ScenarioBuilder> = {

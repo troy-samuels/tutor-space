@@ -139,17 +139,18 @@ async function fetchPendingBriefings(): Promise<PendingBriefingsResult> {
  * Server component wrapper that pre-fetches data
  */
 export async function CopilotWidgetServer() {
+  let data: PendingBriefingsResult | null = null;
+
   try {
-    const data = await fetchPendingBriefings();
-
-    // Don't render if no briefings
-    if (data.briefings.length === 0) {
-      return null;
-    }
-
-    return <CopilotWidget initialData={data} />;
+    data = await fetchPendingBriefings();
   } catch (error) {
     console.error("Failed to fetch initial briefings:", error);
     return null;
   }
+
+  if (!data || data.briefings.length === 0) {
+    return null;
+  }
+
+  return <CopilotWidget initialData={data} />;
 }

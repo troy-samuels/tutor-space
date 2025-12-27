@@ -202,6 +202,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // E2E Test Mode: Return mock token when LiveKit isn't configured
+    const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
+    if (isE2ETestMode && !isLiveKitConfigured()) {
+      const participantName = isTutor
+        ? tutorProfile.full_name || "Tutor"
+        : student?.full_name || "Student";
+
+      return jsonResponse({
+        token: "e2e-test-mode-mock-token",
+        isTutor,
+        roomName: bookingId,
+        isTestMode: true,
+        bookingInfo: {
+          studentId: student?.id,
+          studentName: student?.full_name || "Student",
+          participantName,
+          serviceName: (booking.services as any)?.name,
+          scheduledAt: booking.scheduled_at,
+          durationMinutes: booking.duration_minutes,
+        },
+      });
+    }
+
     if (!isLiveKitConfigured()) {
       return jsonResponse(
         { error: "LiveKit is not configured" },

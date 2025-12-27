@@ -2,7 +2,32 @@ import path from "path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
+type RemotePattern = {
+  protocol?: "http" | "https";
+  hostname: string;
+  port?: string;
+  pathname?: string;
+  search?: string;
+};
+
+const supabaseImagePattern: RemotePattern | null = (() => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  try {
+    const parsed = new URL(supabaseUrl);
+    const protocol = parsed.protocol.replace(":", "");
+    if (protocol !== "http" && protocol !== "https") return null;
+    return {
+      protocol: protocol as "http" | "https",
+      hostname: parsed.hostname,
+      pathname: "/**",
+    };
+  } catch {
+    return null;
+  }
+})();
 
 const nextConfig: NextConfig = {
   // outputFileTracingRoot only needed for monorepo setups - disabled for Vercel deployment
@@ -20,6 +45,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      ...(supabaseImagePattern ? [supabaseImagePattern] : []),
     ],
   },
   async rewrites() {
