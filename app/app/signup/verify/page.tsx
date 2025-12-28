@@ -4,11 +4,10 @@ import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { VerifyEmailForm } from "@/components/forms/verify-email-form";
 
 export const metadata: Metadata = {
-  title: "Verify Email | TutorLingua",
-  description: "Confirm your email to unlock your TutorLingua account.",
+  title: "Complete Signup | TutorLingua",
+  description: "Continue onboarding to unlock your TutorLingua account.",
 };
 
 type SearchParams = Promise<{ session_id?: string }>;
@@ -31,7 +30,7 @@ export default async function SignupVerifyPage({ searchParams }: { searchParams:
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user?.email_confirmed_at) {
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("onboarding_completed")
@@ -98,8 +97,8 @@ export default async function SignupVerifyPage({ searchParams }: { searchParams:
 
   const subtitle =
     sessionStatus === "complete"
-      ? "Confirm your email to unlock your TutorLingua dashboard."
-      : "Confirm your email to activate your TutorLingua account.";
+      ? "Sign in to finish onboarding and unlock your TutorLingua dashboard."
+      : "Sign in to finish setting up your TutorLingua account.";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-muted via-muted/30 to-white px-4 py-12">
@@ -112,7 +111,7 @@ export default async function SignupVerifyPage({ searchParams }: { searchParams:
           <p className="text-sm text-muted-foreground">{subtitle}</p>
           {email ? (
             <p className="text-xs text-muted-foreground">
-              Sent to <span className="font-medium text-foreground">{email}</span>
+              Account email: <span className="font-medium text-foreground">{email}</span>
             </p>
           ) : null}
           {sessionLookupFailed ? (
@@ -138,13 +137,23 @@ export default async function SignupVerifyPage({ searchParams }: { searchParams:
           ) : null}
         </header>
 
-        <VerifyEmailForm role="tutor" email={email} next="/onboarding" />
+        <div className="space-y-3">
+          <Link
+            href="/login"
+            className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+          >
+            Sign in to continue
+          </Link>
+          <p className="text-xs text-muted-foreground text-center">
+            Email confirmation is no longer required to continue.
+          </p>
+        </div>
 
         <div className="space-y-2 text-center text-sm text-muted-foreground">
           <p>
-            Already confirmed?{" "}
-            <Link href="/login" className="font-semibold text-primary hover:underline">
-              Sign in
+            Need a different account?{" "}
+            <Link href="/signup" className="font-semibold text-primary hover:underline">
+              Create a new account
             </Link>
           </p>
           <p>
