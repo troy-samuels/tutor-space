@@ -10,7 +10,6 @@ import type { ServiceRoleClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
 import { rateLimitServerAction } from "@/lib/middleware/rate-limit";
 import {
-  buildAuthCallbackUrl,
   buildVerifyEmailUrl,
   getAppUrl,
   sanitizeRedirectPath,
@@ -44,6 +43,63 @@ function resolveStudentRedirect(target: string | null) {
 
 function resolveTutorRedirect(target: string | null) {
   return target || DASHBOARD_ROUTE;
+}
+
+function resolveAuthCallbackBase(headersList: Headers): string {
+  const forwardedHost = headersList.get("x-forwarded-host");
+  const forwardedProto = headersList.get("x-forwarded-proto");
+
+  if (forwardedHost) {
+    const protocol = forwardedProto || (forwardedHost.includes("localhost") ? "http" : "https");
+    return `${protocol}://${forwardedHost}`;
+  }
+
+  const host = headersList.get("host");
+  if (host) {
+    const protocol = forwardedProto || (host.includes("localhost") ? "http" : "https");
+    return `${protocol}://${host}`;
+  }
+
+  return getAppUrl();
+}
+
+function buildAuthCallbackUrlFromHeaders(headersList: Headers, nextPath: string) {
+  const baseUrl = resolveAuthCallbackBase(headersList);
+  const url = new URL("/auth/callback", baseUrl);
+  url.searchParams.set("next", nextPath);
+  return url.toString();
+}
+
+/**
+ * Converts a raw Supabase verification URL to our proxy URL.
+ * This makes email links more trustworthy by showing our domain.
+ *
+ * Input:  https://[project].supabase.co/auth/v1/verify?token=xxx&type=magiclink&redirect_to=...
+ * Output: https://tutorlingua.co/api/auth/verify?token=xxx&type=magiclink&redirect_to=...
+ */
+function convertToProxyVerifyUrl(supabaseUrl: string): string {
+  try {
+    const parsed = new URL(supabaseUrl);
+    const token = parsed.searchParams.get("token");
+    const type = parsed.searchParams.get("type");
+    const redirectTo = parsed.searchParams.get("redirect_to");
+
+    if (!token) {
+      // Fallback to original URL if parsing fails
+      return supabaseUrl;
+    }
+
+    const appUrl = getAppUrl();
+    const proxyUrl = new URL("/api/auth/verify", appUrl);
+    proxyUrl.searchParams.set("token", token);
+    if (type) proxyUrl.searchParams.set("type", type);
+    if (redirectTo) proxyUrl.searchParams.set("redirect_to", redirectTo);
+
+    return proxyUrl.toString();
+  } catch {
+    // If URL parsing fails, return original
+    return supabaseUrl;
+  }
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -93,17 +149,22 @@ async function sendFastVerificationEmail(params: {
     };
   }
 
+  // Convert raw Supabase URL to our proxy URL for better UX
+  // From: https://[project].supabase.co/auth/v1/verify?token=...
+  // To:   https://tutorlingua.co/api/auth/verify?token=...
+  const proxyUrl = convertToProxyVerifyUrl(actionLink);
+
   const subject =
     params.role === "student"
       ? "Confirm your TutorLingua student email"
       : "Confirm your TutorLingua email";
 
   const html = VerifyEmailEmail({
-    confirmUrl: actionLink,
+    confirmUrl: proxyUrl,
     role: params.role,
   });
   const text = VerifyEmailEmailText({
-    confirmUrl: actionLink,
+    confirmUrl: proxyUrl,
     role: params.role,
   });
 
@@ -319,7 +380,7 @@ export async function signUp(
 
   const supabase = await createClient();
   const adminClient = createServiceRoleClient();
-  const emailRedirectTo = buildAuthCallbackUrl(ONBOARDING_ROUTE);
+  const emailRedirectTo = buildAuthCallbackUrlFromHeaders(headersList, ONBOARDING_ROUTE);
   const verifyEmailRedirect = buildVerifyEmailUrl({
     role: "tutor",
     email,
@@ -791,7 +852,7 @@ export async function resendSignupConfirmation(
   }
 
   const supabase = await createClient();
-  const emailRedirectTo = buildAuthCallbackUrl(nextPath);
+  const emailRedirectTo = buildAuthCallbackUrlFromHeaders(headersList, nextPath);
 
   const fastSendResult = await sendFastVerificationEmail({
     email,
