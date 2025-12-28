@@ -12,6 +12,7 @@ const baseURL =
 const baseURLPort = new URL(baseURL).port || "3000";
 const runFullMatrix =
   process.env.CI === "true" || process.env.PLAYWRIGHT_FULL_MATRIX === "true";
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER === "true";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -67,14 +68,16 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "npm run dev",
-    url: baseURL,
-    reuseExistingServer: true, // Always reuse existing server
-    timeout: 120000,
-    env: {
-      PORT: baseURLPort,
-      E2E_TEST_MODE: "true", // Enable test mode for classroom/LiveKit
-    },
-  },
+  webServer: skipWebServer
+    ? undefined
+    : {
+        command: "npm run dev",
+        url: baseURL,
+        reuseExistingServer: true, // Always reuse existing server
+        timeout: 120000,
+        env: {
+          PORT: baseURLPort,
+          E2E_TEST_MODE: "true", // Enable test mode for classroom/LiveKit
+        },
+      },
 });

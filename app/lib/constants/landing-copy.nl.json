@@ -1,7 +1,7 @@
 {
   "hero": {
     "headline": "Gebouwd voor tutors.",
-    "subheadline": "14 dagen gratis proberen. Daarna $29 per maand of $199 per jaar. Alle tools inbegrepen.",
+    "subheadline": "Eén link voor boekingen, betalingen en notities. Gratis proberen.",
     "primaryCTA": "Gratis aanmelden",
     "secondaryCTA": "Bekijk hoe het werkt",
     "variants": {
@@ -11,7 +11,7 @@
     }
   },
   "socialProof": {
-    "text": "Gebruikt door taaltutors op Preply, iTalki en Verbling om hun terugkerende klanten te beheren",
+    "text": "Gebruikt door tutors op grote platforms om hun terugkerende studenten te behouden",
     "tutors": [
       { "name": "Alba GB.", "language": "Spaans docent" },
       { "name": "Thomas B.", "language": "Frans tutor" },
@@ -19,13 +19,13 @@
     ]
   },
   "problems": {
-    "headline": "Je bedrijf is verspreid. Dat zou niet moeten.",
-    "subtitle": "Studenten op Preply. Boekingen op Calendly. Links op Beacons. TutorLingua brengt alles samen.",
+    "headline": "Je hebt de relaties opgebouwd. Behoud ze.",
+    "subtitle": "Platforms introduceren studenten. Jij maakt ze loyaal. TutorLingua helpt je de verbinding te behouden.",
     "items": [
       {
         "icon": "Layers",
         "title": "Alleen voor tutors gebouwd",
-        "description": "Anders dan generieke tools. Alles wat je nodig hebt. Niets wat je niet nodig hebt."
+        "description": "Ontworpen voor hoe taaltutors echt werken—lessen, notities, studentenvoortgang."
       },
       {
         "icon": "Users",
@@ -67,7 +67,7 @@
     "cta": "Gratis aanmelden"
   },
   "solution": {
-    "headline": "Alles wat je nodig hebt. Niets wat je niet nodig hebt.",
+    "headline": "Eén plek voor je studenten.",
     "subheadline": "Gebouwd voor taaltutors. In 10 minuten klaar.",
     "features": [
       {
@@ -88,13 +88,13 @@
     ]
   },
   "howItWorks": {
-    "headline": "In 10 minuten klaar",
+    "headline": "Vandaag instellen. Morgen lesgeven.",
     "steps": [
       {
         "number": 1,
         "icon": "UserPlus",
         "title": "Deel je link",
-        "description": "Zet het op Instagram. Voeg toe aan TikTok. Zet in je Preply bio. Deel het overal."
+        "description": "Zet het op Instagram. Voeg toe aan TikTok. Zet in je platform bio. Deel het overal."
       },
       {
         "number": 2,
@@ -223,24 +223,24 @@
     ]
   },
   "testimonials": {
-    "headline": "Echte tutors, echte resultaten",
-    "subheadline": "Sluit je aan bij duizenden tutors die meer verdienen en minder werken met TutorLingua",
+    "headline": "Wat er veranderd is.",
+    "subheadline": "",
     "featured": {
-      "quote": "Ik blijf op Preply voor nieuwe studenten. Maar herhaallessen gaan via TutorLingua. Heeft me dit jaar $7.500 aan commissies bespaard.",
-      "author": "Alba GB.",
-      "role": "Spaans docent",
+      "quote": "Ik gebruik de platforms nog steeds om nieuwe studenten te vinden. Maar herhaallessen? Die gaan nu hierdoor. Vorig jaar bespaarde me dat meer dan $7.500 aan commissies.",
+      "author": "Alba G.",
+      "role": "Spaans docent, Madrid",
       "image": "/testimonials/sara.jpg"
     },
     "list": [
       {
-        "quote": "Mijn Instagram-volgers kunnen me eindelijk direct boeken. 12 lessen geboekt in de eerste week.",
+        "quote": "Ik zette mijn link op Instagram. Aan het eind van de week hadden 12 mensen geboekt—geen DM's, geen heen en weer. Gewoon meldingen.",
         "author": "Thomas B.",
-        "role": "Frans tutor"
+        "role": "Frans tutor, Montreal"
       },
       {
-        "quote": "Al mijn studenten op één plek. Notities, schema's, betalingen. Geen verspreide spreadsheets meer.",
+        "quote": "Vroeger begon ik lessen terwijl ik probeerde te herinneren wat we hadden behandeld. Nu check ik mijn notities, pak op waar we gebleven waren, en volg echt de voortgang.",
         "author": "Ricardo M.",
-        "role": "Portugees tutor"
+        "role": "Portugees tutor, São Paulo"
       }
     ]
   },
@@ -248,7 +248,7 @@
     "headline": "Veelgestelde vragen",
     "items": [
       {
-        "question": "Moet ik Preply of iTalki verlaten?",
+        "question": "Moet ik de platforms verlaten?",
         "answer": "Nee. Gebruik marktplaatsen om gevonden te worden. Gebruik TutorLingua voor directe boekingen van je volgers en terugkerende studenten."
       },
       {
@@ -327,8 +327,8 @@
     "ctaHref": "/signup"
   },
   "finalCTA": {
-    "headline": "Klaar om je bedrijf te bezitten?",
-    "subheadline": "14 dagen gratis proberen. In 10 minuten klaar.",
+    "headline": "Je studenten verdienen continuïteit. Jij ook.",
+    "subheadline": "Bewaar elke les, elke notitie, elke relatie op één plek.",
     "calculatorLabel": "Maandelijkse omzet:",
     "calculatorUnit": "/maand",
     "rangeMinLabel": "$500",

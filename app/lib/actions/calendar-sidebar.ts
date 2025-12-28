@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
-import type { PackageType } from "@/lib/types/calendar";
+import { endOfDay, endOfMonth, startOfDay, startOfMonth, differenceInCalendarDays } from "date-fns";
+import { getCalendarEventsWithDetails } from "@/lib/calendar/busy-windows";
+import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
 
 export type DailyLesson = {
   id: string;
@@ -110,8 +111,10 @@ export async function getMonthlyBookingCounts(year: number, month: number) {
 
   if (!user) return { counts: {}, bookingsByDay: {} as Record<string, DayBookingInfo> };
 
-  const monthStart = startOfMonth(new Date(year, month, 1)).toISOString();
-  const monthEnd = endOfMonth(new Date(year, month, 1)).toISOString();
+  const monthStartDate = startOfMonth(new Date(year, month, 1));
+  const monthEndDate = endOfMonth(new Date(year, month, 1));
+  const monthStart = monthStartDate.toISOString();
+  const monthEnd = monthEndDate.toISOString();
 
   const { data: bookings, error } = await supabase
     .from("bookings")
@@ -151,6 +154,91 @@ export async function getMonthlyBookingCounts(year: number, month: number) {
       bookingsByDay[date].packageTypes.push(packageType);
     }
   });
+
+  const { data: connections, error: connectionsError } = await supabase
+    .from("calendar_connections")
+    .select("id, sync_enabled, sync_status")
+    .eq("tutor_id", user.id);
+
+  if (connectionsError && connectionsError.code !== "42P01") {
+    console.error("Error fetching calendar connections:", connectionsError);
+  }
+
+  let cachedExternalEvents: Array<{ start: string; end: string }> = [];
+
+  const { data: cachedEvents, error: cachedEventsError } = await supabase
+    .from("calendar_events")
+    .select("start_at, end_at")
+    .eq("tutor_id", user.id)
+    .is("deleted_at", null)
+    .lte("start_at", monthEnd)
+    .gte("end_at", monthStart);
+
+  if (cachedEventsError) {
+    if (cachedEventsError.code !== "42P01") {
+      console.error("Error fetching cached external events:", cachedEventsError);
+    }
+  } else {
+    cachedExternalEvents = (cachedEvents ?? [])
+      .filter((row: { start_at?: string | null; end_at?: string | null }) => row.start_at && row.end_at)
+      .map((row: { start_at: string; end_at: string }) => ({
+        start: row.start_at,
+        end: row.end_at,
+      }));
+  }
+
+  const hasActiveConnection = (connections ?? []).some(
+    (connection) => connection.sync_enabled !== false
+  );
+
+  let externalEvents: Array<Pick<CalendarEvent, "start" | "end">> = cachedExternalEvents;
+
+  if (hasActiveConnection) {
+    const days = differenceInCalendarDays(monthEndDate, monthStartDate) + 1;
+    try {
+      const fetchedEvents = await getCalendarEventsWithDetails({
+        tutorId: user.id,
+        start: monthStartDate,
+        days,
+      });
+      if (fetchedEvents.length > 0) {
+        externalEvents = fetchedEvents;
+      }
+    } catch (error) {
+      console.error("Error fetching external calendar events:", error);
+    }
+  }
+
+  if (externalEvents.length > 0) {
+    for (const event of externalEvents) {
+      const start = new Date(event.start);
+      const end = new Date(event.end);
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        continue;
+      }
+
+      const endInclusive = new Date(end.getTime() - 1);
+      const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      const endCursor = new Date(Date.UTC(endInclusive.getUTCFullYear(), endInclusive.getUTCMonth(), endInclusive.getUTCDate()));
+
+      while (cursor.getTime() <= endCursor.getTime()) {
+        const dateKey = cursor.toISOString().slice(0, 10);
+        counts[dateKey] = (counts[dateKey] || 0) + 1;
+
+        if (!bookingsByDay[dateKey]) {
+          bookingsByDay[dateKey] = { count: 0, packageTypes: [] };
+        }
+
+        bookingsByDay[dateKey].count += 1;
+        if (!bookingsByDay[dateKey].packageTypes.includes("external")) {
+          bookingsByDay[dateKey].packageTypes.push("external");
+        }
+
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+    }
+  }
 
   return { counts, bookingsByDay };
 }

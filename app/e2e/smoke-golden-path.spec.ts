@@ -219,6 +219,21 @@ test.describe("Smoke | Tutor golden path", () => {
         throw new Error(`Booking page heading not found. Page URL: ${studentPage.url()}\nVisible text: ${bodyText.substring(0, 2000)}`);
       }
 
+      const dec31Button = studentPage
+        .locator("button")
+        .filter({ hasText: "Dec" })
+        .filter({ hasText: "31" })
+        .first();
+
+      if (await dec31Button.count()) {
+        await dec31Button.click();
+        await expect(
+          studentPage.getByText(/December 31, \d{4}/i)
+        ).toBeVisible({ timeout: 15000 });
+      } else {
+        throw new Error("Dec 31 is not available in the current booking window.");
+      }
+
       // Pick the first available slot and confirm booking.
       const timeSlotButton = studentPage.getByRole("button", { name: /\d{1,2}:\d{2}\s?(AM|PM)/ }).first();
       await expect(timeSlotButton).toBeVisible({ timeout: 15000 });

@@ -17,7 +17,7 @@ const formatKey = (date: Date) => format(date, "yyyy-MM-dd");
 // Get up to 3 dot colors for a day based on package types
 function getDotColors(packageTypes: PackageType[], selected: boolean): string[] {
   // Priority order: subscription > trial > one_off/lesson_block
-  const priorityOrder: PackageType[] = ["subscription", "trial", "lesson_block", "one_off"];
+  const priorityOrder: PackageType[] = ["subscription", "trial", "lesson_block", "one_off", "external"];
 
   // Sort and dedupe package types by priority
   const sorted = priorityOrder.filter((pt) => packageTypes.includes(pt));

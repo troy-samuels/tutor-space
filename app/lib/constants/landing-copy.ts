@@ -222,7 +222,7 @@ const landingCopyEn: LandingCopy = {
   hero: {
     headline: "Built for tutors.",
     subheadline:
-      "Free trial. Then $29 a month or $199 a year. All tools included.",
+      "One link for bookings, payments, and notes. Try free.",
     primaryCTA: "Sign up free",
     secondaryCTA: "See how it works",
     variants: {
@@ -233,7 +233,7 @@ const landingCopyEn: LandingCopy = {
   },
 
   socialProof: {
-    text: "Used by language tutors on Preply, iTalki, and Verbling to own their repeat business",
+    text: "Used by tutors on major platforms to keep their repeat students.",
     tutors: [
       { name: "Alba GB.", language: "Spanish Teacher" },
       { name: "Thomas B.", language: "French Tutor" },
@@ -242,15 +242,15 @@ const landingCopyEn: LandingCopy = {
   },
 
   problems: {
-    headline: "Your business is scattered. It shouldn't be.",
+    headline: "You built the relationships. Keep them.",
     subtitle:
-      "Students on Preply. Bookings on Calendly. Links on Beacons. TutorLingua brings it all together.",
+      "Marketplaces introduce students. You make them loyal. TutorLingua helps you keep the connection.",
     items: [
       {
         icon: "Layers",
         title: "Built for tutors only",
         description:
-          "Unlike generic tools. Everything you need. Nothing you don't.",
+          "Designed around how language tutors actually work—lessons, notes, student progress.",
       },
       {
         icon: "Users",
@@ -296,7 +296,7 @@ const landingCopyEn: LandingCopy = {
   },
 
   solution: {
-    headline: "Everything you need. Nothing you don't.",
+    headline: "One place for your students.",
     subheadline: "Built for language tutors. Ready in 10 minutes.",
     features: [
       {
@@ -321,14 +321,14 @@ const landingCopyEn: LandingCopy = {
   },
 
   howItWorks: {
-    headline: "Ready in 10 minutes",
+    headline: "Set up today. Teach tomorrow.",
     steps: [
       {
         number: 1,
         icon: "UserPlus",
         title: "Share your link",
         description:
-          "Put it on Instagram. Add it to TikTok. Include it in your Preply bio. Share it everywhere.",
+          "Put it on Instagram. Add it to TikTok. Include it in your marketplace bio. Share it everywhere.",
       },
       {
         number: 2,
@@ -482,27 +482,27 @@ const landingCopyEn: LandingCopy = {
   },
 
   testimonials: {
-    headline: "Real tutors, real results",
-    subheadline: "Join thousands of tutors earning more and working less with TutorLingua",
+    headline: "What changed.",
+    subheadline: "",
     featured: {
       quote:
-        "I stay on Preply for new students. But repeat lessons go through TutorLingua. Saved me $7,500 in commissions this year.",
-      author: "Alba GB.",
-      role: "Spanish Teacher",
+        "I still use the marketplaces to meet new students. But repeat lessons? Those go through here now. Last year, that saved me over $7,500 in commissions.",
+      author: "Alba G.",
+      role: "Spanish Teacher, Madrid",
       image: "/testimonials/sara.jpg",
     },
     list: [
       {
         quote:
-          "My Instagram followers can finally book me directly. 12 lessons booked in the first week.",
+          "I put my link on Instagram. By the end of the week, 12 people had booked—no DMs, no back-and-forth. Just notifications.",
         author: "Thomas B.",
-        role: "French Tutor",
+        role: "French Tutor, Montreal",
       },
       {
         quote:
-          "All my students in one place. Notes, schedules, payments. No more scattered spreadsheets.",
+          "Before, I'd start lessons trying to remember what we covered. Now I check my notes, pick up where we left off, and actually track their progress.",
         author: "Ricardo M.",
-        role: "Portuguese Tutor",
+        role: "Portuguese Tutor, São Paulo",
       },
     ],
   },
@@ -511,7 +511,7 @@ const landingCopyEn: LandingCopy = {
     headline: "Common questions",
     items: [
       {
-        question: "Do I need to leave Preply or iTalki?",
+        question: "Do I need to leave the marketplaces?",
         answer:
           "No. Use marketplaces to get discovered. Use TutorLingua for direct bookings from your followers and repeat students.",
       },
@@ -598,8 +598,8 @@ const landingCopyEn: LandingCopy = {
   },
 
   finalCTA: {
-    headline: "Ready to own your business?",
-    subheadline: "Start your free trial. Ready in 10 minutes.",
+    headline: "Your students deserve continuity. So do you.",
+    subheadline: "Keep every lesson, every note, every relationship in one place.",
     calculatorLabel: "Monthly revenue:",
     calculatorUnit: "/month",
     rangeMinLabel: "$500",
@@ -699,7 +699,7 @@ const landingCopyEs: LandingCopy = {
   hero: {
     headline: "Creado para tutores.",
     subheadline:
-      "Prueba gratis. Luego $29 al mes o $199 al año. Todas las funciones. Sin extras.",
+      "Un enlace para reservas, pagos y notas. Prueba gratis.",
     primaryCTA: "Regístrate gratis",
     secondaryCTA: "Ver cómo funciona",
     variants: {
@@ -710,7 +710,7 @@ const landingCopyEs: LandingCopy = {
   },
 
   socialProof: {
-    text: "Usado por tutores de idiomas en Preply, iTalki y Verbling para ser dueños de su negocio repetido",
+    text: "Usado por tutores en las principales plataformas para mantener a sus estudiantes.",
     tutors: [
       { name: "Alba GB.", language: "Profesora de español" },
       { name: "Thomas B.", language: "Tutor de francés" },
@@ -719,15 +719,15 @@ const landingCopyEs: LandingCopy = {
   },
 
   problems: {
-    headline: "Tu negocio está disperso. No debería estarlo.",
+    headline: "Construiste las relaciones. Consérvalas.",
     subtitle:
-      "Estudiantes en Preply. Reservas en Calendly. Enlaces en Beacons. TutorLingua lo une todo.",
+      "Las plataformas presentan estudiantes. Tú los fidelizas. TutorLingua te ayuda a mantener la conexión.",
     items: [
       {
         icon: "Layers",
         title: "Creado solo para tutores",
         description:
-          "A diferencia de herramientas genéricas. Todo lo que necesitas. Nada que no.",
+          "Diseñado para cómo trabajan los tutores de idiomas—clases, notas, progreso del estudiante.",
       },
       {
         icon: "Users",
@@ -773,7 +773,7 @@ const landingCopyEs: LandingCopy = {
   },
 
   solution: {
-    headline: "Todo lo que necesitas. Nada que no.",
+    headline: "Un solo lugar para tus estudiantes.",
     subheadline: "Creado para tutores de idiomas. Listo en 10 minutos.",
     features: [
       {
@@ -798,14 +798,14 @@ const landingCopyEs: LandingCopy = {
   },
 
   howItWorks: {
-    headline: "Listo en 10 minutos",
+    headline: "Configúralo hoy. Enseña mañana.",
     steps: [
       {
         number: 1,
         icon: "UserPlus",
         title: "Comparte tu enlace",
         description:
-          "Ponlo en Instagram. Añádelo a TikTok. Inclúyelo en tu bio de Preply. Compártelo en todas partes.",
+          "Ponlo en Instagram. Añádelo a TikTok. Inclúyelo en tu bio de la plataforma. Compártelo en todas partes.",
       },
       {
         number: 2,
@@ -941,27 +941,27 @@ const landingCopyEs: LandingCopy = {
   },
 
   testimonials: {
-    headline: "Tutores reales, resultados reales",
-    subheadline: "Únete a miles de tutores que ganan más y trabajan menos con TutorLingua",
+    headline: "Lo que cambió.",
+    subheadline: "",
     featured: {
       quote:
-        "Me quedo en Preply para nuevos estudiantes. Pero lecciones repetidas van por TutorLingua. Me ahorró $7.500 en comisiones este año.",
-      author: "Alba GB.",
-      role: "Tutora de español",
+        "Sigo usando las plataformas para conocer nuevos estudiantes. Pero las clases repetidas, esas van por aquí. El año pasado, eso me ahorró más de $7.500 en comisiones.",
+      author: "Alba G.",
+      role: "Profesora de español, Madrid",
       image: "/testimonials/sara.jpg",
     },
     list: [
       {
         quote:
-          "Mis seguidores de Instagram finalmente pueden reservarme directamente. 12 lecciones reservadas en la primera semana.",
+          "Puse mi enlace en Instagram. Para el fin de semana, 12 personas habían reservado—sin mensajes, sin ir y venir. Solo notificaciones.",
         author: "Thomas B.",
-        role: "Tutor de francés",
+        role: "Tutor de francés, Montreal",
       },
       {
         quote:
-          "Todos mis estudiantes en un lugar. Notas, horarios, pagos. No más hojas de cálculo dispersas.",
+          "Antes, empezaba las clases tratando de recordar qué habíamos visto. Ahora reviso mis notas, retomo donde lo dejamos, y realmente sigo su progreso.",
         author: "Ricardo M.",
-        role: "Tutor de portugués",
+        role: "Tutor de portugués, São Paulo",
       },
     ],
   },
@@ -970,9 +970,9 @@ const landingCopyEs: LandingCopy = {
     headline: "Preguntas comunes",
     items: [
       {
-        question: "¿Necesito dejar Preply o iTalki?",
+        question: "¿Necesito dejar las plataformas?",
         answer:
-          "No. Usa marketplaces para ser descubierto. Usa TutorLingua para reservas directas de tus seguidores y estudiantes repetidos.",
+          "No. Usa las plataformas para ser descubierto. Usa TutorLingua para reservas directas de tus seguidores y estudiantes repetidos.",
       },
       {
         question: "¿Es fácil de usar?",
@@ -1057,9 +1057,9 @@ const landingCopyEs: LandingCopy = {
   },
 
   finalCTA: {
-    headline: "¿Listo para ser dueño de tu negocio?",
+    headline: "Tus estudiantes merecen continuidad. Tú también.",
     subheadline:
-      "Prueba gratis 14 días. Listo en 10 minutos.",
+      "Guarda cada clase, cada nota, cada relación en un solo lugar.",
     calculatorLabel: "Ingresos mensuales:",
     calculatorUnit: "/mes",
     rangeMinLabel: "$500",
@@ -1159,7 +1159,7 @@ const landingCopyFr: LandingCopy = {
   hero: {
     headline: "Conçu pour les tuteurs.",
     subheadline:
-      "Essai gratuit de 14 jours. Puis 39 $/mois ou 299 $/an. Toutes les fonctionnalités. Aucun frais supplémentaire.",
+      "Un lien pour les réservations, paiements et notes. Essai gratuit.",
     primaryCTA: "Inscris-toi gratuitement",
     secondaryCTA: "Voir comment ça fonctionne",
     variants: {
@@ -1170,7 +1170,7 @@ const landingCopyFr: LandingCopy = {
   },
 
   socialProof: {
-    text: "Utilisé par des tuteurs de langues sur Preply, iTalki et Verbling pour maîtriser leur activité récurrente",
+    text: "Utilisé par des tuteurs sur les principales plateformes pour garder leurs étudiants.",
     tutors: [
       { name: "Alba GB.", language: "Professeure d'espagnol" },
       { name: "Thomas B.", language: "Tuteur de français" },
@@ -1179,15 +1179,15 @@ const landingCopyFr: LandingCopy = {
   },
 
   problems: {
-    headline: "Votre activité est éparpillée. Elle ne devrait pas l'être.",
+    headline: "Vous avez construit ces relations. Gardez-les.",
     subtitle:
-      "Étudiants sur Preply. Réservations sur Calendly. Liens sur Beacons. TutorLingua réunit tout.",
+      "Les plateformes présentent les étudiants. Vous les fidélisez. TutorLingua vous aide à maintenir le lien.",
     items: [
       {
         icon: "Layers",
         title: "Conçu uniquement pour les tuteurs",
         description:
-          "Contrairement aux outils génériques. Tout ce dont vous avez besoin. Rien de superflu.",
+          "Conçu pour la façon dont les tuteurs de langues travaillent—cours, notes, progression des étudiants.",
       },
       {
         icon: "Users",
@@ -1233,7 +1233,7 @@ const landingCopyFr: LandingCopy = {
   },
 
   solution: {
-    headline: "Tout ce dont vous avez besoin. Rien de superflu.",
+    headline: "Un seul endroit pour vos étudiants.",
     subheadline: "Conçu pour les tuteurs de langues. Prêt en 10 minutes.",
     features: [
       {
@@ -1258,14 +1258,14 @@ const landingCopyFr: LandingCopy = {
   },
 
   howItWorks: {
-    headline: "Prêt en 10 minutes",
+    headline: "Configurez aujourd'hui. Enseignez demain.",
     steps: [
       {
         number: 1,
         icon: "UserPlus",
         title: "Partagez votre lien",
         description:
-          "Mettez-le sur Instagram. Ajoutez-le sur TikTok. Incluez-le dans votre bio Preply. Partagez-le partout.",
+          "Mettez-le sur Instagram. Ajoutez-le sur TikTok. Incluez-le dans votre bio de plateforme. Partagez-le partout.",
       },
       {
         number: 2,
@@ -1401,27 +1401,27 @@ const landingCopyFr: LandingCopy = {
   },
 
   testimonials: {
-    headline: "Vrais tuteurs, vrais résultats",
-    subheadline: "Rejoignez des milliers de tuteurs qui gagnent plus et travaillent moins avec TutorLingua",
+    headline: "Ce qui a changé.",
+    subheadline: "",
     featured: {
       quote:
-        "Je reste sur Preply pour les nouveaux étudiants. Mais les leçons récurrentes passent par TutorLingua. J'ai économisé 7 500 $ en commissions cette année.",
-      author: "Alba GB.",
-      role: "Professeure d'espagnol",
+        "J'utilise encore les plateformes pour rencontrer de nouveaux étudiants. Mais les cours récurrents ? Ils passent par ici maintenant. L'année dernière, ça m'a fait économiser plus de 7 500 $ en commissions.",
+      author: "Alba G.",
+      role: "Professeure d'espagnol, Madrid",
       image: "/testimonials/sara.jpg",
     },
     list: [
       {
         quote:
-          "Mes abonnés Instagram peuvent enfin me réserver directement. 12 leçons réservées la première semaine.",
+          "J'ai mis mon lien sur Instagram. À la fin de la semaine, 12 personnes avaient réservé—pas de DMs, pas d'allers-retours. Juste des notifications.",
         author: "Thomas B.",
-        role: "Tuteur de français",
+        role: "Tuteur de français, Montréal",
       },
       {
         quote:
-          "Tous mes étudiants au même endroit. Notes, horaires, paiements. Fini les tableurs éparpillés.",
+          "Avant, je commençais les cours en essayant de me souvenir de ce qu'on avait vu. Maintenant je consulte mes notes, je reprends là où on s'était arrêtés, et je suis vraiment leur progression.",
         author: "Ricardo M.",
-        role: "Tuteur de portugais",
+        role: "Tuteur de portugais, São Paulo",
       },
     ],
   },
@@ -1430,9 +1430,9 @@ const landingCopyFr: LandingCopy = {
     headline: "Questions fréquentes",
     items: [
       {
-        question: "Dois-je quitter Preply ou iTalki ?",
+        question: "Dois-je quitter les plateformes ?",
         answer:
-          "Non. Utilisez les marketplaces pour être découvert. Utilisez TutorLingua pour les réservations directes de vos abonnés et étudiants récurrents.",
+          "Non. Utilisez les plateformes pour être découvert. Utilisez TutorLingua pour les réservations directes de vos abonnés et étudiants récurrents.",
       },
       {
         question: "Est-ce facile à utiliser ?",
@@ -1517,9 +1517,9 @@ const landingCopyFr: LandingCopy = {
   },
 
   finalCTA: {
-    headline: "Prêt à maîtriser votre activité ?",
+    headline: "Vos étudiants méritent la continuité. Vous aussi.",
     subheadline:
-      "Essai gratuit de 14 jours. Prêt en 10 minutes.",
+      "Gardez chaque cours, chaque note, chaque relation au même endroit.",
     calculatorLabel: "Revenus mensuels :",
     calculatorUnit: "/mois",
     rangeMinLabel: "500 $",

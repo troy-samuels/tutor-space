@@ -1,7 +1,7 @@
 {
   "hero": {
     "headline": "Entwickelt für Tutoren.",
-    "subheadline": "14 Tage kostenlos testen. Danach 29 $/Monat oder 299 $/Jahr. Alle Tools inklusive.",
+    "subheadline": "Ein Link für Buchungen, Zahlungen und Notizen. Kostenlos testen.",
     "primaryCTA": "Kostenlos registrieren",
     "secondaryCTA": "So funktioniert's",
     "variants": {
@@ -11,7 +11,7 @@
     }
   },
   "socialProof": {
-    "text": "Genutzt von Sprachlehrern auf Preply, iTalki und Verbling, um ihr Stammkundengeschäft zu besitzen",
+    "text": "Genutzt von Tutoren auf den wichtigsten Plattformen, um ihre Stammschüler zu behalten",
     "tutors": [
       { "name": "Alba GB.", "language": "Spanischlehrerin" },
       { "name": "Thomas B.", "language": "Französischlehrer" },
@@ -19,13 +19,13 @@
     ]
   },
   "problems": {
-    "headline": "Ihr Geschäft ist verstreut. Das sollte nicht so sein.",
-    "subtitle": "Schüler auf Preply. Buchungen auf Calendly. Links auf Beacons. TutorLingua bringt alles zusammen.",
+    "headline": "Sie haben die Beziehungen aufgebaut. Behalten Sie sie.",
+    "subtitle": "Plattformen stellen Schüler vor. Sie machen sie zu Stammkunden. TutorLingua hilft Ihnen, die Verbindung zu halten.",
     "items": [
       {
         "icon": "Layers",
         "title": "Nur für Tutoren entwickelt",
-        "description": "Anders als generische Tools. Alles, was Sie brauchen. Nichts, was Sie nicht brauchen."
+        "description": "Entwickelt für die Arbeitsweise von Sprachlehrern—Unterricht, Notizen, Schülerfortschritt."
       },
       {
         "icon": "Users",
@@ -67,7 +67,7 @@
     "cta": "Kostenlos registrieren"
   },
   "solution": {
-    "headline": "Alles, was Sie brauchen. Nichts, was Sie nicht brauchen.",
+    "headline": "Ein Ort für Ihre Schüler.",
     "subheadline": "Entwickelt für Sprachlehrer. In 10 Minuten bereit.",
     "features": [
       {
@@ -88,13 +88,13 @@
     ]
   },
   "howItWorks": {
-    "headline": "In 10 Minuten bereit",
+    "headline": "Heute einrichten. Morgen unterrichten.",
     "steps": [
       {
         "number": 1,
         "icon": "UserPlus",
         "title": "Teilen Sie Ihren Link",
-        "description": "Setzen Sie ihn auf Instagram. Fügen Sie ihn zu TikTok hinzu. Fügen Sie ihn in Ihre Preply-Bio ein. Teilen Sie ihn überall."
+        "description": "Setzen Sie ihn auf Instagram. Fügen Sie ihn zu TikTok hinzu. Fügen Sie ihn in Ihre Plattform-Bio ein. Teilen Sie ihn überall."
       },
       {
         "number": 2,
@@ -223,24 +223,24 @@
     ]
   },
   "testimonials": {
-    "headline": "Echte Tutoren, echte Ergebnisse",
-    "subheadline": "Schließen Sie sich Tausenden von Tutoren an, die mit TutorLingua mehr verdienen und weniger arbeiten",
+    "headline": "Was sich verändert hat.",
+    "subheadline": "",
     "featured": {
-      "quote": "Ich bleibe auf Preply für neue Schüler. Aber Wiederholungslektionen laufen über TutorLingua. Hat mir dieses Jahr 7.500 $ an Provisionen gespart.",
-      "author": "Alba GB.",
-      "role": "Spanischlehrerin",
+      "quote": "Ich nutze die Plattformen weiterhin, um neue Schüler zu finden. Aber Wiederholungsstunden? Die laufen jetzt hier. Letztes Jahr hat mir das über 7.500 $ an Provisionen gespart.",
+      "author": "Alba G.",
+      "role": "Spanischlehrerin, Madrid",
       "image": "/testimonials/sara.jpg"
     },
     "list": [
       {
-        "quote": "Meine Instagram-Follower können mich endlich direkt buchen. 12 Lektionen in der ersten Woche gebucht.",
+        "quote": "Ich habe meinen Link auf Instagram geteilt. Am Ende der Woche hatten 12 Leute gebucht—keine DMs, kein Hin und Her. Einfach Benachrichtigungen.",
         "author": "Thomas B.",
-        "role": "Französischlehrer"
+        "role": "Französischlehrer, Montreal"
       },
       {
-        "quote": "Alle meine Schüler an einem Ort. Notizen, Termine, Zahlungen. Keine verstreuten Tabellen mehr.",
+        "quote": "Früher begann ich den Unterricht und versuchte mich zu erinnern, was wir behandelt hatten. Jetzt schaue ich meine Notizen an, knüpfe dort an, wo wir aufgehört haben, und verfolge wirklich den Fortschritt.",
         "author": "Ricardo M.",
-        "role": "Portugiesischlehrer"
+        "role": "Portugiesischlehrer, São Paulo"
       }
     ]
   },
@@ -248,7 +248,7 @@
     "headline": "Häufige Fragen",
     "items": [
       {
-        "question": "Muss ich Preply oder iTalki verlassen?",
+        "question": "Muss ich die Plattformen verlassen?",
         "answer": "Nein. Nutzen Sie Marktplätze, um gefunden zu werden. Nutzen Sie TutorLingua für Direktbuchungen von Ihren Followern und Stammkunden."
       },
       {
@@ -327,8 +327,8 @@
     "ctaHref": "/signup"
   },
   "finalCTA": {
-    "headline": "Bereit, Ihr Geschäft zu besitzen?",
-    "subheadline": "14 Tage kostenlos testen. In 10 Minuten bereit.",
+    "headline": "Ihre Schüler verdienen Kontinuität. Sie auch.",
+    "subheadline": "Behalten Sie jede Lektion, jede Notiz, jede Beziehung an einem Ort.",
     "calculatorLabel": "Monatlicher Umsatz:",
     "calculatorUnit": "/Monat",
     "rangeMinLabel": "500 $",

@@ -1,7 +1,7 @@
 {
   "hero": {
     "headline": "チューターのために作られました。",
-    "subheadline": "14日間無料トライアル。その後は月額29ドルまたは年額299ドル。すべてのツールが含まれています。",
+    "subheadline": "予約、支払い、メモを1つのリンクで。無料でお試し。",
     "primaryCTA": "無料で登録",
     "secondaryCTA": "仕組みを見る",
     "variants": {
@@ -11,7 +11,7 @@
     }
   },
   "socialProof": {
-    "text": "Preply、iTalki、Verblingの語学チューターがリピートビジネスを管理するために使用",
+    "text": "主要なプラットフォームのチューターがリピート生徒を維持するために使用",
     "tutors": [
       { "name": "Alba GB.", "language": "スペイン語講師" },
       { "name": "Thomas B.", "language": "フランス語チューター" },
@@ -19,13 +19,13 @@
     ]
   },
   "problems": {
-    "headline": "あなたのビジネスは散らばっています。そうあるべきではありません。",
-    "subtitle": "Preplyの生徒。Calendlyの予約。Beaconsのリンク。TutorLinguaがすべてをまとめます。",
+    "headline": "あなたが築いた関係を。守りましょう。",
+    "subtitle": "プラットフォームが生徒を紹介します。あなたが彼らをロイヤル顧客にします。TutorLinguaがそのつながりを維持する手助けをします。",
     "items": [
       {
         "icon": "Layers",
         "title": "チューター専用に設計",
-        "description": "汎用ツールとは異なり、必要なものがすべて揃っています。不要なものはありません。"
+        "description": "語学チューターの実際の働き方に合わせて設計—レッスン、メモ、生徒の進捗。"
       },
       {
         "icon": "Users",
@@ -67,7 +67,7 @@
     "cta": "無料で登録"
   },
   "solution": {
-    "headline": "必要なものすべて。不要なものはなし。",
+    "headline": "生徒のための一つの場所。",
     "subheadline": "語学チューター向けに設計。10分で準備完了。",
     "features": [
       {
@@ -88,13 +88,13 @@
     ]
   },
   "howItWorks": {
-    "headline": "10分で準備完了",
+    "headline": "今日セットアップ。明日から指導。",
     "steps": [
       {
         "number": 1,
         "icon": "UserPlus",
         "title": "リンクを共有",
-        "description": "Instagramに投稿。TikTokに追加。Preplyのプロフィールに入れる。どこでも共有。"
+        "description": "Instagramに投稿。TikTokに追加。プラットフォームのプロフィールに入れる。どこでも共有。"
       },
       {
         "number": 2,
@@ -223,24 +223,24 @@
     ]
   },
   "testimonials": {
-    "headline": "本物のチューター、本物の結果",
-    "subheadline": "TutorLinguaでより多く稼ぎ、より少なく働く何千人ものチューターに参加しましょう",
+    "headline": "何が変わったか。",
+    "subheadline": "",
     "featured": {
-      "quote": "新しい生徒のためにPreplyに残っています。しかし、リピートレッスンはTutorLingua経由です。今年、手数料で7,500ドル節約しました。",
-      "author": "Alba GB.",
-      "role": "スペイン語講師",
+      "quote": "新しい生徒を見つけるためにプラットフォームをまだ使っています。でもリピートレッスンは？今はここを通しています。去年、手数料で7,500ドル以上節約しました。",
+      "author": "Alba G.",
+      "role": "スペイン語講師、マドリード",
       "image": "/testimonials/sara.jpg"
     },
     "list": [
       {
-        "quote": "Instagramのフォロワーがついに直接予約できるようになりました。最初の週に12レッスン予約。",
+        "quote": "Instagramにリンクを貼りました。週末までに12人が予約—DMなし、やり取りなし。通知だけ。",
         "author": "Thomas B.",
-        "role": "フランス語チューター"
+        "role": "フランス語チューター、モントリオール"
       },
       {
-        "quote": "すべての生徒が一か所に。メモ、スケジュール、支払い。散らばったスプレッドシートはもうなし。",
+        "quote": "以前は、前回何をやったか思い出そうとしながらレッスンを始めていました。今はメモを確認し、中断したところから再開し、本当に進捗を追跡できます。",
         "author": "Ricardo M.",
-        "role": "ポルトガル語チューター"
+        "role": "ポルトガル語チューター、サンパウロ"
       }
     ]
   },
@@ -248,7 +248,7 @@
     "headline": "よくある質問",
     "items": [
       {
-        "question": "PreplyやiTalkiを離れる必要がありますか？",
+        "question": "プラットフォームを離れる必要がありますか？",
         "answer": "いいえ。発見されるためにマーケットプレイスを使用してください。フォロワーやリピート生徒からの直接予約にはTutorLinguaを使用してください。"
       },
       {
@@ -327,8 +327,8 @@
     "ctaHref": "/signup"
   },
   "finalCTA": {
-    "headline": "ビジネスを所有する準備はできましたか？",
-    "subheadline": "14日間無料トライアル。10分で準備完了。",
+    "headline": "あなたの生徒は継続性を必要としています。あなたも。",
+    "subheadline": "すべてのレッスン、すべてのメモ、すべての関係を一か所に。",
     "calculatorLabel": "月間収益：",
     "calculatorUnit": "/月",
     "rangeMinLabel": "500ドル",
