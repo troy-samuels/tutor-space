@@ -78,7 +78,8 @@ export function RequestAccessForm({
         return;
       }
 
-      if (result.redirectTo) {
+      // Handle redirect if returned (for future flexibility)
+      if ("redirectTo" in result && typeof result.redirectTo === "string") {
         router.push(result.redirectTo);
         router.refresh();
         return;

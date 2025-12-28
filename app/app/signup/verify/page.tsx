@@ -30,6 +30,9 @@ export default async function SignupVerifyPage({ searchParams }: { searchParams:
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Store user ID before any redirects for security checks later
+  const currentUserId = user?.id ?? null;
+
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -59,15 +62,18 @@ export default async function SignupVerifyPage({ searchParams }: { searchParams:
 
         // Security: Only show session details if it belongs to the current user
         // or if no user is logged in (they may have just signed up)
-        const isOwner = !user || !sessionUserId || sessionUserId === user.id;
+        const isOwner = !currentUserId || !sessionUserId || sessionUserId === currentUserId;
 
         if (isOwner) {
           sessionStatus = session.status ?? null;
           sessionPlan = session.metadata?.plan ?? null;
           email = session.customer_details?.email ?? session.customer_email ?? null;
         } else {
-          // Don't leak payment info for other users
-          console.warn("[Signup Verify] User attempted to view another user's checkout session");
+          // Don't leak payment info for other users - log redacted info for debugging
+          console.warn("[Signup Verify] Session ownership mismatch", {
+            hasCurrentUser: !!currentUserId,
+            hasSessionUser: !!sessionUserId,
+          });
           sessionLookupFailed = true;
         }
       } catch (error) {
