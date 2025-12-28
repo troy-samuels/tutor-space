@@ -22,9 +22,18 @@ type BillingCycle = "monthly" | "annual";
 type SignupFormProps = {
   tier?: PlanTier;
   billingCycle?: BillingCycle;
+  checkoutSessionId?: string;
+  lifetimeIntent?: boolean;
+  lifetimeSource?: string;
 };
 
-export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFormProps) {
+export function SignupForm({
+  tier = "pro",
+  billingCycle = "monthly",
+  checkoutSessionId,
+  lifetimeIntent,
+  lifetimeSource,
+}: SignupFormProps) {
   const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
     signUp,
     initialState
@@ -314,29 +323,39 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
 
   // Compute the plan ID based on tier and billing cycle
   const planId = useMemo(() => {
+    if (lifetimeIntent) return "tutor_life";
     return `${tier}_${billingCycle}` as const;
-  }, [tier, billingCycle]);
+  }, [tier, billingCycle, lifetimeIntent]);
 
   return (
     <div className="relative">
       <form action={formAction} className={`space-y-6 ${isShaking ? "animate-shake" : ""}`}>
         <input type="hidden" name="plan" value={planId} />
-      <div className="space-y-2">
-        <label
-          htmlFor="full_name"
-          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
-        >
-          Full name
-        </label>
-        <input
-          id="full_name"
-          name="full_name"
-          type="text"
-          required
-          className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
-          placeholder="Jane Doe"
-        />
-      </div>
+        {checkoutSessionId ? (
+          <input type="hidden" name="checkout_session_id" value={checkoutSessionId} />
+        ) : null}
+        {lifetimeIntent ? (
+          <input type="hidden" name="lifetime" value="true" />
+        ) : null}
+        {lifetimeSource ? (
+          <input type="hidden" name="lifetime_source" value={lifetimeSource} />
+        ) : null}
+        <div className="space-y-2">
+          <label
+            htmlFor="full_name"
+            className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
+            Full name
+          </label>
+          <input
+            id="full_name"
+            name="full_name"
+            type="text"
+            required
+            className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            placeholder="Jane Doe"
+          />
+        </div>
 
       <div className="space-y-2">
         <label

@@ -10,7 +10,7 @@ export const SIGNUP_CHECKOUT_FLOW = "tutor_signup";
 export const SIGNUP_CHECKOUT_STATUSES = ["open", "complete", "expired", "canceled"] as const;
 export type SignupCheckoutStatus = typeof SIGNUP_CHECKOUT_STATUSES[number];
 
-type SignupCheckoutProfile = {
+export type SignupCheckoutProfile = {
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
   signup_checkout_session_id?: string | null;
@@ -72,6 +72,19 @@ function hasActiveSubscription(profile: SignupCheckoutProfile | null): boolean {
     return true;
   }
   return false;
+}
+
+export function requiresSignupCheckout(
+  plan: PlatformBillingPlan,
+  profile: SignupCheckoutProfile | null
+): boolean {
+  const priceId = resolveSignupPriceId(plan);
+  if (!priceId) return false;
+  if (hasActiveSubscription(profile)) return false;
+  if (profile?.signup_checkout_status === "complete" || profile?.signup_checkout_completed_at) {
+    return false;
+  }
+  return true;
 }
 
 async function updateSignupCheckoutProfile(params: {

@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { buildVerifyEmailUrl } from "@/lib/auth/redirects";
 import { OnboardingTimeline } from "@/components/onboarding/OnboardingTimeline";
 
 export default async function OnboardingPage() {
@@ -12,16 +11,6 @@ export default async function OnboardingPage() {
 
   if (!user) {
     redirect("/login");
-  }
-
-  if (!user.email_confirmed_at) {
-    redirect(
-      buildVerifyEmailUrl({
-        role: "tutor",
-        email: user.email,
-        next: "/onboarding",
-      })
-    );
   }
 
   const { data: profile } = await supabase

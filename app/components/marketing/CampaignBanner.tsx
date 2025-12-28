@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import { useCampaignTimer } from "@/lib/hooks/useCampaignTimer";
 
 // ============================================
@@ -71,7 +70,7 @@ export function CampaignBanner() {
       const response = await fetch("/api/stripe/lifetime", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: "campaign_banner" }),
+        body: JSON.stringify({ source: "campaign_banner", flow: "signup" }),
       });
 
       const data = await response.json();
@@ -128,9 +127,7 @@ export function CampaignBanner() {
       aria-label={`Get lifetime access for $${LAUNCH_CONFIG.lifetimePrice}. ${spotsRemaining} spots remaining.`}
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full bg-amber-600 hover:bg-amber-500 transition-colors duration-200 cursor-pointer text-white ${
-        isLoading ? "pointer-events-none opacity-75" : ""
-      }`}
+      className="w-full bg-amber-600 hover:bg-amber-500 transition-colors duration-200 cursor-pointer text-white"
     >
       <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 h-10">
         <div className="flex h-full items-center justify-center gap-2 sm:gap-3 md:gap-4">
@@ -164,9 +161,7 @@ export function CampaignBanner() {
           </span>
 
           {/* Loading indicator, error, or arrow hint */}
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : error ? (
+          {error ? (
             <span className="text-xs text-red-200 bg-red-900/50 px-2 py-0.5 rounded whitespace-nowrap">
               {error}
             </span>

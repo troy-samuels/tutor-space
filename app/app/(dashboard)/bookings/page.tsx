@@ -9,6 +9,8 @@ type ServiceSummary = {
   id: string;
   name: string;
   duration_minutes: number;
+  price: number;
+  currency: string;
 };
 
 type ServiceRow = ServiceSummary & { is_active: boolean };
@@ -25,7 +27,7 @@ export default async function BookingsPage() {
 
   const servicesResponse = await supabase
     .from("services")
-    .select("id, name, duration_minutes, is_active")
+    .select("id, name, duration_minutes, is_active, price_amount, price_currency, price, currency")
     .order("name", { ascending: true });
 
   const profileResponse = await supabase
@@ -37,13 +39,24 @@ export default async function BookingsPage() {
   const availabilityResponse = await getAvailability();
   const busyWindows = tutorId ? await getCalendarBusyWindows({ tutorId }) : [];
 
-  const serviceRows = (servicesResponse.data as ServiceRow[] | null) ?? [];
+  const serviceRows = (servicesResponse.data ?? []) as Array<{
+    id: string;
+    name: string;
+    duration_minutes: number;
+    is_active: boolean;
+    price_amount?: number | null;
+    price_currency?: string | null;
+    price?: number | null;
+    currency?: string | null;
+  }>;
   const activeServices: ServiceSummary[] = serviceRows
     .filter((service) => service.is_active)
     .map((service) => ({
       id: service.id,
       name: service.name,
       duration_minutes: service.duration_minutes,
+      price: service.price_amount ?? service.price ?? 0,
+      currency: service.price_currency ?? service.currency ?? "USD",
     }));
   const timezone = profileResponse.data?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const availability = availabilityResponse.slots.map((slot) => ({

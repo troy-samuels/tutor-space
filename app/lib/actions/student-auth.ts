@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { buildAuthCallbackUrl, buildVerifyEmailUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
+import { buildAuthCallbackUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
 import { sendAccessRequestNotification } from "@/lib/emails/access-emails";
 
 export type AccessStatus = "pending" | "approved" | "denied" | "suspended" | "no_record";
@@ -136,30 +136,65 @@ export async function signupAndRequestAccess(params: {
       }
     }
 
-    // Create auth user via client-side Supabase (for proper session)
     const supabase = await createClient();
     const bookPath = `/book/${params.tutorUsername}`;
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    let authUserId: string | null = null;
+
+    const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin.createUser({
       email: params.email,
       password: params.password,
-      options: {
-        data: {
-          role: "student",
-          full_name: params.fullName,
-        },
-        emailRedirectTo: buildAuthCallbackUrl(bookPath),
+      email_confirm: true,
+      user_metadata: {
+        role: "student",
+        full_name: params.fullName,
       },
     });
 
-    if (authError || !authData.user) {
-      console.error("Auth signup error:", authError);
-      return { error: authError?.message || "Failed to create account" };
+    if (adminCreateError) {
+      const message = adminCreateError.message?.toLowerCase() ?? "";
+      if (message.includes("already registered")) {
+        return {
+          error: "An account with this email already exists. Please log in instead.",
+        };
+      }
+
+      console.error("Auth signup error:", adminCreateError);
+      return { error: "Failed to create account" };
     }
 
-    const requiresEmailConfirmation = !authData.session;
-    const verifyEmailRedirect = requiresEmailConfirmation
-      ? buildVerifyEmailUrl({ role: "student", email: params.email, next: bookPath })
-      : undefined;
+    authUserId = adminCreated?.user?.id ?? null;
+
+    if (!authUserId) {
+      return { error: "Failed to create account" };
+    }
+
+    let { error: signInError } = await supabase.auth.signInWithPassword({
+      email: params.email,
+      password: params.password,
+    });
+
+    if (signInError) {
+      const message = signInError.message?.toLowerCase() ?? "";
+      if (message.includes("email not confirmed")) {
+        await adminClient.auth.admin.updateUserById(authUserId, {
+          email_confirm: true,
+        });
+
+        const retry = await supabase.auth.signInWithPassword({
+          email: params.email,
+          password: params.password,
+        });
+
+        signInError = retry.error ?? null;
+      }
+    }
+
+    if (signInError) {
+      console.error("Auth sign-in error:", signInError);
+      return {
+        error: "Account created but we couldn't sign you in yet. Please log in.",
+      };
+    }
 
     // Create or update student record
     let studentId: string;
@@ -169,7 +204,7 @@ export async function signupAndRequestAccess(params: {
       const { error: updateError } = await adminClient
         .from("students")
         .update({
-          user_id: authData.user.id,
+          user_id: authUserId,
           full_name: params.fullName,
           phone: params.phone || null,
           calendar_access_status: "pending",
@@ -190,7 +225,7 @@ export async function signupAndRequestAccess(params: {
         .from("students")
         .insert({
           tutor_id: params.tutorId,
-          user_id: authData.user.id,
+          user_id: authUserId,
           full_name: params.fullName,
           email: params.email,
           phone: params.phone || null,
@@ -246,14 +281,11 @@ export async function signupAndRequestAccess(params: {
       });
     }
 
-    revalidatePath(`/book/${params.tutorUsername}`);
+    revalidatePath(bookPath);
 
     return {
       success: true,
-      message: requiresEmailConfirmation
-        ? "Check your email to confirm your account."
-        : "Access request submitted! You'll receive an email when approved.",
-      redirectTo: verifyEmailRedirect,
+      message: "Access request submitted! You'll receive an email when approved.",
     };
   } catch (error) {
     console.error("Error in signupAndRequestAccess:", error);
@@ -307,26 +339,45 @@ export async function studentLogin(params: {
   password: string;
 }): Promise<{ success?: boolean; error?: string; redirectTo?: string }> {
   const supabase = await createClient();
+  const adminClient = createServiceRoleClient();
   const email = params.email?.trim().toLowerCase();
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  let { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: params.password,
   });
 
   if (error) {
     const message = error.message ?? "";
-    if (message.toLowerCase().includes("email not confirmed")) {
-      return {
-        success: true,
-        redirectTo: buildVerifyEmailUrl({
-          role: "student",
-          email,
-          next: "/student/search",
-        }),
-      };
+    if (message.toLowerCase().includes("email not confirmed") && adminClient) {
+      const { data: userList, error: listError } = await adminClient.auth.admin.listUsers({
+        perPage: 200,
+      });
+
+      if (!listError) {
+        const existing = userList?.users?.find(
+          user => user.email?.toLowerCase() === email
+        );
+
+        if (existing?.id) {
+          await adminClient.auth.admin.updateUserById(existing.id, {
+            email_confirm: true,
+          });
+
+          const retry = await supabase.auth.signInWithPassword({
+            email,
+            password: params.password,
+          });
+
+          data = retry.data;
+          error = retry.error ?? null;
+        }
+      }
     }
-    return { error: message };
+
+    if (error) {
+      return { error: error.message ?? "Unable to sign you in right now." };
+    }
   }
 
   return { success: true };
@@ -373,127 +424,104 @@ export async function studentSignup(params: {
     return { error: "Password must be at least 8 characters" };
   }
 
+  const adminClient = createServiceRoleClient();
   const nextPath = sanitizeRedirectPath(params.redirectTo) ?? "/student/search";
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password: params.password,
-    options: {
-      data: {
+  let createdUserId: string | null = null;
+  let hasSession = false;
+
+  if (adminClient) {
+    const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin.createUser({
+      email,
+      password: params.password,
+      email_confirm: true,
+      user_metadata: {
         role: "student",
         full_name: fullName,
         timezone,
       },
-      emailRedirectTo: buildAuthCallbackUrl(nextPath),
-    },
-  });
+    });
 
-  if (authError || !authData.user) {
-    const message = authError?.message || "";
-    const normalizedMessage = message.toLowerCase();
+    if (adminCreateError) {
+      const message = adminCreateError.message ?? "";
+      const normalizedMessage = message.toLowerCase();
 
-    // Supabase occasionally returns this when the mail provider is misconfigured.
-    // Attempt to recover by confirming the user via the admin API and signing them in.
-    if (normalizedMessage.includes("confirmation email")) {
-      // First try to sign in in case the user was actually created
-      const { error: signInAfterFailure } = await supabase.auth.signInWithPassword({
-        email,
-        password: params.password,
-      });
-
-      if (!signInAfterFailure) {
-        return { success: true };
+      if (normalizedMessage.includes("already registered")) {
+        return { error: "An account with this email already exists. Please log in instead." };
       }
 
-      const adminClient = createServiceRoleClient();
-      if (!adminClient) {
-        return {
-          error:
-            "We created your account but couldn't finalize signup. Please try logging in again.",
-        };
-      }
-
-      const metadata = {
-        role: "student",
-        full_name: fullName,
-        timezone,
-      };
-
-      const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin.createUser({
-        email,
-        password: params.password,
-        email_confirm: true,
-        user_metadata: metadata,
-      });
-
-      if (adminCreateError) {
-        const alreadyRegistered = adminCreateError.message
-          ?.toLowerCase()
-          .includes("already registered");
-
-        if (!alreadyRegistered) {
-          console.error("Student signup admin create error:", adminCreateError);
-          return { error: "We couldn't finish creating your account. Please try again." };
-        }
-
-        // User exists but wasn't confirmed—find and update
-        const { data: userList, error: listError } = await adminClient.auth.admin.listUsers({
-          perPage: 200,
-        });
-
-        if (listError) {
-          console.error("Student signup admin list error:", listError);
-          return {
-            error:
-              "Your account exists but we couldn't activate it automatically. Please try logging in again.",
-          };
-        }
-
-        const existing = userList?.users?.find(
-          user => user.email?.toLowerCase() === email
-        );
-
-        if (existing) {
-          await adminClient.auth.admin.updateUserById(existing.id, {
-            email_confirm: true,
-            user_metadata: { ...existing.user_metadata, ...metadata },
-          });
-        }
-      } else if (adminCreated?.user?.id) {
-        await adminClient.auth.admin.updateUserById(adminCreated.user.id, {
-          email_confirm: true,
-          user_metadata: metadata,
-        });
-      }
-
-      const { error: finalSignInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: params.password,
-      });
-
-      if (finalSignInError) {
-        console.error("Student signup fallback sign-in error:", finalSignInError);
-        return {
-          error:
-            "Account created but we couldn't sign you in. Please try logging in again.",
-        };
-      }
-
-      return { success: true };
+      console.error("Student signup admin create error:", adminCreateError);
+    } else {
+      createdUserId = adminCreated?.user?.id ?? null;
     }
-
-    console.error("Student signup error:", authError);
-    return { error: message || "Failed to create account" };
   }
 
-  if (!authData.session) {
-    return {
-      success: true,
-      redirectTo: buildVerifyEmailUrl({
-        role: "student",
-        email,
-        next: nextPath,
-      }),
-    };
+  if (!createdUserId) {
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: params.password,
+      options: {
+        data: {
+          role: "student",
+          full_name: fullName,
+          timezone,
+        },
+        emailRedirectTo: buildAuthCallbackUrl(nextPath),
+      },
+    });
+
+    if (authError || !authData.user) {
+      const message = authError?.message || "";
+      const normalizedMessage = message.toLowerCase();
+
+      if (normalizedMessage.includes("already registered")) {
+        return { error: "An account with this email already exists. Please log in instead." };
+      }
+
+      console.error("Student signup error:", authError);
+      return { error: message || "Failed to create account" };
+    }
+
+    createdUserId = authData.user.id;
+    hasSession = Boolean(authData.session);
+  }
+
+  if (!createdUserId) {
+    return { error: "Failed to create account. Please try again." };
+  }
+
+  if (!hasSession) {
+    let { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: params.password,
+    });
+
+    if (signInError && adminClient) {
+      const message = signInError.message?.toLowerCase() ?? "";
+      if (message.includes("email not confirmed")) {
+        await adminClient.auth.admin.updateUserById(createdUserId, {
+          email_confirm: true,
+          user_metadata: {
+            role: "student",
+            full_name: fullName,
+            timezone,
+          },
+        });
+
+        const retry = await supabase.auth.signInWithPassword({
+          email,
+          password: params.password,
+        });
+
+        signInError = retry.error ?? null;
+      }
+    }
+
+    if (signInError) {
+      console.error("Student signup sign-in error:", signInError);
+      return {
+        error: "Account created but we couldn't sign you in. Please log in.",
+      };
+    }
   }
 
   return { success: true };
@@ -666,33 +694,66 @@ export async function signupWithInviteLink(params: {
       };
     }
 
-    // Create auth user
     const supabase = await createClient();
     const bookPath =
       serviceIds.length > 0
         ? `/book/${tutorUsername}?services=${serviceIds.join(",")}`
         : `/book/${tutorUsername}`;
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin.createUser({
       email: params.email,
       password: params.password,
-      options: {
-        data: {
-          role: "student",
-          full_name: params.fullName,
-        },
-        emailRedirectTo: buildAuthCallbackUrl(bookPath),
+      email_confirm: true,
+      user_metadata: {
+        role: "student",
+        full_name: params.fullName,
       },
     });
 
-    if (authError || !authData.user) {
-      console.error("Auth signup error:", authError);
-      return { error: authError?.message || "Failed to create account" };
+    if (adminCreateError) {
+      const message = adminCreateError.message?.toLowerCase() ?? "";
+      if (message.includes("already registered")) {
+        return {
+          error: "An account with this email already exists. Please log in instead.",
+        };
+      }
+
+      console.error("Auth signup error:", adminCreateError);
+      return { error: "Failed to create account" };
     }
 
-    const requiresEmailConfirmation = !authData.session;
-    const verifyEmailRedirect = requiresEmailConfirmation
-      ? buildVerifyEmailUrl({ role: "student", email: params.email, next: bookPath })
-      : undefined;
+    const authUserId = adminCreated?.user?.id ?? null;
+
+    if (!authUserId) {
+      return { error: "Failed to create account" };
+    }
+
+    let { error: signInError } = await supabase.auth.signInWithPassword({
+      email: params.email,
+      password: params.password,
+    });
+
+    if (signInError) {
+      const message = signInError.message?.toLowerCase() ?? "";
+      if (message.includes("email not confirmed")) {
+        await adminClient.auth.admin.updateUserById(authUserId, {
+          email_confirm: true,
+        });
+
+        const retry = await supabase.auth.signInWithPassword({
+          email: params.email,
+          password: params.password,
+        });
+
+        signInError = retry.error ?? null;
+      }
+    }
+
+    if (signInError) {
+      console.error("Auth sign-in error:", signInError);
+      return {
+        error: "Account created but we couldn't sign you in yet. Please log in.",
+      };
+    }
 
     // Create or update student record - AUTO APPROVED via invite link
     let studentId: string;
@@ -702,7 +763,7 @@ export async function signupWithInviteLink(params: {
       const { error: updateError } = await adminClient
         .from("students")
         .update({
-          user_id: authData.user.id,
+          user_id: authUserId,
           full_name: params.fullName,
           phone: params.phone || null,
           status: "active", // Auto-approved
@@ -725,7 +786,7 @@ export async function signupWithInviteLink(params: {
         .from("students")
         .insert({
           tutor_id: tutorId,
-          user_id: authData.user.id,
+          user_id: authUserId,
           full_name: params.fullName,
           email: params.email,
           phone: params.phone || null,
@@ -763,13 +824,12 @@ export async function signupWithInviteLink(params: {
       }
     );
 
-    revalidatePath(`/book/${tutorUsername}`);
+    revalidatePath(bookPath);
 
     return {
       success: true,
       tutorUsername,
       serviceIds,
-      redirectTo: verifyEmailRedirect,
     };
   } catch (error) {
     console.error("Error in signupWithInviteLink:", error);

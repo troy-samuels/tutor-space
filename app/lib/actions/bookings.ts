@@ -13,6 +13,7 @@ import {
   sendBookingConfirmationEmail,
   sendPaymentReceiptEmail,
   sendTutorBookingNotificationEmail,
+  sendBookingPaymentRequestEmail,
 } from "@/lib/emails/booking-emails";
 import {
   sendBookingRescheduledEmails,
@@ -2020,4 +2021,440 @@ export async function cancelBooking(bookingId: string) {
   revalidatePath("/student/bookings");
 
   return { success: true };
+}
+
+/**
+ * Input for manual booking creation with payment options
+ */
+export type ManualBookingInput = {
+  service_id: string;
+  student_id?: string;
+  new_student?: {
+    name: string;
+    email: string;
+    timezone: string;
+  };
+  scheduled_at: string;
+  duration_minutes: number;
+  timezone: string;
+  notes?: string;
+  payment_option: "send_link" | "already_paid" | "free";
+};
+
+/**
+ * Create a manual booking with flexible payment options
+ *
+ * Payment options:
+ * - send_link: Creates pending booking, generates Stripe checkout, sends payment email
+ * - already_paid: Creates confirmed booking, sends confirmation email
+ * - free: Creates confirmed booking with complimentary status, sends confirmation email
+ */
+export async function createManualBookingWithPaymentLink(input: ManualBookingInput): Promise<{
+  data?: { bookingId: string; paymentUrl?: string };
+  error?: string;
+}> {
+  const { supabase, user } = await requireTutor();
+  if (!user) {
+    return { error: "You need to be signed in to create bookings." };
+  }
+
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    return { error: "Service unavailable. Please try again." };
+  }
+
+  // Validate input
+  if (!input.student_id && !input.new_student) {
+    return { error: "Please select or add a student." };
+  }
+
+  if (!input.service_id) {
+    return { error: "Please select a service." };
+  }
+
+  // Get service details
+  const { data: service, error: serviceError } = await supabase
+    .from("services")
+    .select("id, name, duration_minutes, price_amount, price_currency")
+    .eq("id", input.service_id)
+    .eq("tutor_id", user.id)
+    .single();
+
+  if (serviceError || !service) {
+    return { error: "Service not found. Please select a valid service." };
+  }
+
+  // Get tutor profile
+  const { data: tutorProfile, error: profileError } = await adminClient
+    .from("profiles")
+    .select(`
+      full_name, email, timezone,
+      video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
+      calendly_link, custom_video_url, custom_video_name,
+      stripe_account_id, stripe_charges_enabled, stripe_onboarding_status,
+      payment_instructions, venmo_handle, paypal_email, zelle_phone,
+      stripe_payment_link, custom_payment_url
+    `)
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !tutorProfile) {
+    return { error: "Could not load your profile. Please try again." };
+  }
+
+  const tutorTimezone = tutorProfile.timezone || input.timezone || "UTC";
+
+  // Validate booking window
+  const bookingWindow = await checkAdvanceBookingWindow({
+    adminClient,
+    tutorId: user.id,
+    scheduledAt: input.scheduled_at,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingWindow) {
+    return { error: bookingWindow.error };
+  }
+
+  // Check booking limits
+  const bookingLimits = await checkBookingLimits({
+    adminClient,
+    tutorId: user.id,
+    scheduledAt: input.scheduled_at,
+    timezone: tutorTimezone,
+  });
+
+  if ("error" in bookingLimits) {
+    return { error: bookingLimits.error };
+  }
+
+  // Check for conflicts
+  const { data: existingBookings } = await supabase
+    .from("bookings")
+    .select("id, scheduled_at, duration_minutes")
+    .eq("tutor_id", user.id)
+    .in("status", ["pending", "confirmed"])
+    .gte("scheduled_at", new Date(new Date(input.scheduled_at).getTime() - 24 * 60 * 60 * 1000).toISOString())
+    .lte("scheduled_at", new Date(new Date(input.scheduled_at).getTime() + 24 * 60 * 60 * 1000).toISOString());
+
+  const bookingStart = new Date(input.scheduled_at);
+  const bookingEnd = new Date(bookingStart.getTime() + input.duration_minutes * 60 * 1000);
+
+  const hasConflict = existingBookings?.some((existing) => {
+    const existingStart = new Date(existing.scheduled_at);
+    const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
+    return bookingStart < existingEnd && bookingEnd > existingStart;
+  });
+
+  if (hasConflict) {
+    return { error: "This time slot conflicts with an existing booking. Please select a different time." };
+  }
+
+  // Get or create student
+  let studentId = input.student_id;
+  let studentData: { id: string; full_name: string; email: string; timezone?: string } | null = null;
+
+  if (input.new_student) {
+    // Create new student
+    const { data: newStudent, error: studentError } = await adminClient
+      .from("students")
+      .insert({
+        tutor_id: user.id,
+        full_name: input.new_student.name,
+        email: input.new_student.email.toLowerCase().trim(),
+        timezone: input.new_student.timezone,
+        source: "manual",
+        calendar_access_status: "approved",
+      })
+      .select("id, full_name, email, timezone")
+      .single();
+
+    if (studentError) {
+      // Check if student already exists
+      if (studentError.code === "23505") {
+        const { data: existing } = await adminClient
+          .from("students")
+          .select("id, full_name, email, timezone")
+          .eq("tutor_id", user.id)
+          .eq("email", input.new_student.email.toLowerCase().trim())
+          .single();
+
+        if (existing) {
+          studentId = existing.id;
+          studentData = existing;
+        } else {
+          return { error: "A student with this email already exists but could not be retrieved." };
+        }
+      } else {
+        console.error("Failed to create student:", studentError);
+        return { error: "Could not create student. Please try again." };
+      }
+    } else {
+      studentId = newStudent.id;
+      studentData = newStudent;
+    }
+  } else if (studentId) {
+    // Fetch existing student
+    const { data: existing } = await supabase
+      .from("students")
+      .select("id, full_name, email, timezone")
+      .eq("id", studentId)
+      .eq("tutor_id", user.id)
+      .single();
+
+    if (!existing) {
+      return { error: "Student not found. Please select a valid student." };
+    }
+    studentData = existing;
+  }
+
+  if (!studentId || !studentData) {
+    return { error: "Could not identify student. Please try again." };
+  }
+
+  // Determine booking status based on payment option
+  const isPendingPayment = input.payment_option === "send_link";
+  const isFree = input.payment_option === "free";
+
+  const bookingStatus = isPendingPayment ? "pending" : "confirmed";
+  const paymentStatus = isFree ? "complimentary" : (isPendingPayment ? "unpaid" : "paid");
+  const paymentAmount = isFree ? 0 : (service.price_amount ?? 0);
+
+  // Get meeting URL from tutor's video settings
+  let meetingUrl: string | null = null;
+  let meetingProvider: string | null = null;
+
+  if (tutorProfile.video_provider) {
+    switch (tutorProfile.video_provider) {
+      case "zoom_personal":
+        meetingUrl = tutorProfile.zoom_personal_link;
+        meetingProvider = "zoom_personal";
+        break;
+      case "google_meet":
+        meetingUrl = tutorProfile.google_meet_link;
+        meetingProvider = "google_meet";
+        break;
+      case "microsoft_teams":
+        meetingUrl = tutorProfile.microsoft_teams_link;
+        meetingProvider = "microsoft_teams";
+        break;
+      case "calendly":
+        meetingUrl = tutorProfile.calendly_link;
+        meetingProvider = "calendly";
+        break;
+      case "custom":
+        meetingUrl = tutorProfile.custom_video_url;
+        meetingProvider = "custom";
+        break;
+    }
+  }
+
+  // Create booking
+  const { data: bookingResult, error: bookingError } = await adminClient.rpc(
+    "create_booking_atomic",
+    {
+      p_tutor_id: user.id,
+      p_student_id: studentId,
+      p_service_id: input.service_id,
+      p_scheduled_at: input.scheduled_at,
+      p_duration_minutes: input.duration_minutes,
+      p_timezone: tutorTimezone,
+      p_status: bookingStatus,
+      p_payment_status: paymentStatus,
+      p_payment_amount: paymentAmount,
+      p_currency: service.price_currency ?? "USD",
+      p_student_notes: input.notes ?? null,
+    }
+  );
+
+  const booking = Array.isArray(bookingResult)
+    ? bookingResult[0]
+    : (bookingResult as { id: string; created_at: string } | null);
+
+  if (bookingError || !booking) {
+    if (bookingError?.code === "P0001" || bookingError?.code === "23P01") {
+      return { error: "This time slot was just booked. Please refresh and select a different time." };
+    }
+    console.error("Booking RPC failed:", bookingError);
+    return { error: "We couldn't save that booking. Please try again." };
+  }
+
+  // Update booking with meeting URL
+  if (meetingUrl) {
+    await adminClient
+      .from("bookings")
+      .update({
+        meeting_url: meetingUrl,
+        meeting_provider: meetingProvider,
+      })
+      .eq("id", booking.id);
+  }
+
+  // Ensure conversation thread exists
+  await ensureConversationThread(adminClient, user.id, studentId);
+
+  // Handle payment link generation if needed
+  let paymentUrl: string | undefined;
+
+  if (input.payment_option === "send_link") {
+    // Check if Stripe Connect is enabled
+    const stripeAccountReady =
+      tutorProfile.stripe_charges_enabled === true &&
+      tutorProfile.stripe_account_id &&
+      tutorProfile.stripe_onboarding_status !== "restricted";
+
+    if (stripeAccountReady && paymentAmount > 0) {
+      try {
+        const { createCheckoutSession, getOrCreateStripeCustomer } = await import("@/lib/stripe");
+
+        // Get or create Stripe customer for student
+        const stripeCustomer = await getOrCreateStripeCustomer({
+          userId: studentId, // Use studentId as the user identifier
+          email: studentData.email,
+          name: studentData.full_name,
+        });
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const stripeCurrency = (service.price_currency ?? "USD").toLowerCase();
+
+        const session = await createCheckoutSession({
+          customerId: stripeCustomer.id,
+          priceAmount: paymentAmount,
+          currency: stripeCurrency,
+          successUrl: `${baseUrl}/book/success?booking_id=${booking.id}&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${baseUrl}/book/cancelled?booking_id=${booking.id}`,
+          metadata: {
+            bookingId: booking.id,
+            studentRecordId: studentId,
+            tutorId: user.id,
+          },
+          lineItems: [
+            {
+              name: service.name,
+              description: `${input.duration_minutes} minute lesson`,
+              amount: paymentAmount, // Price in cents
+            },
+          ],
+          transferDestinationAccountId: tutorProfile.stripe_account_id,
+        });
+
+        paymentUrl = session.url ?? undefined;
+
+        // Store checkout session ID on booking
+        await adminClient
+          .from("bookings")
+          .update({ stripe_checkout_session_id: session.id })
+          .eq("id", booking.id);
+
+      } catch (stripeError) {
+        console.error("Failed to create Stripe checkout session:", stripeError);
+        // Fall back to manual payment
+        paymentUrl = undefined;
+      }
+    }
+
+    // Send payment request email
+    if (paymentUrl) {
+      await sendBookingPaymentRequestEmail({
+        studentName: studentData.full_name,
+        studentEmail: studentData.email,
+        tutorName: tutorProfile.full_name ?? "Your tutor",
+        tutorEmail: tutorProfile.email ?? "",
+        serviceName: service.name,
+        scheduledAt: input.scheduled_at,
+        durationMinutes: input.duration_minutes,
+        timezone: studentData.timezone ?? tutorTimezone,
+        amount: paymentAmount / 100,
+        currency: service.price_currency ?? "USD",
+        paymentUrl,
+      });
+    } else {
+      // Stripe not available, send confirmation with manual payment instructions
+      await sendBookingConfirmationEmail({
+        studentName: studentData.full_name,
+        studentEmail: studentData.email,
+        tutorName: tutorProfile.full_name ?? "Your tutor",
+        tutorEmail: tutorProfile.email ?? "",
+        serviceName: service.name,
+        scheduledAt: input.scheduled_at,
+        durationMinutes: input.duration_minutes,
+        timezone: studentData.timezone ?? tutorTimezone,
+        amount: paymentAmount / 100,
+        currency: service.price_currency ?? "USD",
+        paymentInstructions: {
+          general: tutorProfile.payment_instructions ?? undefined,
+          venmoHandle: tutorProfile.venmo_handle ?? undefined,
+          paypalEmail: tutorProfile.paypal_email ?? undefined,
+          zellePhone: tutorProfile.zelle_phone ?? undefined,
+          stripePaymentLink: tutorProfile.stripe_payment_link ?? undefined,
+          customPaymentUrl: tutorProfile.custom_payment_url ?? undefined,
+        },
+        meetingUrl: meetingUrl ?? undefined,
+        meetingProvider: meetingProvider ?? undefined,
+        customVideoName: tutorProfile.custom_video_name ?? undefined,
+      });
+    }
+  } else {
+    // Send confirmation email for already_paid or free bookings
+    await sendBookingConfirmationEmail({
+      studentName: studentData.full_name,
+      studentEmail: studentData.email,
+      tutorName: tutorProfile.full_name ?? "Your tutor",
+      tutorEmail: tutorProfile.email ?? "",
+      serviceName: service.name,
+      scheduledAt: input.scheduled_at,
+      durationMinutes: input.duration_minutes,
+      timezone: studentData.timezone ?? tutorTimezone,
+      amount: isFree ? 0 : paymentAmount / 100,
+      currency: service.price_currency ?? "USD",
+      meetingUrl: meetingUrl ?? undefined,
+      meetingProvider: meetingProvider ?? undefined,
+      customVideoName: tutorProfile.custom_video_name ?? undefined,
+    });
+  }
+
+  // Send notification to tutor
+  await sendTutorBookingNotificationEmail({
+    tutorName: tutorProfile.full_name ?? "Tutor",
+    tutorEmail: tutorProfile.email ?? "",
+    studentName: studentData.full_name,
+    studentEmail: studentData.email,
+    serviceName: service.name,
+    scheduledAt: input.scheduled_at,
+    durationMinutes: input.duration_minutes,
+    timezone: tutorTimezone,
+    amount: isFree ? 0 : paymentAmount / 100,
+    currency: service.price_currency ?? "USD",
+    notes: input.notes,
+    dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/bookings`,
+  });
+
+  // Create calendar event
+  try {
+    const startDate = new Date(input.scheduled_at);
+    const endDate = new Date(startDate.getTime() + input.duration_minutes * 60000);
+
+    await createCalendarEventForBooking({
+      tutorId: user.id,
+      bookingId: booking.id,
+      title: `${service.name} with ${studentData.full_name}`,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      description: `TutorLingua booking - ${service.name}\nStudent: ${studentData.full_name}\nBooking ID: ${booking.id}`,
+      studentEmail: studentData.email,
+      timezone: tutorTimezone,
+    });
+  } catch (calendarError) {
+    console.error("[createManualBookingWithPaymentLink] Failed to create calendar event", calendarError);
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/calendar");
+
+  return {
+    data: {
+      bookingId: booking.id,
+      paymentUrl,
+    },
+  };
 }

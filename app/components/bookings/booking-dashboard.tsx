@@ -7,10 +7,9 @@ import { CalendarDays, Clock, Plus, Video, RefreshCw, Sparkles } from "lucide-re
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { useAuth } from "@/lib/hooks/useAuth";
-import type { BookingRecord } from "@/lib/actions/bookings";
-import { createBooking, markBookingAsPaid } from "@/lib/actions/bookings";
+import type { BookingRecord, ManualBookingInput } from "@/lib/actions/bookings";
+import { createManualBookingWithPaymentLink, markBookingAsPaid } from "@/lib/actions/bookings";
 import type { StudentRecord } from "@/lib/actions/students";
-import { ensureStudent } from "@/lib/actions/students";
 import type { AvailabilitySlotInput } from "@/lib/validators/availability";
 import {
   generateBookingSlots,
@@ -28,13 +27,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 
 type ServiceSummary = {
   id: string;
   name: string;
   duration_minutes: number;
+  price: number;
+  currency: string;
 };
 
 type BookingDashboardProps = {
@@ -47,6 +47,8 @@ type BookingDashboardProps = {
   tutorId: string;
 };
 
+type PaymentOption = "send_link" | "already_paid" | "free";
+
 type BookingFormState = {
   serviceId: string | null;
   studentId: string | null;
@@ -55,13 +57,13 @@ type BookingFormState = {
   studentTimezone: string;
   slot: GeneratedSlot | null;
   notes: string;
-  markAsPaid: boolean;
+  paymentOption: PaymentOption;
 };
 
 const BOOKING_STEPS = [
-  { id: "details", title: "Lesson details", helper: "Pick service and time slot" },
-  { id: "student", title: "Learner", helper: "Existing or new student" },
-  { id: "confirm", title: "Confirm & send", helper: "Add notes and finalize" },
+  { id: "details", title: "Lesson", helper: "Pick service and time" },
+  { id: "student", title: "Student", helper: "Select or add student" },
+  { id: "confirm", title: "Review & Send", helper: "Payment and notes" },
 ] as const;
 
 export function BookingDashboard({
@@ -89,7 +91,7 @@ export function BookingDashboard({
     studentTimezone: detectUserTimezone(),
     slot: null,
     notes: "",
-    markAsPaid: false,
+    paymentOption: "send_link" as PaymentOption,
   }));
   const [bookingStepIndex, setBookingStepIndex] = useState(0);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -178,7 +180,7 @@ export function BookingDashboard({
       studentTimezone: detectUserTimezone(),
       slot: null,
       notes: "",
-      markAsPaid: false,
+      paymentOption: "send_link" as PaymentOption,
     });
     setBookingStepIndex(0);
   }
@@ -228,57 +230,52 @@ export function BookingDashboard({
 
     startTransition(() => {
       (async () => {
-        let studentId = formState.studentId;
-        if (!studentId) {
+        // Build the input for the new action
+        const input: ManualBookingInput = {
+          service_id: service.id,
+          scheduled_at: slot.start,
+          duration_minutes: service.duration_minutes,
+          timezone,
+          notes: formState.notes || undefined,
+          payment_option: formState.paymentOption,
+        };
+
+        // Either existing student or new student
+        if (formState.studentId) {
+          input.student_id = formState.studentId;
+        } else {
           if (!formState.name || !formState.email) {
             setStatus({ type: "error", message: "Add student name and email." });
             return;
           }
-          const ensured = await ensureStudent({
-            full_name: formState.name,
+          input.new_student = {
+            name: formState.name,
             email: formState.email,
             timezone: formState.studentTimezone,
-          });
-          if (ensured.error || !ensured.data) {
-            setStatus({ type: "error", message: ensured.error ?? "Could not create student." });
-            return;
-          }
-          studentId = ensured.data.id;
+          };
         }
 
-        const result = await createBooking({
-          service_id: service.id,
-          student_id: studentId!,
-          scheduled_at: slot.start,
-          duration_minutes: service.duration_minutes,
-          timezone,
-          notes: formState.notes,
-        });
+        const result = await createManualBookingWithPaymentLink(input);
 
         if (result.error || !result.data) {
           setStatus({ type: "error", message: result.error ?? "Could not create booking." });
           return;
         }
 
-        let createdBooking = result.data!;
-
-        if (formState.markAsPaid) {
-          const paidResult = await markBookingAsPaid(createdBooking.id);
-          if (paidResult.error) {
-            setStatus({ type: "error", message: paidResult.error ?? "Could not mark as paid." });
-            return;
-          }
-          createdBooking = {
-            ...createdBooking,
-            status: "confirmed",
-            payment_status: "paid",
-          };
+        // Build success message based on payment option
+        let successMessage = "Lesson scheduled!";
+        if (formState.paymentOption === "send_link" && result.data.paymentUrl) {
+          successMessage = "Lesson scheduled! Payment link sent to student.";
+        } else if (formState.paymentOption === "already_paid") {
+          successMessage = "Lesson scheduled and marked as paid.";
+        } else if (formState.paymentOption === "free") {
+          successMessage = "Free lesson scheduled!";
         }
 
-        setBookingList((prev) => [...prev, createdBooking].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()));
-        setStatus({ type: "success", message: formState.markAsPaid ? "Booking created and marked as paid." : "Booking created." });
+        setStatus({ type: "success", message: successMessage });
         resetForm();
         setIsModalOpen(false);
+        router.refresh();
       })();
     });
   }
@@ -326,7 +323,7 @@ export function BookingDashboard({
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
-          Add Booking
+          New Lesson
         </Button>
       </header>
 
@@ -461,12 +458,12 @@ export function BookingDashboard({
           <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
             <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader className="shrink-0 pb-6 text-left">
-            <DialogTitle className="font-serif text-3xl text-foreground">New Session</DialogTitle>
+            <DialogTitle className="text-2xl font-semibold text-foreground">New Lesson</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Schedule a lesson and send your student the details.
+            </p>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <p className="text-xs text-muted-foreground">
-              Manual bookings work well for trial sessions or when students pay via bank transfer.
-            </p>
             <FlowProgress steps={[...BOOKING_STEPS]} activeIndex={bookingStepIndex} />
             {status?.type === "error" ? (
               <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
@@ -496,6 +493,24 @@ export function BookingDashboard({
                       ))}
                     </select>
                   </label>
+
+                  {/* Price and Duration Display */}
+                  {selectedService && (
+                    <div className="flex items-center gap-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
+                      <div className="flex-1">
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Price</span>
+                        <p className="text-lg font-bold text-primary">
+                          {selectedService.currency.toUpperCase()} {(selectedService.price / 100).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Duration</span>
+                        <p className="text-lg font-semibold text-foreground">
+                          {selectedService.duration_minutes} min
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-4 sm:flex-row">
                     <label className="flex w-full flex-col sm:w-1/2">
@@ -638,9 +653,10 @@ export function BookingDashboard({
 
               {bookingStepIndex === 2 ? (
                 <div className="space-y-4">
+                  {/* Lesson Summary Card */}
                   <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 space-y-3 text-xs">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-foreground">Service</span>
+                      <span className="font-semibold text-foreground">Lesson</span>
                       <span className="text-muted-foreground">
                         {selectedService?.name ?? "Choose a service"}
                       </span>
@@ -661,9 +677,68 @@ export function BookingDashboard({
                           : formState.name || "New student"}
                       </span>
                     </div>
+                    {selectedService && (
+                      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40">
+                        <span className="font-semibold text-foreground">Price</span>
+                        <span className="font-bold text-primary">
+                          {selectedService.currency.toUpperCase()} {(selectedService.price / 100).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Payment Options */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment</span>
+                    <div className="space-y-2">
+                      <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-3 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                        <input
+                          type="radio"
+                          name="paymentOption"
+                          value="send_link"
+                          checked={formState.paymentOption === "send_link"}
+                          onChange={() => setFormState((prev) => ({ ...prev, paymentOption: "send_link" }))}
+                          className="mt-0.5 h-4 w-4 text-primary focus:ring-primary/20"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">Send payment link</p>
+                          <p className="text-xs text-muted-foreground">Student receives email with payment link</p>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-3 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                        <input
+                          type="radio"
+                          name="paymentOption"
+                          value="already_paid"
+                          checked={formState.paymentOption === "already_paid"}
+                          onChange={() => setFormState((prev) => ({ ...prev, paymentOption: "already_paid" }))}
+                          className="mt-0.5 h-4 w-4 text-primary focus:ring-primary/20"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">Already paid</p>
+                          <p className="text-xs text-muted-foreground">Cash, bank transfer, or other method</p>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-3 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                        <input
+                          type="radio"
+                          name="paymentOption"
+                          value="free"
+                          checked={formState.paymentOption === "free"}
+                          onChange={() => setFormState((prev) => ({ ...prev, paymentOption: "free" }))}
+                          className="mt-0.5 h-4 w-4 text-primary focus:ring-primary/20"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">Free / trial lesson</p>
+                          <p className="text-xs text-muted-foreground">No payment required</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
                   <label className="flex flex-col">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Notes</span>
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Notes (optional)</span>
                     <textarea
                       value={formState.notes}
                       onChange={(event) =>
@@ -671,18 +746,9 @@ export function BookingDashboard({
                       }
                       rows={2}
                       className="rounded-xl border-0 bg-secondary/30 px-3 py-2 text-sm leading-relaxed shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="Optional notes for this session."
+                      placeholder="Add any notes for this lesson..."
                     />
                   </label>
-                  <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-4 py-3">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Mark as Paid</span>
-                    <Switch
-                      checked={formState.markAsPaid}
-                      onCheckedChange={(checked) =>
-                        setFormState((prev) => ({ ...prev, markAsPaid: checked }))
-                      }
-                    />
-                  </div>
                 </div>
               ) : null}
             </form>
@@ -714,8 +780,10 @@ export function BookingDashboard({
               className="w-full h-12 rounded-full shadow-lg shadow-primary/20"
             >
               {isPending
-                ? "Saving..."
-                : "Schedule Session"}
+                ? "Scheduling..."
+                : bookingStepIndex === 2
+                  ? "Schedule Lesson"
+                  : "Continue"}
             </Button>
           </div>
         </DialogContent>

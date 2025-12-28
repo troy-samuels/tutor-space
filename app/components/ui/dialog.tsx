@@ -125,6 +125,8 @@ export const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             ref={ref}
+            role="dialog"
+            aria-modal="true"
             className={cn(
               "relative w-full rounded-3xl bg-background shadow-2xl",
               sizeClasses[size],

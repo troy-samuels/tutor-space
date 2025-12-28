@@ -1,58 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { computeFounderPrice } from "@/lib/pricing/founder";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
-
-// Helper to create Stripe checkout session via direct fetch (bypasses SDK issues)
-async function createStripeCheckoutSession(params: {
-  customerId?: string;
-  successUrl: string;
-  cancelUrl: string;
-  currency: string;
-  amountCents: number;
-  productName: string;
-  metadata: Record<string, string>;
-}): Promise<{ url: string } | { error: string }> {
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    return { error: "Stripe not configured" };
-  }
-
-  const body = new URLSearchParams();
-  body.append("mode", "payment");
-  body.append("success_url", params.successUrl);
-  body.append("cancel_url", params.cancelUrl);
-  body.append("line_items[0][price_data][currency]", params.currency);
-  body.append("line_items[0][price_data][unit_amount]", String(params.amountCents));
-  body.append("line_items[0][price_data][product_data][name]", params.productName);
-  body.append("line_items[0][quantity]", "1");
-
-  if (params.customerId) {
-    body.append("customer", params.customerId);
-  }
-
-  Object.entries(params.metadata).forEach(([key, value]) => {
-    body.append(`metadata[${key}]`, value);
-  });
-
-  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${stripeKey}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    return { error: data.error?.message || "Stripe checkout failed" };
-  }
-
-  return { url: data.url };
-}
+import { createLifetimeCheckoutSession } from "@/lib/payments/lifetime-checkout";
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,7 +15,10 @@ export async function POST(request: NextRequest) {
 
     // Parse request body for source attribution and guest email
     const body = await request.json().catch(() => ({}));
-    const { source = "lifetime_landing_page" } = body as { source?: string };
+    const {
+      source = "lifetime_landing_page",
+      flow,
+    } = body as { source?: string; flow?: string };
 
     // Validate source parameter
     const validSources = ["campaign_banner", "lifetime_landing_page"];
@@ -93,29 +46,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const price = computeFounderPrice(request.headers.get("accept-language"));
     // Trim to remove any accidental newlines from env var
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co").trim();
-    // Guest checkout goes to /lifetime/success, authenticated users go to /dashboard
-    const successUrl = user
-      ? `${appUrl.replace(/\/$/, "")}/dashboard?checkout=success`
-      : `${appUrl.replace(/\/$/, "")}/lifetime/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = user
-      ? `${appUrl.replace(/\/$/, "")}/dashboard?checkout=cancel`
-      : `${appUrl.replace(/\/$/, "")}/lifetime`;
+    const appUrlBase = appUrl.replace(/\/$/, "");
 
-    // Create checkout session using direct fetch (bypasses Stripe SDK issues)
-    const result = await createStripeCheckoutSession({
+    if (!user && flow === "signup") {
+      const signupUrl = new URL("/signup", appUrlBase);
+      signupUrl.searchParams.set("lifetime", "true");
+      signupUrl.searchParams.set("source", trackingSource);
+      return NextResponse.json({ url: signupUrl.toString() });
+    }
+
+    // Guest checkout goes to /signup, authenticated users go to onboarding.
+    const successUrl = user
+      ? `${appUrlBase}/onboarding?checkout=success`
+      : `${appUrlBase}/signup?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = user
+      ? `${appUrlBase}/dashboard?checkout=cancel`
+      : `${appUrlBase}/lifetime`;
+
+    const result = await createLifetimeCheckoutSession({
       successUrl,
       cancelUrl,
-      currency: price.currency.toLowerCase(),
-      amountCents: price.amountCents,
-      productName: "TutorLingua Lifetime Access",
-      metadata: {
-        userId: user?.id ?? "",
-        plan: "tutor_life",
-        source: trackingSource,
-      },
+      userId: user?.id,
+      customerEmail: user?.email ?? undefined,
+      source: trackingSource,
+      acceptLanguage: request.headers.get("accept-language"),
     });
 
     if ("error" in result) {
@@ -123,7 +79,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    return NextResponse.json({ url: result.url });
+    if (!result.session.url) {
+      return NextResponse.json({ error: "Stripe checkout unavailable" }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: result.session.url });
   } catch (error) {
     const err = error as Error;
     console.error("[Stripe] Lifetime checkout error:", err.message);

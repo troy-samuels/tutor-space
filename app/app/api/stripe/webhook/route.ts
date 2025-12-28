@@ -372,6 +372,25 @@ async function handleCheckoutSessionCompleted(
       throw error;
     }
 
+    if (session.metadata?.flow === SIGNUP_CHECKOUT_FLOW) {
+      const { error: signupCheckoutError } = await supabase
+        .from("profiles")
+        .update({
+          signup_checkout_session_id: session.id,
+          signup_checkout_status: "complete",
+          signup_checkout_plan: planToApply,
+          signup_checkout_completed_at: new Date().toISOString(),
+          signup_checkout_expires_at: session.expires_at
+            ? new Date(session.expires_at * 1000).toISOString()
+            : null,
+        })
+        .eq("id", profileIdFromMetadata);
+
+      if (signupCheckoutError) {
+        console.error("Failed to update lifetime signup checkout status:", signupCheckoutError);
+      }
+    }
+
     console.log(`✅ Lifetime purchased for profile ${profileIdFromMetadata} (${planToApply})`);
     return;
   }

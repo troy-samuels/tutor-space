@@ -9,9 +9,19 @@ type SignupPageClientProps = {
   checkoutCancelled?: boolean;
   initialTier?: PlanTier;
   initialBilling?: BillingCycle;
+  checkoutSessionId?: string;
+  lifetimeIntent?: boolean;
+  lifetimeSource?: string;
 };
 
-export function SignupPageClient({ checkoutCancelled, initialTier, initialBilling }: SignupPageClientProps) {
+export function SignupPageClient({
+  checkoutCancelled,
+  initialTier,
+  initialBilling,
+  checkoutSessionId,
+  lifetimeIntent,
+  lifetimeSource,
+}: SignupPageClientProps) {
   const [tier, setTier] = useState<PlanTier>(initialTier ?? "pro");
   const [billing, setBilling] = useState<BillingCycle>(initialBilling ?? "monthly");
   const [showCancelledBanner, setShowCancelledBanner] = useState(checkoutCancelled ?? false);
@@ -49,7 +59,13 @@ export function SignupPageClient({ checkoutCancelled, initialTier, initialBillin
       />
 
       <div className="w-full">
-        <SignupForm tier={tier} billingCycle={billing} />
+        <SignupForm
+          tier={tier}
+          billingCycle={billing}
+          checkoutSessionId={checkoutSessionId}
+          lifetimeIntent={lifetimeIntent}
+          lifetimeSource={lifetimeSource}
+        />
       </div>
     </>
   );

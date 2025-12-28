@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/shell";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { getPlanTier, hasProAccess, hasStudioAccess } from "@/lib/payments/subscriptions";
-import { buildVerifyEmailUrl } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
@@ -25,16 +24,6 @@ export default async function DashboardGroupLayout({
   // Server-side redirect for unauthenticated users
   if (!user) {
     redirect("/login");
-  }
-
-  if (!user.email_confirmed_at) {
-    redirect(
-      buildVerifyEmailUrl({
-        role: "tutor",
-        email: user.email,
-        next: "/onboarding",
-      })
-    );
   }
 
   const { data: profile } = await supabase

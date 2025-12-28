@@ -19,6 +19,11 @@ export default async function TutorSignupPage({
   const checkoutCancelled = params.checkout === "cancelled";
   const initialTier = params.tier === "studio" ? "studio" : "pro";
   const initialBilling = params.billing === "annual" ? "annual" : "monthly";
+  const checkoutSessionId =
+    typeof params.session_id === "string" ? params.session_id : undefined;
+  const lifetimeIntent = params.lifetime === "true" || params.lifetime === "1";
+  const lifetimeSource =
+    typeof params.source === "string" ? params.source : undefined;
   const t = await getTranslations("tutorSignupPage");
 
   return (
@@ -44,6 +49,9 @@ export default async function TutorSignupPage({
           checkoutCancelled={checkoutCancelled}
           initialTier={initialTier}
           initialBilling={initialBilling}
+          checkoutSessionId={checkoutSessionId}
+          lifetimeIntent={lifetimeIntent}
+          lifetimeSource={lifetimeSource}
         />
       </div>
     </div>

@@ -5,12 +5,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
+import { ensureSignupCheckoutSession, resolveSignupPriceId } from "@/lib/services/signup-checkout";
 import type { ServiceRoleClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
 import { rateLimitServerAction } from "@/lib/middleware/rate-limit";
+import { stripe } from "@/lib/stripe";
+import { createLifetimeCheckoutSession } from "@/lib/payments/lifetime-checkout";
 import {
-  buildVerifyEmailUrl,
   getAppUrl,
   sanitizeRedirectPath,
   type UserRole,
@@ -19,13 +20,14 @@ import { normalizeSignupUsername } from "@/lib/utils/username-slug";
 import { sendEmail } from "@/lib/email/send";
 import { VerifyEmailEmail, VerifyEmailEmailText } from "@/emails/verify-email";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
+import { getTrialDays } from "@/lib/utils/stripe-config";
 
 const DASHBOARD_ROUTE = "/calendar";
 const ONBOARDING_ROUTE = "/onboarding";
 const STUDENT_HOME_ROUTE = "/student/search";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Check stripe config at runtime, not module load time
+// Only require the secret key here; price IDs are validated separately.
 function isStripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
@@ -202,7 +204,13 @@ async function startSubscriptionCheckout(params: {
   console.log("[Auth] STRIPE_SECRET_KEY exists:", Boolean(process.env.STRIPE_SECRET_KEY));
 
   // Skip checkout for free or lifetime flows
-  if (plan === "professional" || plan === "tutor_life" || plan === "studio_life" || plan === "founder_lifetime" || plan === "all_access") {
+  if (
+    plan === "professional" ||
+    plan === "tutor_life" ||
+    plan === "studio_life" ||
+    plan === "founder_lifetime" ||
+    plan === "all_access"
+  ) {
     console.log("[Auth] Skipping checkout - free/lifetime plan");
     return null;
   }
@@ -213,16 +221,7 @@ async function startSubscriptionCheckout(params: {
     return null;
   }
 
-  const priceId =
-    plan === "pro_monthly"
-      ? process.env.STRIPE_PRO_MONTHLY_PRICE_ID?.trim()
-      : plan === "pro_annual"
-        ? process.env.STRIPE_PRO_ANNUAL_PRICE_ID?.trim()
-        : plan === "studio_monthly"
-          ? process.env.STRIPE_STUDIO_MONTHLY_PRICE_ID?.trim()
-          : plan === "studio_annual"
-            ? process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID?.trim()
-            : null;
+  const priceId = resolveSignupPriceId(plan);
 
   console.log("[Auth] Resolved priceId:", priceId);
 
@@ -232,49 +231,29 @@ async function startSubscriptionCheckout(params: {
     return null;
   }
 
-  const trialPeriodDays = plan.endsWith("_annual") ? 14 : 7;
+  const trialPeriodDays = getTrialDays(plan);
   const appUrl = getAppUrl();
-  const successUrl = `${appUrl}/onboarding?subscription=success`;
+  const successUrl = `${appUrl}/signup/verify?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${appUrl}/signup?checkout=cancelled`;
 
   try {
-    const customer = await getOrCreateStripeCustomer({
-      userId: user.id,
-      email: user.email ?? "",
-      name: fullName ?? (user.user_metadata?.full_name as string | undefined),
-      metadata: { profileId: user.id },
+    const checkoutUrl = await ensureSignupCheckoutSession({
+      user,
+      plan,
+      priceId,
+      trialPeriodDays,
+      successUrl,
+      cancelUrl,
+      fullName,
+      adminClient,
+      context: "signup",
     });
 
-    if (adminClient) {
-      const { error: updateError } = await adminClient
-        .from("profiles")
-        .update({ stripe_customer_id: customer.id })
-        .eq("id", user.id);
-
-      if (updateError) {
-        console.error("[Auth] Failed to sync stripe_customer_id during signup", updateError);
-      }
+    if (checkoutUrl) {
+      console.log("[Auth] Checkout session ready, URL:", checkoutUrl);
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
-      mode: "subscription",
-      payment_method_collection: "always",
-      allow_promotion_codes: true,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: {
-        trial_period_days: trialPeriodDays,
-      },
-      metadata: {
-        userId: user.id,
-        plan,
-      },
-    });
-
-    console.log("[Auth] Checkout session created, URL:", session.url);
-    return session.url ?? null;
+    return checkoutUrl;
   } catch (error) {
     console.error("[Auth] Failed to start signup checkout", error);
     console.error("[Auth] Error details:", JSON.stringify(error, null, 2));
@@ -306,7 +285,21 @@ export async function signUp(
   const username = normalizeSignupUsername(rawUsername);
   const role = (formData.get("role") as string) || "tutor";
   const planFromForm = (formData.get("plan") as string) || "";
+  const lifetimeIntentRaw = (formData.get("lifetime") as string) || "";
+  const lifetimeIntent = ["1", "true", "yes"].includes(lifetimeIntentRaw.trim().toLowerCase());
+  const lifetimeSource = (formData.get("lifetime_source") as string) || "";
+  const normalizedLifetimeSource = (() => {
+    const candidate = lifetimeSource.trim();
+    const allowedSources = new Set(["campaign_banner", "lifetime_landing_page"]);
+    return allowedSources.has(candidate) ? candidate : "";
+  })();
+  const checkoutSessionIdRaw =
+    (formData.get("checkout_session_id") as string | null) ??
+    (formData.get("session_id") as string | null) ??
+    "";
+  const checkoutSessionId = checkoutSessionIdRaw.trim();
   const desiredPlan: PlatformBillingPlan = ((): PlatformBillingPlan => {
+    if (lifetimeIntent) return "tutor_life";
     const candidate = planFromForm.trim();
     const allowed: PlatformBillingPlan[] = [
       "professional",
@@ -381,11 +374,6 @@ export async function signUp(
   const supabase = await createClient();
   const adminClient = createServiceRoleClient();
   const emailRedirectTo = buildAuthCallbackUrlFromHeaders(headersList, ONBOARDING_ROUTE);
-  const verifyEmailRedirect = buildVerifyEmailUrl({
-    role: "tutor",
-    email,
-    next: ONBOARDING_ROUTE,
-  });
 
   let existingUser: User | null = null;
 
@@ -437,49 +425,94 @@ export async function signUp(
   }
 
   if (existingUser) {
-    if (existingUser.email_confirmed_at) {
-      return {
-        error: "That email is already registered. Please log in instead.",
-      };
-    }
-
-    const fastSendResult = await sendFastVerificationEmail({
-      email,
-      role: role === "student" ? "student" : "tutor",
-      emailRedirectTo,
-    });
-
-    if (!fastSendResult.success) {
-      if (fastSendResult.error) {
-        console.warn("[Auth] Fast verification email send failed", fastSendResult.error);
-      }
-
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: {
-          emailRedirectTo,
-        },
-      });
-
-      if (resendError) {
-        console.error("[Auth] Failed to resend confirmation email", resendError);
-        return {
-          error:
-            "This email is already registered but not confirmed yet. We tried to finalize it—please try logging in again or contact support.",
-        };
-      }
-    }
-
     return {
-      success: "This email is already registered but still waiting for confirmation.",
-      redirectTo: verifyEmailRedirect,
+      error: "That email is already registered. Please log in instead.",
     };
   }
 
+  const lifetimeCheckoutPlans = new Set([
+    "tutor_life",
+    "founder_lifetime",
+    "studio_life",
+    "all_access",
+  ]);
+  let hasVerifiedLifetimeCheckout = false;
+  let lifetimeCheckoutData: {
+    stripeCustomerId?: string | null;
+    amountPaid?: number | null;
+    currency?: string | null;
+    source?: string | null;
+  } | null = null;
+
+  if (checkoutSessionId && process.env.STRIPE_SECRET_KEY?.trim()) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
+      const sessionPlan = session.metadata?.plan ?? null;
+      const isLifetimePlan = sessionPlan ? lifetimeCheckoutPlans.has(sessionPlan) : false;
+      const isPaid =
+        session.payment_status === "paid" || session.payment_status === "no_payment_required";
+      const isComplete = session.status === "complete";
+      const isPaymentMode = session.mode === "payment";
+
+      if (isLifetimePlan && isPaid && isComplete && isPaymentMode) {
+        hasVerifiedLifetimeCheckout = true;
+        lifetimeCheckoutData = {
+          stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+          amountPaid: session.amount_total ?? null,
+          currency: session.currency ?? null,
+          source: session.metadata?.source ?? null,
+        };
+      }
+    } catch (error) {
+      console.error("[Auth] Failed to verify lifetime checkout session", error);
+    }
+  }
+
   // Check for pending lifetime purchase before signup
-  let hasPendingLifetimePurchase = false;
+  let hasPendingLifetimePurchase = hasVerifiedLifetimeCheckout;
   if (adminClient) {
+    if (hasVerifiedLifetimeCheckout && lifetimeCheckoutData) {
+      const { data: existingPurchase } = await adminClient
+        .from("lifetime_purchases")
+        .select("id, claimed")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!existingPurchase) {
+        const { error: insertError } = await adminClient
+          .from("lifetime_purchases")
+          .insert({
+            email,
+            stripe_session_id: checkoutSessionId,
+            stripe_customer_id: lifetimeCheckoutData.stripeCustomerId,
+            amount_paid: lifetimeCheckoutData.amountPaid,
+            currency: lifetimeCheckoutData.currency,
+            source: lifetimeCheckoutData.source ?? "checkout_redirect",
+            purchased_at: new Date().toISOString(),
+            claimed: false,
+          });
+
+        if (insertError) {
+          console.error("[Auth] Failed to record lifetime purchase", insertError);
+        }
+      } else if (!existingPurchase.claimed) {
+        const { error: updateError } = await adminClient
+          .from("lifetime_purchases")
+          .update({
+            stripe_session_id: checkoutSessionId,
+            stripe_customer_id: lifetimeCheckoutData.stripeCustomerId,
+            amount_paid: lifetimeCheckoutData.amountPaid,
+            currency: lifetimeCheckoutData.currency,
+            source: lifetimeCheckoutData.source ?? "checkout_redirect",
+          })
+          .eq("id", existingPurchase.id);
+
+        if (updateError) {
+          console.error("[Auth] Failed to update lifetime purchase", updateError);
+        }
+      }
+    }
+
     const { data: pendingPurchase } = await adminClient
       .from("lifetime_purchases")
       .select("id")
@@ -487,155 +520,104 @@ export async function signUp(
       .eq("claimed", false)
       .maybeSingle();
 
-    hasPendingLifetimePurchase = Boolean(pendingPurchase);
+    hasPendingLifetimePurchase = hasPendingLifetimePurchase || Boolean(pendingPurchase);
   }
 
   // If user has a pending lifetime purchase, grant lifetime access on signup.
-  const finalPlan: PlatformBillingPlan = hasPendingLifetimePurchase ? lifetimePlan : desiredPlan;
+  const finalPlan: PlatformBillingPlan =
+    hasPendingLifetimePurchase || lifetimeIntent ? lifetimePlan : desiredPlan;
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
+  let createdUser: User | null = null;
+  let hasSession = false;
+
+  if (adminClient) {
+    const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
         full_name: fullName,
         username,
         role,
         plan: finalPlan,
       },
-      emailRedirectTo,
-    },
-  });
+    });
 
-  if (error) {
-    const message = error.message ?? "We couldn't create your account.";
-    const normalized = message.toLowerCase();
+    if (adminCreateError) {
+      const message = adminCreateError.message ?? "We couldn't create your account.";
+      const normalized = message.toLowerCase();
 
-    if (normalized.includes("already registered")) {
-      const fastSendResult = await sendFastVerificationEmail({
-        email,
-        role: role === "student" ? "student" : "tutor",
-        emailRedirectTo,
+      if (normalized.includes("already registered")) {
+        return { error: "That email is already registered. Please log in instead." };
+      }
+
+      console.error("[Auth] Admin signup failed", adminCreateError);
+    } else {
+      createdUser = adminCreated?.user ?? null;
+    }
+  }
+
+  if (!createdUser) {
+    const { data: signupData, error: signupError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          username,
+          role,
+          plan: finalPlan,
+        },
+        // emailRedirectTo removed - prevents Supabase from sending verification email
+      },
+    });
+
+    if (signupError || !signupData.user) {
+      const message = signupError?.message ?? "We couldn't create your account.";
+      const normalized = message.toLowerCase();
+
+      if (normalized.includes("already registered")) {
+        return { error: "That email is already registered. Please log in instead." };
+      }
+
+      if (normalized.includes("rate limit")) {
+        return {
+          error:
+            "We’re receiving too many sign-up attempts right now. Please wait 60 seconds and try again.",
+        };
+      }
+
+      if (normalized.includes("password is known to be weak")) {
+        return {
+          error: "Please choose a stronger password that isn’t a common phrase or sequence.",
+        };
+      }
+
+      return { error: message };
+    }
+
+    createdUser = signupData.user;
+    hasSession = Boolean(signupData.session);
+
+    // Confirm email via admin API if fallback was used (prevents verification email)
+    if (createdUser && adminClient) {
+      await adminClient.auth.admin.updateUserById(createdUser.id, {
+        email_confirm: true,
       });
-
-      if (!fastSendResult.success) {
-        if (fastSendResult.error) {
-          console.warn(
-            "[Auth] Fast verification email send failed after signup error",
-            fastSendResult.error
-          );
-        }
-
-        const { error: resendError } = await supabase.auth.resend({
-          type: "signup",
-          email,
-          options: {
-            emailRedirectTo,
-          },
-        });
-
-        if (resendError) {
-          console.error("[Auth] Failed to resend confirmation email after signup error", resendError);
-          return {
-            error: "That email is already registered. Please confirm your email to continue.",
-          };
-        }
-      }
-
-      return {
-        success: "This email is already registered. Please confirm your email to continue.",
-        redirectTo: verifyEmailRedirect,
-      };
     }
+  }
 
-    if (normalized.includes("rate limit")) {
-      if (adminClient) {
-        try {
-          const { data: adminCreated, error: adminCreateError } = await adminClient.auth.admin
-            .createUser({
-              email,
-              password,
-              email_confirm: true,
-              user_metadata: {
-                full_name: fullName,
-                username,
-                role,
-                plan: finalPlan,
-              },
-            });
-
-          if (adminCreateError) {
-            console.error("[Auth] Fallback admin signup failed after rate limit", adminCreateError);
-          } else if (adminCreated?.user) {
-            if (hasPendingLifetimePurchase) {
-              await adminClient
-                .from("lifetime_purchases")
-                .update({
-                  claimed: true,
-                  claimed_by: adminCreated.user.id,
-                  claimed_at: new Date().toISOString(),
-                })
-                .eq("email", email)
-                .eq("claimed", false);
-            }
-
-            const { data: fallbackSignInData, error: fallbackSignInError } = await supabase.auth
-              .signInWithPassword({
-                email,
-                password,
-              });
-
-            if (fallbackSignInError) {
-              console.error("[Auth] Fallback sign-in failed after admin signup", fallbackSignInError);
-              return {
-                success: "Account created. Please log in to continue.",
-                redirectTo: "/login",
-              };
-            }
-
-            revalidatePath("/", "layout");
-
-            // Redirect to Stripe checkout if needed (paid plan)
-            const checkoutUrl = await startSubscriptionCheckout({
-              user: adminCreated.user,
-              plan: finalPlan,
-              fullName,
-              adminClient,
-            });
-
-            if (checkoutUrl) {
-              return { success: "Account created", redirectTo: checkoutUrl };
-            }
-
-            return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
-          }
-        } catch (fallbackError) {
-          console.error("[Auth] Unexpected fallback signup error after rate limit", fallbackError);
-        }
-      }
-
-      return {
-        error:
-          "We’re receiving too many sign-up attempts right now. Please wait 60 seconds and try again.",
-      };
-    }
-
-    if (normalized.includes("password is known to be weak")) {
-      return {
-        error: "Please choose a stronger password that isn’t a common phrase or sequence.",
-      };
-    }
-
-    return { error: message };
+  if (!createdUser) {
+    return { error: "We couldn't create your account. Please try again." };
   }
 
   // Mark lifetime purchase as claimed if applicable
-  if (hasPendingLifetimePurchase && adminClient && data.user) {
+  if (hasPendingLifetimePurchase && adminClient) {
     await adminClient
       .from("lifetime_purchases")
       .update({
         claimed: true,
-        claimed_by: data.user.id,
+        claimed_by: createdUser.id,
         claimed_at: new Date().toISOString(),
       })
       .eq("email", email)
@@ -644,45 +626,86 @@ export async function signUp(
     console.log(`[Auth] Lifetime purchase claimed for ${email}`);
   }
 
-  // Send fast verification email if no session (email not confirmed yet)
-  if (!data.session && data.user) {
-    const fastSendResult = await sendFastVerificationEmail({
+  if (!hasSession) {
+    let { error: signInError } = await supabase.auth.signInWithPassword({
       email,
-      role: role === "student" ? "student" : "tutor",
-      emailRedirectTo,
+      password,
     });
 
-    if (fastSendResult.success) {
-      console.log(`[Auth] Fast verification email sent to ${email}`);
-    } else if (fastSendResult.error) {
-      console.warn(`[Auth] Fast verification email failed for ${email}:`, fastSendResult.error);
-      // Don't fail signup - Supabase already sent its own email as fallback
+    if (signInError && adminClient) {
+      const message = signInError.message?.toLowerCase() ?? "";
+      if (message.includes("email not confirmed")) {
+        await adminClient.auth.admin.updateUserById(createdUser.id, {
+          email_confirm: true,
+        });
+
+        const retry = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        signInError = retry.error ?? null;
+      }
+    }
+
+    if (signInError) {
+      console.error("[Auth] Failed to sign in after signup", signInError);
+      return {
+        error:
+          "We created your account but couldn't sign you in yet. Please try logging in.",
+      };
     }
   }
 
-  if (!data.session) {
-    return {
-      success: "Check your email to confirm your account.",
-      redirectTo: verifyEmailRedirect,
-    };
+  if (lifetimeIntent && !hasPendingLifetimePurchase) {
+    const appUrl = getAppUrl().replace(/\/$/, "");
+    const checkoutResult = await createLifetimeCheckoutSession({
+      successUrl: `${appUrl}/onboarding?checkout=success`,
+      cancelUrl: `${appUrl}/signup?checkout=cancelled&lifetime=true`,
+      userId: createdUser.id,
+      customerEmail: email,
+      source: normalizedLifetimeSource || "campaign_banner",
+      acceptLanguage: headersList.get("accept-language"),
+      flow: "signup",
+    });
+
+    if ("error" in checkoutResult) {
+      return { error: checkoutResult.error || "Unable to start lifetime checkout." };
+    }
+
+    if (!checkoutResult.session.url) {
+      return { error: "Unable to start lifetime checkout. Please try again." };
+    }
+
+    if (adminClient) {
+      await adminClient
+        .from("profiles")
+        .update({
+          signup_checkout_session_id: checkoutResult.session.id,
+          signup_checkout_status: "open",
+          signup_checkout_plan: lifetimePlan,
+          signup_checkout_started_at: new Date().toISOString(),
+          signup_checkout_expires_at: checkoutResult.session.expiresAt,
+        })
+        .eq("id", createdUser.id);
+    }
+
+    return { success: "Account created", redirectTo: checkoutResult.session.url };
+  }
+
+  // Redirect to Stripe checkout if needed (paid plan)
+  const checkoutUrl = await startSubscriptionCheckout({
+    user: createdUser,
+    plan: finalPlan,
+    fullName,
+    adminClient,
+  });
+
+  if (checkoutUrl) {
+    return { success: "Account created", redirectTo: checkoutUrl };
   }
 
   revalidatePath("/", "layout");
-
-  // Redirect to Stripe checkout if needed (paid plan)
-  // If we have a session, we must have a user
-  if (data.user) {
-    const checkoutUrl = await startSubscriptionCheckout({
-      user: data.user,
-      plan: finalPlan,
-      fullName,
-      adminClient,
-    });
-
-    if (checkoutUrl) {
-      return { success: "Account created", redirectTo: checkoutUrl };
-    }
-  }
 
   return { success: "Account created", redirectTo: ONBOARDING_ROUTE };
 }
@@ -722,36 +745,33 @@ export async function signIn(
     }
   }
 
-  if (existingUser && !existingUser.email_confirmed_at) {
-    return {
-      success: "Check your email to confirm your account.",
-      redirectTo: buildVerifyEmailUrl({
-        role: "tutor",
-        email,
-        next: ONBOARDING_ROUTE,
-      }),
-    };
-  }
-
-  const { data: signInData, error } = await supabase.auth.signInWithPassword({
+  let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (error) {
-    const rawMessage = error.message ?? "";
+  if (signInError) {
+    const rawMessage = signInError.message ?? "";
     const message = rawMessage.toLowerCase();
 
-    if (message.includes("email not confirmed")) {
-      return {
-        success: "Check your email to confirm your account.",
-        redirectTo: buildVerifyEmailUrl({
-          role: "tutor",
-          email,
-          next: ONBOARDING_ROUTE,
-        }),
-      };
+    if (message.includes("email not confirmed") && adminClient && existingUser?.id) {
+      await adminClient.auth.admin.updateUserById(existingUser.id, {
+        email_confirm: true,
+      });
+
+      const retry = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      signInData = retry.data;
+      signInError = retry.error;
     }
+  }
+
+  if (signInError) {
+    const rawMessage = signInError.message ?? "";
+    const message = rawMessage.toLowerCase();
 
     if (message.includes("invalid login credentials")) {
       if (existingUser) {
@@ -838,11 +858,6 @@ export async function resendSignupConfirmation(
   }
 
   const email = (formData.get("email") as string | null)?.trim().toLowerCase() ?? "";
-  const role = formData.get("role") === "student" ? "student" : "tutor";
-  const nextPath =
-    sanitizeRedirectPath(formData.get("next")) ??
-    (role === "student" ? STUDENT_HOME_ROUTE : ONBOARDING_ROUTE);
-
   if (!email) {
     return { error: "Please enter an email address." };
   }
@@ -851,37 +866,7 @@ export async function resendSignupConfirmation(
     return { error: "Please enter a valid email address." };
   }
 
-  const supabase = await createClient();
-  const emailRedirectTo = buildAuthCallbackUrlFromHeaders(headersList, nextPath);
-
-  const fastSendResult = await sendFastVerificationEmail({
-    email,
-    role,
-    emailRedirectTo,
-  });
-
-  if (!fastSendResult.success) {
-    if (fastSendResult.error) {
-      console.warn("[Auth] Fast verification email send failed", fastSendResult.error);
-    }
-
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email,
-      options: {
-        emailRedirectTo,
-      },
-    });
-
-    if (error) {
-      console.error("[Auth] Failed to resend confirmation email", error);
-      return {
-        error: "We couldn't resend the confirmation email yet. Please try again in a minute.",
-      };
-    }
-  }
-
-  return { success: "Confirmation email sent. Please check your inbox." };
+  return { success: "Email confirmation is no longer required. Please sign in." };
 }
 
 export async function signOut() {

@@ -21,6 +21,10 @@ import {
   PaymentFailedEmail,
   PaymentFailedEmailText,
 } from "@/emails/payment-failed";
+import {
+  BookingPaymentRequestEmail,
+  BookingPaymentRequestEmailText,
+} from "@/emails/booking-payment-request";
 
 interface SendBookingConfirmationParams {
   studentName: string;
@@ -326,6 +330,71 @@ export async function sendPaymentFailedEmail(params: SendPaymentFailedParams) {
     return { success: true };
   } catch (error) {
     console.error("Error sending payment failed email:", error);
+    return { success: false, error: "Failed to send email" };
+  }
+}
+
+type SendBookingPaymentRequestParams = {
+  studentName: string;
+  studentEmail: string;
+  tutorName: string;
+  tutorEmail: string;
+  serviceName: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  timezone: string;
+  amount: number;
+  currency: string;
+  paymentUrl: string;
+};
+
+/**
+ * Send payment request email to student for a tutor-initiated booking
+ */
+export async function sendBookingPaymentRequestEmail(params: SendBookingPaymentRequestParams) {
+  try {
+    const html = BookingPaymentRequestEmail({
+      studentName: params.studentName,
+      tutorName: params.tutorName,
+      tutorEmail: params.tutorEmail,
+      serviceName: params.serviceName,
+      scheduledAt: params.scheduledAt,
+      durationMinutes: params.durationMinutes,
+      timezone: params.timezone,
+      amount: params.amount,
+      currency: params.currency,
+      paymentUrl: params.paymentUrl,
+    });
+
+    const text = BookingPaymentRequestEmailText({
+      studentName: params.studentName,
+      tutorName: params.tutorName,
+      tutorEmail: params.tutorEmail,
+      serviceName: params.serviceName,
+      scheduledAt: params.scheduledAt,
+      durationMinutes: params.durationMinutes,
+      timezone: params.timezone,
+      amount: params.amount,
+      currency: params.currency,
+      paymentUrl: params.paymentUrl,
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: params.studentEmail,
+      subject: `Complete your booking with ${params.tutorName} - ${params.serviceName}`,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("Failed to send booking payment request email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error sending booking payment request email:", error);
     return { success: false, error: "Failed to send email" };
   }
 }
