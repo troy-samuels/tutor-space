@@ -37,18 +37,13 @@ export function VerifyEmailEmail({ confirmUrl, role }: VerifyEmailEmailProps) {
                 </p>
 
                 <div style="margin:28px 0;text-align:center;">
-                  <a href="${confirmUrl}" style="display:inline-block;background:#0f172a;color:#fff;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;">
+                  <a href="${confirmUrl}" style="display:inline-block;background:#D36135;color:#fff;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;">
                     Confirm email
                   </a>
                 </div>
 
-                <p style="margin:0 0 18px 0;font-size:14px;color:#334155;">
+                <p style="margin:0;font-size:14px;color:#6B6560;">
                   If you did not request this email, you can safely ignore it.
-                </p>
-
-                <p style="margin:24px 0 0 0;font-size:13px;color:#94a3b8;">
-                  If the button above doesn't work, copy and paste this link into your browser:<br />
-                  <span style="color:#0f172a;word-break:break-all;">${confirmUrl}</span>
                 </p>
               </td>
             </tr>
@@ -76,7 +71,7 @@ ${heading}
 
 ${intro}
 
-Confirm email: ${confirmUrl}
+Click here to confirm: ${confirmUrl}
 
 If you did not request this email, you can safely ignore it.
   `.trim();
