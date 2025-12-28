@@ -21,6 +21,7 @@ export default async function OnboardingLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headersList = await headers();
   const supabase = await createClient();
   const {
     data: { user },
@@ -98,7 +99,7 @@ export default async function OnboardingLayout({
           userId: user.id,
           customerEmail: profile?.email ?? user.email ?? undefined,
           source: "signup_gate",
-          acceptLanguage: headers().get("accept-language"),
+          acceptLanguage: headersList.get("accept-language"),
           flow: "signup",
         });
 
