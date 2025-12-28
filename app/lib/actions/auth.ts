@@ -583,6 +583,22 @@ export async function signUp(
     console.log(`[Auth] Lifetime purchase claimed for ${email}`);
   }
 
+  // Send fast verification email if no session (email not confirmed yet)
+  if (!data.session && data.user) {
+    const fastSendResult = await sendFastVerificationEmail({
+      email,
+      role: role === "student" ? "student" : "tutor",
+      emailRedirectTo,
+    });
+
+    if (fastSendResult.success) {
+      console.log(`[Auth] Fast verification email sent to ${email}`);
+    } else if (fastSendResult.error) {
+      console.warn(`[Auth] Fast verification email failed for ${email}:`, fastSendResult.error);
+      // Don't fail signup - Supabase already sent its own email as fallback
+    }
+  }
+
   if (!data.session) {
     return {
       success: "Check your email to confirm your account.",
