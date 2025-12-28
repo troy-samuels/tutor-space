@@ -1,5 +1,3 @@
-"use server";
-
 import type Stripe from "stripe";
 import type { User } from "@supabase/supabase-js";
 import { stripe, getOrCreateStripeCustomer } from "@/lib/stripe";
