@@ -921,6 +921,83 @@ export async function signInWithOAuth(provider: OAuthProvider, redirectTarget?: 
   }
 }
 
+/**
+ * Sign in with a Google ID token obtained from Google Identity Services.
+ * This avoids redirecting through Supabase's domain during OAuth.
+ *
+ * @param idToken - The JWT ID token from Google
+ * @param nonce - The nonce used during the Google sign-in flow (unhashed)
+ * @param redirectTarget - Optional path to redirect after sign-in
+ */
+export async function signInWithGoogleIdToken(
+  idToken: string,
+  nonce: string,
+  redirectTarget?: string
+): Promise<AuthActionState> {
+  const supabase = await createClient();
+  const adminClient = createServiceRoleClient();
+
+  const { data, error } = await supabase.auth.signInWithIdToken({
+    provider: "google",
+    token: idToken,
+    nonce,
+  });
+
+  if (error) {
+    console.error("[Auth] signInWithIdToken failed:", error);
+    return {
+      error: error.message || "Failed to sign in with Google. Please try again.",
+    };
+  }
+
+  if (!data.user) {
+    return { error: "Unable to authenticate. Please try again." };
+  }
+
+  // Determine user role from metadata or profile
+  const metadataRole = data.user.user_metadata?.role as string | undefined;
+  let role: string | null = metadataRole ?? null;
+
+  if (!role && adminClient) {
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
+    role = (profile?.role as string | null) ?? null;
+  }
+
+  if (!role) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
+    role = (profile?.role as string | null) ?? null;
+  }
+
+  // Update last_login_at for tutors (for churn tracking)
+  const serviceClient = adminClient ?? createServiceRoleClient();
+  if (serviceClient) {
+    await serviceClient
+      .from("profiles")
+      .update({ last_login_at: new Date().toISOString() })
+      .eq("id", data.user.id)
+      .eq("role", "tutor");
+  }
+
+  // Determine redirect destination based on role
+  const destination =
+    role === "student"
+      ? resolveStudentRedirect(redirectTarget ?? null)
+      : resolveTutorRedirect(redirectTarget ?? null);
+
+  revalidatePath("/", "layout");
+  return { success: "Login successful", redirectTo: destination };
+}
+
 export async function resetPassword(
   _prevState: AuthActionState,
   formData: FormData

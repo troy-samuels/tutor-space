@@ -3,6 +3,7 @@ import {
   Geist_Mono,
   Manrope,
 } from "next/font/google";
+import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -117,6 +118,10 @@ export default async function RootLayout({
           "antialiased",
         ].join(" ")}
       >
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="lazyOnload"
+        />
         <GoogleAnalytics />
         <CampaignBannerSlot />
         <NextIntlClientProvider locale={locale} messages={messages}>
