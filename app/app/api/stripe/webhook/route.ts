@@ -11,6 +11,7 @@ import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
 // AI Practice constants removed - freemium model uses RPC for period creation
 import { recordSystemEvent, recordSystemMetric, shouldSample } from "@/lib/monitoring";
 import { sendLessonSubscriptionEmails } from "@/lib/emails/ops-emails";
+import { SIGNUP_CHECKOUT_FLOW } from "@/lib/services/signup-checkout";
 
 type ServiceRoleClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 
@@ -308,6 +309,12 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutSessionExpired(session, supabase);
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -433,6 +440,40 @@ async function handleCheckoutSessionCompleted(
   const productPurchaseId = session.metadata?.digital_product_purchase_id;
   if (productPurchaseId) {
     await handleDigitalProductPurchase(session, supabase, productPurchaseId);
+    return;
+  }
+
+  const signupFlow = session.metadata?.flow === SIGNUP_CHECKOUT_FLOW;
+  const signupUserId = session.metadata?.userId;
+  if (signupFlow && signupUserId) {
+    const updatePayload: Record<string, any> = {
+      signup_checkout_session_id: session.id,
+      signup_checkout_status: "complete",
+      signup_checkout_plan: session.metadata?.plan ?? null,
+      signup_checkout_completed_at: new Date().toISOString(),
+      signup_checkout_expires_at: session.expires_at
+        ? new Date(session.expires_at * 1000).toISOString()
+        : null,
+    };
+
+    if (typeof session.customer === "string") {
+      updatePayload.stripe_customer_id = session.customer;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updatePayload)
+      .eq("id", signupUserId);
+
+    if (error) {
+      console.error("Failed to update signup checkout status:", error);
+    } else {
+      void recordSystemMetric({
+        metric: "signup_checkout:completed",
+        value: 1,
+        sampleRate: 0.25,
+      });
+    }
     return;
   }
 
@@ -1293,6 +1334,47 @@ async function handleAccountDeauthorized(
   }
 
   console.log(`✅ Account ${accountId} marked as deauthorized`);
+}
+
+/**
+ * Handle expired checkout sessions
+ * Updates signup checkout status when a session expires without completion
+ */
+async function handleCheckoutSessionExpired(
+  session: Stripe.Checkout.Session,
+  supabase: ServiceRoleClient
+) {
+  const signupFlow = session.metadata?.flow === SIGNUP_CHECKOUT_FLOW;
+  const signupUserId = session.metadata?.userId;
+
+  if (!signupFlow || !signupUserId) {
+    // Not a signup checkout session, ignore
+    return;
+  }
+
+  // Update the profile to mark the checkout as expired
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      signup_checkout_status: "expired",
+      signup_checkout_expires_at: new Date().toISOString(),
+    })
+    .eq("id", signupUserId)
+    .eq("signup_checkout_session_id", session.id); // Only update if this is their current session
+
+  if (error) {
+    console.error("Failed to mark signup checkout as expired:", error);
+    // Don't throw - this is non-critical
+    return;
+  }
+
+  void recordSystemMetric({
+    metric: "signup_checkout:expired",
+    value: 1,
+    sampleRate: 0.25,
+  });
+
+  console.log(`✅ Signup checkout session ${session.id} marked as expired for user ${signupUserId}`);
 }
 
 /**
