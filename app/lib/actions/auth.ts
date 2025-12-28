@@ -9,7 +9,16 @@ import { getOrCreateStripeCustomer, stripe } from "@/lib/stripe";
 import type { ServiceRoleClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
 import { rateLimitServerAction } from "@/lib/middleware/rate-limit";
-import { buildAuthCallbackUrl, buildVerifyEmailUrl, getAppUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
+import {
+  buildAuthCallbackUrl,
+  buildVerifyEmailUrl,
+  getAppUrl,
+  sanitizeRedirectPath,
+  type UserRole,
+} from "@/lib/auth/redirects";
+import { normalizeSignupUsername } from "@/lib/utils/username-slug";
+import { sendEmail } from "@/lib/email/send";
+import { VerifyEmailEmail, VerifyEmailEmailText } from "@/emails/verify-email";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 const DASHBOARD_ROUTE = "/calendar";
@@ -52,6 +61,69 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
       clearTimeout(timeoutId);
     }
   }
+}
+
+async function sendFastVerificationEmail(params: {
+  email: string;
+  role: UserRole;
+  emailRedirectTo: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!process.env.RESEND_API_KEY) {
+    return { success: false, error: "Resend API key is not configured." };
+  }
+
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    return { success: false, error: "Service role client is not configured." };
+  }
+
+  const { data, error } = await adminClient.auth.admin.generateLink({
+    type: "magiclink",
+    email: params.email,
+    options: {
+      redirectTo: params.emailRedirectTo,
+    },
+  });
+
+  const actionLink = data?.properties?.action_link;
+  if (error || !actionLink) {
+    return {
+      success: false,
+      error: error?.message ?? "Unable to generate a verification link.",
+    };
+  }
+
+  const subject =
+    params.role === "student"
+      ? "Confirm your TutorLingua student email"
+      : "Confirm your TutorLingua email";
+
+  const html = VerifyEmailEmail({
+    confirmUrl: actionLink,
+    role: params.role,
+  });
+  const text = VerifyEmailEmailText({
+    confirmUrl: actionLink,
+    role: params.role,
+  });
+
+  const sendResult = await sendEmail({
+    to: params.email,
+    subject,
+    html,
+    text,
+    category: "auth_verification",
+    allowSuppressed: true,
+  });
+
+  if (!sendResult.success) {
+    return {
+      success: false,
+      error: sendResult.error ?? "Failed to send verification email.",
+    };
+  }
+
+  return { success: true };
 }
 
 async function startSubscriptionCheckout(params: {
@@ -169,7 +241,8 @@ export async function signUp(
   const passwordRaw = (formData.get("password") as string) ?? "";
   const password = passwordRaw.trim();
   const fullName = (formData.get("full_name") as string)?.trim();
-  const username = (formData.get("username") as string)?.trim().toLowerCase();
+  const rawUsername = (formData.get("username") as string) ?? "";
+  const username = normalizeSignupUsername(rawUsername);
   const role = (formData.get("role") as string) || "tutor";
   const planFromForm = (formData.get("plan") as string) || "";
   const desiredPlan: PlatformBillingPlan = ((): PlatformBillingPlan => {
@@ -309,20 +382,32 @@ export async function signUp(
       };
     }
 
-    const { error: resendError } = await supabase.auth.resend({
-      type: "signup",
+    const fastSendResult = await sendFastVerificationEmail({
       email,
-      options: {
-        emailRedirectTo,
-      },
+      role: role === "student" ? "student" : "tutor",
+      emailRedirectTo,
     });
 
-    if (resendError) {
-      console.error("[Auth] Failed to resend confirmation email", resendError);
-      return {
-        error:
-          "This email is already registered but not confirmed yet. We tried to finalize it—please try logging in again or contact support.",
-      };
+    if (!fastSendResult.success) {
+      if (fastSendResult.error) {
+        console.warn("[Auth] Fast verification email send failed", fastSendResult.error);
+      }
+
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo,
+        },
+      });
+
+      if (resendError) {
+        console.error("[Auth] Failed to resend confirmation email", resendError);
+        return {
+          error:
+            "This email is already registered but not confirmed yet. We tried to finalize it—please try logging in again or contact support.",
+        };
+      }
     }
 
     return {
@@ -366,24 +451,39 @@ export async function signUp(
     const normalized = message.toLowerCase();
 
     if (normalized.includes("already registered")) {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
+      const fastSendResult = await sendFastVerificationEmail({
         email,
-        options: {
-          emailRedirectTo,
-        },
+        role: role === "student" ? "student" : "tutor",
+        emailRedirectTo,
       });
 
-      if (!resendError) {
-        return {
-          success: "This email is already registered. Please confirm your email to continue.",
-          redirectTo: verifyEmailRedirect,
-        };
+      if (!fastSendResult.success) {
+        if (fastSendResult.error) {
+          console.warn(
+            "[Auth] Fast verification email send failed after signup error",
+            fastSendResult.error
+          );
+        }
+
+        const { error: resendError } = await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: {
+            emailRedirectTo,
+          },
+        });
+
+        if (resendError) {
+          console.error("[Auth] Failed to resend confirmation email after signup error", resendError);
+          return {
+            error: "That email is already registered. Please confirm your email to continue.",
+          };
+        }
       }
 
-      console.error("[Auth] Failed to resend confirmation email after signup error", resendError);
       return {
-        error: "That email is already registered. Please confirm your email to continue.",
+        success: "This email is already registered. Please confirm your email to continue.",
+        redirectTo: verifyEmailRedirect,
       };
     }
 
@@ -652,7 +752,7 @@ export async function resendSignupConfirmation(
   const headersList = await headers();
   const rateLimitResult = await rateLimitServerAction(headersList, {
     limit: 3,
-    window: 60 * 60 * 1000, // 3 requests per hour
+    window: 10 * 60 * 1000, // 3 requests per 10 minutes
     prefix: "resend-confirmation",
   });
 
@@ -677,19 +777,31 @@ export async function resendSignupConfirmation(
   const supabase = await createClient();
   const emailRedirectTo = buildAuthCallbackUrl(nextPath);
 
-  const { error } = await supabase.auth.resend({
-    type: "signup",
+  const fastSendResult = await sendFastVerificationEmail({
     email,
-    options: {
-      emailRedirectTo,
-    },
+    role,
+    emailRedirectTo,
   });
 
-  if (error) {
-    console.error("[Auth] Failed to resend confirmation email", error);
-    return {
-      error: "We couldn't resend the confirmation email yet. Please try again in a minute.",
-    };
+  if (!fastSendResult.success) {
+    if (fastSendResult.error) {
+      console.warn("[Auth] Fast verification email send failed", fastSendResult.error);
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo,
+      },
+    });
+
+    if (error) {
+      console.error("[Auth] Failed to resend confirmation email", error);
+      return {
+        error: "We couldn't resend the confirmation email yet. Please try again in a minute.",
+      };
+    }
   }
 
   return { success: "Confirmation email sent. Please check your inbox." };

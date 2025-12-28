@@ -1,6 +1,7 @@
 import { isReservedUsername } from "@/lib/constants/reserved-usernames";
 
 export const MAX_USERNAME_LENGTH = 80;
+export const SIGNUP_MAX_USERNAME_LENGTH = 32;
 export const MIN_USERNAME_LENGTH = 3;
 
 function stripDiacritics(input: string) {
@@ -22,6 +23,16 @@ export function normalizeUsernameSlug(input: string): string {
     .replace(/^-+|-+$/g, "");
 
   return cleaned;
+}
+
+export function normalizeSignupUsername(input: string): string {
+  const normalized = normalizeUsernameSlug(input);
+  if (!normalized) return "";
+
+  return normalized
+    .slice(0, SIGNUP_MAX_USERNAME_LENGTH)
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
 }
 
 export function validateNormalizedUsernameSlug(
@@ -54,4 +65,3 @@ export function normalizeAndValidateUsernameSlug(input: string): {
   const result = validateNormalizedUsernameSlug(normalized);
   return { normalized, ...result };
 }
-

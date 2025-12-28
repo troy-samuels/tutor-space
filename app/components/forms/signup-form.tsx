@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, type AuthActionState } from "@/lib/actions/auth";
+import { normalizeSignupUsername } from "@/lib/utils/username-slug";
 
 const initialState: AuthActionState = {
   error: undefined,
@@ -112,8 +113,7 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
   // Derive a username-friendly string from an email address
   const deriveUsernameFromEmail = useCallback((email: string): string => {
     const localPart = email.split("@")[0] || "";
-    // Convert to lowercase and keep only allowed characters
-    return localPart.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32);
+    return normalizeSignupUsername(localPart);
   }, []);
 
   // Handle email changes and auto-populate username if not manually edited
@@ -210,7 +210,7 @@ export function SignupForm({ tier = "pro", billingCycle = "monthly" }: SignupFor
 
   const handleUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
-    const sanitizedValue = rawValue.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const sanitizedValue = normalizeSignupUsername(rawValue);
     setUsernameValue(sanitizedValue);
     // Mark as manually edited so email changes don't overwrite it
     setUsernameManuallyEdited(true);
