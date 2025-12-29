@@ -104,7 +104,7 @@ export function RecentActivityList({
   return (
     <Card className="min-h-[120px] rounded-2xl border border-stone-200 bg-white sm:rounded-3xl">
       <CardHeader className="px-5 pt-5 pb-3">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Recent Activity
         </CardTitle>
       </CardHeader>
@@ -116,9 +116,9 @@ export function RecentActivityList({
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-4 rounded-xl px-4 py-4 transition-colors hover:bg-stone-50"
+                className="flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-stone-50"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-primary">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-primary">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">

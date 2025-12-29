@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import { getDashboardSummary, getDashboardSummaryFallback } from "@/lib/data/dashboard-summary";
@@ -171,21 +171,27 @@ export default async function DashboardPage() {
         </Suspense>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         {/* Row 1, Col 1: UP NEXT */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl sm:p-8">
+        <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:rounded-3xl sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-5">
-            <Avatar className="h-16 w-16 shrink-0 rounded-2xl border border-stone-200 bg-stone-50 sm:h-20 sm:w-20">
-              <AvatarFallback className="rounded-2xl text-xl font-semibold text-primary">
-                {getInitials(nextBooking?.student?.full_name)}
-              </AvatarFallback>
-            </Avatar>
+            {nextBooking ? (
+              <Avatar className="h-14 w-14 shrink-0 rounded-xl border border-stone-100 bg-stone-50 sm:h-16 sm:w-16">
+                <AvatarFallback className="rounded-xl text-lg font-semibold text-primary">
+                  {getInitials(nextBooking.student?.full_name)}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-dashed border-stone-200 bg-stone-50 sm:h-16 sm:w-16">
+                <CalendarDays className="h-6 w-6 text-stone-300" />
+              </div>
+            )}
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Up next
               </p>
               <p className="truncate text-xl font-semibold text-foreground sm:text-2xl">
-                {nextBooking?.student?.full_name ?? "Your next student"}
+                {nextBooking?.student?.full_name ?? "No upcoming lesson"}
               </p>
               <p className="text-sm text-muted-foreground">
                 {metadataLabel}
@@ -231,7 +237,7 @@ export default async function DashboardPage() {
         />
 
         {/* Row 2, Col 1: Today & Tomorrow */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl">
+        <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:rounded-3xl sm:p-6">
           <UpcomingSessions sessions={mappedUpcomingSessions} />
         </div>
 

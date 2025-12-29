@@ -25,7 +25,7 @@ export function UpcomingSessions({ sessions, className }: UpcomingSessionsProps)
   return (
     <div className={cn("space-y-5", className)}>
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Today & Tomorrow</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today & Tomorrow</h3>
         <Button asChild size="sm" variant="ghost">
           <Link href="/bookings">View all</Link>
         </Button>
@@ -90,7 +90,7 @@ UpcomingSessions.Skeleton = function UpcomingSessionsSkeleton({
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Today & Tomorrow</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today & Tomorrow</h3>
         <div className="h-5 w-10 rounded bg-muted/30" />
       </div>
       <div className="space-y-3">
