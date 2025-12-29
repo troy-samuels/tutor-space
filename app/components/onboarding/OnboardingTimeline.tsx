@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import confetti from "canvas-confetti";
 import { AlertCircle, CheckCircle, X } from "lucide-react";
 import { TimelineStep, StepStatus } from "./TimelineStep";
 import { StepProfileBasics } from "./steps/StepProfileBasics";
@@ -26,8 +25,29 @@ type OnboardingProfile = {
   stripe_charges_enabled?: boolean;
 };
 
+type ExistingService = {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price: number;
+  currency: string;
+  offer_type: "trial" | "one_off" | "lesson_block" | "subscription";
+};
+
+type ExistingPackage = {
+  id: string;
+  service_id: string | null;
+  name: string;
+  session_count: number | null;
+  total_minutes: number;
+  price_cents: number;
+  currency: string;
+};
+
 type OnboardingTimelineProps = {
   profile: OnboardingProfile;
+  existingServices?: ExistingService[];
+  existingPackages?: ExistingPackage[];
 };
 
 const STEPS = [
@@ -70,6 +90,8 @@ const STEPS = [
 
 export function OnboardingTimeline({
   profile,
+  existingServices = [],
+  existingPackages = [],
 }: OnboardingTimelineProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -196,17 +218,10 @@ export function OnboardingTimeline({
       try {
         const result = await completeOnboarding();
         if (result.success) {
-          // Fire confetti celebration
-          confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-          });
-
           // Determine redirect destination
           const targetUrl = result.redirectTo ?? "/dashboard";
 
-          // Delay redirect so user can see the celebration
+          // Brief delay before redirect
           setTimeout(() => {
             // Check if redirecting to Stripe checkout (external URL)
             if (targetUrl.startsWith("https://")) {
@@ -214,7 +229,7 @@ export function OnboardingTimeline({
             } else {
               router.push(targetUrl);
             }
-          }, 2000);
+          }, 500);
         } else {
           console.error("Failed to complete onboarding:", result.error);
           setIsCompleting(false);
@@ -254,6 +269,8 @@ export function OnboardingTimeline({
           <StepLanguagesServices
             onComplete={() => handleStepComplete(3)}
             onSaveError={(msg) => handleSaveError(3, msg)}
+            existingServices={existingServices}
+            existingPackages={existingPackages}
           />
         );
       case 4:

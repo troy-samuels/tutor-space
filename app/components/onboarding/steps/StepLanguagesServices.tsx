@@ -1,20 +1,54 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, Package } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
-import { createService } from "@/lib/actions/services";
+import { createService, updateService, deleteService } from "@/lib/actions/services";
+import {
+  createSessionPackage,
+  updateSessionPackage,
+  deleteSessionPackage,
+} from "@/lib/actions/session-packages";
+import type { ServiceOfferType } from "@/lib/validators/service";
+
+type ExistingService = {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price: number;
+  currency: string;
+  offer_type: ServiceOfferType;
+};
+
+type ExistingPackage = {
+  id: string;
+  service_id: string | null;
+  name: string;
+  session_count: number | null;
+  total_minutes: number;
+  price_cents: number;
+  currency: string;
+};
 
 type StepLanguagesServicesProps = {
   onComplete: () => void;
   onSaveError?: (message: string) => void;
+  existingServices?: ExistingService[];
+  existingPackages?: ExistingPackage[];
 };
 
 type ServiceItem = {
   id: string;
+  dbId?: string;
   name: string;
   duration: string;
   price: string;
+  offer_type: ServiceOfferType;
+  hasPackage?: boolean;
+  packageDbId?: string;
+  packageName?: string;
+  packageSessions?: number;
+  packagePrice?: string;
 };
 
 const COMMON_LANGUAGES = [
@@ -49,15 +83,40 @@ const CURRENCIES = [
 export function StepLanguagesServices({
   onComplete,
   onSaveError,
+  existingServices = [],
+  existingPackages = [],
 }: StepLanguagesServicesProps) {
   const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState({
     languages_taught: [] as string[],
-    currency: "USD",
+    currency: existingServices[0]?.currency || "USD",
   });
-  const [services, setServices] = useState<ServiceItem[]>([
-    { id: "1", name: "", duration: "60", price: "" }
-  ]);
+
+  // Initialize services from existing data or create a blank one
+  const [services, setServices] = useState<ServiceItem[]>(() => {
+    if (existingServices.length > 0) {
+      return existingServices.map((s, index) => {
+        const matchingPackage = existingPackages.find((p) => p.service_id === s.id);
+        return {
+          id: String(index + 1),
+          dbId: s.id,
+          name: s.name,
+          duration: String(s.duration_minutes),
+          price: s.price > 0 ? String(s.price / 100) : "",
+          offer_type: s.offer_type,
+          hasPackage: !!matchingPackage,
+          packageDbId: matchingPackage?.id,
+          packageName: matchingPackage?.name || "10 Lesson Package",
+          packageSessions: matchingPackage?.session_count || 10,
+          packagePrice:
+            matchingPackage && matchingPackage.price_cents > 0
+              ? String(matchingPackage.price_cents / 100)
+              : "",
+        };
+      });
+    }
+    return [{ id: "1", name: "", duration: "60", price: "", offer_type: "one_off" as ServiceOfferType }];
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -87,7 +146,8 @@ export function StepLanguagesServices({
       id: Date.now().toString(),
       name: "",
       duration: "60",
-      price: ""
+      price: "",
+      offer_type: "one_off" as ServiceOfferType,
     }]);
   };
 
@@ -98,16 +158,17 @@ export function StepLanguagesServices({
       const newErrors = { ...errors };
       delete newErrors[`service_name_${id}`];
       delete newErrors[`service_price_${id}`];
+      delete newErrors[`package_price_${id}`];
       setErrors(newErrors);
     }
   };
 
-  const updateService = (id: string, field: keyof ServiceItem, value: string) => {
+  const updateLocalService = (id: string, field: keyof ServiceItem, value: string | boolean | number) => {
     setServices(services.map(s =>
       s.id === id ? { ...s, [field]: value } : s
     ));
     // Clear error for this field
-    const errorKey = `service_${field}_${id}`;
+    const errorKey = field === "packagePrice" ? `package_price_${id}` : `service_${field}_${id}`;
     if (errors[errorKey]) {
       setErrors((prev) => ({ ...prev, [errorKey]: "" }));
     }
@@ -131,6 +192,15 @@ export function StepLanguagesServices({
       } else if (isNaN(Number(service.price)) || Number(service.price) <= 0) {
         newErrors[`service_price_${service.id}`] = "Enter a valid price";
       }
+
+      // Validate package price if package is enabled
+      if (service.hasPackage) {
+        if (!service.packagePrice) {
+          newErrors[`package_price_${service.id}`] = "Package price is required";
+        } else if (isNaN(Number(service.packagePrice)) || Number(service.packagePrice) <= 0) {
+          newErrors[`package_price_${service.id}`] = "Enter a valid package price";
+        }
+      }
     });
 
     setErrors(newErrors);
@@ -146,31 +216,20 @@ export function StepLanguagesServices({
     // Save to database in background
     startTransition(async () => {
       try {
-        // Save first service via atomic RPC
-        const result = await saveOnboardingStep(3, {
+        // Save languages and currency to profile
+        const profileResult = await saveOnboardingStep(3, {
           languages_taught: formData.languages_taught,
           currency: formData.currency,
-          service: {
-            name: services[0].name.trim(),
-            duration_minutes: parseInt(services[0].duration),
-            price: parseFloat(services[0].price),
-            currency: formData.currency.toLowerCase(),
-          },
         });
 
-        if (!result.success) {
-          console.error("Background save failed for step 3:", {
-            success: result.success,
-            error: result.error,
-            fullResult: result,
-          });
-          onSaveError?.(result.error || "Failed to save languages and service");
+        if (!profileResult.success) {
+          console.error("Background save failed for step 3:", profileResult.error);
+          onSaveError?.(profileResult.error || "Failed to save languages");
         }
 
-        // Save additional services via createService
-        for (let i = 1; i < services.length; i++) {
-          const service = services[i];
-          const serviceResult = await createService({
+        // Process each service
+        for (const service of services) {
+          const servicePayload = {
             name: service.name.trim(),
             description: "",
             duration_minutes: parseInt(service.duration),
@@ -179,11 +238,60 @@ export function StepLanguagesServices({
             is_active: true,
             requires_approval: false,
             max_students_per_session: 1,
-            offer_type: "one_off",
-          });
+            offer_type: service.offer_type,
+          };
 
-          if (serviceResult.error) {
-            console.error(`Failed to create service ${i + 1}:`, serviceResult.error);
+          let serviceId = service.dbId;
+
+          if (service.dbId) {
+            // Update existing service
+            const result = await updateService(service.dbId, servicePayload);
+            if (result.error) {
+              console.error("Failed to update service:", result.error);
+            }
+          } else {
+            // Create new service
+            const result = await createService(servicePayload);
+            if (result.error) {
+              console.error("Failed to create service:", result.error);
+            } else {
+              serviceId = result.data?.id;
+            }
+          }
+
+          // Handle session package for one_off services
+          if (service.offer_type === "one_off" && serviceId) {
+            if (service.hasPackage && service.packagePrice) {
+              const packagePayload = {
+                name: service.packageName || "10 Lesson Package",
+                description: "Save when you commit to 10 lessons upfront.",
+                session_count: service.packageSessions || 10,
+                total_minutes: parseInt(service.duration) * (service.packageSessions || 10),
+                price_cents: Math.round(parseFloat(service.packagePrice) * 100),
+                currency: formData.currency.toUpperCase(),
+                is_active: true,
+              };
+
+              if (service.packageDbId) {
+                // Update existing package
+                const result = await updateSessionPackage(service.packageDbId, packagePayload);
+                if (result.error) {
+                  console.error("Failed to update package:", result.error);
+                }
+              } else {
+                // Create new package
+                const result = await createSessionPackage(serviceId, packagePayload);
+                if (result.error) {
+                  console.error("Failed to create package:", result.error);
+                }
+              }
+            } else if (!service.hasPackage && service.packageDbId) {
+              // User unchecked package - delete it
+              const result = await deleteSessionPackage(service.packageDbId);
+              if (result.error) {
+                console.error("Failed to delete package:", result.error);
+              }
+            }
           }
         }
       } catch (error) {
@@ -278,12 +386,25 @@ export function StepLanguagesServices({
             <div className="border-t border-border pt-4" />
           )}
 
-          {/* Service header with delete button */}
-          {services.length > 1 && (
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                Service {index + 1}
+          {/* Service header with offer type badge and delete button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {services.length > 1 && (
+                <span className="text-xs font-medium text-muted-foreground">
+                  Service {index + 1}
+                </span>
+              )}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  service.offer_type === "trial"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {service.offer_type === "trial" ? "Trial" : "Standard"}
               </span>
+            </div>
+            {services.length > 1 && (
               <button
                 type="button"
                 onClick={() => removeService(service.id)}
@@ -291,8 +412,8 @@ export function StepLanguagesServices({
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Service Name */}
           <div className="space-y-2">
@@ -303,7 +424,7 @@ export function StepLanguagesServices({
               id={`service_name_${service.id}`}
               type="text"
               value={service.name}
-              onChange={(e) => updateService(service.id, "name", e.target.value)}
+              onChange={(e) => updateLocalService(service.id, "name", e.target.value)}
               placeholder="e.g., 1-on-1 Spanish Lesson"
               className={`w-full rounded-xl border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
                 errors[`service_name_${service.id}`]
@@ -325,11 +446,12 @@ export function StepLanguagesServices({
               <select
                 id={`service_duration_${service.id}`}
                 value={service.duration}
-                onChange={(e) => updateService(service.id, "duration", e.target.value)}
+                onChange={(e) => updateLocalService(service.id, "duration", e.target.value)}
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="30">30 minutes</option>
                 <option value="45">45 minutes</option>
+                <option value="55">55 minutes</option>
                 <option value="60">60 minutes</option>
                 <option value="90">90 minutes</option>
               </select>
@@ -349,7 +471,7 @@ export function StepLanguagesServices({
                   min="0"
                   step="0.01"
                   value={service.price}
-                  onChange={(e) => updateService(service.id, "price", e.target.value)}
+                  onChange={(e) => updateLocalService(service.id, "price", e.target.value)}
                   placeholder="50"
                   className={`w-full rounded-xl border bg-white py-3 pl-8 pr-4 text-sm transition focus:outline-none focus:ring-2 ${
                     errors[`service_price_${service.id}`]
@@ -363,6 +485,88 @@ export function StepLanguagesServices({
               )}
             </div>
           </div>
+
+          {/* Package Section - only for one_off services */}
+          {service.offer_type === "one_off" && (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={service.hasPackage ?? false}
+                  onChange={(e) =>
+                    updateLocalService(service.id, "hasPackage", e.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <div className="flex items-center gap-1.5">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    Offer a 10-lesson package
+                  </span>
+                </div>
+              </label>
+              <p className="ml-6 mt-1 text-xs text-muted-foreground">
+                Students can prepay for 10 lessons at a discounted rate
+              </p>
+
+              {service.hasPackage && (
+                <div className="ml-6 mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor={`package_name_${service.id}`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Package name
+                    </label>
+                    <input
+                      id={`package_name_${service.id}`}
+                      type="text"
+                      value={service.packageName || ""}
+                      onChange={(e) =>
+                        updateLocalService(service.id, "packageName", e.target.value)
+                      }
+                      placeholder="10 Lesson Package"
+                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor={`package_price_${service.id}`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Package price ({formData.currency})
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        {selectedCurrency.symbol}
+                      </span>
+                      <input
+                        id={`package_price_${service.id}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={service.packagePrice || ""}
+                        onChange={(e) =>
+                          updateLocalService(service.id, "packagePrice", e.target.value)
+                        }
+                        placeholder="450"
+                        className={`w-full rounded-xl border bg-white py-3 pl-8 pr-4 text-sm focus:outline-none focus:ring-2 ${
+                          errors[`package_price_${service.id}`]
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-gray-300 focus:border-primary focus:ring-primary/20"
+                        }`}
+                      />
+                    </div>
+                    {errors[`package_price_${service.id}`] && (
+                      <p className="text-xs text-red-600">
+                        {errors[`package_price_${service.id}`]}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ))}
 

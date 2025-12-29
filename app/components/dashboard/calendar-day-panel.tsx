@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { CalendarDays, Plus, X } from "lucide-react";
+import { Ban, CalendarDays, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import type { DailyLesson } from "@/lib/actions/calendar-sidebar";
@@ -15,6 +14,8 @@ type CalendarDayPanelProps = {
   isOpen: boolean;
   onClose: () => void;
   onReschedule?: (lessonId: string) => void;
+  onQuickAdd?: () => void;
+  onQuickBlock?: () => void;
 };
 
 // Animation variants for the sidebar panel
@@ -111,6 +112,8 @@ export function CalendarDayPanel({
   isOpen,
   onClose,
   onReschedule,
+  onQuickAdd,
+  onQuickBlock,
 }: CalendarDayPanelProps) {
   const dateKey = date ? format(date, "yyyy-MM-dd") : "no-date";
   const totalCount = lessons.length + externalEvents.length;
@@ -179,6 +182,26 @@ export function CalendarDayPanel({
             </div>
           </div>
 
+          {/* Quick Action Bar */}
+          {date && (
+            <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
+              <button
+                onClick={onQuickAdd}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4" />
+                Add Lesson
+              </button>
+              <button
+                onClick={onQuickBlock}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                <Ban className="h-4 w-4" />
+                Block
+              </button>
+            </div>
+          )}
+
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4">
             <AnimatePresence mode="wait">
@@ -200,36 +223,26 @@ export function CalendarDayPanel({
                   </p>
                 </motion.div>
               ) : totalCount === 0 ? (
-                // Empty state
+                // Empty state (simplified - quick action bar handles adding lessons)
                 <motion.div
                   key={`empty-${dateKey}`}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-10 text-center shadow-sm"
+                  className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-8 text-center shadow-sm"
                 >
                   <div className="pointer-events-none absolute inset-0 opacity-25">
                     <div className="absolute -left-10 -top-10 h-48 w-48 rounded-full bg-gradient-to-br from-primary/10 via-orange-200/30 to-transparent blur-2xl" />
-                    <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-gradient-to-tl from-muted/70 via-white/60 to-transparent blur-2xl" />
                     <CalendarDays className="absolute left-6 top-6 h-16 w-16 text-muted-foreground/20" />
                   </div>
-                  <div className="relative space-y-3">
+                  <div className="relative space-y-2">
                     <p className="text-sm font-medium text-foreground">
                       No lessons scheduled
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      This day is free—set up a new lesson.
+                      This day is open for booking
                     </p>
-                    <div className="pt-2">
-                      <Link
-                        href={`/bookings?date=${dateKey}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-6 text-lg font-semibold text-primary-foreground shadow-md transition hover:shadow-lg"
-                      >
-                        <Plus className="h-5 w-5" />
-                        Add Lesson
-                      </Link>
-                    </div>
                   </div>
                 </motion.div>
               ) : (

@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  createCalendarEventForBlockedTime,
+  deleteCalendarEventsForBlockedTime,
+} from "@/lib/calendar/busy-windows";
 
 async function requireTutor() {
   const supabase = await createClient();
@@ -60,6 +64,13 @@ export async function createBlockedTime(
     return { success: false, error: "This time overlaps with an existing blocked time" };
   }
 
+  // Get tutor's timezone for calendar event
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("timezone")
+    .eq("id", user.id)
+    .single();
+
   const { data, error } = await supabase
     .from("blocked_times")
     .insert({
@@ -74,6 +85,32 @@ export async function createBlockedTime(
   if (error) {
     console.error("[BlockedTimes] Failed to create", error);
     return { success: false, error: "Failed to create blocked time" };
+  }
+
+  // Sync to Google/Outlook Calendar (fire and forget, don't block on failure)
+  try {
+    const calendarResult = await createCalendarEventForBlockedTime({
+      tutorId: user.id,
+      blockedTimeId: data.id,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      label: input.label,
+      timezone: profile?.timezone || undefined,
+    });
+
+    // Update blocked_times with external calendar event IDs
+    if (calendarResult.googleEventId || calendarResult.outlookEventId) {
+      await supabase
+        .from("blocked_times")
+        .update({
+          google_event_id: calendarResult.googleEventId || null,
+          outlook_event_id: calendarResult.outlookEventId || null,
+        })
+        .eq("id", data.id);
+    }
+  } catch (err) {
+    // Log but don't fail - calendar sync is best-effort
+    console.error("[BlockedTimes] Calendar sync failed:", err);
   }
 
   revalidatePath("/calendar");
@@ -137,6 +174,32 @@ export async function deleteBlockedTime(id: string): Promise<BlockedTimeResult> 
 
   if (!user) {
     return { success: false, error: "Authentication required" };
+  }
+
+  // First, fetch the blocked time to get the calendar event IDs
+  const { data: blockedTime } = await supabase
+    .from("blocked_times")
+    .select("id, google_event_id, outlook_event_id")
+    .eq("id", id)
+    .eq("tutor_id", user.id)
+    .single();
+
+  if (!blockedTime) {
+    return { success: false, error: "Blocked time not found" };
+  }
+
+  // Delete from external calendars first (fire and forget)
+  if (blockedTime.google_event_id || blockedTime.outlook_event_id) {
+    try {
+      await deleteCalendarEventsForBlockedTime(
+        user.id,
+        blockedTime.google_event_id,
+        blockedTime.outlook_event_id
+      );
+    } catch (err) {
+      // Log but don't fail - calendar sync is best-effort
+      console.error("[BlockedTimes] Calendar delete failed:", err);
+    }
   }
 
   const { error } = await supabase

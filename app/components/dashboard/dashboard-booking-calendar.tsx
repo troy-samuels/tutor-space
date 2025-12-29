@@ -10,6 +10,7 @@ type DashboardBookingCalendarProps = {
   signupDate?: string | null;
   selectedDate?: Date | null;
   onDateSelect?: (date: Date) => void;
+  showHeaderControls?: boolean;
 };
 
 const formatKey = (date: Date) => format(date, "yyyy-MM-dd");
@@ -39,6 +40,7 @@ export function DashboardBookingCalendar({
   signupDate,
   selectedDate: controlledSelectedDate,
   onDateSelect,
+  showHeaderControls = true,
 }: DashboardBookingCalendarProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const earliest = useMemo(() => (signupDate ? startOfMonth(new Date(signupDate)) : startOfMonth(today)), [signupDate, today]);
@@ -64,6 +66,13 @@ export function DashboardBookingCalendar({
       mounted = false;
     };
   }, [currentMonth]);
+
+  useEffect(() => {
+    if (!controlledSelectedDate) return;
+    const nextMonth = startOfMonth(controlledSelectedDate);
+    setCurrentMonth((prev) => (isSameMonth(prev, nextMonth) ? prev : nextMonth));
+    setInternalSelectedDate(controlledSelectedDate);
+  }, [controlledSelectedDate]);
 
   const handleDateSelect = (date: Date) => {
     setInternalSelectedDate(date);
@@ -106,25 +115,27 @@ export function DashboardBookingCalendar({
             <p className="text-lg font-semibold">{format(currentMonth, "MMMM yyyy")}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={!canGoPrev}
-            data-testid="calendar-nav-prev"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            data-testid="calendar-nav-next"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        {showHeaderControls ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={!canGoPrev}
+              data-testid="calendar-nav-prev"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              data-testid="calendar-nav-next"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 px-4 pb-2">

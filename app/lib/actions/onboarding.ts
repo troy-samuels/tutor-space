@@ -123,42 +123,49 @@ export async function saveOnboardingStep(
       }
 
       case 3: {
-        // Languages and services - use atomic RPC function
-        const rpcParams = {
-          p_user_id: user.id,
-          p_languages_taught: data.languages_taught || [],
-          p_booking_currency: data.currency?.toUpperCase() || "USD",
-          p_service_name: data.service?.name || null,
-          p_service_duration: data.service?.duration_minutes || null,
-          p_service_price: data.service ? Math.round(data.service.price * 100) : null,
-          p_service_currency: data.service?.currency?.toUpperCase() || null,
-          p_offer_type: data.service?.offer_type ?? "one_off",
-        };
+        // Languages and currency - services are now managed separately by the UI
+        // Check if we have service data (for backwards compatibility)
+        if (data.service?.name) {
+          // Legacy flow: use atomic RPC function
+          const rpcParams = {
+            p_user_id: user.id,
+            p_languages_taught: data.languages_taught || [],
+            p_booking_currency: data.currency?.toUpperCase() || "USD",
+            p_service_name: data.service.name,
+            p_service_duration: data.service.duration_minutes || null,
+            p_service_price: Math.round(data.service.price * 100),
+            p_service_currency: data.service.currency?.toUpperCase() || null,
+            p_offer_type: data.service.offer_type ?? "one_off",
+          };
 
-        console.log("[Onboarding Step 3] Calling RPC with:", {
-          p_user_id: rpcParams.p_user_id,
-          p_languages_taught: rpcParams.p_languages_taught,
-          p_service_name: rpcParams.p_service_name,
-          p_service_price: rpcParams.p_service_price,
-        });
+          const { data: result, error: rpcError } = await supabase.rpc("save_onboarding_step_3", rpcParams);
 
-        const { data: result, error: rpcError } = await supabase.rpc("save_onboarding_step_3", rpcParams);
+          if (rpcError) {
+            console.error("[Onboarding Step 3] RPC error:", rpcError);
+            throw rpcError;
+          }
 
-        console.log("[Onboarding Step 3] RPC result:", JSON.stringify(result));
-        if (rpcError) {
-          console.error("[Onboarding Step 3] RPC error:", rpcError);
-          throw rpcError;
-        }
+          if (result === null || result === undefined) {
+            console.error("[Onboarding Step 3] RPC returned null/undefined result");
+            return { success: false, error: "Failed to save - please try again" };
+          }
 
-        // Defensive null check for result
-        if (result === null || result === undefined) {
-          console.error("[Onboarding Step 3] RPC returned null/undefined result");
-          return { success: false, error: "Failed to save - please try again" };
-        }
+          if (result.success === false) {
+            console.error("[Onboarding Step 3] RPC returned failure:", result.error);
+            return { success: false, error: result.error || "Failed to save languages and service" };
+          }
+        } else {
+          // New flow: services managed separately, just update profile
+          const { error } = await supabase
+            .from("profiles")
+            .update({
+              languages_taught: data.languages_taught || [],
+              booking_currency: data.currency?.toUpperCase() || "USD",
+              onboarding_step: 3,
+            })
+            .eq("id", user.id);
 
-        if (result.success === false) {
-          console.error("[Onboarding Step 3] RPC returned failure:", result.error);
-          return { success: false, error: result.error || "Failed to save languages and service" };
+          if (error) throw error;
         }
         break;
       }

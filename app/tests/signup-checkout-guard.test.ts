@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { requiresSignupCheckout } from "../lib/services/signup-checkout.ts";
+import type { SignupCheckoutProfile } from "../lib/services/signup-checkout.ts";
 
 test("requiresSignupCheckout returns true for paid plan without completion or subscription", () => {
   process.env.STRIPE_PRO_MONTHLY_PRICE_ID = "price_pro_monthly_test";
@@ -11,7 +12,7 @@ test("requiresSignupCheckout returns true for paid plan without completion or su
     subscription_status: null,
     signup_checkout_status: null,
     signup_checkout_completed_at: null,
-  };
+  } satisfies SignupCheckoutProfile;
 
   assert.equal(requiresSignupCheckout("pro_monthly", profile), true);
 
@@ -26,7 +27,7 @@ test("requiresSignupCheckout returns false when checkout already completed", () 
     subscription_status: null,
     signup_checkout_status: "complete",
     signup_checkout_completed_at: null,
-  };
+  } satisfies SignupCheckoutProfile;
 
   assert.equal(requiresSignupCheckout("pro_monthly", profile), false);
 
@@ -41,7 +42,7 @@ test("requiresSignupCheckout returns false when subscription is active", () => {
     subscription_status: "active",
     signup_checkout_status: "open",
     signup_checkout_completed_at: null,
-  };
+  } satisfies SignupCheckoutProfile;
 
   assert.equal(requiresSignupCheckout("pro_monthly", profile), false);
 
@@ -54,7 +55,7 @@ test("requiresSignupCheckout returns false for free plan", () => {
     subscription_status: null,
     signup_checkout_status: null,
     signup_checkout_completed_at: null,
-  };
+  } satisfies SignupCheckoutProfile;
 
   assert.equal(requiresSignupCheckout("professional", profile), false);
 });

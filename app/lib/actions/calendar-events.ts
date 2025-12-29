@@ -1,6 +1,6 @@
 "use server";
 
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getCalendarEventsWithDetails } from "@/lib/calendar/busy-windows";
 import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
@@ -235,4 +235,45 @@ export async function getWeekEventsGroupedByDay(weekStart: string): Promise<{
   }
 
   return { days };
+}
+
+// Get external calendar events for dashboard (monthly view)
+// Uses service role via getCalendarEventsWithDetails for consistent behavior
+export async function getDashboardExternalEvents({
+  tutorId,
+  year,
+  month,
+}: {
+  tutorId: string;
+  year: number;
+  month: number;
+}): Promise<CalendarEvent[]> {
+  const monthStart = startOfMonth(new Date(year, month, 1));
+  const monthEnd = endOfMonth(new Date(year, month, 1));
+  const days = differenceInCalendarDays(monthEnd, monthStart) + 1;
+
+  try {
+    const events = await getCalendarEventsWithDetails({
+      tutorId,
+      start: monthStart,
+      days,
+    });
+
+    console.log("[DashboardCalendar] Fetched external events", {
+      tutorId,
+      year,
+      month,
+      eventCount: events.length,
+    });
+
+    return events;
+  } catch (error) {
+    console.error("[DashboardCalendar] Failed to fetch external events", {
+      tutorId,
+      year,
+      month,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    return [];
+  }
 }

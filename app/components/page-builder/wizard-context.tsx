@@ -111,11 +111,11 @@ export const ARCHETYPES = [
     description: "Pop culture, Slang, Creative methods",
     vibe: "Contemporary, Fresh, Digital-native",
     bannerHint: "Minimalist, bold typography, matte surfaces",
-    // Soft Digital - Inspired by Linear, Vercel, Wealthsimple
+    // Warm Neutral - Peachy accent with dark charcoal text
     background: "#FAFAFA",    // Neutral Grey-White
     cardBg: "#FFFFFF",        // White
-    primary: "#171717",       // Matte Black (brutalist fashion feel)
-    textPrimary: "#171717",   // Neutral Black
+    primary: "#E8B59E",       // Peachy/Salmon accent
+    textPrimary: "#2C2C2C",   // Dark Charcoal
     textSecondary: "#737373", // Neutral Grey
     border: "#E5E5E5",        // Soft Border
     font: "luxury" as FontOption,            // DM Sans (body)

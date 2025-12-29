@@ -206,7 +206,7 @@ export async function getPublicSiteData(username: string) {
   let profileResult = await supabase
     .from("public_profiles")
     .select(
-      "id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
+      "id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url, created_at"
     )
     .eq("username", normalizedUsername)
     .maybeSingle();
@@ -215,7 +215,7 @@ export async function getPublicSiteData(username: string) {
     profileResult = await supabase
       .from("public_profiles")
       .select(
-        "id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
+        "id, username, full_name, avatar_url, bio, tagline, languages_taught, timezone, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url, created_at"
       )
       .eq("username", rawLower)
       .maybeSingle();

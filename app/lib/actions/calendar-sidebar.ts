@@ -1,9 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { endOfDay, endOfMonth, startOfDay, startOfMonth, differenceInCalendarDays } from "date-fns";
-import { getCalendarEventsWithDetails } from "@/lib/calendar/busy-windows";
-import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
+import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "date-fns";
+import { getDashboardExternalEvents } from "@/lib/actions/calendar-events";
+import type { PackageType } from "@/lib/types/calendar";
 
 export type DailyLesson = {
   id: string;
@@ -116,22 +116,30 @@ export async function getMonthlyBookingCounts(year: number, month: number) {
   const monthStart = monthStartDate.toISOString();
   const monthEnd = monthEndDate.toISOString();
 
-  const { data: bookings, error } = await supabase
-    .from("bookings")
-    .select(`
-      scheduled_at,
-      status,
-      services (
-        offer_type
-      )
-    `)
-    .eq("tutor_id", user.id)
-    .gte("scheduled_at", monthStart)
-    .lte("scheduled_at", monthEnd)
-    .in("status", ["pending", "confirmed", "completed"]);
+  // Fetch TutorLingua bookings and external events in parallel
+  const [bookingsResult, externalEvents] = await Promise.all([
+    // 1. TutorLingua bookings (user client with RLS)
+    supabase
+      .from("bookings")
+      .select(`
+        scheduled_at,
+        status,
+        services (
+          offer_type
+        )
+      `)
+      .eq("tutor_id", user.id)
+      .gte("scheduled_at", monthStart)
+      .lte("scheduled_at", monthEnd)
+      .in("status", ["pending", "confirmed", "completed"]),
+    // 2. External calendar events (uses service role via helper)
+    getDashboardExternalEvents({ tutorId: user.id, year, month }),
+  ]);
+
+  const { data: bookings, error } = bookingsResult;
 
   if (error) {
-    console.error("Error fetching monthly counts:", error);
+    console.error("[DashboardCalendar] Error fetching monthly bookings:", error);
     return { counts: {}, bookingsByDay: {} as Record<string, DayBookingInfo> };
   }
 
@@ -139,6 +147,7 @@ export async function getMonthlyBookingCounts(year: number, month: number) {
   const counts: Record<string, number> = {};
   const bookingsByDay: Record<string, DayBookingInfo> = {};
 
+  // Process TutorLingua bookings
   bookings?.forEach((booking: any) => {
     const date = booking.scheduled_at.split("T")[0]; // YYYY-MM-DD
     counts[date] = (counts[date] || 0) + 1;
@@ -155,60 +164,7 @@ export async function getMonthlyBookingCounts(year: number, month: number) {
     }
   });
 
-  const { data: connections, error: connectionsError } = await supabase
-    .from("calendar_connections")
-    .select("id, sync_enabled, sync_status")
-    .eq("tutor_id", user.id);
-
-  if (connectionsError && connectionsError.code !== "42P01") {
-    console.error("Error fetching calendar connections:", connectionsError);
-  }
-
-  let cachedExternalEvents: Array<{ start: string; end: string }> = [];
-
-  const { data: cachedEvents, error: cachedEventsError } = await supabase
-    .from("calendar_events")
-    .select("start_at, end_at")
-    .eq("tutor_id", user.id)
-    .is("deleted_at", null)
-    .lte("start_at", monthEnd)
-    .gte("end_at", monthStart);
-
-  if (cachedEventsError) {
-    if (cachedEventsError.code !== "42P01") {
-      console.error("Error fetching cached external events:", cachedEventsError);
-    }
-  } else {
-    cachedExternalEvents = (cachedEvents ?? [])
-      .filter((row: { start_at?: string | null; end_at?: string | null }) => row.start_at && row.end_at)
-      .map((row: { start_at: string; end_at: string }) => ({
-        start: row.start_at,
-        end: row.end_at,
-      }));
-  }
-
-  const hasActiveConnection = (connections ?? []).some(
-    (connection) => connection.sync_enabled !== false
-  );
-
-  let externalEvents: Array<Pick<CalendarEvent, "start" | "end">> = cachedExternalEvents;
-
-  if (hasActiveConnection) {
-    const days = differenceInCalendarDays(monthEndDate, monthStartDate) + 1;
-    try {
-      const fetchedEvents = await getCalendarEventsWithDetails({
-        tutorId: user.id,
-        start: monthStartDate,
-        days,
-      });
-      if (fetchedEvents.length > 0) {
-        externalEvents = fetchedEvents;
-      }
-    } catch (error) {
-      console.error("Error fetching external calendar events:", error);
-    }
-  }
-
+  // Process external calendar events
   if (externalEvents.length > 0) {
     for (const event of externalEvents) {
       const start = new Date(event.start);

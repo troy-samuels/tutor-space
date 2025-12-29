@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
   serviceSchema,
@@ -9,6 +10,11 @@ import {
 } from "@/lib/validators/service";
 import { createLink } from "@/lib/actions/links";
 import { getAuthUserResult } from "@/lib/auth";
+import {
+  archiveStripeServiceProduct,
+  canSyncStripeConnectProducts,
+  syncServiceToStripeConnect,
+} from "@/lib/services/stripe-connect-products";
 
 // Note: Import ServiceInput directly from @/lib/validators/service in UI components
 // Note: ServiceRecord type moved to @/lib/types/service.ts
@@ -27,9 +33,30 @@ type ServiceRecord = {
   requires_approval: boolean;
   max_students_per_session: number;
   offer_type: ServiceOfferType;
+  stripe_product_id?: string | null;
+  stripe_price_id?: string | null;
   created_at: string;
   updated_at: string;
 };
+
+async function getStripeAccountId(
+  supabase: SupabaseClient,
+  tutorId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("stripe_account_id")
+    .eq("id", tutorId)
+    .single<{ stripe_account_id: string | null }>();
+
+  if (error) {
+    console.warn("[Services] Failed to load Stripe account ID:", error.message);
+    return null;
+  }
+
+  const accountId = data?.stripe_account_id ?? null;
+  return accountId && accountId.trim().length > 0 ? accountId : null;
+}
 
 export async function createService(payload: ServiceInput) {
   const authResult = await getAuthUserResult();
@@ -70,34 +97,86 @@ export async function createService(payload: ServiceInput) {
     return { error: `Failed to save service: ${error.message}` };
   }
 
-  if (data) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const bookingUrl = `${appUrl.replace(/\/$/, "")}/book?service=${data.id}`;
+  if (!data) {
+    return { error: "We couldn’t save that service. Please try again." };
+  }
 
-    const { data: existingLink } = await supabase
-      .from("links")
-      .select("id")
-      .eq("tutor_id", user.id)
-      .eq("url", bookingUrl)
-      .maybeSingle();
-
-    if (!existingLink) {
-      await createLink({
-        title: `Book ${parsed.data.name}`,
-        description: "Secure a spot for this lesson in TutorLingua.",
-        url: bookingUrl,
-        icon_url: "",
-        button_style: "primary",
-        is_visible: parsed.data.is_active,
+  let serviceRecord = data;
+  const stripeAccountId = await getStripeAccountId(supabase, user.id);
+  if (canSyncStripeConnectProducts(stripeAccountId)) {
+    try {
+      const stripeSync = await syncServiceToStripeConnect({
+        stripeAccountId,
+        serviceId: data.id,
+        tutorId: user.id,
+        name: parsed.data.name,
+        description: parsed.data.description || null,
+        priceCents: parsed.data.price_cents,
+        currency: parsed.data.currency,
+        durationMinutes: parsed.data.duration_minutes,
+        offerType: parsed.data.offer_type,
+        isActive: parsed.data.is_active,
+        existingProductId: data.stripe_product_id ?? null,
+        existingPriceId: data.stripe_price_id ?? null,
+        existingPriceCents: data.price_amount ?? data.price ?? null,
+        existingCurrency: data.price_currency ?? data.currency ?? null,
       });
+
+      const { data: updated, error: updateError } = await supabase
+        .from("services")
+        .update({
+          stripe_product_id: stripeSync.stripeProductId,
+          stripe_price_id: stripeSync.stripePriceId,
+        })
+        .eq("id", data.id)
+        .eq("tutor_id", user.id)
+        .select("*")
+        .single<ServiceRecord>();
+
+      if (updateError || !updated) {
+        await archiveStripeServiceProduct({
+          stripeAccountId,
+          stripeProductId: stripeSync.stripeProductId,
+          stripePriceId: stripeSync.stripePriceId,
+        });
+        await supabase.from("services").delete().eq("id", data.id).eq("tutor_id", user.id);
+        return { error: "We couldn’t sync that service to Stripe. Please try again." };
+      }
+
+      serviceRecord = updated;
+    } catch (syncError) {
+      console.error("[Services] Stripe sync failed:", syncError);
+      await supabase.from("services").delete().eq("id", data.id).eq("tutor_id", user.id);
+      return { error: "We couldn’t sync that service to Stripe. Please try again." };
     }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const bookingUrl = `${appUrl.replace(/\/$/, "")}/book?service=${serviceRecord.id}`;
+
+  const { data: existingLink } = await supabase
+    .from("links")
+    .select("id")
+    .eq("tutor_id", user.id)
+    .eq("url", bookingUrl)
+    .maybeSingle();
+
+  if (!existingLink) {
+    await createLink({
+      title: `Book ${parsed.data.name}`,
+      description: "Secure a spot for this lesson in TutorLingua.",
+      url: bookingUrl,
+      icon_url: "",
+      button_style: "primary",
+      is_visible: parsed.data.is_active,
+    });
   }
 
   revalidatePath("/services");
   revalidatePath("/marketing/links");
   revalidatePath("/@");
 
-  return { data };
+  return { data: serviceRecord };
 }
 
 export async function updateService(id: string, payload: ServiceInput) {
@@ -115,6 +194,47 @@ export async function updateService(id: string, payload: ServiceInput) {
     return { error: message };
   }
 
+  const { data: existing, error: existingError } = await supabase
+    .from("services")
+    .select("*")
+    .eq("id", id)
+    .eq("tutor_id", user.id)
+    .single<ServiceRecord>();
+
+  if (existingError || !existing) {
+    return { error: "We couldn’t find that service. Please try again." };
+  }
+
+  const stripeAccountId = await getStripeAccountId(supabase, user.id);
+  let stripeProductId = existing.stripe_product_id ?? null;
+  let stripePriceId = existing.stripe_price_id ?? null;
+
+  if (canSyncStripeConnectProducts(stripeAccountId)) {
+    try {
+      const stripeSync = await syncServiceToStripeConnect({
+        stripeAccountId,
+        serviceId: existing.id,
+        tutorId: user.id,
+        name: parsed.data.name,
+        description: parsed.data.description || null,
+        priceCents: parsed.data.price_cents,
+        currency: parsed.data.currency,
+        durationMinutes: parsed.data.duration_minutes,
+        offerType: parsed.data.offer_type,
+        isActive: parsed.data.is_active,
+        existingProductId: stripeProductId,
+        existingPriceId: stripePriceId,
+        existingPriceCents: existing.price_amount ?? existing.price ?? null,
+        existingCurrency: existing.price_currency ?? existing.currency ?? null,
+      });
+      stripeProductId = stripeSync.stripeProductId;
+      stripePriceId = stripeSync.stripePriceId;
+    } catch (syncError) {
+      console.error("[Services] Stripe sync failed:", syncError);
+      return { error: "We couldn’t sync that service to Stripe. Please try again." };
+    }
+  }
+
   const { data, error } = await supabase
     .from("services")
     .update({
@@ -129,6 +249,8 @@ export async function updateService(id: string, payload: ServiceInput) {
       requires_approval: parsed.data.requires_approval,
       max_students_per_session: parsed.data.max_students_per_session,
       offer_type: parsed.data.offer_type,
+      stripe_product_id: stripeProductId,
+      stripe_price_id: stripePriceId,
     })
     .eq("id", id)
     .eq("tutor_id", user.id)
@@ -186,6 +308,31 @@ export async function deleteService(id: string) {
   const user = authResult.data;
 
   const supabase = await createClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("services")
+    .select("id, stripe_product_id, stripe_price_id")
+    .eq("id", id)
+    .eq("tutor_id", user.id)
+    .single<Pick<ServiceRecord, "id" | "stripe_product_id" | "stripe_price_id">>();
+
+  if (existingError || !existing) {
+    return { error: "We couldn’t find that service. Please try again." };
+  }
+
+  const stripeAccountId = await getStripeAccountId(supabase, user.id);
+  if (canSyncStripeConnectProducts(stripeAccountId) && existing.stripe_product_id) {
+    try {
+      await archiveStripeServiceProduct({
+        stripeAccountId,
+        stripeProductId: existing.stripe_product_id ?? null,
+        stripePriceId: existing.stripe_price_id ?? null,
+      });
+    } catch (syncError) {
+      console.error("[Services] Stripe archive failed:", syncError);
+      return { error: "We couldn’t remove that Stripe product. Please try again." };
+    }
+  }
+
   const { error } = await supabase
     .from("services")
     .delete()

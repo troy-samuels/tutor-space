@@ -220,6 +220,23 @@ export function CalendarPageClient({
     setFeedback({ type: "success", message: "Booking created successfully." });
   };
 
+  // Quick actions from sidebar panel (month view)
+  const handleQuickAddFromPanel = useCallback(() => {
+    if (selectedDate) {
+      setBookingModalDate(selectedDate);
+      setBookingModalHour(9); // Default to 9am
+      setBookingModalOpen(true);
+    }
+  }, [selectedDate]);
+
+  const handleQuickBlockFromPanel = useCallback(() => {
+    if (selectedDate) {
+      setBlockDialogDate(selectedDate);
+      setBlockDialogHour(9); // Default to 9am
+      setBlockDialogOpen(true);
+    }
+  }, [selectedDate]);
+
   const handleEventMove = (event: CalendarEvent, newStartIso: string) => {
     setFeedback(null);
 
@@ -437,6 +454,7 @@ export function CalendarPageClient({
             <DashboardBookingCalendar
               signupDate={signupDate}
               selectedDate={activeDate}
+              showHeaderControls={false}
               onDateSelect={(date) => {
                 setActiveDate(date);
                 handleDateSelect(date);
@@ -481,6 +499,8 @@ export function CalendarPageClient({
         isOpen={sidebarOpen}
         onClose={handleSidebarClose}
         onReschedule={handleRescheduleFromSidebar}
+        onQuickAdd={handleQuickAddFromPanel}
+        onQuickBlock={handleQuickBlockFromPanel}
       />
 
       {/* Quick Actions Popover */}

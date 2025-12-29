@@ -4,6 +4,14 @@ import * as React from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
+type AvatarContextValue = {
+  hasImage: boolean;
+  imageError: boolean;
+  setImageError: (value: boolean) => void;
+};
+
+const AvatarContext = React.createContext<AvatarContextValue | null>(null);
+
 /**
  * Avatar component system for displaying user profile images with fallbacks.
  *
@@ -30,16 +38,41 @@ import { cn } from "@/lib/utils";
 export type AvatarProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function Avatar({ className, children, ...props }: AvatarProps) {
+  const imageSrc = React.useMemo(() => {
+    let src: string | undefined;
+    React.Children.forEach(children, (child) => {
+      if (!React.isValidElement(child)) {
+        return;
+      }
+      if (child.type !== AvatarImage) {
+        return;
+      }
+      const childProps = child.props as AvatarImageProps;
+      if (childProps.src) {
+        src = childProps.src;
+      }
+    });
+    return src ?? null;
+  }, [children]);
+  const hasImage = Boolean(imageSrc);
+  const [imageError, setImageError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImageError(false);
+  }, [imageSrc]);
+
   return (
-    <div
-      className={cn(
-        "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-primary/10",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </div>
+    <AvatarContext.Provider value={{ hasImage, imageError, setImageError }}>
+      <div
+        className={cn(
+          "relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-primary/10",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    </AvatarContext.Provider>
   );
 }
 
@@ -56,9 +89,16 @@ export type AvatarImageProps = {
 };
 
 export function AvatarImage({ src, alt, className }: AvatarImageProps) {
-  const [error, setError] = React.useState(false);
+  const context = React.useContext(AvatarContext);
+  const setImageError = context?.setImageError;
+  const [localError, setLocalError] = React.useState(false);
 
-  if (!src || error) {
+  React.useEffect(() => {
+    setLocalError(false);
+    setImageError?.(false);
+  }, [src, setImageError]);
+
+  if (!src || localError || context?.imageError) {
     return null;
   }
 
@@ -69,7 +109,10 @@ export function AvatarImage({ src, alt, className }: AvatarImageProps) {
       fill
       sizes="40px"
       className={cn("object-cover", className)}
-      onError={() => setError(true)}
+      onError={() => {
+        setLocalError(true);
+        setImageError?.(true);
+      }}
     />
   );
 }
@@ -85,6 +128,13 @@ export function AvatarFallback({
   children,
   ...props
 }: AvatarFallbackProps) {
+  const context = React.useContext(AvatarContext);
+  const shouldRender = !context || !context.hasImage || context.imageError;
+
+  if (!shouldRender) {
+    return null;
+  }
+
   return (
     <div
       className={cn("absolute inset-0 flex items-center justify-center font-semibold text-primary text-sm", className)}

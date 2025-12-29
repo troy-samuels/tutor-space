@@ -45,6 +45,7 @@ type ProfileData = {
   facebook_handle?: string | null;
   x_handle?: string | null;
   website_url?: string | null;
+  created_at?: string | null;
 };
 
 interface PublicProfileClientProps {
@@ -235,6 +236,9 @@ export default function PublicProfileClient({
           )}
         </main>
 
+        {/* Page Footer - Certified Badge */}
+        {visibility.about && <SignatureBlock memberSince={profile.created_at} />}
+
         {/* Desktop CTA */}
         <DesktopCTA
           nextSlot={nextSlot}
@@ -383,9 +387,6 @@ function CreatorProfileHeader({
           <p className="text-sm leading-relaxed text-stone-600 break-words md:text-base">{bio}</p>
         </div>
       )}
-
-      {/* 7. Signature - Sign-off for bio */}
-      {showAbout ? <SignatureBlock firstName={name.split(" ")[0]} /> : null}
     </div>
   );
 }
@@ -740,25 +741,17 @@ function LiveStatusIndicator() {
 // Signature Block - Graceful end to the scrolling experience
 // ============================================================
 
-function SignatureBlock({ firstName }: { firstName: string }) {
-  const currentYear = new Date().getFullYear();
+function SignatureBlock({ memberSince }: { memberSince?: string | null }) {
+  const year = memberSince ? new Date(memberSince).getFullYear() : new Date().getFullYear();
 
   return (
     <div className="mt-12 text-center">
       {/* Divider */}
       <div className="mx-auto h-px w-12 bg-stone-300" />
 
-      {/* Signature */}
-      <p
-        className="mt-6 text-2xl text-stone-700 break-words"
-        style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
-      >
-        {firstName}
-      </p>
-
-      {/* Subtext */}
-      <p className="mt-2 text-[10px] font-medium uppercase tracking-widest text-stone-400">
-        TutorLingua Certified • Member since {currentYear}
+      {/* Certified Badge */}
+      <p className="mt-6 text-[10px] font-medium uppercase tracking-widest text-stone-400">
+        TutorLingua Certified • Member since {year}
       </p>
     </div>
   );

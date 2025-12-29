@@ -14,6 +14,8 @@ export type ServiceRecord = {
   requires_approval: boolean;
   max_students_per_session: number;
   offer_type: ServiceOfferType;
+  stripe_product_id?: string | null;
+  stripe_price_id?: string | null;
   created_at: string;
   updated_at: string;
 };

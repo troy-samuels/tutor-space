@@ -1791,3 +1791,261 @@ async function persistFetchedEvents({
     console.error("[CalendarEvents] Failed to persist fetched events", error);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Blocked Time Calendar Sync
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CreateBlockedTimeEventParams = {
+  tutorId: string;
+  blockedTimeId: string;
+  startTime: string; // ISO string
+  endTime: string;   // ISO string
+  label?: string;
+  timezone?: string;
+};
+
+type BlockedTimeEventResult = {
+  success: boolean;
+  googleEventId?: string;
+  outlookEventId?: string;
+  error?: string;
+};
+
+/**
+ * Create a "Busy" event on the tutor's connected calendar(s) for a blocked time.
+ * Returns the external event IDs so they can be stored in blocked_times table.
+ */
+export async function createCalendarEventForBlockedTime(
+  params: CreateBlockedTimeEventParams
+): Promise<BlockedTimeEventResult> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    console.warn("[BlockedTimeSync] Service role client unavailable.");
+    return { success: false, error: "Service unavailable" };
+  }
+
+  const { data, error } = await fetchCalendarConnections(
+    adminClient,
+    params.tutorId,
+    "id, provider, provider_account_id, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
+  );
+
+  if (error || !data || data.length === 0) {
+    console.log("[BlockedTimeSync] No calendar connections for tutor", params.tutorId);
+    return { success: true }; // Not an error - just no calendar connected
+  }
+
+  let googleEventId: string | undefined;
+  let outlookEventId: string | undefined;
+  let lastError: string | undefined;
+
+  const eventTitle = params.label || "Blocked - TutorLingua";
+  const eventTimezone = params.timezone || "UTC";
+
+  for (const record of data as CalendarConnectionRecord[]) {
+    if (record.sync_enabled === false) {
+      continue;
+    }
+
+    if (record.sync_status && !SYNCABLE_STATUSES.has(record.sync_status)) {
+      continue;
+    }
+
+    const accessToken = await ensureFreshAccessToken(record, adminClient);
+    if (!accessToken) {
+      lastError = "Failed to get access token";
+      continue;
+    }
+
+    try {
+      if (record.provider === "google") {
+        // Create Google Calendar event with transparency "opaque" (shows as Busy)
+        const event = {
+          summary: eventTitle,
+          description: "Blocked time from TutorLingua",
+          start: {
+            dateTime: params.startTime,
+            timeZone: eventTimezone,
+          },
+          end: {
+            dateTime: params.endTime,
+            timeZone: eventTimezone,
+          },
+          transparency: "opaque", // Shows as "Busy" in calendar
+        };
+
+        const response = await fetch(
+          "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(event),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Google Calendar API error ${response.status}: ${errorText}`);
+        }
+
+        const eventData = await response.json();
+        googleEventId = eventData.id;
+        console.log(`✅ Created Google calendar blocked time event for tutor ${params.tutorId}`);
+
+      } else if (record.provider === "outlook") {
+        // Create Outlook Calendar event with showAs "busy"
+        const event = {
+          subject: eventTitle,
+          body: {
+            contentType: "text",
+            content: "Blocked time from TutorLingua",
+          },
+          start: {
+            dateTime: params.startTime,
+            timeZone: eventTimezone,
+          },
+          end: {
+            dateTime: params.endTime,
+            timeZone: eventTimezone,
+          },
+          showAs: "busy", // Shows as "Busy" in Outlook
+        };
+
+        const response = await fetch(
+          "https://graph.microsoft.com/v1.0/me/events",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(event),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Outlook Calendar API error ${response.status}: ${errorText}`);
+        }
+
+        const eventData = await response.json();
+        outlookEventId = eventData.id;
+        console.log(`✅ Created Outlook calendar blocked time event for tutor ${params.tutorId}`);
+      }
+
+      // Update connection status on success
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "healthy",
+          last_synced_at: new Date().toISOString(),
+          error_message: null,
+        })
+        .eq("id", record.id);
+
+    } catch (err) {
+      console.error(`[BlockedTimeSync] Failed to create ${record.provider} event:`, err);
+      lastError = err instanceof Error ? err.message : "Failed to create event";
+
+      await adminClient
+        .from("calendar_connections")
+        .update({
+          sync_status: "error",
+          error_message: lastError,
+        })
+        .eq("id", record.id);
+    }
+  }
+
+  if (googleEventId || outlookEventId) {
+    return { success: true, googleEventId, outlookEventId };
+  }
+
+  return { success: false, error: lastError || "No calendar to create event in" };
+}
+
+/**
+ * Delete calendar events associated with a blocked time.
+ */
+export async function deleteCalendarEventsForBlockedTime(
+  tutorId: string,
+  googleEventId?: string | null,
+  outlookEventId?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    console.warn("[BlockedTimeSync] Service role client unavailable.");
+    return { success: false, error: "Service unavailable" };
+  }
+
+  if (!googleEventId && !outlookEventId) {
+    return { success: true }; // Nothing to delete
+  }
+
+  const { data, error } = await fetchCalendarConnections(
+    adminClient,
+    tutorId,
+    "id, provider, access_token_encrypted, refresh_token_encrypted, access_token_expires_at, token_expires_at, sync_status, sync_enabled"
+  );
+
+  if (error || !data || data.length === 0) {
+    return { success: true }; // No calendar connected, nothing to delete
+  }
+
+  let lastError: string | undefined;
+
+  for (const record of data as CalendarConnectionRecord[]) {
+    const accessToken = await ensureFreshAccessToken(record, adminClient);
+    if (!accessToken) {
+      continue;
+    }
+
+    try {
+      if (record.provider === "google" && googleEventId) {
+        const response = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        // 404 means event already deleted, which is fine
+        if (!response.ok && response.status !== 404) {
+          const errorText = await response.text();
+          throw new Error(`Google Calendar API error ${response.status}: ${errorText}`);
+        }
+        console.log(`✅ Deleted Google calendar blocked time event for tutor ${tutorId}`);
+
+      } else if (record.provider === "outlook" && outlookEventId) {
+        const response = await fetch(
+          `https://graph.microsoft.com/v1.0/me/events/${outlookEventId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        // 404 means event already deleted, which is fine
+        if (!response.ok && response.status !== 404) {
+          const errorText = await response.text();
+          throw new Error(`Outlook Calendar API error ${response.status}: ${errorText}`);
+        }
+        console.log(`✅ Deleted Outlook calendar blocked time event for tutor ${tutorId}`);
+      }
+    } catch (err) {
+      console.error(`[BlockedTimeSync] Failed to delete ${record.provider} event:`, err);
+      lastError = err instanceof Error ? err.message : "Failed to delete event";
+    }
+  }
+
+  return { success: true, error: lastError };
+}

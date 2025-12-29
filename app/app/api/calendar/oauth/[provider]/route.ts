@@ -209,6 +209,7 @@ export async function GET(
       refresh_token_encrypted: refreshTokenEncrypted,
       access_token_expires_at: expiresAt,
       scope: tokenResponse.scope ?? config.scopes.join(" "),
+      sync_enabled: true, // Explicitly set to ensure dashboard sync works
       sync_status: "healthy",
       last_synced_at: new Date().toISOString(),
       error_message: null,
