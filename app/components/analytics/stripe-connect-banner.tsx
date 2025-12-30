@@ -1,36 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp } from "lucide-react";
 
 export function StripeConnectBanner() {
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-blue-900">See your revenue</h3>
-            <p className="text-sm text-blue-700">
-              Connect Stripe to view earnings and payout analytics
-            </p>
-          </div>
+    <div className="flex justify-center">
+      <Link
+        href="/settings/payments"
+        className="group inline-flex items-center gap-3 rounded-2xl border border-border/50 bg-white/60 px-4 py-2.5 backdrop-blur transition-all hover:bg-white/80 hover:shadow-sm"
+      >
+        <div className="rounded-lg border border-primary/15 bg-primary/10 p-1.5 text-primary">
+          <TrendingUp className="h-4 w-4" />
         </div>
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="border-blue-300 bg-white text-blue-700 hover:bg-blue-100"
-        >
-          <Link href="/settings/payments">
-            Connect
-            <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
+        <span className="text-sm text-muted-foreground">
+          See your revenue
+        </span>
+        <span className="text-sm font-medium text-primary group-hover:underline">
+          Connect Stripe
+        </span>
+      </Link>
     </div>
   );
 }
