@@ -1,9 +1,8 @@
 "use client";
 
 import {
-  ComposedChart,
+  BarChart,
   Bar,
-  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -20,6 +19,39 @@ interface UtilizationChartProps {
   dimmed?: boolean;
 }
 
+// Get the Monday-Sunday range for the current week
+function getCurrentWeekRange() {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  // Calculate offset to Monday: if Sunday (0), go back 6 days; else go back (day - 1) days
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return { start: monday, end: sunday };
+}
+
+// Format date to YYYY-MM-DD in local timezone
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Format date for week range display
+function formatWeekRange(start: Date, end: Date): string {
+  const startStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const endStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${startStr} - ${endStr}`;
+}
+
 export function UtilizationChart({
   data,
   isLoading,
@@ -27,7 +59,6 @@ export function UtilizationChart({
   dimmed,
 }: UtilizationChartProps) {
   const lessonsColor = "var(--primary)";
-  const studentsColor = "var(--muted-foreground)";
   const axisColor = "var(--muted-foreground)";
 
   if (isLoading) {
@@ -43,20 +74,27 @@ export function UtilizationChart({
     );
   }
 
-  // Format date for display
-  const chartData = data.map((d) => {
-    const date = new Date(d.date);
+  // Get current week range (Monday-Sunday)
+  const { start, end } = getCurrentWeekRange();
+  const weekLabel = formatWeekRange(start, end);
+
+  // Build chart data for each day of the week
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const chartData = daysOfWeek.map((dayName, index) => {
+    const targetDate = new Date(start);
+    targetDate.setDate(start.getDate() + index);
+    const dateStr = toLocalDateString(targetDate);
+
+    const dayData = data.find((d) => d.date === dateStr);
     return {
-      ...d,
-      displayDate: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
+      dayName,
+      date: dateStr,
+      lessonCount: dayData?.lessonCount ?? 0,
     };
   });
 
-  // Aggregate totals for header
-  const totalLessons = data.reduce((sum, d) => sum + d.lessonCount, 0);
+  // Total lessons for the current week
+  const totalLessons = chartData.reduce((sum, d) => sum + d.lessonCount, 0);
 
   return (
     <Card
@@ -76,45 +114,28 @@ export function UtilizationChart({
             {totalLessons} <span className="text-sm font-medium text-muted-foreground">lessons</span>
           </p>
         </div>
-        <div className="flex gap-3 text-xs font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2 py-1">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: lessonsColor }} />
-            Lessons
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: studentsColor }} />
-            Students
-          </span>
-        </div>
+        <span className="text-xs font-medium text-muted-foreground">
+          {weekLabel}
+        </span>
       </CardHeader>
       <CardContent className="mt-0 px-5 pb-6">
         <ResponsiveContainer width="100%" height={230}>
-          <ComposedChart
+          <BarChart
             data={chartData}
             margin={{ top: 10, right: 16, left: -6, bottom: 0 }}
           >
             <XAxis
-              dataKey="displayDate"
+              dataKey="dayName"
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fill: axisColor }}
-              interval="preserveStartEnd"
-              minTickGap={40}
             />
             <YAxis
-              yAxisId="left"
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fill: axisColor }}
               width={40}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: axisColor }}
-              width={40}
+              allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
@@ -124,29 +145,16 @@ export function UtilizationChart({
                 boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
                 fontSize: "12px",
               }}
-              formatter={(value: number, name: string) => [
-                value,
-                name === "lessonCount" ? "Lessons" : "Active Students",
-              ]}
+              formatter={(value: number) => [value, "Lessons"]}
               labelFormatter={(label) => label}
             />
             <Bar
-              yAxisId="left"
               dataKey="lessonCount"
               fill={lessonsColor}
-              radius={[8, 8, 8, 8]}
-              maxBarSize={20}
+              radius={[8, 8, 0, 0]}
+              maxBarSize={40}
             />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="activeStudentCount"
-              stroke={studentsColor}
-              strokeWidth={2.2}
-              dot={false}
-              activeDot={{ r: 4, fill: studentsColor }}
-            />
-          </ComposedChart>
+          </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

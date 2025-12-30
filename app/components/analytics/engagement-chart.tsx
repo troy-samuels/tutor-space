@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  Line,
-  LineChart,
+  BarChart,
+  Bar,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,21 +19,45 @@ interface EngagementChartProps {
   dimmed?: boolean;
 }
 
+// Get the Monday-Sunday range for the current week
+function getCurrentWeekRange() {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  // Calculate offset to Monday: if Sunday (0), go back 6 days; else go back (day - 1) days
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return { start: monday, end: sunday };
+}
+
+// Format date to YYYY-MM-DD in local timezone
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Format date for week range display
+function formatWeekRange(start: Date, end: Date): string {
+  const startStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const endStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${startStr} - ${endStr}`;
+}
+
 export function EngagementChart({
   data,
   isLoading,
   onHoverChange,
   dimmed,
 }: EngagementChartProps) {
-  // Format dates for display
-  const chartData = data.map((d) => ({
-    ...d,
-    displayDate: new Date(d.date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    }),
-  }));
-
   if (isLoading) {
     return (
       <Card
@@ -42,7 +66,7 @@ export function EngagementChart({
       >
         <CardHeader>
           <CardTitle className="text-base font-semibold text-foreground">
-            Engagement Trends
+            Teaching Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -51,6 +75,28 @@ export function EngagementChart({
       </Card>
     );
   }
+
+  // Get current week range (Monday-Sunday)
+  const { start, end } = getCurrentWeekRange();
+  const weekLabel = formatWeekRange(start, end);
+
+  // Build chart data for each day of the week
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const chartData = daysOfWeek.map((dayName, index) => {
+    const targetDate = new Date(start);
+    targetDate.setDate(start.getDate() + index);
+    const dateStr = toLocalDateString(targetDate);
+
+    const dayData = data.find((d) => d.date === dateStr);
+    return {
+      dayName,
+      date: dateStr,
+      lessonCount: dayData?.lessonCount ?? 0,
+    };
+  });
+
+  // Total lessons for the current week
+  const totalLessons = chartData.reduce((sum, d) => sum + d.lessonCount, 0);
 
   return (
     <Card
@@ -63,38 +109,34 @@ export function EngagementChart({
       onMouseLeave={() => onHoverChange?.(false)}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-semibold text-foreground">
-          Engagement Trends
-        </CardTitle>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-            <span className="text-muted-foreground">Lessons</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span className="text-muted-foreground">Active Students</span>
-          </div>
+        <div>
+          <CardTitle className="text-base font-semibold text-foreground">
+            Teaching Activity
+          </CardTitle>
+          <p className="mt-1 text-xl font-semibold text-foreground">
+            {totalLessons} <span className="text-sm font-medium text-muted-foreground">lessons</span>
+          </p>
         </div>
+        <span className="text-xs font-medium text-muted-foreground">
+          {weekLabel}
+        </span>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-            No engagement data for this period
+            No lessons this week
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart
+            <BarChart
               data={chartData}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
               <XAxis
-                dataKey="displayDate"
+                dataKey="dayName"
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                interval="preserveStartEnd"
-                minTickGap={30}
               />
               <YAxis
                 axisLine={false}
@@ -106,41 +148,27 @@ export function EngagementChart({
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
-                  const data = payload[0].payload;
+                  const tooltipData = payload[0].payload;
                   return (
                     <div className="rounded-lg border border-border/60 bg-background px-3 py-2 shadow-lg">
                       <p className="mb-1 text-xs text-muted-foreground">
-                        {data.displayDate}
+                        {tooltipData.dayName}
                       </p>
-                      <p className="text-sm font-medium text-blue-600">
-                        {data.lessonCount} lesson
-                        {data.lessonCount !== 1 ? "s" : ""}
-                      </p>
-                      <p className="text-sm font-medium text-emerald-600">
-                        {data.activeStudentCount} active student
-                        {data.activeStudentCount !== 1 ? "s" : ""}
+                      <p className="text-sm font-medium text-foreground">
+                        {tooltipData.lessonCount} lesson
+                        {tooltipData.lessonCount !== 1 ? "s" : ""}
                       </p>
                     </div>
                   );
                 }}
               />
-              <Line
-                type="monotone"
+              <Bar
                 dataKey="lessonCount"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: "#3b82f6" }}
+                fill="var(--primary)"
+                radius={[8, 8, 0, 0]}
+                maxBarSize={40}
               />
-              <Line
-                type="monotone"
-                dataKey="activeStudentCount"
-                stroke="#10b981"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: "#10b981" }}
-              />
-            </LineChart>
+            </BarChart>
           </ResponsiveContainer>
         )}
       </CardContent>

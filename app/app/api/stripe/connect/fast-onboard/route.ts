@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       authClient.auth.getUser(),
       adminClient
         .from("profiles")
-        .select("id, stripe_account_id")
+        .select("id, stripe_account_id, full_name, bio, tagline, website_url")
         .eq("id", tutorId)
         .single()
     ]);
@@ -117,9 +117,26 @@ export async function POST(req: NextRequest) {
     const existingAccount = !!accountId;
 
     if (!accountId) {
-      // Create new Express account
-      const account = await stripe.accounts.create({
-        type: "express",
+      // Parse name for prefilling
+      const nameParts = (profile.full_name || "").trim().split(/\s+/);
+      const firstName = nameParts[0] || undefined;
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
+      const userEmail = user.email;
+
+      // Build prefilled params (Stripe ignores empty/undefined fields)
+      const accountParams = {
+        type: "express" as const,
+        email: userEmail,
+        business_profile: {
+          name: profile.full_name || undefined,
+          product_description: profile.bio || profile.tagline || "Language tutoring services",
+          url: profile.website_url || undefined,
+        },
+        individual: {
+          email: userEmail,
+          first_name: firstName,
+          last_name: lastName,
+        },
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
@@ -127,7 +144,13 @@ export async function POST(req: NextRequest) {
         metadata: {
           tutor_id: tutorId,
         },
-      });
+      };
+
+      // Clean undefined values (Stripe doesn't like explicit undefined in nested objects)
+      const cleanParams = JSON.parse(JSON.stringify(accountParams));
+
+      // Create new Express account with prefilled data
+      const account = await stripe.accounts.create(cleanParams);
 
       accountId = account.id;
 

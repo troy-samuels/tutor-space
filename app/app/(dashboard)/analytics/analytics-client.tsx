@@ -8,6 +8,7 @@ import {
   SkeletonDashboard,
 } from "@/components/analytics";
 import { MetricCards } from "@/components/dashboard/metric-cards";
+import { StripeConnectBanner } from "@/components/analytics/stripe-connect-banner";
 import type {
   RevenueDataPoint,
   StudentMetrics,
@@ -163,6 +164,8 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
       ) : null}
 
       {!error ? <MetricCards metrics={metrics} /> : null}
+
+      {!error && !data?.stripeBalance && <StripeConnectBanner />}
 
       <AnalyticsShell data={shellData} isLoading={false} />
     </div>

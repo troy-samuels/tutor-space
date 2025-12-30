@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { AlertTriangle, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import type { StripeBalanceData } from "@/lib/types/analytics-premium";
 
 interface FinancialHealthCardProps {
@@ -40,36 +39,9 @@ export function FinancialHealthCard({
     );
   }
 
-  // Empty state - Stripe not connected
+  // Don't render if Stripe not connected (banner handles this case)
   if (!data) {
-    return (
-      <Card className="rounded-[24px] border border-border/50 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.04)] backdrop-blur">
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div>
-            <p className="text-sm font-semibold tracking-tight text-muted-foreground">
-              Stripe balance
-            </p>
-            <p className="text-xs text-muted-foreground/80">
-              Connect Stripe to unlock payouts
-            </p>
-          </div>
-          <div className="rounded-xl border border-primary/15 bg-primary/10 p-2.5 text-primary">
-            <Wallet className="h-5 w-5" />
-          </div>
-        </div>
-        <CardContent className="mt-0 flex flex-col items-center justify-center gap-2 p-6 text-center">
-          <div className="rounded-full bg-muted/60 p-3">
-            <Wallet className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Connect Stripe to see your payouts
-          </p>
-          <Button asChild variant="outline" size="sm" className="mt-2">
-            <Link href="/settings/payments">Connect Stripe</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   const formatCurrency = (cents: number, currency: string) => {
