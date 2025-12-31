@@ -136,12 +136,22 @@ export function CalendarBookingModal({
         duration_minutes: durationMinutes,
         timezone: tutorTimezone,
         notes: notes || undefined,
+        skipAdvanceBookingCheck: true, // Tutors can book any time without advance notice restriction
       });
 
       if (result.error) {
         setError(result.error);
         setIsSubmitting(false);
         return;
+      }
+
+      // If marked as unpaid, send payment request email to student
+      if (paymentStatus === "unpaid" && result.data) {
+        const { sendPaymentRequestForBooking } = await import("@/lib/actions/bookings");
+        // Fire and forget - don't block UI for email sending
+        sendPaymentRequestForBooking(result.data.id).catch((err) => {
+          console.error("Failed to send payment request email:", err);
+        });
       }
 
       // If marked as paid, update payment status

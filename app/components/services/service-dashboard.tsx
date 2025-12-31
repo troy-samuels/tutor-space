@@ -618,7 +618,7 @@ export function ServiceDashboard({
 
       <Sheet open={productSheetOpen} onOpenChange={setProductSheetOpen} side="right">
         <SheetOverlay onClick={() => setProductSheetOpen(false)} />
-        <SheetContent className="flex w-full max-w-xl flex-col bg-white p-6 shadow-xl" side="right">
+        <SheetContent className="flex w-full max-w-xl flex-col overflow-y-auto bg-white p-6 shadow-xl" side="right">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Digital product</p>
             <p className="text-2xl font-semibold tracking-tight text-foreground">Create Product</p>

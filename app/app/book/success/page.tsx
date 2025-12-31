@@ -142,6 +142,19 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
     ? booking.profiles[0] ?? null
     : booking.profiles;
 
+  const { data: calendarConnections } = await adminClient
+    .from("calendar_connections")
+    .select("provider, sync_enabled, sync_status")
+    .eq("tutor_id", booking.tutor_id);
+
+  const syncableStatuses = new Set(["idle", "healthy", "syncing"]);
+  const hasGoogleSync = (calendarConnections ?? []).some(
+    (connection) =>
+      connection.provider === "google" &&
+      connection.sync_enabled !== false &&
+      (!connection.sync_status || syncableStatuses.has(connection.sync_status))
+  );
+
   const zonedStart = toZonedTime(
     new Date(booking.scheduled_at),
     booking.timezone
@@ -239,6 +252,24 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
               )}
             </div>
           </div>
+
+          {!hasGoogleSync && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 mb-8 text-left">
+              <h3 className="font-semibold text-indigo-900 mb-3">
+                {t("addToCalendarTitle")}
+              </h3>
+              <p className="text-sm text-indigo-800 mb-4">
+                {t("addToCalendarBody")}
+              </p>
+              <a
+                href={`/api/booking/ics?booking_id=${booking.id}`}
+                className="inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                download
+              >
+                {t("addToCalendarCta")}
+              </a>
+            </div>
+          )}
 
           {/* Meeting Link */}
           {meetingUrl && (

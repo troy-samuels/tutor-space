@@ -12,6 +12,21 @@ import { Loader2, ShieldAlert, ArrowLeft, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AudioStage } from "@/components/classroom/AudioStage";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
+import { ConnectionToast } from "@/components/classroom/ConnectionToast";
+import { useLiveKitConnectionMonitor } from "@/lib/hooks/useLiveKitConnectionMonitor";
+
+function LiveKitConnectionWatcher({
+  serverUrl,
+  token,
+  onGiveUp,
+}: {
+  serverUrl: string;
+  token: string;
+  onGiveUp: () => void;
+}) {
+  const { toast } = useLiveKitConnectionMonitor({ serverUrl, token, onGiveUp });
+  return <ConnectionToast toast={toast} />;
+}
 
 export default function TestStudioClient() {
   const router = useRouter();
@@ -83,10 +98,6 @@ export default function TestStudioClient() {
 
     fetchToken();
   }, []);
-
-  const handleDisconnected = () => {
-    router.push("/dashboard");
-  };
 
   // Loading state
   if (isLoading) {
@@ -216,9 +227,14 @@ export default function TestStudioClient() {
           connect={true}
           audio={audio}
           video={false}
-          onDisconnected={handleDisconnected}
           className="flex h-full min-h-0 relative"
         >
+          <LiveKitConnectionWatcher
+            serverUrl={serverUrl}
+            token={token}
+            onGiveUp={() => router.push("/dashboard")}
+          />
+
           {/* Audio Card - Full width for test */}
           <div className="flex-1 relative min-h-0">
             <div className="h-full rounded-2xl shadow-lg border border-border overflow-hidden sm:rounded-[2rem]">

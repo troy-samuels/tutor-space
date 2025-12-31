@@ -206,7 +206,7 @@ app/
    - Theme settings (colors, fonts, spacing)
    - Section visibility toggles
    - Published/draft status
-   - Theme archetype (professional/immersion/academic/polyglot)
+   - Theme archetype (professional/editorial/scholar/modernist/artisan)
    - Theme heading font, border radius
 
 9. **tutor_site_services**, **tutor_site_reviews**, **tutor_site_resources**, **tutor_site_products**
@@ -246,6 +246,8 @@ app/
 15. **blocked_times**
     - Manual unavailability overrides
     - Start/end timestamps, optional label
+    - `google_event_id` - Synced Google Calendar event ID
+    - `outlook_event_id` - Synced Outlook Calendar event ID
 
 16. **student_access_requests**
     - Calendar access request workflow
@@ -454,7 +456,7 @@ app/
 
 ### Feature: User Onboarding
 
-**What it does**: Guided 6-step onboarding for new tutors to set up their profile, services, and booking system.
+**What it does**: Guided 7-step onboarding for new tutors to set up their profile, services, and booking system.
 
 **Where the code lives**:
 - Pages: `/app/(dashboard)/onboarding/page.tsx`
@@ -466,17 +468,43 @@ app/
 1. New tutor signs up → redirected to `/onboarding`
 2. Step 1: Profile basics (name, username, timezone, avatar)
 3. Step 2: Professional info (tagline, bio, website)
-4. Step 3: Languages & first service (name, duration, price)
+4. Step 3: Languages, currency & services (multi-select languages, currency picker, service creation with optional packages)
 5. Step 4: Availability (weekly schedule)
-6. Step 5: Calendar sync (optional Google/Outlook)
-7. Step 6: Payment setup (Stripe Connect or manual)
-8. `completeOnboarding()` sets `onboarding_completed = true`
-9. Middleware allows access to dashboard
+6. Step 5: Calendar sync (optional Google/Outlook with popup-based OAuth)
+7. Step 6: Video conferencing (Zoom, Google Meet, Microsoft Teams, or custom provider)
+8. Step 7: Payment setup (Stripe Connect or manual)
+9. `completeOnboarding()` sets `onboarding_completed = true`
+10. Middleware allows access to dashboard
+
+**Step 3 Enhancements**:
+- Multi-select language toggle buttons
+- Currency selection (11+ currencies supported)
+- Service creation with validation (name, duration, price, offer type)
+- Optional session package creation per service (10-lesson discount pricing)
+- Existing services pre-populated on retry
+
+**Video Conferencing Options** (Step 6):
+- Zoom: `zoom_personal_link` field
+- Google Meet: `google_meet_link` field
+- Microsoft Teams: `microsoft_teams_link` field
+- Custom: `custom_video_url` + `custom_video_name` fields
+
+**Optimistic UI**:
+- User advances to next step immediately
+- Background save happens asynchronously
+- Error banner shows if background save fails
+
+**Default Services** (created via `handle_new_user()` trigger):
+1. Trial Lesson (30 min, $0, offer_type: 'trial')
+2. Standard Lesson (55 min, $0, offer_type: 'one_off')
+3. 10-Lesson Package (550 min total, attached to Standard Lesson)
 
 **Key actions**:
-- `saveOnboardingStep(step, data)` - Saves each step
+- `saveOnboardingStep(step, data)` - Saves each step with optimistic UI
 - `completeOnboarding()` - Marks onboarding complete
 - `checkOnboardingStatus()` - Returns completion state
+- `save_onboarding_step_3()` - Atomic languages/services/availability save (RPC)
+- `save_onboarding_step_4()` - Atomic availability save (RPC)
 
 ---
 
@@ -627,13 +655,22 @@ app/
 1. Create service with: name, description, duration (minutes), price (cents), currency
 2. Toggle active status
 3. `createService()` inserts into services table
-4. Auto-creates link in bio for active services
+4. Auto-creates link in bio for active services ("Book {ServiceName}")
 5. Public booking page lists active services
-6. Stripe product/price can be synced (optional)
+6. If tutor has Stripe Connect, auto-syncs to Stripe as product/price via `syncServiceToStripeConnect()`
+7. Dual price columns for backward compatibility: `price`/`currency` (legacy) + `price_amount`/`price_currency` (new)
+
+**Stripe Connect Integration** (`/lib/services/stripe-connect-products.ts`):
+- `canSyncStripeConnectProducts()` - Guard function checking if sync is possible
+- `syncServiceToStripeConnect()` - Creates/updates Stripe product and price
+- `archiveStripeServiceProduct()` - Archives product on deletion or rollback
+- Stores `stripe_product_id` and `stripe_price_id` on service record
+- Handles $0 pricing (deactivates price, tutor sets later)
+- On price change: creates new price, archives old one
 
 **Key actions**:
-- `createService(payload)` - Creates new service
-- `updateService(id, payload)` - Updates service
+- `createService(payload)` - Creates new service with Stripe sync
+- `updateService(id, payload)` - Updates service and Stripe product
 - `deleteService(id)` - Soft delete (sets is_active=false)
 
 ---
@@ -1773,8 +1810,10 @@ CREATE POLICY "Public view published sites"
 **Features**:
 - Reads busy times/events to prevent double-booking
 - Creates booking events (optionally with attendee email)
+- Syncs blocked times as "Busy" events (transparency: opaque)
 - Displays in calendar with color coding
 - Auto-refresh tokens before expiration
+- Popup-based OAuth flow with state parameter routing
 
 ### Microsoft Outlook OAuth
 
@@ -1786,9 +1825,11 @@ CREATE POLICY "Public view published sites"
 
 **Features**:
 - Fetches calendar events with details
+- Syncs blocked times as "Busy" events (showAs: busy)
 - Displays in calendar with color coding
 - Prevents double-booking
 - Auto-refresh tokens before expiration
+- Popup-based OAuth flow with state parameter routing
 
 ### Email Service
 
@@ -1842,8 +1883,10 @@ Located in `/lib/actions/`:
 - `saveAvailability(slots)` - Update availability
 
 **Blocked Times** (`blocked-times.ts`):
-- `createBlockedTime()` - Manual unavailability
-- `deleteBlockedTime()` - Remove block
+- `createBlockedTime()` - Manual unavailability with calendar sync
+- `deleteBlockedTime()` - Remove block and external calendar events
+- `createCalendarEventForBlockedTime()` - Creates "Busy" events on Google/Outlook
+- `deleteCalendarEventsForBlockedTime()` - Removes synced external events
 
 **Bookings** (`bookings.ts`):
 - `listBookings()` - Fetch bookings
@@ -1852,13 +1895,14 @@ Located in `/lib/actions/`:
 - `markBookingAsPaid(bookingId)` - Payment confirmation
 - `cancelBooking(bookingId)` - Cancel with refund
 
-**Calendar** (`calendar.ts`, `calendar-events.ts`):
+**Calendar** (`calendar.ts`, `calendar-events.ts`, `busy-windows.ts`):
 - `listCalendarConnections()` - Connected calendars
-- `requestCalendarConnection(provider, options)` - OAuth flow
+- `requestCalendarConnection(provider, options)` - OAuth flow (supports popup mode)
 - `disconnectCalendar(provider)` - Remove connection
-- `getCalendarEvents()` - All events (TutorLingua + external + blocked)
-- `getWeekEvents()` - Week view events
-- `getDayEvents()` - Day view events
+- `getCalendarEvents()` - Unified events (TutorLingua + external + blocked)
+- `getCalendarEventsWithDetails()` - Events with titles and source info
+- `getWeekEvents()` / `getDayEvents()` - Week and day view queries
+- `getDashboardExternalEvents()` - External events for monthly view
 
 **Digital Products** (`digital-products.ts`):
 - `createDigitalProduct()` - Create product
@@ -2669,4 +2713,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 24 December 2025*
+*Last updated: 29 December 2025*

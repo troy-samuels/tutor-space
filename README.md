@@ -129,6 +129,7 @@ Business services in `/lib/services/`:
 - `payments/` - Stripe payment utilities
 - `checkout-agent.ts` - Advanced checkout logic
 - `connect.ts` - Stripe Connect account management
+- `stripe-connect-products.ts` - Sync services to Stripe products/prices
 
 ### Middleware Architecture
 `middleware.ts` enforces:
@@ -348,7 +349,7 @@ Health monitoring, tutor management, moderation queue, analytics dashboards, ema
 | `bookings` | Lessons with payment tracking |
 | `services` | Lesson types and pricing |
 | `availability` | Weekly recurring time slots |
-| `blocked_times` | Manual unavailability |
+| `blocked_times` | Manual unavailability with external calendar sync |
 
 ### Payments & Subscriptions (7 tables)
 | Table | Purpose |
@@ -438,7 +439,16 @@ Health monitoring, tutor management, moderation queue, analytics dashboards, ema
 ## Key Flows
 
 ### Onboarding
-6-step wizard (profile, professional info, services, availability, calendar sync, Stripe/alternate payments) gates dashboard access.
+7-step wizard with optimistic UI:
+1. Profile basics (name, username, timezone, avatar)
+2. Professional info (tagline, bio, website)
+3. Languages, currency & services (multi-select languages, 11+ currencies, service/package creation)
+4. Availability (weekly schedule)
+5. Calendar sync (popup-based Google/Outlook OAuth)
+6. Video conferencing (Zoom, Google Meet, Microsoft Teams, or custom)
+7. Payment setup (Stripe Connect or manual)
+
+Default services created automatically: Trial (30min), Standard (55min), 10-Lesson Package.
 
 ### Booking & Payments
 1. Public or tutor-initiated booking with conflict detection
@@ -449,11 +459,13 @@ Health monitoring, tutor management, moderation queue, analytics dashboards, ema
 6. Reschedule history tracking
 
 ### Calendar Sync
-1. OAuth popup for Google/Outlook
+1. OAuth popup for Google/Outlook with state parameter routing
 2. Token encryption at rest
-3. Busy event import into calendar views
-4. Manual blocked times overlay
-5. Conflict prevention during booking
+3. Busy event import into calendar views with titles
+4. Manual blocked times overlay with two-way sync to Google/Outlook
+5. Blocked times appear as "Busy" on connected calendars
+6. Conflict prevention during booking
+7. Event caching in `calendar_events` table for performance
 
 ### AI Practice & Drills
 1. Practice scenario builder (custom templates)
@@ -816,4 +828,4 @@ Proprietary - All rights reserved
 
 ---
 
-*Last updated: December 25, 2025*
+*Last updated: December 29, 2025*

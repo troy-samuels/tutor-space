@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
         "engagementTrend"
       ),
       safeMetricFetch<ProfileViewStats>(
-        () => getProfileViews(tutorId, days, supabase),
+        () => getProfileViews(tutorId, 30, supabase),
         defaultProfileViews,
         "profileViews"
       ),

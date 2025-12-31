@@ -63,6 +63,18 @@ export type PaymentHealth = {
   fees: number;
 };
 
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
 /**
  * Get revenue over time for a tutor
  */
@@ -91,7 +103,7 @@ export async function getRevenueOverTime(
   const revenueByDate = new Map<string, number>();
 
   for (const row of data) {
-    const date = new Date(row.created_at).toISOString().split("T")[0];
+    const date = toLocalDateString(new Date(row.created_at));
     const current = revenueByDate.get(date) ?? 0;
     revenueByDate.set(date, current + (row.amount_cents ?? 0));
   }
@@ -106,11 +118,7 @@ export async function getRevenueOverTime(
   endDate.setHours(23, 59, 59, 999); // End of today
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    // Use local date format instead of toISOString() to avoid timezone shifts
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
+    const dateStr = toLocalDateString(d);
     result.push({
       date: dateStr,
       revenue: (revenueByDate.get(dateStr) ?? 0) / 100, // Convert cents to dollars
@@ -147,50 +155,90 @@ export async function getStudentMetrics(
 
   const studentList = students ?? [];
   const bookingList = bookings ?? [];
-  const totalStudents = studentList.length;
 
-  // New students (created in the period)
-  const newStudents = studentList.filter(
-    (s) => s.created_at && new Date(s.created_at) >= new Date(since)
-  ).length;
-
-  // Calculate bookings per student
-  const bookingsPerStudent = new Map<string, { count: number; lastBooking: string | null }>();
-
-  for (const booking of bookingList) {
-    if (!booking.student_id) continue;
-    const existing = bookingsPerStudent.get(booking.student_id) ?? { count: 0, lastBooking: null };
-    existing.count += 1;
-    if (booking.scheduled_at) {
-      if (!existing.lastBooking || new Date(booking.scheduled_at) > new Date(existing.lastBooking)) {
-        existing.lastBooking = booking.scheduled_at;
-      }
+  const studentCreatedAt = new Map<string, string>();
+  for (const student of studentList) {
+    if (student.id && student.created_at) {
+      studentCreatedAt.set(student.id, student.created_at);
     }
-    bookingsPerStudent.set(booking.student_id, existing);
   }
 
-  // Returning students (2+ bookings)
-  const returningStudents = Array.from(bookingsPerStudent.values()).filter(
-    (s) => s.count >= 2
-  ).length;
+  const activeStudentIds = new Set<string>();
+  const completedBookingsByStudent = new Map<string, number>();
+  let completedLessons = 0;
 
-  // Churn risk (no booking in last 30 days but had previous bookings)
-  const churnRiskStudents = Array.from(bookingsPerStudent.entries()).filter(([, data]) => {
-    if (data.count === 0) return false;
-    if (!data.lastBooking) return true;
-    return new Date(data.lastBooking) < new Date(thirtyDaysAgo);
+  for (const booking of bookingList) {
+    const studentId = booking.student_id ?? null;
+    if (!studentId) continue;
+
+    if (booking.status !== "cancelled") {
+      activeStudentIds.add(studentId);
+    }
+
+    if (booking.status === "completed") {
+      completedLessons += 1;
+      completedBookingsByStudent.set(
+        studentId,
+        (completedBookingsByStudent.get(studentId) ?? 0) + 1
+      );
+    }
+  }
+
+  const totalStudents = activeStudentIds.size;
+
+  // New students (created in the period and active within the period)
+  const newStudents = Array.from(activeStudentIds).filter((studentId) => {
+    const createdAt = studentCreatedAt.get(studentId);
+    return createdAt ? new Date(createdAt) >= new Date(since) : false;
   }).length;
 
-  // Retention rate (% of students with 2+ bookings)
+  // Returning students (2+ completed bookings in the period)
+  const returningStudents = Array.from(completedBookingsByStudent.values()).filter(
+    (count) => count >= 2
+  ).length;
+
+  // Retention rate (% of active students with 2+ completed bookings)
   const retentionRate = totalStudents > 0
     ? Math.round((returningStudents / totalStudents) * 100)
     : 0;
 
-  // Avg lessons per student
-  const totalLessons = bookingList.filter(b => b.status === "completed").length;
+  // Avg lessons per active student
   const avgLessonsPerStudent = totalStudents > 0
-    ? Math.round((totalLessons / totalStudents) * 10) / 10
+    ? Math.round((completedLessons / totalStudents) * 10) / 10
     : 0;
+
+  // Churn risk (students with any booking but none in last 30 days)
+  const [allBookingsResult, recentBookingsResult] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("student_id")
+      .eq("tutor_id", tutorId)
+      .not("student_id", "is", null),
+    supabase
+      .from("bookings")
+      .select("student_id")
+      .eq("tutor_id", tutorId)
+      .gte("scheduled_at", thirtyDaysAgo)
+      .not("student_id", "is", null),
+  ]);
+
+  const allBookingStudentIds = new Set<string>(
+    (allBookingsResult.data ?? [])
+      .map((b) => b.student_id)
+      .filter((id): id is string => id != null)
+  );
+  const recentBookingStudentIds = new Set<string>(
+    (recentBookingsResult.data ?? [])
+      .map((b) => b.student_id)
+      .filter((id): id is string => id != null)
+  );
+
+  let churnRiskStudents = 0;
+  for (const studentId of allBookingStudentIds) {
+    if (!recentBookingStudentIds.has(studentId)) {
+      churnRiskStudents += 1;
+    }
+  }
 
   return {
     totalStudents,
@@ -220,29 +268,31 @@ export async function getBookingMetrics(
     .gte("scheduled_at", since);
 
   const bookingList = bookings ?? [];
-  const totalBookings = bookingList.length;
+  const totalBookingsAll = bookingList.length;
 
   const completedBookings = bookingList.filter(b => b.status === "completed").length;
   const cancelledBookings = bookingList.filter(b => b.status === "cancelled").length;
   const pendingBookings = bookingList.filter(b => b.status === "pending" || b.status === "confirmed").length;
 
-  const completionRate = totalBookings > 0
-    ? Math.round((completedBookings / totalBookings) * 100)
+  const completionRate = totalBookingsAll > 0
+    ? Math.round((completedBookings / totalBookingsAll) * 100)
     : 0;
 
-  const cancellationRate = totalBookings > 0
-    ? Math.round((cancelledBookings / totalBookings) * 100)
+  const cancellationRate = totalBookingsAll > 0
+    ? Math.round((cancelledBookings / totalBookingsAll) * 100)
     : 0;
 
   // Average session value from paid bookings
-  const paidBookings = bookingList.filter(b => b.payment_amount && b.payment_amount > 0);
+  const paidBookings = bookingList.filter(
+    b => b.status === "completed" && b.payment_amount && b.payment_amount > 0
+  );
   const totalRevenue = paidBookings.reduce((sum, b) => sum + (b.payment_amount ?? 0), 0);
   const avgSessionValue = paidBookings.length > 0
     ? Math.round(totalRevenue / paidBookings.length) / 100
     : 0;
 
   return {
-    totalBookings,
+    totalBookings: completedBookings,
     completedBookings,
     cancelledBookings,
     pendingBookings,
@@ -328,7 +378,8 @@ export async function getBookingsByPeriod(
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     const weekStart = new Date(date.setDate(diff));
-    const weekKey = weekStart.toISOString().split("T")[0];
+    weekStart.setHours(0, 0, 0, 0);
+    const weekKey = toLocalDateString(weekStart);
 
     const existing = weekStats.get(weekKey) ?? { completed: 0, cancelled: 0, pending: 0 };
 
@@ -399,7 +450,7 @@ export async function getTotalRevenue(
 }
 
 function formatWeekLabel(dateStr: string): string {
-  const date = new Date(dateStr);
+  const date = toLocalDate(dateStr);
   const month = date.toLocaleString("default", { month: "short" });
   const day = date.getDate();
   return `${month} ${day}`;
@@ -431,7 +482,7 @@ export async function getEngagementOverTime(
   for (const booking of bookingList) {
     if (!booking.scheduled_at) continue;
 
-    const date = new Date(booking.scheduled_at).toISOString().split("T")[0];
+    const date = toLocalDateString(new Date(booking.scheduled_at));
     const existing = engagementByDate.get(date) ?? { lessons: 0, students: new Set<string>() };
     existing.lessons += 1;
     if (booking.student_id) {
@@ -450,11 +501,7 @@ export async function getEngagementOverTime(
   endDate.setHours(23, 59, 59, 999); // End of today
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    // Use local date format instead of toISOString() to avoid timezone shifts
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
+    const dateStr = toLocalDateString(d);
     const dayData = engagementByDate.get(dateStr);
     result.push({
       date: dateStr,
@@ -506,7 +553,7 @@ export async function getProfileViews(
 
   for (const view of viewList) {
     if (!view.created_at) continue;
-    const date = new Date(view.created_at).toISOString().split("T")[0];
+    const date = toLocalDateString(new Date(view.created_at));
     viewsByDate.set(date, (viewsByDate.get(date) ?? 0) + 1);
   }
 
@@ -520,11 +567,7 @@ export async function getProfileViews(
   endDate.setHours(23, 59, 59, 999); // End of today
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    // Use local date format instead of toISOString() to avoid timezone shifts
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
+    const dateStr = toLocalDateString(d);
     trend.push({
       date: dateStr,
       views: viewsByDate.get(dateStr) ?? 0,
@@ -708,7 +751,7 @@ export async function getRecentActivity(
   const [bookingsResult, paymentsResult, studentsResult] = await Promise.all([
     supabase
       .from("bookings")
-      .select("id, scheduled_at, payment_amount, currency, students(full_name, email)")
+      .select("id, created_at, scheduled_at, payment_amount, currency, students(full_name, email)")
       .eq("tutor_id", tutorId)
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false })
@@ -737,12 +780,13 @@ export async function getRecentActivity(
   // Add bookings
   for (const booking of bookingsResult.data ?? []) {
     const student = booking.students as { full_name?: string; email?: string } | null;
+    const bookingTimestamp = booking.created_at ?? booking.scheduled_at ?? new Date(0).toISOString();
     activities.push({
       id: `booking-${booking.id}`,
       type: "booking",
       title: "Lesson booked",
       subtitle: student?.full_name ?? student?.email ?? "Unknown student",
-      timestamp: booking.scheduled_at,
+      timestamp: bookingTimestamp,
       amount: booking.payment_amount ? booking.payment_amount / 100 : undefined,
       currency: booking.currency ?? "usd",
     });
