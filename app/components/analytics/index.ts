@@ -8,6 +8,11 @@ export { OverviewCards } from "./overview-cards";
 export { EngagementChart } from "./engagement-chart";
 export { SkeletonDashboard } from "./skeleton-dashboard";
 
+// New consolidated components
+export { HeroSummary } from "./hero-summary";
+export { StudentsCard } from "./students-card";
+export { BalanceCard } from "./balance-card";
+
 // Premium Command Center components
 export { AnalyticsShell } from "./premium/AnalyticsShell";
 export { MetricCardPremium } from "./premium/MetricCardPremium";

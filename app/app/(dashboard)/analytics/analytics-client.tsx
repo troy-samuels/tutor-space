@@ -6,8 +6,8 @@ import {
   type TimePeriod,
   AnalyticsShell,
   SkeletonDashboard,
+  HeroSummary,
 } from "@/components/analytics";
-import { MetricCards } from "@/components/dashboard/metric-cards";
 import { StripeConnectBanner } from "@/components/analytics/stripe-connect-banner";
 import type {
   RevenueDataPoint,
@@ -70,44 +70,6 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
     fetchData();
   }, [fetchData]);
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-
-  const metrics = [
-    {
-      label: "Net earnings",
-      value: formatCurrency(data?.totalRevenue.netEarnings ?? 0),
-      helperText: `Last ${period} days`,
-      iconName: "wallet",
-    },
-    {
-      label: "Active students",
-      value:
-        data?.studentMetrics?.totalStudents ??
-        data?.revenueBreakdown.totalActiveStudents ??
-        0,
-      helperText: "Currently learning with you",
-      iconName: "users",
-    },
-    {
-      label: "Lessons booked",
-      value: data?.bookingMetrics?.totalBookings ?? 0,
-      helperText: `${period}-day window`,
-      iconName: "calendar-days",
-    },
-    {
-      label: "Completion rate",
-      value: `${data?.bookingMetrics?.completionRate ?? 0}%`,
-      helperText: "Completed vs scheduled",
-      iconName: "trending-up",
-    },
-  ];
-
   // Show skeleton dashboard while loading
   if (isLoading) {
     return <SkeletonDashboard />;
@@ -116,15 +78,14 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
   // Default data for AnalyticsShell when data is null
   const shellData = data
     ? {
-        totalRevenue: data.totalRevenue,
         stripeBalance: data.stripeBalance,
         revenueBreakdown: data.revenueBreakdown,
         engagementTrend: data.engagementTrend,
         profileViews: data.profileViews,
         recentActivity: data.recentActivity,
+        studentMetrics: data.studentMetrics,
       }
     : {
-        totalRevenue: { grossVolume: 0, netEarnings: 0, refunds: 0, fees: 0 },
         stripeBalance: null,
         revenueBreakdown: {
           subscriptionCount: 0,
@@ -139,7 +100,25 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
         engagementTrend: [],
         profileViews: { totalViews: 0, trend: [] },
         recentActivity: [],
+        studentMetrics: null,
       };
+
+  // Default data for HeroSummary when data is null
+  const heroData = {
+    totalRevenue: data?.totalRevenue ?? { grossVolume: 0, netEarnings: 0, refunds: 0, fees: 0 },
+    bookingMetrics: data?.bookingMetrics ?? null,
+    studentMetrics: data?.studentMetrics ?? null,
+    revenueBreakdown: data?.revenueBreakdown ?? {
+      subscriptionCount: 0,
+      packageCount: 0,
+      adHocCount: 0,
+      totalActiveStudents: 0,
+      subscriptionPercentage: 0,
+      packagePercentage: 0,
+      adHocPercentage: 0,
+      estimatedMRR: 0,
+    },
+  };
 
   return (
     <div className="space-y-6 rounded-[32px] border border-border/30 bg-[#f7f4ef] px-4 py-5 shadow-[0_16px_40px_rgba(0,0,0,0.04)] sm:px-6 lg:px-8">
@@ -163,7 +142,15 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
         </div>
       ) : null}
 
-      {!error ? <MetricCards metrics={metrics} /> : null}
+      {!error && (
+        <HeroSummary
+          totalRevenue={heroData.totalRevenue}
+          bookingMetrics={heroData.bookingMetrics}
+          studentMetrics={heroData.studentMetrics}
+          revenueBreakdown={heroData.revenueBreakdown}
+          period={period}
+        />
+      )}
 
       {!error && !data?.stripeBalance && <StripeConnectBanner />}
 

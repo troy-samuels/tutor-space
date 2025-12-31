@@ -1,10 +1,10 @@
 "use client";
 
-import { FinancialHealthCard } from "./FinancialHealthCard";
-import { PlanDistributionCard } from "./PlanDistributionCard";
 import { UtilizationChart } from "./UtilizationChart";
 import { TrafficStatsCard } from "./TrafficStatsCard";
 import { RecentActivityList } from "./RecentActivityList";
+import { StudentsCard } from "../students-card";
+import { BalanceCard } from "../balance-card";
 import type {
   StripeBalanceData,
   RevenueSourceBreakdown,
@@ -13,17 +13,17 @@ import type {
 import type {
   EngagementDataPoint,
   ProfileViewStats,
-  PaymentHealth,
+  StudentMetrics,
 } from "@/lib/data/analytics-metrics";
 
 interface AnalyticsShellProps {
   data: {
-    totalRevenue: PaymentHealth;
     stripeBalance: StripeBalanceData | null;
     revenueBreakdown: RevenueSourceBreakdown;
     engagementTrend: EngagementDataPoint[];
     profileViews: ProfileViewStats;
     recentActivity: RecentActivityItem[];
+    studentMetrics: StudentMetrics | null;
   };
   isLoading: boolean;
 }
@@ -31,28 +31,32 @@ interface AnalyticsShellProps {
 export function AnalyticsShell({ data, isLoading }: AnalyticsShellProps) {
   return (
     <div className="space-y-6">
-      {/* Trends row */}
+      {/* Teaching Activity + Students row */}
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <UtilizationChart data={data.engagementTrend} isLoading={isLoading} />
         </div>
         <div className="lg:col-span-4">
-          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} />
+          <StudentsCard
+            studentMetrics={data.studentMetrics}
+            revenueBreakdown={data.revenueBreakdown}
+            isLoading={isLoading}
+          />
         </div>
       </div>
 
-      {/* Money row - only show when Stripe connected */}
+      {/* Balance + Profile Views row - only show when Stripe connected */}
       {data.stripeBalance && (
-        <div className="grid gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-5">
-            <FinancialHealthCard data={data.stripeBalance} isLoading={isLoading} />
-          </div>
-          <div className="lg:col-span-7">
-            <PlanDistributionCard
-              data={data.revenueBreakdown}
-              isLoading={isLoading}
-            />
-          </div>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <BalanceCard data={data.stripeBalance} isLoading={isLoading} />
+          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} />
+        </div>
+      )}
+
+      {/* Profile Views only when no Stripe */}
+      {!data.stripeBalance && (
+        <div className="max-w-sm">
+          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} />
         </div>
       )}
 
