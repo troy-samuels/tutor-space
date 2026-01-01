@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Sparkles, Check } from "lucide-react";
+import Link from "next/link";
+import { Check, ArrowRight } from "lucide-react";
 import PaymentSettingsForm from "@/components/settings/PaymentSettingsForm";
 import StripeConnectPanel from "@/components/settings/StripeConnectPanel";
-import { getPlanDisplayName } from "@/lib/payments/subscriptions";
+import { getPlanDisplayName, getPlanTier } from "@/lib/payments/subscriptions";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export default async function PaymentSettingsPage() {
   const supabase = await createClient();
@@ -25,8 +27,10 @@ export default async function PaymentSettingsPage() {
     .eq("id", user.id)
     .single();
 
-  const currentPlan = profile?.plan || "professional";
-  const displayPlan = getPlanDisplayName(currentPlan as any);
+  const currentPlan = (profile?.plan || "professional") as PlatformBillingPlan;
+  const displayPlan = getPlanDisplayName(currentPlan);
+  const planTier = getPlanTier(currentPlan);
+  const isPaidPlan = planTier !== "free";
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -37,7 +41,7 @@ export default async function PaymentSettingsPage() {
         </p>
       </div>
 
-      {/* Plan & Billing Card */}
+      {/* Plan & Billing Card — Informational Only */}
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
         <div className="flex items-start justify-between">
           <div>
@@ -45,34 +49,26 @@ export default async function PaymentSettingsPage() {
               Current Plan
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {displayPlan} — all features included
+              {displayPlan}
             </p>
           </div>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-              "bg-emerald-100 text-emerald-700"
-            }`}
-          >
-            <Check className="h-3.5 w-3.5" />
-            Active
-          </span>
+          {isPaidPlan && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <Check className="h-3.5 w-3.5" />
+              Active
+            </span>
+          )}
         </div>
 
-        <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-foreground">
-                Start your free trial — Pro or Studio
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                TutorLingua complements marketplaces like Preply with calendar sync and direct booking tools so you keep
-                control of your student base.
-              </p>
-            </div>
-          </div>
+        {/* Link to Billing page for plan management */}
+        <div className="mt-4">
+          <Link
+            href="/settings/billing"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            Manage your plan
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
 

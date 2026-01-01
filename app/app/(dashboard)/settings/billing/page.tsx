@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import BillingPortalButton from "@/components/settings/BillingPortalButton";
 import { PlatformSubscriptionCTA } from "@/components/settings/PlatformSubscriptionCTA";
+import { UpgradePlanCard } from "@/components/settings/UpgradePlanCard";
+import { getPlanTier } from "@/lib/payments/subscriptions";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 import {
   Calendar,
   Users,
@@ -83,13 +86,22 @@ export default async function BillingPage({
     .in("status", ["active", "trialing"])
     .single();
 
-  const currentPlan = profile?.plan || "professional";
+  const currentPlan = (profile?.plan || "professional") as PlatformBillingPlan;
   const hasPaidPlan = currentPlan !== "professional";
   const hasStripeCustomer = !!profile?.stripe_customer_id;
   const isTrialing = subscription?.status === "trialing";
-  const isLifetime = currentPlan === "tutor_life" || currentPlan === "founder_lifetime";
+  const isLifetime = currentPlan === "tutor_life" || currentPlan === "founder_lifetime" || currentPlan === "studio_life";
   const isActiveSubscriber = !isLifetime && subscription?.status === "active";
   const isExpiredOrFree = currentPlan === "professional" && !subscription;
+
+  // Determine tier for upgrade logic
+  const planTier = getPlanTier(currentPlan);
+  const isProTier = planTier === "pro";
+  const isStudioTier = planTier === "studio";
+
+  // Determine current billing cycle for upgrade component
+  const currentBillingCycle: "monthly" | "annual" =
+    currentPlan.includes("annual") ? "annual" : "monthly";
 
   const planLabel = (() => {
     if (isLifetime) return "Lifetime";
@@ -378,6 +390,14 @@ export default async function BillingPage({
               ))}
             </div>
           </div>
+
+          {/* Upgrade to Studio — Only show for Pro users (not Studio, not Lifetime) */}
+          {isActiveSubscriber && isProTier && !isStudioTier && !isLifetime && (
+            <UpgradePlanCard
+              currentPlan={currentPlan}
+              currentBillingCycle={currentBillingCycle}
+            />
+          )}
 
           {/* Billing Management - Only for non-lifetime */}
           {hasStripeCustomer && !isLifetime && (
