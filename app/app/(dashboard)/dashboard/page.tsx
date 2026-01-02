@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowRight, Sparkles, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { getDashboardSummary, getDashboardSummaryFallback } from "@/lib/data/dashboard-summary";
 import { getRecentActivity } from "@/lib/data/analytics-metrics";
 import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
@@ -33,10 +33,21 @@ export default async function DashboardPage() {
     return rpcSummary ?? (await getDashboardSummaryFallback(user.id, supabase));
   })();
 
-  const [summary, recentActivity] = await Promise.all([
+  const servicesPromise = supabase
+    .from("services")
+    .select("name, price_amount, price_currency, duration_minutes")
+    .eq("tutor_id", user.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(3);
+
+  const [summary, recentActivity, servicesResult] = await Promise.all([
     summaryPromise,
     getRecentActivity(user.id, 6, supabase),
+    servicesPromise,
   ]);
+
+  const activeServices = servicesResult.data ?? [];
 
   const {
     profile,
@@ -173,7 +184,14 @@ export default async function DashboardPage() {
 
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         {/* Row 1, Col 1: UP NEXT */}
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:rounded-3xl sm:p-6">
+        <div
+          className={cn(
+            "rounded-2xl border bg-white p-5 sm:rounded-3xl sm:p-6",
+            nextBooking
+              ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+              : "border-stone-200"
+          )}
+        >
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-5">
             {nextBooking ? (
               <Avatar className="h-14 w-14 shrink-0 rounded-xl border border-stone-100 bg-stone-50 sm:h-16 sm:w-16">
@@ -190,12 +208,17 @@ export default async function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Up next
               </p>
-              <p className="truncate text-xl font-semibold text-foreground sm:text-2xl">
+              <p className="text-xl font-semibold text-foreground sm:text-2xl">
                 {nextBooking?.student?.full_name ?? "No upcoming lesson"}
               </p>
               <p className="text-sm text-muted-foreground">
                 {metadataLabel}
               </p>
+              {nextLessonDate && getCountdownLabel(nextLessonDate) && (
+                <p className="text-sm font-medium text-primary">
+                  {getCountdownLabel(nextLessonDate)}
+                </p>
+              )}
             </div>
             <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
               {nextBooking ? (
@@ -234,6 +257,8 @@ export default async function DashboardPage() {
         <InviteStudentsCard
           username={profile?.username ?? ""}
           tutorName={profile?.full_name ?? ""}
+          tagline={profile?.tagline ?? undefined}
+          services={activeServices}
         />
 
         {/* Row 2, Col 1: Today & Tomorrow */}
@@ -280,4 +305,22 @@ function getTimeBasedGreeting(): string {
   if (hour >= 5 && hour < 12) return "Good morning";
   if (hour >= 12 && hour < 17) return "Good afternoon";
   return "Good evening";
+}
+
+function getCountdownLabel(date: Date): string | null {
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMins / 60);
+  const remainingMins = diffMins % 60;
+
+  if (diffMins < 0) return "Happening now";
+  if (diffMins < 30) return "Starting soon";
+  if (diffHours < 1) return `Starting in ${diffMins} minutes`;
+  if (diffHours < 24) {
+    return remainingMins > 0
+      ? `Starting in ${diffHours}h ${remainingMins}m`
+      : `Starting in ${diffHours} hour${diffHours > 1 ? "s" : ""}`;
+  }
+  return null;
 }

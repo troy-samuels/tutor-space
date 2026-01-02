@@ -7,8 +7,9 @@ import {
   TrackSource,
 } from "livekit-server-sdk";
 
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
+// Trim to handle env vars with accidental whitespace/newlines (e.g., from Vercel CLI)
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY?.trim();
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET?.trim();
 const LIVEKIT_URL = normalizeLiveKitUrl(
   process.env.LIVEKIT_URL ??
     process.env.LIVEKIT_SERVER_URL ??
