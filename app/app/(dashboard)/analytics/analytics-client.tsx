@@ -8,7 +8,6 @@ import {
   SkeletonDashboard,
   HeroSummary,
 } from "@/components/analytics";
-import { StripeConnectBanner } from "@/components/analytics/stripe-connect-banner";
 import type {
   RevenueDataPoint,
   StudentMetrics,
@@ -84,6 +83,7 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
         profileViews: data.profileViews,
         recentActivity: data.recentActivity,
         studentMetrics: data.studentMetrics,
+        bookingMetrics: data.bookingMetrics,
       }
     : {
         stripeBalance: null,
@@ -101,6 +101,7 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
         profileViews: { totalViews: 0, trend: [] },
         recentActivity: [],
         studentMetrics: null,
+        bookingMetrics: null,
       };
 
   // Default data for HeroSummary when data is null
@@ -149,12 +150,11 @@ export function AnalyticsClient({ tutorId, initialPeriod = 30 }: AnalyticsClient
           studentMetrics={heroData.studentMetrics}
           revenueBreakdown={heroData.revenueBreakdown}
           period={period}
+          stripeConnected={!!data?.stripeBalance}
         />
       )}
 
-      {!error && !data?.stripeBalance && <StripeConnectBanner />}
-
-      <AnalyticsShell data={shellData} isLoading={false} />
+      <AnalyticsShell data={shellData} isLoading={false} period={period} />
     </div>
   );
 }

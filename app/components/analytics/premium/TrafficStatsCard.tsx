@@ -8,9 +8,10 @@ import type { ProfileViewStats } from "@/lib/data/analytics-metrics";
 interface TrafficStatsCardProps {
   data: ProfileViewStats;
   isLoading?: boolean;
+  period: number;
 }
 
-export function TrafficStatsCard({ data, isLoading }: TrafficStatsCardProps) {
+export function TrafficStatsCard({ data, isLoading, period }: TrafficStatsCardProps) {
   if (isLoading) {
     return (
       <Card className="rounded-3xl border border-border/60 bg-card shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
@@ -26,6 +27,7 @@ export function TrafficStatsCard({ data, isLoading }: TrafficStatsCardProps) {
   }
 
   const { totalViews, trend } = data;
+  const periodLabel = period === 7 ? "7 days" : period === 30 ? "30 days" : `${period} days`;
 
   // Prepare sparkline data
   const sparklineData = trend.map((t) => ({ views: t.views }));
@@ -44,7 +46,7 @@ export function TrafficStatsCard({ data, isLoading }: TrafficStatsCardProps) {
         <p className="text-3xl font-semibold tracking-tight text-foreground">
           {totalViews.toLocaleString()}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Past 30 days</p>
+        <p className="mt-1 text-xs text-muted-foreground">Past {periodLabel}</p>
 
         {/* Mini Sparkline */}
         {sparklineData.length > 0 && (

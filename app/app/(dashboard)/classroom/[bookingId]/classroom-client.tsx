@@ -11,7 +11,7 @@ import {
 import { Loader2, ShieldAlert, ArrowLeft, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
-import { AudioStage } from "@/components/classroom/AudioStage";
+import { VideoStage } from "@/components/classroom/VideoStage";
 import { StudioSidebar, type BookingInfo } from "@/components/classroom/StudioSidebar";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
 import { ConnectionToast } from "@/components/classroom/ConnectionToast";
@@ -50,6 +50,8 @@ export default function ClassroomClient() {
   const [joinSettings, setJoinSettings] = useState<{
     audioEnabled: boolean;
     audioDeviceId?: string;
+    videoEnabled: boolean;
+    videoDeviceId?: string;
   } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -236,6 +238,12 @@ export default function ClassroomClient() {
       : joinSettings?.audioDeviceId
         ? { deviceId: joinSettings.audioDeviceId }
         : true;
+  const video =
+    joinSettings?.videoEnabled === false
+      ? false
+      : joinSettings?.videoDeviceId
+        ? { deviceId: joinSettings.videoDeviceId }
+        : true;
 
   return (
     <div className="min-h-[100dvh] bg-background p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-6 flex flex-col">
@@ -266,7 +274,7 @@ export default function ClassroomClient() {
           serverUrl={serverUrl}
           connect={true}
           audio={audio}
-          video={false}
+          video={video}
           className="flex h-full flex-col gap-3 min-h-0 relative lg:flex-row lg:gap-6"
         >
           <LiveKitConnectionWatcher
@@ -275,10 +283,10 @@ export default function ClassroomClient() {
             onGiveUp={() => router.push("/dashboard")}
           />
 
-          {/* Audio Stage - 75% */}
+          {/* Video Stage - 75% */}
           <div className="flex-1 relative min-h-0 lg:flex-[3]">
             <div className="h-full rounded-2xl shadow-lg overflow-hidden sm:rounded-[2rem]">
-              <AudioStage roomName={resolvedRoomName} isTutor={isTutor} />
+              <VideoStage roomName={resolvedRoomName} isTutor={isTutor} />
             </div>
           </div>
 
@@ -297,7 +305,7 @@ export default function ClassroomClient() {
             <SheetOverlay onClick={() => setMobileSidebarOpen(false)} />
             <SheetContent
               side="bottom"
-              className="top-auto inset-x-0 h-[85dvh] w-full overflow-hidden rounded-t-2xl border-t border-border bg-background p-0 pb-[env(safe-area-inset-bottom)] shadow-xl lg:hidden"
+              className="top-auto inset-x-0 h-[70dvh] max-h-[600px] w-full overflow-hidden rounded-t-2xl border-t border-border bg-background p-0 pb-[env(safe-area-inset-bottom)] shadow-xl lg:hidden"
             >
               <div className="h-full">
                 <StudioSidebar

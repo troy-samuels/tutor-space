@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Track } from "livekit-client";
-import { useTrackToggle, useDisconnectButton } from "@livekit/components-react";
+import { useTrackToggle, useDisconnectButton, useLocalParticipant } from "@livekit/components-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Mic, MicOff, PhoneOff, Circle, Square, Loader2, X } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, MonitorUp, MonitorOff, PhoneOff, Circle, Square, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MicVolumeIndicator } from "./MicVolumeIndicator";
 import { RecordingConsentModal, useRecordingConsent } from "./RecordingConsentModal";
@@ -73,6 +73,39 @@ export function ControlBar({
       }
     },
   });
+
+  const {
+    buttonProps: cameraButtonProps,
+    enabled: cameraEnabled,
+  } = useTrackToggle({
+    source: Track.Source.Camera,
+    onDeviceError: (err) => {
+      const msg = err?.message?.toLowerCase() || "";
+      if (msg.includes("permission") || msg.includes("denied")) {
+        showToast({ message: "Camera access denied. Check browser permissions.", type: "error" });
+      } else if (msg.includes("not found") || msg.includes("no device")) {
+        showToast({ message: "No camera found. Connect a camera and try again.", type: "error" });
+      } else {
+        showToast({ message: err?.message || "Unable to access camera.", type: "error" });
+      }
+    },
+  });
+
+  const { localParticipant } = useLocalParticipant();
+  const isScreenSharing = localParticipant?.isScreenShareEnabled ?? false;
+
+  const toggleScreenShare = async () => {
+    if (!localParticipant) return;
+    try {
+      await localParticipant.setScreenShareEnabled(!isScreenSharing);
+    } catch (err) {
+      console.error("[ScreenShare] Error:", err);
+      showToast({
+        message: isScreenSharing ? "Failed to stop screen share." : "Failed to start screen share.",
+        type: "error",
+      });
+    }
+  };
 
   const { buttonProps: disconnectButtonProps } = useDisconnectButton({
     stopTracks: true,
@@ -272,7 +305,7 @@ export function ControlBar({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-xl",
+        "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-card rounded-full shadow-xl",
         className
       )}
     >
@@ -288,10 +321,47 @@ export function ControlBar({
         {micEnabled && <MicVolumeIndicator className="h-5" />}
       </div>
 
+      <ControlButton
+        enabled={cameraEnabled}
+        buttonProps={cameraButtonProps}
+        enabledIcon={<Video className="h-4 w-4" />}
+        disabledIcon={<VideoOff className="h-4 w-4" />}
+        label={cameraEnabled ? "Turn off camera" : "Turn on camera"}
+        type="toggle"
+      />
+
+      {isTutor && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleScreenShare}
+              aria-label={isScreenSharing ? "Stop screen share" : "Share screen"}
+              className={cn(
+                "h-10 w-10 rounded-full transition-all duration-200",
+                isScreenSharing
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "bg-card text-foreground hover:bg-muted shadow-sm"
+              )}
+            >
+              {isScreenSharing ? (
+                <MonitorOff className="h-4 w-4" />
+              ) : (
+                <MonitorUp className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {isScreenSharing ? "Stop sharing" : "Share screen"}
+          </TooltipContent>
+        </Tooltip>
+      )}
+
       {isTutor && recordingEnabled && (
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {isRecording && !isRecordingLoading && (
-            <span className="text-xs font-medium text-red-600 tabular-nums min-w-[3rem]">
+            <span className="hidden sm:inline text-xs font-medium text-red-600 tabular-nums min-w-[3rem]">
               {formatRecordingTime(recordingSeconds)}
             </span>
           )}

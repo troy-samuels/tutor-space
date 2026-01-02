@@ -3,6 +3,7 @@
 import { UtilizationChart } from "./UtilizationChart";
 import { TrafficStatsCard } from "./TrafficStatsCard";
 import { RecentActivityList } from "./RecentActivityList";
+import { BookingRateCard } from "./BookingRateCard";
 import { StudentsCard } from "../students-card";
 import { BalanceCard } from "../balance-card";
 import type {
@@ -14,6 +15,7 @@ import type {
   EngagementDataPoint,
   ProfileViewStats,
   StudentMetrics,
+  BookingMetrics,
 } from "@/lib/data/analytics-metrics";
 
 interface AnalyticsShellProps {
@@ -24,43 +26,49 @@ interface AnalyticsShellProps {
     profileViews: ProfileViewStats;
     recentActivity: RecentActivityItem[];
     studentMetrics: StudentMetrics | null;
+    bookingMetrics: BookingMetrics | null;
   };
   isLoading: boolean;
+  period: number;
 }
 
-export function AnalyticsShell({ data, isLoading }: AnalyticsShellProps) {
+export function AnalyticsShell({ data, isLoading, period }: AnalyticsShellProps) {
   return (
     <div className="space-y-6">
-      {/* Teaching Activity + Students row */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+      {/* Row 1: Teaching Activity (70%) + Booking Rate (30%) */}
+      <div className="grid gap-6 lg:grid-cols-10">
+        <div className="lg:col-span-7">
           <UtilizationChart data={data.engagementTrend} isLoading={isLoading} />
         </div>
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
+          <BookingRateCard
+            totalBookings={data.bookingMetrics?.totalBookings ?? 0}
+            totalViews={data.profileViews.totalViews}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Students (66%) + Profile Visits (33%) */}
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
           <StudentsCard
             studentMetrics={data.studentMetrics}
             revenueBreakdown={data.revenueBreakdown}
             isLoading={isLoading}
           />
         </div>
+        <div className="lg:col-span-4">
+          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} period={period} />
+        </div>
       </div>
 
-      {/* Balance + Profile Views row - only show when Stripe connected */}
+      {/* Row 3: Balance (if Stripe connected) */}
       {data.stripeBalance && (
-        <div className="grid gap-6 sm:grid-cols-2">
-          <BalanceCard data={data.stripeBalance} isLoading={isLoading} />
-          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} />
-        </div>
+        <BalanceCard data={data.stripeBalance} isLoading={isLoading} />
       )}
 
-      {/* Profile Views only when no Stripe */}
-      {!data.stripeBalance && (
-        <div className="max-w-sm">
-          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} />
-        </div>
-      )}
-
-      {/* Activity row */}
+      {/* Row 4: Recent Activity */}
       <RecentActivityList data={data.recentActivity} isLoading={isLoading} />
     </div>
   );

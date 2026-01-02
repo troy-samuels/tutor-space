@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
   try {
+    const userClient = await createClient();
+    const {
+      data: { user },
+    } = await userClient.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = createServiceRoleClient();
     if (!supabase) {
       return NextResponse.json({ error: "Admin client unavailable" }, { status: 500 });
     }
 
     const url = new URL(req.url);
-    const tutorId = url.searchParams.get("tutorId");
-    const days = Number(url.searchParams.get("days") ?? "30");
+    const tutorIdParam = url.searchParams.get("tutorId");
+    const tutorId = tutorIdParam === user.id ? tutorIdParam : user.id;
+    const daysParam = Number(url.searchParams.get("days"));
+    const days = [7, 30, 90].includes(daysParam) ? daysParam : 30;
 
     // Aggregate totals from payments_audit (bookings + products; refunds are negative)
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -20,7 +32,7 @@ export async function GET(req: NextRequest) {
       .gte("created_at", since)
       .order("created_at", { ascending: false });
 
-    const { data, error } = tutorId ? await query.eq("tutor_id", tutorId) : await query;
+    const { data, error } = await query.eq("tutor_id", tutorId);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -53,5 +65,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to load analytics" }, { status: 500 });
   }
 }
-
 

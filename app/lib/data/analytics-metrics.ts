@@ -292,7 +292,7 @@ export async function getBookingMetrics(
     : 0;
 
   return {
-    totalBookings: completedBookings,
+    totalBookings: totalBookingsAll,
     completedBookings,
     cancelledBookings,
     pendingBookings,
@@ -768,7 +768,7 @@ export async function getRecentActivity(
 
     supabase
       .from("students")
-      .select("id, name, email, created_at")
+      .select("id, full_name, email, created_at")
       .eq("tutor_id", tutorId)
       .gte("created_at", sevenDaysAgo)
       .order("created_at", { ascending: false })
@@ -776,6 +776,16 @@ export async function getRecentActivity(
   ]);
 
   const activities: RecentActivityItem[] = [];
+
+  if (bookingsResult.error) {
+    console.error("[Analytics] Failed to fetch recent bookings:", bookingsResult.error);
+  }
+  if (paymentsResult.error) {
+    console.error("[Analytics] Failed to fetch recent payments:", paymentsResult.error);
+  }
+  if (studentsResult.error) {
+    console.error("[Analytics] Failed to fetch recent students:", studentsResult.error);
+  }
 
   // Add bookings
   for (const booking of bookingsResult.data ?? []) {
@@ -812,7 +822,7 @@ export async function getRecentActivity(
       id: `student-${student.id}`,
       type: "student",
       title: "New student",
-      subtitle: student.name ?? student.email ?? "Unknown",
+      subtitle: student.full_name ?? student.email ?? "Unknown",
       timestamp: student.created_at,
     });
   }

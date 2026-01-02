@@ -118,7 +118,11 @@ export async function createAccessToken(
     room: roomName,
     roomJoin: true,
     canPublish: true,
-    canPublishSources: [TrackSource.MICROPHONE],
+    canPublishSources: [
+      TrackSource.MICROPHONE,
+      TrackSource.CAMERA,
+      TrackSource.SCREEN_SHARE,
+    ],
     canSubscribe: true,
     // Required for in-room chat and interactive features.
     canPublishData: true,

@@ -10,7 +10,7 @@ import {
 } from "@livekit/components-react";
 import { Loader2, ShieldAlert, ArrowLeft, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AudioStage } from "@/components/classroom/AudioStage";
+import { VideoStage } from "@/components/classroom/VideoStage";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
 import { ConnectionToast } from "@/components/classroom/ConnectionToast";
 import { useLiveKitConnectionMonitor } from "@/lib/hooks/useLiveKitConnectionMonitor";
@@ -42,6 +42,8 @@ export default function TestStudioClient() {
   const [joinSettings, setJoinSettings] = useState<{
     audioEnabled: boolean;
     audioDeviceId?: string;
+    videoEnabled: boolean;
+    videoDeviceId?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -198,6 +200,12 @@ export default function TestStudioClient() {
       : joinSettings?.audioDeviceId
         ? { deviceId: joinSettings.audioDeviceId }
         : true;
+  const video =
+    joinSettings?.videoEnabled === false
+      ? false
+      : joinSettings?.videoDeviceId
+        ? { deviceId: joinSettings.videoDeviceId }
+        : true;
 
   return (
     <div className="min-h-[100dvh] bg-background p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-6 flex flex-col">
@@ -226,7 +234,7 @@ export default function TestStudioClient() {
           serverUrl={serverUrl}
           connect={true}
           audio={audio}
-          video={false}
+          video={video}
           className="flex h-full min-h-0 relative"
         >
           <LiveKitConnectionWatcher
@@ -235,10 +243,10 @@ export default function TestStudioClient() {
             onGiveUp={() => router.push("/dashboard")}
           />
 
-          {/* Audio Card - Full width for test */}
+          {/* Video Card - Full width for test */}
           <div className="flex-1 relative min-h-0">
             <div className="h-full rounded-2xl shadow-lg border border-border overflow-hidden sm:rounded-[2rem]">
-              <AudioStage roomName={roomName || "test"} isTutor={true} recordingEnabled={false} />
+              <VideoStage roomName={roomName || "test"} isTutor={true} recordingEnabled={false} />
             </div>
           </div>
 

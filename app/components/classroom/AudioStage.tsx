@@ -24,7 +24,7 @@ export function AudioStage({ roomName, isTutor, recordingEnabled }: AudioStagePr
           <TrackLoop tracks={tracks}>
             <ParticipantAudioTile
               className={cn(
-                "flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-6 text-white shadow-lg backdrop-blur",
+                "flex min-h-[160px] sm:min-h-[220px] flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-6 text-white shadow-lg backdrop-blur",
                 "[&_.lk-audio-bar-visualizer]:mt-6 [&_.lk-audio-bar-visualizer]:h-16",
                 "[&_.lk-audio-bar]:bg-white/30 [&_.lk-audio-bar.lk-highlighted]:bg-emerald-400",
                 "[&_.lk-participant-metadata]:mt-4 [&_.lk-participant-metadata]:flex [&_.lk-participant-metadata]:items-center [&_.lk-participant-metadata]:justify-between [&_.lk-participant-metadata]:w-full",
@@ -40,7 +40,7 @@ export function AudioStage({ roomName, isTutor, recordingEnabled }: AudioStagePr
         roomName={roomName}
         isTutor={isTutor}
         recordingEnabled={recordingEnabled}
-        className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-full bg-white/80 shadow-lg backdrop-blur-md sm:bottom-8"
+        className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1.5rem)] min-w-fit rounded-full bg-white/80 shadow-lg backdrop-blur-md sm:bottom-8"
       />
     </div>
   );

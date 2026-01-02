@@ -103,7 +103,8 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const tutorIdParam = url.searchParams.get("tutorId");
-    const days = Number(url.searchParams.get("days") ?? "30");
+    const daysParam = Number(url.searchParams.get("days"));
+    const days = [7, 30, 90].includes(daysParam) ? daysParam : 30;
 
     // Only allow tutors to see their own data (or allow admin to see any)
     const tutorId = tutorIdParam === user.id ? tutorIdParam : user.id;
@@ -158,7 +159,7 @@ export async function GET(req: NextRequest) {
         "engagementTrend"
       ),
       safeMetricFetch<ProfileViewStats>(
-        () => getProfileViews(tutorId, 30, supabase),
+        () => getProfileViews(tutorId, days, supabase),
         defaultProfileViews,
         "profileViews"
       ),
