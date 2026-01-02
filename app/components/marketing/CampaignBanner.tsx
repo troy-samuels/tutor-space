@@ -10,7 +10,7 @@ import { useCampaignTimer } from "@/lib/hooks/useCampaignTimer";
 // Format: ISO 8601 with Z suffix for UTC
 export const CAMPAIGN_CONFIG = {
   startDate: "2025-12-21T18:20:10Z", // Live now
-  endDate: "2025-12-31T23:59:59Z", // Dec 31, 23:59:59 UTC
+  endDate: "2026-02-01T23:59:59Z", // Feb 1, 23:59:59 UTC
 } as const;
 
 // Launch offer configuration
