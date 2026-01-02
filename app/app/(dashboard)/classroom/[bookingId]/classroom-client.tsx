@@ -246,9 +246,9 @@ export default function ClassroomClient() {
         : true;
 
   return (
-    <div className="min-h-[100dvh] bg-background p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-6 flex flex-col">
+    <div className="min-h-[100dvh] bg-background p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:p-4 flex flex-col">
       {/* Back Button */}
-      <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+      <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
         <Button
           variant="ghost"
           onClick={() => router.push("/dashboard")}
@@ -285,7 +285,7 @@ export default function ClassroomClient() {
 
           {/* Video Stage - 75% */}
           <div className="flex-1 relative min-h-0 lg:flex-[3]">
-            <div className="h-full rounded-2xl shadow-lg overflow-hidden sm:rounded-[2rem]">
+            <div className="h-full rounded-xl shadow-lg overflow-hidden sm:rounded-2xl">
               <VideoStage roomName={resolvedRoomName} isTutor={isTutor} />
             </div>
           </div>

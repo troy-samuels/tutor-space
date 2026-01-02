@@ -208,22 +208,24 @@ export default function TestStudioClient() {
         : true;
 
   return (
-    <div className="min-h-[100dvh] bg-background p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-6 flex flex-col">
+    <div className="min-h-[100dvh] bg-background p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:p-4 flex flex-col">
       {/* Back Button */}
-      <div className="flex flex-col gap-2 mb-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
         <Button
           variant="ghost"
+          size="sm"
           onClick={() => router.push("/dashboard")}
-          className="text-muted-foreground hover:text-foreground hover:bg-card rounded-full px-4"
+          className="text-muted-foreground hover:text-foreground hover:bg-card rounded-full px-3 h-8"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+          <span className="hidden sm:inline">Back to Dashboard</span>
+          <span className="sm:hidden">Back</span>
         </Button>
 
         {/* Test Studio Badge */}
-        <div className="flex w-fit items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full">
-          <Mic className="h-4 w-4" />
-          <span className="font-medium text-sm">Test Studio</span>
+        <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full">
+          <Mic className="h-3.5 w-3.5" />
+          <span className="font-medium text-xs sm:text-sm">Test Studio</span>
         </div>
       </div>
 
@@ -245,7 +247,7 @@ export default function TestStudioClient() {
 
           {/* Video Card - Full width for test */}
           <div className="flex-1 relative min-h-0">
-            <div className="h-full rounded-2xl shadow-lg border border-border overflow-hidden sm:rounded-[2rem]">
+            <div className="h-full rounded-xl shadow-lg border border-border overflow-hidden sm:rounded-2xl">
               <VideoStage roomName={roomName || "test"} isTutor={true} recordingEnabled={false} />
             </div>
           </div>

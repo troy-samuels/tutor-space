@@ -50,7 +50,7 @@ export function VideoStage({ roomName, isTutor, recordingEnabled }: VideoStagePr
 
   return (
     <div className="h-full relative bg-slate-950 overflow-hidden">
-      <div className="flex h-full flex-col p-4 sm:p-6">
+      <div className="flex h-full flex-col p-2 sm:p-4 pb-20 sm:pb-24">
         {/* Screen share takes priority - shown large */}
         {hasScreenShare && (
           <div className="flex-1 min-h-0 mb-4">
@@ -65,10 +65,12 @@ export function VideoStage({ roomName, isTutor, recordingEnabled }: VideoStagePr
         {/* Participant video grid */}
         <div
           className={cn(
-            "grid gap-4 w-full",
+            "grid gap-3 sm:gap-4 w-full",
             hasScreenShare
               ? "h-32 sm:h-40 grid-cols-2 sm:grid-cols-4"
-              : "flex-1 min-h-0 grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto"
+              : "flex-1 min-h-0",
+            !hasScreenShare && participantTracks.length === 1 && "grid-cols-1 max-w-2xl mx-auto",
+            !hasScreenShare && participantTracks.length >= 2 && "grid-cols-1 sm:grid-cols-2 max-w-5xl mx-auto"
           )}
         >
           {participantTracks.map((trackRef) => (
@@ -83,7 +85,7 @@ export function VideoStage({ roomName, isTutor, recordingEnabled }: VideoStagePr
         roomName={roomName}
         isTutor={isTutor}
         recordingEnabled={recordingEnabled}
-        className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1.5rem)] min-w-fit rounded-full bg-white/80 shadow-lg backdrop-blur-md sm:bottom-8"
+        className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1rem)] min-w-fit rounded-full bg-white/90 shadow-lg backdrop-blur-md sm:bottom-6"
       />
     </div>
   );
@@ -107,9 +109,9 @@ function ParticipantVideoTile({ compact = false }: ParticipantVideoTileProps) {
   return (
     <div
       className={cn(
-        "relative rounded-2xl overflow-hidden border bg-white/5 backdrop-blur transition-all",
+        "relative rounded-xl sm:rounded-2xl overflow-hidden border bg-white/5 backdrop-blur transition-all",
         isSpeaking ? "border-emerald-400 ring-2 ring-emerald-400/30" : "border-white/10",
-        compact ? "aspect-video" : "min-h-[200px] sm:min-h-[280px]"
+        compact ? "aspect-video" : "aspect-video min-h-[240px] sm:min-h-0"
       )}
     >
       {hasVideo ? (
