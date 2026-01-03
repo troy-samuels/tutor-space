@@ -49,17 +49,17 @@ export function AnalyticsShell({ data, isLoading, period }: AnalyticsShellProps)
         </div>
       </div>
 
-      {/* Row 2: Students (66%) + Profile Visits (33%) */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+      {/* Row 2: Profile Visits (70%) + Students (30%) */}
+      <div className="grid gap-6 lg:grid-cols-10">
+        <div className="lg:col-span-7">
+          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} period={period} />
+        </div>
+        <div className="lg:col-span-3">
           <StudentsCard
             studentMetrics={data.studentMetrics}
             revenueBreakdown={data.revenueBreakdown}
             isLoading={isLoading}
           />
-        </div>
-        <div className="lg:col-span-4">
-          <TrafficStatsCard data={data.profileViews} isLoading={isLoading} period={period} />
         </div>
       </div>
 

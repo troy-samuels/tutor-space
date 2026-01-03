@@ -3,13 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import {
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
-  FREE_TEXT_TURNS,
-  FREE_AUDIO_SECONDS,
-  BLOCK_TEXT_TURNS,
-  BLOCK_AUDIO_SECONDS,
-} from "@/lib/practice/constants";
+import { FREE_TEXT_TURNS, BLOCK_TEXT_TURNS } from "@/lib/practice/constants";
 import { createPracticeChatStream } from "@/lib/practice/openai";
 import {
   GRAMMAR_CATEGORY_SLUGS,
@@ -19,8 +13,6 @@ import {
 import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 import { parseSanitizedJson } from "@/lib/utils/sanitize";
 import { createStreamParser, createSSEEncoder } from "@/lib/practice/stream-parser";
-
-const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 
 interface StructuredCorrection {
   original: string;
@@ -59,6 +51,10 @@ function normalizeFocusList(value: unknown): string[] {
 
 export async function POST(request: Request) {
   const requestId = randomUUID();
+  let adminClient: ServiceRoleClient | null = null;
+  let sessionIdValue: string | null = null;
+  let reservedMessageCount: number | null = null;
+  let initialMessageCount = 0;
 
   try {
     const supabase = await createClient();
@@ -88,11 +84,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const sessionIdValue = sessionId.trim();
+    const sessionIdValueLocal = sessionId.trim();
+    sessionIdValue = sessionIdValueLocal;
     const sanitizedMessage = message.replace(/\u0000/g, "");
     const trimmedMessage = sanitizedMessage.trim();
 
-    const adminClient = createServiceRoleClient();
+    adminClient = createServiceRoleClient();
     if (!adminClient) {
       return new Response(
         JSON.stringify({ error: "Service unavailable", code: "SERVICE_UNAVAILABLE", requestId }),
@@ -101,32 +98,28 @@ export async function POST(request: Request) {
     }
 
     // Fetch session and student in parallel for faster startup
-    const [sessionResult, studentLookup] = await Promise.all([
-      adminClient
-        .from("student_practice_sessions")
-        .select(`
-          id,
-          student_id,
-          tutor_id,
-          language,
-          level,
-          topic,
-          mode,
-          message_count,
-          ended_at,
-          scenario_id,
-          scenario:practice_scenarios (
-            system_prompt,
-            vocabulary_focus,
-            grammar_focus,
-            max_messages
-          )
-        `)
-        .eq("id", sessionIdValue)
-        .single(),
-      // We'll verify student ownership after we get the session
-      Promise.resolve(null),
-    ]);
+    const sessionResult = await adminClient
+      .from("student_practice_sessions")
+      .select(`
+        id,
+        student_id,
+        tutor_id,
+        language,
+        level,
+        topic,
+        mode,
+        message_count,
+        ended_at,
+        scenario_id,
+        scenario:practice_scenarios (
+          system_prompt,
+          vocabulary_focus,
+          grammar_focus,
+          max_messages
+        )
+      `)
+        .eq("id", sessionIdValueLocal)
+        .single();
 
     if (sessionResult.error || !sessionResult.data) {
       return new Response(
@@ -201,7 +194,7 @@ export async function POST(request: Request) {
     const { data: reservedSession, error: reserveError } = await adminClient
       .from("student_practice_sessions")
       .update({ message_count: (session.message_count || 0) + 2 })
-      .eq("id", sessionIdValue)
+      .eq("id", sessionIdValueLocal)
       .eq("message_count", session.message_count || 0)
       .select("message_count")
       .maybeSingle();
@@ -212,6 +205,8 @@ export async function POST(request: Request) {
         { status: 409, headers: { "Content-Type": "application/json" } }
       );
     }
+    reservedMessageCount = reservedSession.message_count;
+    initialMessageCount = session.message_count || 0;
 
     // Get usage period and context messages in parallel
     const [usagePeriodResult, previousMessagesResult] = await Promise.all([
@@ -222,12 +217,18 @@ export async function POST(request: Request) {
       adminClient
         .from("student_practice_messages")
         .select("role, content, created_at")
-        .eq("session_id", sessionIdValue)
+        .eq("session_id", sessionIdValueLocal)
         .order("created_at", { ascending: false })
         .limit(MAX_INPUT_MESSAGES),
     ]);
 
     if (usagePeriodResult.error || !usagePeriodResult.data) {
+      await rollbackReservedMessageCount({
+        adminClient,
+        sessionId: sessionIdValue,
+        reservedMessageCount,
+        initialMessageCount,
+      });
       return new Response(
         JSON.stringify({ error: "Unable to track usage", code: "USAGE_PERIOD_ERROR", requestId }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -240,6 +241,12 @@ export async function POST(request: Request) {
 
     if (usagePeriod.text_turns_used >= currentTextAllowance) {
       if (!student.ai_practice_block_subscription_item_id) {
+        await rollbackReservedMessageCount({
+          adminClient,
+          sessionId: sessionIdValue,
+          reservedMessageCount,
+          initialMessageCount,
+        });
         return new Response(
           JSON.stringify({
             error: "Free allowance exhausted",
@@ -254,6 +261,67 @@ export async function POST(request: Request) {
           }),
           { status: 402, headers: { "Content-Type": "application/json" } }
         );
+      }
+    }
+
+    const { data: incrementResult, error: incrementError } = await adminClient.rpc(
+      "increment_text_turn_freemium",
+      {
+        p_usage_period_id: usagePeriod.id,
+        p_allow_block_overage: !!student.ai_practice_block_subscription_item_id,
+      }
+    );
+
+    if (incrementError || !incrementResult?.success) {
+      const isBlockRequired = incrementResult?.error === "BLOCK_REQUIRED";
+      const usage = incrementResult
+        ? {
+            text_turns_used: incrementResult.text_turns_used,
+            text_turns_allowance: incrementResult.text_turns_allowance,
+            blocks_consumed: incrementResult.blocks_consumed,
+          }
+        : {
+            text_turns_used: usagePeriod.text_turns_used,
+            text_turns_allowance: currentTextAllowance,
+            blocks_consumed: usagePeriod.blocks_consumed,
+          };
+
+      await rollbackReservedMessageCount({
+        adminClient,
+        sessionId: sessionIdValue,
+        reservedMessageCount,
+        initialMessageCount,
+      });
+      return new Response(
+        JSON.stringify({
+          error: isBlockRequired ? "Free allowance exhausted" : "Unable to track usage",
+          code: isBlockRequired ? "FREE_TIER_EXHAUSTED" : "USAGE_PERIOD_ERROR",
+          usage,
+          upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
+          requestId,
+        }),
+        { status: isBlockRequired ? 402 : 409, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (incrementResult?.needs_block && student.ai_practice_block_subscription_item_id) {
+      try {
+        const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
+          student.ai_practice_block_subscription_item_id,
+          {
+            quantity: 1,
+            timestamp: Math.floor(Date.now() / 1000),
+            action: "increment",
+          }
+        );
+
+        await adminClient.rpc("record_block_purchase", {
+          p_usage_period_id: usagePeriod.id,
+          p_trigger_type: "text_overflow",
+          p_stripe_usage_record_id: usageRecord.id,
+        });
+      } catch (stripeError) {
+        console.error("[Stream] Stripe usage record failed:", stripeError);
       }
     }
 
@@ -291,7 +359,7 @@ export async function POST(request: Request) {
 
     // Save user message (fire and forget - don't block streaming)
     void adminClient.from("student_practice_messages").insert({
-      session_id: sessionIdValue,
+      session_id: sessionIdValueLocal,
       role: "user",
       content: sanitizedMessage,
     }).then(({ error }) => {
@@ -348,21 +416,24 @@ export async function POST(request: Request) {
           // Background: Save assistant message and update stats
           void saveAssistantDataInBackground({
             adminClient,
-            sessionId: sessionIdValue,
+            sessionId: sessionIdValueLocal,
             session,
-            student,
-            usagePeriod,
             finalData,
             tokensUsed,
             vocabularyFocus,
             reservedMessageCount: reservedSession.message_count,
-            freeTextTurns,
           });
 
           controller.enqueue(sseEncoder.encodeDone());
           controller.close();
         } catch (error) {
           console.error("[Stream] Error during streaming:", error);
+          await rollbackReservedMessageCount({
+            adminClient,
+            sessionId: sessionIdValueLocal,
+            reservedMessageCount,
+            initialMessageCount,
+          });
           controller.enqueue(sseEncoder.encode({
             type: "error",
             error: "Stream interrupted",
@@ -381,6 +452,12 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[Stream] Error:", error);
+    await rollbackReservedMessageCount({
+      adminClient,
+      sessionId: sessionIdValue,
+      reservedMessageCount,
+      initialMessageCount,
+    });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Failed to process message",
@@ -457,8 +534,6 @@ async function saveAssistantDataInBackground(params: {
   adminClient: ServiceRoleClient;
   sessionId: string;
   session: any;
-  student: any;
-  usagePeriod: any;
   finalData: {
     content: string;
     corrections: Array<{ original: string; corrected: string; category: string; explanation: string }>;
@@ -467,19 +542,15 @@ async function saveAssistantDataInBackground(params: {
   tokensUsed: number;
   vocabularyFocus: string[];
   reservedMessageCount: number;
-  freeTextTurns: number;
 }) {
   const {
     adminClient,
     sessionId,
     session,
-    student,
-    usagePeriod,
     finalData,
     tokensUsed,
     vocabularyFocus,
     reservedMessageCount,
-    freeTextTurns,
   } = params;
 
   try {
@@ -558,61 +629,9 @@ async function saveAssistantDataInBackground(params: {
         })
         .eq("id", sessionId),
 
-      // Increment usage
-      incrementTextTurnBackground({
-        adminClient,
-        usagePeriodId: usagePeriod.id,
-        blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
-        freeTextTurns,
-      }),
     ]);
   } catch (error) {
     console.error("[Stream Background] Error saving data:", error);
-  }
-}
-
-async function incrementTextTurnBackground(params: {
-  adminClient: ServiceRoleClient;
-  usagePeriodId: string;
-  blockSubscriptionItemId: string | null;
-  freeTextTurns: number;
-}) {
-  const { adminClient, usagePeriodId, blockSubscriptionItemId, freeTextTurns } = params;
-
-  try {
-    const { data: incrementResult, error: incrementError } = await adminClient.rpc(
-      "increment_text_turn_freemium",
-      { p_usage_period_id: usagePeriodId, p_allow_block_overage: !!blockSubscriptionItemId }
-    );
-
-    if (incrementError) {
-      console.error("[Stream Background] increment_text_turn_freemium failed:", incrementError);
-      return;
-    }
-
-    // Handle block purchase if needed
-    if (incrementResult?.needs_block && blockSubscriptionItemId) {
-      try {
-        const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
-          blockSubscriptionItemId,
-          {
-            quantity: 1,
-            timestamp: Math.floor(Date.now() / 1000),
-            action: "increment",
-          }
-        );
-
-        await adminClient.rpc("record_block_purchase", {
-          p_usage_period_id: usagePeriodId,
-          p_trigger_type: "text_overflow",
-          p_stripe_usage_record_id: usageRecord.id,
-        });
-      } catch (stripeError) {
-        console.error("[Stream Background] Stripe usage record failed:", stripeError);
-      }
-    }
-  } catch (error) {
-    console.error("[Stream Background] Error incrementing usage:", error);
   }
 }
 
@@ -620,4 +639,24 @@ function parseVocabulary(content: string, focusWords: string[]): string[] {
   if (!focusWords || focusWords.length === 0) return [];
   const contentLower = content.toLowerCase();
   return focusWords.filter((word) => contentLower.includes(word.toLowerCase()));
+}
+
+async function rollbackReservedMessageCount(params: {
+  adminClient: ServiceRoleClient | null;
+  sessionId: string | null;
+  reservedMessageCount: number | null;
+  initialMessageCount: number;
+}) {
+  const { adminClient, sessionId, reservedMessageCount, initialMessageCount } = params;
+  if (!adminClient || !sessionId || reservedMessageCount === null) return;
+
+  try {
+    await adminClient
+      .from("student_practice_sessions")
+      .update({ message_count: initialMessageCount })
+      .eq("id", sessionId)
+      .eq("message_count", reservedMessageCount);
+  } catch (error) {
+    console.error("[Stream] Failed to rollback message_count:", error);
+  }
 }

@@ -15,6 +15,7 @@ import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 // Azure Speech Services pricing: ~$0.022/minute = ~$0.000367/second
 const AZURE_COST_PER_SECOND = 0.000367;
 const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 
 type ServiceRoleClient = SupabaseClient;
 
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Audio file is required" },
         { status: 400 }
+      );
+    }
+
+    if (audioFile.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json(
+        { error: "Audio file is too large" },
+        { status: 413 }
       );
     }
 
@@ -78,9 +86,23 @@ export async function POST(request: Request) {
     if (sessionId) {
       const { data: session } = await adminClient
         .from("student_practice_sessions")
-        .select("mode")
+        .select("id, student_id, mode")
         .eq("id", sessionId)
-        .single();
+        .maybeSingle();
+
+      if (!session) {
+        return NextResponse.json(
+          { error: "Session not found" },
+          { status: 404 }
+        );
+      }
+
+      if (session.student_id !== student.id) {
+        return NextResponse.json(
+          { error: "Unauthorized", code: "UNAUTHORIZED" },
+          { status: 403 }
+        );
+      }
 
       if (session && session.mode === "text") {
         return NextResponse.json(

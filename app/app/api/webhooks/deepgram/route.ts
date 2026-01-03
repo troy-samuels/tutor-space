@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import OpenAI from "openai";
 import { extractPlainText } from "@/lib/analysis/lesson-insights";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -9,6 +10,7 @@ type AdminClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
+const DEEPGRAM_WEBHOOK_SECRET = process.env.DEEPGRAM_WEBHOOK_SECRET?.trim();
 
 const MARKETING_CLIP_SYSTEM_PROMPT = [
   "You are a language-learning content strategist analyzing lesson transcripts.",
@@ -24,6 +26,27 @@ function toNumberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function secretsMatch(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+function extractWebhookToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader) {
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return (
+    request.headers.get("x-webhook-secret")?.trim()
+    || request.headers.get("x-deepgram-webhook-secret")?.trim()
+    || null
+  );
 }
 
 async function ensureUniqueSlug(client: AdminClient, baseSlug: string): Promise<string> {
@@ -148,6 +171,20 @@ async function insertMarketingClip(params: {
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!DEEPGRAM_WEBHOOK_SECRET) {
+      console.error("[Deepgram Webhook] DEEPGRAM_WEBHOOK_SECRET is not configured");
+      return NextResponse.json(
+        { error: "Webhook secret not configured" },
+        { status: 503 }
+      );
+    }
+
+    const providedSecret = extractWebhookToken(request);
+    if (!providedSecret || !secretsMatch(providedSecret, DEEPGRAM_WEBHOOK_SECRET)) {
+      console.warn("[Deepgram Webhook] Invalid webhook secret");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     console.log("[Deepgram Webhook] Received callback");
