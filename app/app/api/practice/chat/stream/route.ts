@@ -414,15 +414,17 @@ export async function POST(request: Request) {
           }));
 
           // Background: Save assistant message and update stats
-          void saveAssistantDataInBackground({
-            adminClient,
-            sessionId: sessionIdValueLocal,
-            session,
-            finalData,
-            tokensUsed,
-            vocabularyFocus,
-            reservedMessageCount: reservedSession.message_count,
-          });
+          if (adminClient) {
+            void saveAssistantDataInBackground({
+              adminClient,
+              sessionId: sessionIdValueLocal,
+              session,
+              finalData,
+              tokensUsed,
+              vocabularyFocus,
+              reservedMessageCount: reservedSession.message_count,
+            });
+          }
 
           controller.enqueue(sseEncoder.encodeDone());
           controller.close();
