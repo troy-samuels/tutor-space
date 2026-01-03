@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react";
 import { Track } from "livekit-client";
 import { useTrackToggle, useDisconnectButton, useLocalParticipant } from "@livekit/components-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ interface ControlBarProps {
   isTutor: boolean;
   className?: string;
   recordingEnabled?: boolean;
+  onLeave?: () => void;
 }
 
 export function ControlBar({
@@ -29,6 +30,7 @@ export function ControlBar({
   isTutor,
   className,
   recordingEnabled = true,
+  onLeave,
 }: ControlBarProps) {
   const [toasts, setToasts] = useState<ControlBarToast[]>([]);
   const toastTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -110,6 +112,13 @@ export function ControlBar({
   const { buttonProps: disconnectButtonProps } = useDisconnectButton({
     stopTracks: true,
   });
+  const { onClick: disconnectOnClick, ...disconnectButtonRest } = disconnectButtonProps;
+
+  const handleDisconnect = (event: MouseEvent<HTMLButtonElement>) => {
+    disconnectOnClick?.(event);
+    if (event.defaultPrevented) return;
+    onLeave?.();
+  };
 
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingLoading, setIsRecordingLoading] = useState(false);
@@ -417,7 +426,8 @@ export function ControlBar({
           <Button
             variant="ghost"
             size="icon"
-            {...disconnectButtonProps}
+            {...disconnectButtonRest}
+            onClick={handleDisconnect}
             aria-label="Leave meeting"
             className="h-10 w-10 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-200"
           >

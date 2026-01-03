@@ -286,7 +286,11 @@ export default function ClassroomClient() {
           {/* Video Stage - 75% */}
           <div className="flex-1 relative min-h-0 lg:flex-[3]">
             <div className="h-full rounded-xl shadow-lg overflow-hidden sm:rounded-2xl">
-              <VideoStage roomName={resolvedRoomName} isTutor={isTutor} />
+              <VideoStage
+                roomName={resolvedRoomName}
+                isTutor={isTutor}
+                onLeave={() => router.push("/dashboard")}
+              />
             </div>
           </div>
 

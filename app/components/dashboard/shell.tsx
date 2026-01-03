@@ -10,10 +10,15 @@ import { cn } from "@/lib/utils";
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const hideChrome = pathname?.startsWith("/classroom");
   const isWideLayout = ["/calendar", "/analytics"].some((prefix) =>
     pathname?.startsWith(prefix)
   );
-  const contentWidth = isWideLayout ? "max-w-6xl" : "max-w-4xl";
+  const contentWidth = hideChrome
+    ? "max-w-none"
+    : isWideLayout
+      ? "max-w-6xl"
+      : "max-w-4xl";
 
   // Prefetch most-visited dashboard pages for faster navigation
   useEffect(() => {
@@ -60,14 +65,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <ImpersonationBanner />
       <div className="flex min-h-screen flex-col">
-        <DashboardHeader />
-        <main className="flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:pb-10">
+        {!hideChrome && <DashboardHeader />}
+        <main
+          className={cn(
+            "flex-1",
+            hideChrome
+              ? "px-0 pb-0 pt-0"
+              : "px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:pb-10"
+          )}
+        >
           <div className={cn("mx-auto w-full", contentWidth)}>
             {children}
           </div>
         </main>
       </div>
-      <DashboardBottomNav />
+      {!hideChrome && <DashboardBottomNav />}
     </div>
   );
 }

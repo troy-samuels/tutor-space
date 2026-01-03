@@ -9,9 +9,10 @@ export interface AudioStageProps {
   roomName: string;
   isTutor: boolean;
   recordingEnabled?: boolean;
+  onLeave?: () => void;
 }
 
-export function AudioStage({ roomName, isTutor, recordingEnabled }: AudioStageProps) {
+export function AudioStage({ roomName, isTutor, recordingEnabled, onLeave }: AudioStageProps) {
   const tracks = useTracks(
     [{ source: Track.Source.Microphone, withPlaceholder: true }],
     { onlySubscribed: false }
@@ -40,6 +41,7 @@ export function AudioStage({ roomName, isTutor, recordingEnabled }: AudioStagePr
         roomName={roomName}
         isTutor={isTutor}
         recordingEnabled={recordingEnabled}
+        onLeave={onLeave}
         className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1.5rem)] min-w-fit rounded-full bg-white/80 shadow-lg backdrop-blur-md sm:bottom-8"
       />
     </div>

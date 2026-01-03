@@ -248,19 +248,17 @@ export default function TestStudioClient() {
           {/* Video Card - Full width for test */}
           <div className="flex-1 relative min-h-0">
             <div className="h-full rounded-xl shadow-lg border border-border overflow-hidden sm:rounded-2xl">
-              <VideoStage roomName={roomName || "test"} isTutor={true} recordingEnabled={false} />
+              <VideoStage
+                roomName={roomName || "test"}
+                isTutor={true}
+                recordingEnabled={false}
+                onLeave={() => router.push("/dashboard")}
+              />
             </div>
           </div>
 
           <RoomAudioRenderer />
         </LiveKitRoom>
-      </div>
-
-      {/* Helper text */}
-      <div className="mt-4 text-center">
-        <p className="text-sm text-muted-foreground">
-          Use this room to test your microphone setup. This is a private test room.
-        </p>
       </div>
     </div>
   );

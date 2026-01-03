@@ -19,9 +19,10 @@ export interface VideoStageProps {
   roomName: string;
   isTutor: boolean;
   recordingEnabled?: boolean;
+  onLeave?: () => void;
 }
 
-export function VideoStage({ roomName, isTutor, recordingEnabled }: VideoStageProps) {
+export function VideoStage({ roomName, isTutor, recordingEnabled, onLeave }: VideoStageProps) {
   // Subscribe to camera, microphone, and screen share tracks
   const tracks = useTracks(
     [
@@ -85,6 +86,7 @@ export function VideoStage({ roomName, isTutor, recordingEnabled }: VideoStagePr
         roomName={roomName}
         isTutor={isTutor}
         recordingEnabled={recordingEnabled}
+        onLeave={onLeave}
         className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1rem)] min-w-fit rounded-full bg-white/90 shadow-lg backdrop-blur-md sm:bottom-6"
       />
     </div>
