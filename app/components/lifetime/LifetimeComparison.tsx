@@ -5,14 +5,14 @@ import { Check, X } from "lucide-react";
 const comparisonData = {
   monthly: {
     title: "Monthly Plan",
-    price: "$29-$49/mo",
+    price: "$29-$79/mo",
     features: [
       { text: "Pro features ($29/mo)", included: true },
-      { text: "Studio features (+$49/mo)", included: true },
+      { text: "Studio features (+$79/mo)", included: true },
       { text: "Unlimited students", included: true },
       { text: "Ongoing monthly cost", included: false, negative: true },
-      { text: "$936/year for Pro+Studio", included: false, negative: true },
-      { text: "$2,808 over 3 years", included: false, negative: true },
+      { text: "$1,296/year for Pro+Studio", included: false, negative: true },
+      { text: "$3,888 over 3 years", included: false, negative: true },
     ],
   },
   lifetime: {
@@ -21,7 +21,7 @@ const comparisonData = {
     badge: "Best Value",
     features: [
       { text: "All Pro features", included: true },
-      { text: "All Studio features ($49/mo value)", included: true, highlight: true },
+      { text: "All Studio features ($79/mo value)", included: true, highlight: true },
       { text: "Unlimited students", included: true },
       { text: "Pay once, own forever", included: true, highlight: true },
       { text: "All future updates included", included: true, highlight: true },

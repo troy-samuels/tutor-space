@@ -138,7 +138,7 @@ export function LifetimeFeatures() {
               AI-Powered Teaching Tools
             </h3>
             <p className="mt-3 text-lg text-gray-600">
-              6 premium Studio features, normally $49/month extra
+              6 premium Studio features, normally $79/month extra
             </p>
           </div>
 

@@ -443,8 +443,8 @@ const landingCopyEn: LandingCopy = {
       },
       {
         name: "Studio",
-        monthlyPrice: "$49",
-        annualPrice: "$349",
+        monthlyPrice: "$79",
+        annualPrice: "$499",
         monthlyPeriod: "per month",
         annualPeriod: "per year",
         badge: "Video + AI",

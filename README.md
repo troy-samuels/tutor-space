@@ -733,12 +733,12 @@ Configure Vercel Cron or external scheduler for:
 
 | Plan | Price | Features |
 |------|-------|----------|
-| Pro Monthly | $39/month | Full platform access |
-| Pro Annual | $351/year | 25% off ($29.25/mo) |
-| Pro Lifetime | $299 one-time | Lifetime Pro access |
+| Pro Monthly | $29/month | Full platform access |
+| Pro Annual | $199/year | 43% off (~$17/mo) |
+| Pro Lifetime | $99 one-time | Lifetime Pro access |
 | Studio Monthly | $79/month | Pro + Video, Transcription, Drills |
-| Studio Annual | $711/year | 25% off ($59.25/mo) |
-| Studio Lifetime | $499 one-time | Lifetime Studio access |
+| Studio Annual | $499/year | 47% off (~$42/mo) |
+| Studio Lifetime | $99 one-time | Lifetime Studio access |
 
 - 14-day free trial, no credit card required
 - 0% platform commission on direct bookings
@@ -828,4 +828,4 @@ Proprietary - All rights reserved
 
 ---
 
-*Last updated: December 29, 2025*
+*Last updated: January 4, 2026* (Studio pricing updated to $79/mo, $499/yr)

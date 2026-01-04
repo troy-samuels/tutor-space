@@ -2240,7 +2240,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 STRIPE_PRO_MONTHLY_PRICE_ID=price_...
 STRIPE_PRO_ANNUAL_PRICE_ID=price_...
 
-# Stripe - Studio Tier ($49/mo, $349/yr, $99 lifetime)
+# Stripe - Studio Tier ($79/mo, $499/yr, $99 lifetime)
 STRIPE_STUDIO_MONTHLY_PRICE_ID=price_...
 STRIPE_STUDIO_ANNUAL_PRICE_ID=price_...
 STRIPE_STUDIO_LIFETIME_PRICE_ID=price_...
@@ -2371,8 +2371,8 @@ Located in `/app/docs/blog/`:
 | `pro_monthly` | Pro Monthly | $29/month | Pro | Full platform access |
 | `pro_annual` | Pro Annual | $199/year | Pro | 43% off (~$17/mo effective) |
 | `tutor_life` | Pro Lifetime | $99 one-time | Pro | Lifetime deal (unlocks Studio tier) |
-| `studio_monthly` | Studio Monthly | $49/month | Studio | Pro + LiveKit video, transcription, drills, clips |
-| `studio_annual` | Studio Annual | $349/year | Studio | 41% off (~$29/mo effective) |
+| `studio_monthly` | Studio Monthly | $79/month | Studio | Pro + LiveKit video, transcription, drills, clips |
+| `studio_annual` | Studio Annual | $499/year | Studio | 47% off (~$42/mo effective) |
 | `studio_life` | Studio Lifetime | $99 one-time | Studio | Lifetime Studio access (all features) |
 | `founder_lifetime` | Founder Lifetime | $49 one-time | Pro | Legacy grandfathered lifetime deal |
 | `all_access` | Pro (Legacy) | $29/month | Pro | Legacy plan, maps to pro_monthly |
@@ -2713,4 +2713,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 29 December 2025*
+*Last updated: 4 January 2026*

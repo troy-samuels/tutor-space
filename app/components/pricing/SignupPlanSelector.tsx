@@ -20,8 +20,8 @@ const PRICING = {
     annual: { price: "$199", period: "/year", perMonth: "$17", savings: "43%" },
   },
   studio: {
-    monthly: { price: "$49", period: "/month", perMonth: "$49" },
-    annual: { price: "$349", period: "/year", perMonth: "$29", savings: "41%" },
+    monthly: { price: "$79", period: "/month", perMonth: "$79" },
+    annual: { price: "$499", period: "/year", perMonth: "$42", savings: "47%" },
   },
 } as const;
 

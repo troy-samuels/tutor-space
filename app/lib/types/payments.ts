@@ -11,8 +11,8 @@ export type PlatformBillingPlan =
 	| "pro_monthly" // $29/mo
 	| "pro_annual" // $199/yr
 	| "tutor_life" // $99 lifetime deal (unlocks Studio tier)
-	| "studio_monthly" // $49/mo
-	| "studio_annual" // $349/yr
+	| "studio_monthly" // $79/mo
+	| "studio_annual" // $499/yr
 	| "studio_life" // $99 lifetime (unlocks all features)
 	| "founder_lifetime" // Legacy lifetime (grandfathered; no longer sold)
 	| "all_access"; // Legacy - maps to pro_monthly for existing users

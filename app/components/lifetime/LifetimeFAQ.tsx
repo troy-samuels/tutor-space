@@ -32,7 +32,7 @@ const faqs = [
   {
     question: "What happens after December 31st, 2025?",
     answer:
-      "After the deadline, the $99 lifetime deal will no longer be available. Regular pricing is $29/month for Pro or $49/month for Studio.",
+      "After the deadline, the $99 lifetime deal will no longer be available. Regular pricing is $29/month for Pro or $79/month for Studio.",
   },
   {
     question: "I already have a TutorLingua account. Can I upgrade?",

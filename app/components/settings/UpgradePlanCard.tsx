@@ -41,8 +41,8 @@ export function UpgradePlanCard({
   const [success, setSuccess] = useState(false);
 
   const targetPlan = billingCycle === "monthly" ? "studio_monthly" : "studio_annual";
-  const monthlyPrice = 49;
-  const annualPrice = 349;
+  const monthlyPrice = 79;
+  const annualPrice = 499;
   const currentMonthlyEquivalent = billingCycle === "monthly" ? 29 : Math.round(199 / 12);
   const targetMonthlyEquivalent = billingCycle === "monthly" ? monthlyPrice : Math.round(annualPrice / 12);
   const priceDiff = targetMonthlyEquivalent - currentMonthlyEquivalent;
@@ -184,8 +184,8 @@ export function UpgradePlanCard({
         <BillingToggle
           value={billingCycle}
           onChange={setBillingCycle}
-          monthlyLabel="$49/mo"
-          annualLabel={`$349/yr (save ${annualSavings}%)`}
+          monthlyLabel="$79/mo"
+          annualLabel={`$499/yr (save ${annualSavings}%)`}
         />
       </div>
 
@@ -212,7 +212,7 @@ export function UpgradePlanCard({
             Upgrading...
           </span>
         ) : (
-          `Upgrade to Studio — ${billingCycle === "monthly" ? "$49/mo" : "$349/yr"}`
+          `Upgrade to Studio — ${billingCycle === "monthly" ? "$79/mo" : "$499/yr"}`
         )}
       </button>
     </div>
