@@ -208,3 +208,45 @@ export const DropdownMenuSeparator = React.forwardRef<
   />
 ));
 DropdownMenuSeparator.displayName = "DropdownMenuSeparator";
+
+export interface DropdownMenuCheckboxItemProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+}
+
+export const DropdownMenuCheckboxItem = React.forwardRef<
+  HTMLButtonElement,
+  DropdownMenuCheckboxItemProps
+>(({ className, children, checked, onCheckedChange, ...props }, ref) => {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={checked}
+      className={cn(
+        "flex w-full items-center rounded-sm px-3 py-2 text-sm text-left hover:bg-muted focus:bg-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      onClick={() => onCheckedChange?.(!checked)}
+      {...props}
+    >
+      <span className="mr-2 flex h-4 w-4 items-center justify-center rounded border border-primary">
+        {checked && (
+          <svg
+            className="h-3 w-3 text-primary"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={3}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+      {children}
+    </button>
+  );
+});
+DropdownMenuCheckboxItem.displayName = "DropdownMenuCheckboxItem";

@@ -12,7 +12,23 @@ import { StudentLessonsCalendar } from "./StudentLessonsCalendar";
 import { StudentPaymentsTab } from "./StudentPaymentsTab";
 import { StudentMessagesTab } from "./StudentMessagesTab";
 import { StudentOverview } from "./StudentOverview";
+import { OnboardingChecklist } from "./onboarding/OnboardingChecklist";
+import { OnboardingProgressBadge } from "./onboarding/OnboardingProgressBadge";
+import { EngagementScoreCard } from "./engagement/EngagementScoreCard";
+import { EngagementScoreMeter } from "./engagement/EngagementScoreMeter";
+import { RiskStatusBadge } from "./engagement/RiskStatusBadge";
+import { StudentTimeline } from "./timeline/StudentTimeline";
 import { getOrCreateThreadByStudentId } from "@/lib/actions/messaging";
+import {
+  getStudentOnboardingProgress,
+  initializeStudentOnboarding,
+  type OnboardingProgress,
+} from "@/lib/actions/student-onboarding";
+import {
+  getStudentEngagementScore,
+  type EngagementScore,
+  type RiskStatus,
+} from "@/lib/actions/student-engagement";
 import type { StudentDetailData } from "@/lib/data/student-detail";
 
 type StudentDetailViewProps = {
@@ -35,6 +51,9 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
   });
   const searchParams = useSearchParams();
   const [isCreatingThread, startThreadTransition] = useTransition();
+  const [onboardingProgress, setOnboardingProgress] = useState<OnboardingProgress | null>(null);
+  const [engagementScore, setEngagementScore] = useState<EngagementScore | null>(null);
+  const [isCRMLoading, startCRMTransition] = useTransition();
 
   useEffect(() => {
     let isMounted = true;
@@ -66,7 +85,7 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
 
   const initialTab = useMemo(() => {
     const tabParam = searchParams.get("tab");
-    const validTabs = ["overview", "lessons", "messages", "payments"];
+    const validTabs = ["overview", "onboarding", "lessons", "messages", "payments", "timeline"];
     return tabParam && validTabs.includes(tabParam) ? tabParam : "overview";
   }, [searchParams]);
 
@@ -80,6 +99,20 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
   useEffect(() => {
     setThreadId(detail?.threadId ?? null);
   }, [detail?.threadId]);
+
+  // Load CRM data (onboarding progress and engagement score) when student data is available
+  useEffect(() => {
+    if (!detail?.student?.id) return;
+
+    startCRMTransition(async () => {
+      const [progressResult, scoreResult] = await Promise.all([
+        getStudentOnboardingProgress(detail.student.id),
+        getStudentEngagementScore(detail.student.id),
+      ]);
+      setOnboardingProgress(progressResult);
+      setEngagementScore(scoreResult);
+    });
+  }, [detail?.student?.id]);
 
   const overviewTab = useMemo(() => {
     if (!detail) return null;
@@ -126,6 +159,33 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
       />
     )
   ) : null;
+
+  const onboardingTab = detail ? (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <OnboardingChecklist
+        studentId={detail.student.id}
+        progress={onboardingProgress}
+        onUpdate={setOnboardingProgress}
+      />
+      {engagementScore && (
+        <EngagementScoreCard
+          studentId={detail.student.id}
+          score={engagementScore}
+          onUpdate={setEngagementScore}
+        />
+      )}
+    </div>
+  ) : null;
+
+  const timelineTab = detail ? (
+    <StudentTimeline studentId={detail.student.id} />
+  ) : null;
+
+  // Get effective status values
+  const onboardingStatus = (detail?.student as { onboarding_status?: string })?.onboarding_status ?? "not_started";
+  const effectiveRiskStatus = (engagementScore?.risk_status_override ?? engagementScore?.risk_status ?? "healthy") as RiskStatus;
+  const completedCount = onboardingProgress?.completed_items?.length ?? 0;
+  const totalCount = (onboardingProgress?.template?.items as Array<unknown>)?.length ?? 0;
 
   if (state.loading) {
     return (
@@ -174,7 +234,24 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
               </Link>
             )}
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">{detail.student.full_name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-foreground">{detail.student.full_name}</h1>
+            {!isCRMLoading && (
+              <div className="flex items-center gap-2">
+                <OnboardingProgressBadge
+                  status={onboardingStatus as "not_started" | "in_progress" | "completed"}
+                  completedCount={completedCount}
+                  totalCount={totalCount}
+                />
+                {engagementScore && (
+                  <>
+                    <EngagementScoreMeter score={engagementScore.score} size="sm" />
+                    <RiskStatusBadge status={effectiveRiskStatus} size="sm" />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -226,9 +303,11 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
 
       <StudentDetailTabs
         overviewTab={overviewTab}
+        onboardingTab={onboardingTab}
         lessonsTab={lessonsTab}
         messagesTab={messagesTab}
         paymentsTab={paymentsTab}
+        timelineTab={timelineTab}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />

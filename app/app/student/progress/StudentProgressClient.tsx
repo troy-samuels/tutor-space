@@ -30,8 +30,10 @@ import {
 } from "@/lib/actions/progress";
 import { AIPracticeCard } from "@/components/student/AIPracticeCard";
 import { DrillProgressCard } from "@/components/student-auth/DrillProgressCard";
+import { StudentOnboardingChecklist } from "@/components/student/StudentOnboardingChecklist";
 import type { DrillWithContext } from "@/lib/actions/drills";
 import type { TutorForReview } from "@/lib/actions/reviews";
+import type { OnboardingProgress } from "@/lib/actions/student-onboarding";
 import {
   LEVEL_LABELS,
   SKILL_LABELS,
@@ -51,6 +53,7 @@ interface StudentProgressClientProps {
   drillCounts?: { pending: number; completed: number; total: number };
   pendingDrills?: DrillWithContext[];
   reviewableTutors?: TutorForReview[];
+  onboardingProgress?: OnboardingProgress | null;
 }
 
 export function StudentProgressClient({
@@ -63,6 +66,7 @@ export function StudentProgressClient({
   drillCounts,
   pendingDrills,
   reviewableTutors,
+  onboardingProgress,
 }: StudentProgressClientProps) {
   const activeGoals = goals.filter((g) => g.status === "active");
   const completedGoals = goals.filter((g) => g.status === "completed");
@@ -159,6 +163,11 @@ export function StudentProgressClient({
           </CardContent>
         </Card>
       </div>
+
+      {/* Onboarding Progress */}
+      {onboardingProgress && onboardingProgress.status !== "completed" && (
+        <StudentOnboardingChecklist progress={onboardingProgress} />
+      )}
 
       {/* Review Your Tutors */}
       {reviewableTutors && reviewableTutors.length > 0 && (
