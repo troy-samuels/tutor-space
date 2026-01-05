@@ -55,18 +55,21 @@ export type BookingRecord = {
 
 /**
  * Input type for creating a booking manually (tutor-initiated).
+ * Uses snake_case to match database columns and existing component usage.
  */
 export type ManualBookingInput = {
-	studentId: string;
-	serviceId: string | null;
-	scheduledAt: string;
-	durationMinutes: number;
+	service_id: string;
+	student_id?: string;
+	new_student?: {
+		name: string;
+		email: string;
+		timezone: string;
+	};
+	scheduled_at: string;
+	duration_minutes: number;
 	timezone: string;
-	paymentAmount?: number;
-	currency?: string;
-	studentNotes?: string;
-	sendConfirmationEmail?: boolean;
-	paymentOption?: "mark_paid" | "payment_link" | "unpaid";
+	notes?: string;
+	payment_option: "send_link" | "already_paid" | "free";
 };
 
 /**

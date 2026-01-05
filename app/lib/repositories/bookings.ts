@@ -724,3 +724,222 @@ export async function updateStudentAccessStatus(
 		throw error;
 	}
 }
+
+// ============================================================================
+// Tutor Profile Operations
+// ============================================================================
+
+/**
+ * Tutor profile record with payment and video settings.
+ */
+export interface TutorProfileRecord {
+	full_name: string | null;
+	email: string | null;
+	timezone: string | null;
+	payment_instructions: string | null;
+	venmo_handle: string | null;
+	paypal_email: string | null;
+	zelle_phone: string | null;
+	stripe_payment_link: string | null;
+	custom_payment_url: string | null;
+	video_provider: string | null;
+	zoom_personal_link: string | null;
+	google_meet_link: string | null;
+	microsoft_teams_link: string | null;
+	calendly_link: string | null;
+	custom_video_url: string | null;
+	custom_video_name: string | null;
+	stripe_account_id: string | null;
+	stripe_charges_enabled: boolean | null;
+	stripe_payouts_enabled: boolean | null;
+	stripe_onboarding_status: string | null;
+}
+
+/**
+ * Get tutor profile with payment and video settings.
+ */
+export async function getTutorProfile(
+	client: SupabaseClient,
+	tutorId: string,
+	fields?: string
+): Promise<TutorProfileRecord | null> {
+	const selectFields = fields ?? `
+		full_name, email, timezone,
+		payment_instructions, venmo_handle, paypal_email, zelle_phone,
+		stripe_payment_link, custom_payment_url,
+		video_provider, zoom_personal_link, google_meet_link,
+		microsoft_teams_link, calendly_link, custom_video_url, custom_video_name,
+		stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status
+	`;
+
+	const { data, error } = await client
+		.from("profiles")
+		.select(selectFields)
+		.eq("id", tutorId)
+		.single();
+
+	if (error) {
+		if (error.code === "PGRST116") {
+			return null;
+		}
+		throw error;
+	}
+
+	return data as unknown as TutorProfileRecord;
+}
+
+// ============================================================================
+// Student Stripe Operations
+// ============================================================================
+
+/**
+ * Get student profile Stripe info.
+ */
+export async function getStudentStripeInfo(
+	client: SupabaseClient,
+	studentProfileId: string
+): Promise<{ stripe_customer_id: string | null; email: string; full_name: string } | null> {
+	const { data, error } = await client
+		.from("profiles")
+		.select("stripe_customer_id, email, full_name")
+		.eq("id", studentProfileId)
+		.single();
+
+	if (error) {
+		if (error.code === "PGRST116") {
+			return null;
+		}
+		throw error;
+	}
+
+	return data;
+}
+
+/**
+ * Update student's Stripe customer ID.
+ */
+export async function updateStudentStripeCustomerId(
+	client: SupabaseClient,
+	studentProfileId: string,
+	stripeCustomerId: string
+): Promise<void> {
+	const { error } = await client
+		.from("profiles")
+		.update({ stripe_customer_id: stripeCustomerId })
+		.eq("id", studentProfileId);
+
+	if (error) {
+		throw error;
+	}
+}
+
+// ============================================================================
+// Student-Tutor Connection Operations
+// ============================================================================
+
+/**
+ * Student-tutor connection record.
+ */
+export interface StudentTutorConnection {
+	id: string;
+	student_user_id: string;
+	tutor_id: string;
+	status: string;
+	requested_at: string | null;
+	resolved_at: string | null;
+	initial_message: string | null;
+}
+
+/**
+ * Get student-tutor connection by user and tutor IDs.
+ */
+export async function getStudentTutorConnection(
+	client: SupabaseClient,
+	studentUserId: string,
+	tutorId: string
+): Promise<StudentTutorConnection | null> {
+	const { data, error } = await client
+		.from("student_tutor_connections")
+		.select("id, student_user_id, tutor_id, status, requested_at, resolved_at, initial_message")
+		.eq("student_user_id", studentUserId)
+		.eq("tutor_id", tutorId)
+		.maybeSingle();
+
+	if (error) {
+		// Table might not exist in some environments
+		if (error.code === "42P01") {
+			return null;
+		}
+		throw error;
+	}
+
+	return data;
+}
+
+/**
+ * Upsert student-tutor connection.
+ */
+export async function upsertStudentTutorConnection(
+	client: SupabaseClient,
+	studentUserId: string,
+	tutorId: string,
+	status: string = "approved",
+	initialMessage?: string
+): Promise<void> {
+	const { error } = await client.from("student_tutor_connections").upsert(
+		{
+			student_user_id: studentUserId,
+			tutor_id: tutorId,
+			status,
+			requested_at: new Date().toISOString(),
+			resolved_at: status === "approved" ? new Date().toISOString() : null,
+			initial_message: initialMessage ?? "Auto-approved from booking",
+		},
+		{
+			onConflict: "student_user_id,tutor_id",
+		}
+	);
+
+	if (error) {
+		// Table might not exist in some environments
+		if (error.code === "42P01") {
+			console.warn("[Repository] student_tutor_connections table not found, skipping upsert");
+			return;
+		}
+		throw error;
+	}
+}
+
+// ============================================================================
+// Conversation Thread Operations
+// ============================================================================
+
+/**
+ * Insert a conversation thread between tutor and student.
+ * Uses upsert to avoid duplicates.
+ */
+export async function insertConversationThread(
+	client: SupabaseClient,
+	tutorId: string,
+	studentId: string
+): Promise<void> {
+	const { error } = await client.from("conversation_threads").upsert(
+		{
+			tutor_id: tutorId,
+			student_id: studentId,
+		},
+		{
+			onConflict: "tutor_id,student_id",
+			ignoreDuplicates: true,
+		}
+	);
+
+	if (error) {
+		// Table might not exist or other issues
+		if (error.code === "42P01") {
+			console.warn("[Repository] conversation_threads table not found, skipping insert");
+			return;
+		}
+		throw error;
+	}
+}

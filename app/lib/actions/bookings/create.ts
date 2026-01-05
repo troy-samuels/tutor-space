@@ -20,7 +20,7 @@ import {
 	checkAdvanceBookingWindow,
 	checkBookingLimits,
 } from "./helpers";
-import type { BookingRecord } from "./types";
+import type { BookingRecord, ManualBookingInput } from "./types";
 import {
 	getTraceId,
 	createRequestLogger,
@@ -1075,28 +1075,6 @@ export async function createBookingAndCheckout(params: {
 		return { error: "An unexpected error occurred. Please try again." };
 	}
 }
-
-// ============================================================================
-// Manual Booking Input Type
-// ============================================================================
-
-/**
- * Input for manual booking creation with payment options.
- */
-export type ManualBookingInput = {
-	service_id: string;
-	student_id?: string;
-	new_student?: {
-		name: string;
-		email: string;
-		timezone: string;
-	};
-	scheduled_at: string;
-	duration_minutes: number;
-	timezone: string;
-	notes?: string;
-	payment_option: "send_link" | "already_paid" | "free";
-};
 
 // ============================================================================
 // Create Manual Booking with Payment Link
