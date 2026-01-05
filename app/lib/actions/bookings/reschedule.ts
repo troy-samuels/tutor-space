@@ -195,9 +195,8 @@ export async function rescheduleBooking(params: {
 	const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
 	const requestedBy = params.requestedBy ?? (isTutor ? "tutor" : "student");
 
-	const bookingWindow = await checkAdvanceBookingWindow({
-		adminClient,
-		tutorId: booking.tutor_id,
+	const bookingWindow = checkAdvanceBookingWindow({
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: params.newStart,
 		timezone: tutorTimezone,
 	});
@@ -209,6 +208,7 @@ export async function rescheduleBooking(params: {
 	const bookingLimits = await checkBookingLimits({
 		adminClient,
 		tutorId: booking.tutor_id,
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: params.newStart,
 		timezone: tutorTimezone,
 		excludeBookingId: params.bookingId,

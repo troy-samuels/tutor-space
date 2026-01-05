@@ -19,6 +19,7 @@ import {
 	ensureConversationThread,
 	checkAdvanceBookingWindow,
 	checkBookingLimits,
+	type TutorProfileData,
 } from "./helpers";
 import type { BookingRecord, ManualBookingInput } from "./types";
 import {
@@ -117,7 +118,11 @@ export async function createBooking(input: CreateBookingInput) {
 
 	const { data: tutorProfile } = await adminClient
 		.from("profiles")
-		.select("timezone, max_lessons_per_day, max_lessons_per_week, advance_booking_days_min, advance_booking_days_max")
+		.select(`
+			timezone,
+			advance_booking_days_min, advance_booking_days_max,
+			max_lessons_per_day, max_lessons_per_week
+		`)
 		.eq("id", user.id)
 		.single();
 
@@ -125,9 +130,8 @@ export async function createBooking(input: CreateBookingInput) {
 
 	// Only check advance booking window if not explicitly skipped (tutor-initiated bookings skip this)
 	if (!input.skipAdvanceBookingCheck) {
-		const bookingWindow = await checkAdvanceBookingWindow({
-			adminClient,
-			tutorId: user.id,
+		const bookingWindow = checkAdvanceBookingWindow({
+			tutorProfile: tutorProfile ?? {},
 			scheduledAt: input.scheduled_at,
 			timezone: tutorTimezone,
 		});
@@ -140,6 +144,7 @@ export async function createBooking(input: CreateBookingInput) {
 	const bookingLimits = await checkBookingLimits({
 		adminClient,
 		tutorId: user.id,
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: input.scheduled_at,
 		timezone: tutorTimezone,
 	});
@@ -348,24 +353,44 @@ export async function createBookingAndCheckout(params: {
 	} = await supabase.auth.getUser();
 
 	try {
-		const { data: serviceRecord } = await adminClient
-			.from("services")
-			.select(`
-				id,
-				tutor_id,
-				name,
-				description,
-				duration_minutes,
-				price,
-				price_amount,
-				currency,
-				price_currency,
-				is_active
-			`)
-			.eq("id", params.serviceId)
-			.eq("tutor_id", params.tutorId)
-			.eq("is_active", true)
-			.single();
+		// Group 1: Parallelize serviceRecord + FULL tutorProfile fetch (dependency injection)
+		const [serviceResult, tutorProfileResult] = await Promise.all([
+			adminClient
+				.from("services")
+				.select(`
+					id,
+					tutor_id,
+					name,
+					description,
+					duration_minutes,
+					price,
+					price_amount,
+					currency,
+					price_currency,
+					is_active
+				`)
+				.eq("id", params.serviceId)
+				.eq("tutor_id", params.tutorId)
+				.eq("is_active", true)
+				.single(),
+			adminClient
+				.from("profiles")
+				.select(`
+					buffer_time_minutes, timezone,
+					advance_booking_days_min, advance_booking_days_max,
+					max_lessons_per_day, max_lessons_per_week,
+					full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone,
+					stripe_payment_link, custom_payment_url,
+					video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
+					calendly_link, custom_video_url, custom_video_name,
+					stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status
+				`)
+				.eq("id", params.tutorId)
+				.single(),
+		]);
+
+		const serviceRecord = serviceResult.data;
+		const tutorProfile = tutorProfileResult.data as TutorProfileData | null;
 
 		if (!serviceRecord) {
 			return { error: "Service not found or inactive" };
@@ -404,18 +429,11 @@ export async function createBookingAndCheckout(params: {
 			packageName: string | null;
 		} | null = null;
 
-		const { data: tutorSettings } = await adminClient
-			.from("profiles")
-			.select("buffer_time_minutes, timezone")
-			.eq("id", params.tutorId)
-			.single();
+		const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
+		const tutorTimezone = tutorProfile?.timezone || params.timezone;
 
-		const bufferMinutes = tutorSettings?.buffer_time_minutes ?? 0;
-		const tutorTimezone = tutorSettings?.timezone || params.timezone;
-
-		const bookingWindow = await checkAdvanceBookingWindow({
-			adminClient,
-			tutorId: params.tutorId,
+		const bookingWindow = checkAdvanceBookingWindow({
+			tutorProfile: tutorProfile ?? {},
 			scheduledAt: params.scheduledAt,
 			timezone: tutorTimezone,
 		});
@@ -427,6 +445,7 @@ export async function createBookingAndCheckout(params: {
 		const bookingLimits = await checkBookingLimits({
 			adminClient,
 			tutorId: params.tutorId,
+			tutorProfile: tutorProfile ?? {},
 			scheduledAt: params.scheduledAt,
 			timezone: tutorTimezone,
 		});
@@ -435,26 +454,35 @@ export async function createBookingAndCheckout(params: {
 			return { error: bookingLimits.error };
 		}
 
-		// 1. Get tutor's availability to validate booking
-		const { data: availability } = await adminClient
-			.from("availability")
-			.select("day_of_week, start_time, end_time, is_available")
-			.eq("tutor_id", params.tutorId)
-			.eq("is_available", true);
+		// Group 2: Parallelize availability, existingBookings, busyWindows, and existingStudent fetch
+		const [availabilityResult, existingBookingsResult, busyResult, existingStudentResult] = await Promise.all([
+			adminClient
+				.from("availability")
+				.select("day_of_week, start_time, end_time, is_available")
+				.eq("tutor_id", params.tutorId)
+				.eq("is_available", true),
+			adminClient
+				.from("bookings")
+				.select("id, scheduled_at, duration_minutes, status")
+				.eq("tutor_id", params.tutorId)
+				.in("status", ["pending", "confirmed"])
+				.gte("scheduled_at", new Date().toISOString()),
+			getCalendarBusyWindowsWithStatus({
+				tutorId: params.tutorId,
+				start: new Date(params.scheduledAt),
+				days: 60,
+			}),
+			adminClient
+				.from("students")
+				.select("id, user_id, status")
+				.eq("tutor_id", params.tutorId)
+				.eq("email", params.student.email)
+				.single(),
+		]);
 
-		// 2. Get existing bookings to check conflicts
-		const { data: existingBookings } = await adminClient
-			.from("bookings")
-			.select("id, scheduled_at, duration_minutes, status")
-			.eq("tutor_id", params.tutorId)
-			.in("status", ["pending", "confirmed"])
-			.gte("scheduled_at", new Date().toISOString());
-
-		const busyResult = await getCalendarBusyWindowsWithStatus({
-			tutorId: params.tutorId,
-			start: new Date(params.scheduledAt),
-			days: 60,
-		});
+		const availability = availabilityResult.data;
+		const existingBookings = existingBookingsResult.data;
+		const existingStudent = existingStudentResult.data;
 
 		if (busyResult.unverifiedProviders.length) {
 			return {
@@ -490,14 +518,6 @@ export async function createBookingAndCheckout(params: {
 		// 4. Create or find student record
 		let studentId: string;
 		let studentProfileId: string | null = user?.id ?? null;
-
-		// Check if student already exists by email
-		const { data: existingStudent } = await adminClient
-			.from("students")
-			.select("id, user_id, status")
-			.eq("tutor_id", params.tutorId)
-			.eq("email", params.student.email)
-			.single();
 
 		// Enforce student status - only active/trial students can book
 		if (existingStudent) {
@@ -775,15 +795,7 @@ export async function createBookingAndCheckout(params: {
 			}
 		}
 
-		// 6. Fetch tutor profile and service info for emails + Stripe Connect status
-		const { data: tutorProfile } = await adminClient
-			.from("profiles")
-			.select(
-				"full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone, stripe_payment_link, custom_payment_url, video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link, calendly_link, custom_video_url, custom_video_name, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status"
-			)
-			.eq("id", params.tutorId)
-			.single();
-
+		// 6. tutorProfile already fetched at start of function (dependency injection)
 		// 7. Get meeting URL based on tutor's video provider
 		let meetingUrl: string | null = null;
 		let meetingProvider: string | null = null;
@@ -791,23 +803,23 @@ export async function createBookingAndCheckout(params: {
 		if (tutorProfile) {
 			switch (tutorProfile.video_provider) {
 				case "zoom_personal":
-					meetingUrl = tutorProfile.zoom_personal_link;
+					meetingUrl = tutorProfile.zoom_personal_link ?? null;
 					meetingProvider = "zoom_personal";
 					break;
 				case "google_meet":
-					meetingUrl = tutorProfile.google_meet_link;
+					meetingUrl = tutorProfile.google_meet_link ?? null;
 					meetingProvider = "google_meet";
 					break;
 				case "microsoft_teams":
-					meetingUrl = tutorProfile.microsoft_teams_link;
+					meetingUrl = tutorProfile.microsoft_teams_link ?? null;
 					meetingProvider = "microsoft_teams";
 					break;
 				case "calendly":
-					meetingUrl = tutorProfile.calendly_link;
+					meetingUrl = tutorProfile.calendly_link ?? null;
 					meetingProvider = "calendly";
 					break;
 				case "custom":
-					meetingUrl = tutorProfile.custom_video_url;
+					meetingUrl = tutorProfile.custom_video_url ?? null;
 					meetingProvider = "custom";
 					break;
 				default:
@@ -837,7 +849,7 @@ export async function createBookingAndCheckout(params: {
 				studentName: params.student.fullName,
 				studentEmail: params.student.email,
 				tutorName: tutorProfile.full_name || "Your tutor",
-				tutorEmail: tutorProfile.email,
+				tutorEmail: tutorProfile.email ?? "",
 				serviceName,
 				scheduledAt: params.scheduledAt,
 				durationMinutes: serviceRecord.duration_minutes,
@@ -862,7 +874,7 @@ export async function createBookingAndCheckout(params: {
 			// Send to tutor
 			sendTutorBookingNotificationEmail({
 				tutorName: tutorProfile.full_name || "Tutor",
-				tutorEmail: tutorProfile.email,
+				tutorEmail: tutorProfile.email ?? "",
 				studentName: params.student.fullName,
 				studentEmail: params.student.email,
 				studentPhone: params.student.phone || undefined,
@@ -1027,7 +1039,7 @@ export async function createBookingAndCheckout(params: {
 								quantity: 1,
 							},
 						],
-						transferDestinationAccountId: tutorProfile.stripe_account_id,
+						transferDestinationAccountId: tutorProfile.stripe_account_id ?? undefined,
 						// No platform fee for now as per user requirements
 						applicationFeeCents: undefined,
 					});
@@ -1121,31 +1133,38 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		return { error: "Please select a service." };
 	}
 
-	// Get service details
-	const { data: service, error: serviceError } = await supabase
-		.from("services")
-		.select("id, name, duration_minutes, price_amount, price_currency")
-		.eq("id", input.service_id)
-		.eq("tutor_id", user.id)
-		.single();
+	// Parallelize service and tutorProfile fetch
+	const [serviceResult, tutorProfileResult] = await Promise.all([
+		supabase
+			.from("services")
+			.select("id, name, duration_minutes, price_amount, price_currency")
+			.eq("id", input.service_id)
+			.eq("tutor_id", user.id)
+			.single(),
+		adminClient
+			.from("profiles")
+			.select(`
+				full_name, email, timezone,
+				advance_booking_days_min, advance_booking_days_max,
+				max_lessons_per_day, max_lessons_per_week,
+				video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
+				calendly_link, custom_video_url, custom_video_name,
+				stripe_account_id, stripe_charges_enabled, stripe_onboarding_status,
+				payment_instructions, venmo_handle, paypal_email, zelle_phone,
+				stripe_payment_link, custom_payment_url
+			`)
+			.eq("id", user.id)
+			.single(),
+	]);
+
+	const service = serviceResult.data;
+	const serviceError = serviceResult.error;
+	const tutorProfile = tutorProfileResult.data;
+	const profileError = tutorProfileResult.error;
 
 	if (serviceError || !service) {
 		return { error: "Service not found. Please select a valid service." };
 	}
-
-	// Get tutor profile
-	const { data: tutorProfile, error: profileError } = await adminClient
-		.from("profiles")
-		.select(`
-			full_name, email, timezone,
-			video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
-			calendly_link, custom_video_url, custom_video_name,
-			stripe_account_id, stripe_charges_enabled, stripe_onboarding_status,
-			payment_instructions, venmo_handle, paypal_email, zelle_phone,
-			stripe_payment_link, custom_payment_url
-		`)
-		.eq("id", user.id)
-		.single();
 
 	if (profileError || !tutorProfile) {
 		return { error: "Could not load your profile. Please try again." };
@@ -1153,10 +1172,9 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 
 	const tutorTimezone = tutorProfile.timezone || input.timezone || "UTC";
 
-	// Validate booking window
-	const bookingWindow = await checkAdvanceBookingWindow({
-		adminClient,
-		tutorId: user.id,
+	// Validate booking window (synchronous - uses pre-fetched profile)
+	const bookingWindow = checkAdvanceBookingWindow({
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: input.scheduled_at,
 		timezone: tutorTimezone,
 	});
@@ -1165,10 +1183,11 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		return { error: bookingWindow.error };
 	}
 
-	// Check booking limits
+	// Check booking limits (uses pre-fetched profile for limits)
 	const bookingLimits = await checkBookingLimits({
 		adminClient,
 		tutorId: user.id,
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: input.scheduled_at,
 		timezone: tutorTimezone,
 	});

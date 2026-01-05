@@ -6,6 +6,48 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 // ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Pre-fetched tutor profile data for booking validation.
+ * Eliminates redundant database queries by passing data through (dependency injection).
+ */
+export type TutorProfileData = {
+	// Booking window settings
+	advance_booking_days_min?: number | null;
+	advance_booking_days_max?: number | null;
+	// Booking limits
+	max_lessons_per_day?: number | null;
+	max_lessons_per_week?: number | null;
+	// Buffer and timezone
+	buffer_time_minutes?: number | null;
+	timezone?: string | null;
+	// Contact/payment (for emails)
+	full_name?: string | null;
+	email?: string | null;
+	payment_instructions?: string | null;
+	venmo_handle?: string | null;
+	paypal_email?: string | null;
+	zelle_phone?: string | null;
+	stripe_payment_link?: string | null;
+	custom_payment_url?: string | null;
+	// Video settings
+	video_provider?: string | null;
+	zoom_personal_link?: string | null;
+	google_meet_link?: string | null;
+	microsoft_teams_link?: string | null;
+	calendly_link?: string | null;
+	custom_video_url?: string | null;
+	custom_video_name?: string | null;
+	// Stripe Connect
+	stripe_account_id?: string | null;
+	stripe_charges_enabled?: boolean | null;
+	stripe_payouts_enabled?: boolean | null;
+	stripe_onboarding_status?: string | null;
+};
+
+// ============================================================================
 // Constants
 // ============================================================================
 
@@ -72,28 +114,18 @@ export async function ensureConversationThread(
 /**
  * Check if a booking falls within the tutor's advance booking window.
  * Returns an error message if the booking is too soon or too far in advance.
+ *
+ * This is a synchronous function - profile data must be pre-fetched by the caller.
  */
-export async function checkAdvanceBookingWindow(params: {
-	adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>;
-	tutorId: string;
+export function checkAdvanceBookingWindow(params: {
+	tutorProfile: Pick<TutorProfileData, 'advance_booking_days_min' | 'advance_booking_days_max'>;
 	scheduledAt: string;
 	timezone?: string | null;
-}): Promise<{ ok: true } | { error: string }> {
-	const { adminClient, tutorId, scheduledAt, timezone } = params;
+}): { ok: true } | { error: string } {
+	const { tutorProfile, scheduledAt, timezone } = params;
 
-	const { data: profile, error } = await adminClient
-		.from("profiles")
-		.select("advance_booking_days_min, advance_booking_days_max")
-		.eq("id", tutorId)
-		.single();
-
-	if (error) {
-		console.error("[Bookings] Failed to load booking window settings", error);
-		return { error: "Unable to validate booking window. Please try again." };
-	}
-
-	const minDays = profile?.advance_booking_days_min ?? 0;
-	const maxDays = profile?.advance_booking_days_max ?? 365;
+	const minDays = tutorProfile.advance_booking_days_min ?? 0;
+	const maxDays = tutorProfile.advance_booking_days_max ?? 365;
 	const now = new Date();
 	const scheduledDate = new Date(scheduledAt);
 	let zonedNow = now;
@@ -132,29 +164,22 @@ export async function checkAdvanceBookingWindow(params: {
 /**
  * Check if a booking would exceed the tutor's daily or weekly limits.
  * Returns an error message if limits are exceeded.
+ *
+ * Profile data must be pre-fetched by the caller (dependency injection).
+ * Still async because it queries booking counts.
  */
 export async function checkBookingLimits(params: {
 	adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>;
 	tutorId: string;
+	tutorProfile: Pick<TutorProfileData, 'max_lessons_per_day' | 'max_lessons_per_week'>;
 	scheduledAt: string;
 	timezone?: string | null;
 	excludeBookingId?: string;
 }): Promise<{ ok: true } | { error: string }> {
-	const { adminClient, tutorId, scheduledAt, timezone, excludeBookingId } = params;
+	const { adminClient, tutorId, tutorProfile, scheduledAt, timezone, excludeBookingId } = params;
 
-	const { data: profile, error } = await adminClient
-		.from("profiles")
-		.select("max_lessons_per_day, max_lessons_per_week")
-		.eq("id", tutorId)
-		.single();
-
-	if (error) {
-		console.error("[Bookings] Failed to load booking limits", error);
-		return { error: "Unable to validate booking limits. Please try again." };
-	}
-
-	const maxDaily = profile?.max_lessons_per_day ?? null;
-	const maxWeekly = profile?.max_lessons_per_week ?? null;
+	const maxDaily = tutorProfile.max_lessons_per_day ?? null;
+	const maxWeekly = tutorProfile.max_lessons_per_week ?? null;
 
 	if (!maxDaily && !maxWeekly) {
 		return { ok: true };

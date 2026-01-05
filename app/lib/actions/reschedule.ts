@@ -170,46 +170,50 @@ export async function getAvailableRescheduleTimes(
   const targetDate = new Date(date);
   const dayOfWeek = targetDate.getDay();
 
-  const { data: availability } = await serviceClient
-    .from("availability")
-    .select("day_of_week, start_time, end_time, is_available")
-    .eq("tutor_id", booking.tutor_id)
-    .eq("day_of_week", dayOfWeek)
-    .eq("is_available", true);
-
-  if (!availability || availability.length === 0) {
-    return { times: [] };
-  }
-
-  // Get existing bookings for that day
+  // Calculate day boundaries for queries
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const { data: existingBookings } = await serviceClient
-    .from("bookings")
-    .select("scheduled_at, duration_minutes, status")
-    .eq("tutor_id", booking.tutor_id)
-    .neq("id", bookingId) // Exclude current booking
-    .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")')
-    .gte("scheduled_at", startOfDay.toISOString())
-    .lte("scheduled_at", endOfDay.toISOString());
+  // Parallelize availability, existingBookings, tutorProfile, and busyWindows fetch
+  const [availabilityResult, existingBookingsResult, tutorProfileResult, busyResult] = await Promise.all([
+    serviceClient
+      .from("availability")
+      .select("day_of_week, start_time, end_time, is_available")
+      .eq("tutor_id", booking.tutor_id)
+      .eq("day_of_week", dayOfWeek)
+      .eq("is_available", true),
+    serviceClient
+      .from("bookings")
+      .select("scheduled_at, duration_minutes, status")
+      .eq("tutor_id", booking.tutor_id)
+      .neq("id", bookingId) // Exclude current booking
+      .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")')
+      .gte("scheduled_at", startOfDay.toISOString())
+      .lte("scheduled_at", endOfDay.toISOString()),
+    serviceClient
+      .from("profiles")
+      .select("buffer_time_minutes, timezone")
+      .eq("id", booking.tutor_id)
+      .single(),
+    getCalendarBusyWindowsWithStatus({
+      tutorId: booking.tutor_id,
+      start: startOfDay,
+      days: 2,
+    }),
+  ]);
 
-  const { data: tutorProfile } = await serviceClient
-    .from("profiles")
-    .select("buffer_time_minutes, timezone")
-    .eq("id", booking.tutor_id)
-    .single();
+  const availability = availabilityResult.data;
+  const existingBookings = existingBookingsResult.data;
+  const tutorProfile = tutorProfileResult.data;
+
+  if (!availability || availability.length === 0) {
+    return { times: [] };
+  }
 
   const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
   const tutorTimezone = tutorProfile?.timezone || booking.timezone || "UTC";
-
-  const busyResult = await getCalendarBusyWindowsWithStatus({
-    tutorId: booking.tutor_id,
-    start: startOfDay,
-    days: 2,
-  });
 
   if (busyResult.unverifiedProviders.length) {
     return {

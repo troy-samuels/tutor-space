@@ -72,15 +72,18 @@ export async function checkSlotAvailabilityForTutor(params: {
 
 	const { data: tutorProfile } = await adminClient
 		.from("profiles")
-		.select("timezone")
+		.select(`
+			timezone,
+			advance_booking_days_min, advance_booking_days_max,
+			max_lessons_per_day, max_lessons_per_week
+		`)
 		.eq("id", params.tutorId)
 		.single();
 
 	const tutorTimezone = tutorProfile?.timezone ?? "UTC";
 
-	const bookingWindow = await checkAdvanceBookingWindow({
-		adminClient,
-		tutorId: params.tutorId,
+	const bookingWindow = checkAdvanceBookingWindow({
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: params.startISO,
 		timezone: tutorTimezone,
 	});
@@ -92,6 +95,7 @@ export async function checkSlotAvailabilityForTutor(params: {
 	const bookingLimits = await checkBookingLimits({
 		adminClient,
 		tutorId: params.tutorId,
+		tutorProfile: tutorProfile ?? {},
 		scheduledAt: params.startISO,
 		timezone: tutorTimezone,
 	});
