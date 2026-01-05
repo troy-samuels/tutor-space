@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { insertPaymentsAudit } from "@/lib/repositories/payments";
 import { updateRefundStatus } from "@/lib/repositories/refunds";
 import { sendRefundReceiptEmail } from "@/lib/emails/ops-emails";
+import { recordAudit } from "@/lib/repositories/audit";
 
 type RefundBookingRow = {
   scheduled_at: string | null;
@@ -46,6 +47,22 @@ export async function issueRefundForPaymentIntent(params: {
   if (params.refundRequestId) {
     await updateRefundStatus(params.client, params.refundRequestId, "processed", params.adminUserId);
   }
+
+  // Record audit log for refund issued
+  await recordAudit(params.client, {
+    actorId: params.adminUserId,
+    targetId: params.bookingId ?? params.paymentsAuditId ?? null,
+    entityType: "booking",
+    actionType: "update_status",
+    metadata: {
+      action: "refund_issued",
+      refund_id: refund.id,
+      payment_intent_id: params.paymentIntentId,
+      amount_cents: params.amountCents ?? refund.amount,
+      currency: params.currency,
+      refund_request_id: params.refundRequestId ?? null,
+    },
+  });
 
   try {
     let studentEmail: string | null | undefined;

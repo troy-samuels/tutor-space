@@ -22,6 +22,7 @@ import {
   logStep,
   logStepError,
 } from "@/lib/logger";
+import { recordAudit } from "@/lib/repositories/audit";
 
 // Note: Import ServiceInput directly from @/lib/validators/service in UI components
 // Note: ServiceRecord type moved to @/lib/types/service.ts
@@ -265,7 +266,33 @@ export async function updateService(id: string, payload: ServiceInput) {
     .single<ServiceRecord>();
 
   if (error) {
-    return { error: "We couldn’t update that service. Please try again." };
+    return { error: "We couldn't update that service. Please try again." };
+  }
+
+  // Record audit if price changed
+  const priceChanged =
+    (existing.price_amount ?? existing.price) !== parsed.data.price_cents ||
+    (existing.price_currency ?? existing.currency) !== parsed.data.currency;
+
+  if (priceChanged) {
+    await recordAudit(supabase, {
+      actorId: user.id,
+      targetId: id,
+      entityType: "billing",
+      actionType: "update",
+      metadata: {
+        change_type: "service_pricing",
+        service_name: existing.name,
+        before: {
+          price_amount: existing.price_amount ?? existing.price,
+          price_currency: existing.price_currency ?? existing.currency,
+        },
+        after: {
+          price_amount: parsed.data.price_cents,
+          price_currency: parsed.data.currency,
+        },
+      },
+    });
   }
 
   if (data) {

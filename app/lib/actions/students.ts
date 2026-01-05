@@ -18,6 +18,7 @@ import {
   logStep,
   logStepError,
 } from "@/lib/logger";
+import { recordAudit } from "@/lib/repositories/audit";
 
 /**
  * Send a quick invite email with booking link from the dashboard
@@ -650,6 +651,7 @@ export async function denyStudentAccess(params: {
           tutor_id,
           full_name,
           email,
+          calendar_access_status,
           profiles!students_tutor_id_fkey (
             full_name,
             email,
@@ -665,6 +667,8 @@ export async function denyStudentAccess(params: {
     if (!studentRecord) {
       return { error: "Student not found or access denied" };
     }
+
+    const beforeStatus = studentRecord.calendar_access_status;
 
     const { data: requestRecord } = await adminClient
       .from("student_access_requests")
@@ -690,6 +694,20 @@ export async function denyStudentAccess(params: {
       console.error("Failed to update student:", studentError);
       return { error: "Failed to deny student access" };
     }
+
+    // Record audit log for access revocation
+    await recordAudit(adminClient, {
+      actorId: user.id,
+      targetId: params.studentId,
+      entityType: "student",
+      actionType: "update_status",
+      metadata: {
+        change_type: "access_revoked",
+        before: { calendar_access_status: beforeStatus },
+        after: { calendar_access_status: "denied" },
+        reason: params.reason ?? null,
+      },
+    });
 
     const { error: requestError } = await adminClient
       .from("student_access_requests")
@@ -779,6 +797,14 @@ export async function suspendStudentAccess(studentId: string) {
   }
 
   try {
+    // Fetch current status before update (for audit before/after)
+    const { data: student } = await adminClient
+      .from("students")
+      .select("calendar_access_status")
+      .eq("id", studentId)
+      .eq("tutor_id", user.id)
+      .single();
+
     const { error } = await adminClient
       .from("students")
       .update({
@@ -792,6 +818,19 @@ export async function suspendStudentAccess(studentId: string) {
       console.error("Failed to suspend student:", error);
       return { error: "Failed to suspend student access" };
     }
+
+    // Record audit log for access suspension
+    await recordAudit(adminClient, {
+      actorId: user.id,
+      targetId: studentId,
+      entityType: "student",
+      actionType: "update_status",
+      metadata: {
+        change_type: "access_suspended",
+        before: { calendar_access_status: student?.calendar_access_status },
+        after: { calendar_access_status: "suspended" },
+      },
+    });
 
     revalidatePath("/students");
     revalidatePath("/students/access-requests");

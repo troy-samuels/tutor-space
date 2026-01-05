@@ -14,6 +14,7 @@ import {
 	logStep,
 	logStepError,
 } from "@/lib/logger";
+import { recordAudit } from "@/lib/repositories/audit";
 
 // ============================================================================
 // Mark Booking as Paid
@@ -41,6 +42,8 @@ export async function markBookingAsPaid(bookingId: string) {
 			`
 				id,
 				tutor_id,
+				status,
+				payment_status,
 				scheduled_at,
 				timezone,
 				payment_amount,
@@ -94,6 +97,20 @@ export async function markBookingAsPaid(bookingId: string) {
 	}
 
 	logStep(log, "markBookingAsPaid:status_updated", { bookingId });
+
+	// Record audit log for manual payment
+	await recordAudit(supabase, {
+		actorId: user.id,
+		targetId: bookingId,
+		entityType: "booking",
+		actionType: "manual_payment",
+		metadata: {
+			before: { status: booking.status, payment_status: booking.payment_status },
+			after: { status: "confirmed", payment_status: "paid" },
+			amount_cents: service?.price_amount ?? booking.payment_amount ?? 0,
+			currency: service?.price_currency ?? booking.currency ?? "USD",
+		},
+	});
 
 	const studentEmail = student?.email;
 	const amountCents = booking.payment_amount ?? (service?.price_amount ?? 0);

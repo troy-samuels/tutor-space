@@ -12,6 +12,7 @@ import {
 import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 import { HOMEWORK_STATUSES } from "@/lib/types/progress";
 import { sendHomeworkAssignedEmail } from "@/lib/emails/ops-emails";
+import { recordAudit } from "@/lib/repositories/audit";
 
 export interface LearningGoal {
   id: string;
@@ -578,6 +579,17 @@ export async function recordProficiencyAssessment(input: {
     return { error: "You need to be signed in to record assessments." };
   }
 
+  // Fetch previous assessment for this skill area (for audit before/after)
+  const { data: previousAssessment } = await supabase
+    .from("proficiency_assessments")
+    .select("level, score")
+    .eq("student_id", input.studentId)
+    .eq("tutor_id", user.id)
+    .eq("skill_area", input.skillArea)
+    .order("assessed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const payload = {
     student_id: input.studentId,
     tutor_id: user.id,
@@ -598,6 +610,20 @@ export async function recordProficiencyAssessment(input: {
     console.error("[recordProficiencyAssessment] error", error);
     return { error: "Unable to save assessment." };
   }
+
+  // Record audit log for proficiency assessment change
+  await recordAudit(supabase, {
+    actorId: user.id,
+    targetId: input.studentId,
+    entityType: "student",
+    actionType: "update",
+    metadata: {
+      change_type: "proficiency_assessment",
+      skill_area: input.skillArea,
+      before: previousAssessment ? { level: previousAssessment.level, score: previousAssessment.score } : null,
+      after: { level: input.level, score: input.score ?? null },
+    },
+  });
 
   return { data: data as ProficiencyAssessment };
 }
