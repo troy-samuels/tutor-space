@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { verifyAdminSession } from "@/lib/admin/auth";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ============================================================================
 // Configuration
@@ -13,13 +14,20 @@ import { verifyAdminSession } from "@/lib/admin/auth";
 const LIMITS = {
 	/** Public booking pages - IP-based */
 	booking: { requests: 10, window: "5 m" as const },
-	/** AI Practice chat - User ID-based */
+	/** AI Practice chat - User ID-based (legacy) */
 	ai: { requests: 30, window: "1 m" as const },
+	/** AI Practice - Studio tier tutors (30/min) */
+	ai_studio: { requests: 30, window: "1 m" as const },
+	/** AI Practice - Pro/Free tier tutors (10/min) */
+	ai_limited: { requests: 10, window: "1 m" as const },
 	/** Login/signup attempts - IP-based */
 	auth: { requests: 5, window: "15 m" as const },
 	/** General API calls */
 	api: { requests: 60, window: "1 m" as const },
 } as const;
+
+/** Monthly message cap for AI Practice (margin protection) */
+export const MONTHLY_MESSAGE_CAP = 1000;
 
 export type LimitKey = keyof typeof LIMITS;
 
@@ -194,5 +202,85 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
 		"X-RateLimit-Remaining": String(result.remaining),
 		"X-RateLimit-Reset": String(result.reset),
 		"Retry-After": String(Math.ceil((result.reset - Date.now()) / 1000)),
+	};
+}
+
+// ============================================================================
+// AI Practice Rate Limiting
+// ============================================================================
+
+/**
+ * Check AI Practice rate limit with tier-based limits.
+ *
+ * - Studio tutors: 30 requests/min
+ * - Pro/Free tutors: 10 requests/min
+ *
+ * @param studentId - Student UUID to rate limit
+ * @param isStudioTutor - Whether the student's tutor has Studio tier
+ * @returns Rate limit result
+ *
+ * @example
+ * const isStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
+ * const result = await checkAIPracticeRateLimit(student.id, isStudio);
+ */
+export async function checkAIPracticeRateLimit(
+	studentId: string,
+	isStudioTutor: boolean
+): Promise<RateLimitResult> {
+	const limitKey: LimitKey = isStudioTutor ? "ai_studio" : "ai_limited";
+	const identifier = `student:${studentId}`;
+
+	return checkRateLimit(identifier, limitKey);
+}
+
+export interface MonthlyUsageCapResult {
+	/** Whether the request is allowed (under cap) */
+	allowed: boolean;
+	/** Current usage count */
+	used: number;
+	/** Monthly cap limit */
+	cap: number;
+}
+
+/**
+ * Check if student has exceeded monthly message cap (Margin Guard).
+ *
+ * Queries `practice_usage_periods.text_turns_used` for current month.
+ * Returns 403 Forbidden if usage >= MONTHLY_MESSAGE_CAP (1000).
+ *
+ * @param supabase - Supabase client (admin/service role)
+ * @param studentId - Student UUID
+ * @param tutorId - Tutor UUID
+ * @returns Whether request is allowed and usage stats
+ *
+ * @example
+ * const cap = await checkMonthlyUsageCap(adminClient, student.id, student.tutor_id);
+ * if (!cap.allowed) {
+ *   return NextResponse.json({ error: "Monthly limit reached" }, { status: 403 });
+ * }
+ */
+export async function checkMonthlyUsageCap(
+	supabase: SupabaseClient,
+	studentId: string,
+	tutorId: string
+): Promise<MonthlyUsageCapResult> {
+	// Get current month's usage period
+	const now = new Date();
+	const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+	const { data: usagePeriod } = await supabase
+		.from("practice_usage_periods")
+		.select("text_turns_used")
+		.eq("student_id", studentId)
+		.eq("tutor_id", tutorId)
+		.gte("period_start", periodStart.toISOString())
+		.maybeSingle();
+
+	const used = usagePeriod?.text_turns_used ?? 0;
+
+	return {
+		allowed: used < MONTHLY_MESSAGE_CAP,
+		used,
+		cap: MONTHLY_MESSAGE_CAP,
 	};
 }

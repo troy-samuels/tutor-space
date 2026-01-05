@@ -19,6 +19,11 @@ import {
 } from "@/lib/practice/grammar-categories";
 import { getTutorHasPracticeAccess } from "@/lib/practice/access";
 import { parseSanitizedJson } from "@/lib/utils/sanitize";
+import {
+  checkAIPracticeRateLimit,
+  checkMonthlyUsageCap,
+  rateLimitHeaders,
+} from "@/lib/security/limiter";
 
 // Usage allowance constants
 const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
@@ -195,6 +200,29 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO", requestId },
         { status: 403 }
+      );
+    }
+
+    // RATE LIMITING: Check monthly cap (Margin Guard)
+    const usageCap = await checkMonthlyUsageCap(adminClient, student.id, student.tutor_id);
+    if (!usageCap.allowed) {
+      return NextResponse.json(
+        {
+          error: "Monthly practice limit reached. Contact your tutor to upgrade your plan.",
+          code: "MONTHLY_LIMIT_EXCEEDED",
+          usage: { used: usageCap.used, cap: usageCap.cap },
+          requestId,
+        },
+        { status: 403 }
+      );
+    }
+
+    // RATE LIMITING: Check per-minute rate limit (tier-based)
+    const rateLimit = await checkAIPracticeRateLimit(student.id, tutorHasStudio);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please wait before sending more messages.", code: "RATE_LIMIT_EXCEEDED", requestId },
+        { status: 429, headers: rateLimitHeaders(rateLimit) }
       );
     }
 
