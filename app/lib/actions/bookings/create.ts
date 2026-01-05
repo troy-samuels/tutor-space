@@ -29,6 +29,7 @@ import {
 	enrichError,
 	type Logger,
 } from "@/lib/logger";
+import { withIdempotency } from "@/lib/utils/idempotency";
 
 // ============================================================================
 // Internal Input Type for createBooking
@@ -294,6 +295,7 @@ export async function createBookingAndCheckout(params: {
 	currency: string;
 	packageId?: string; // Optional: Use package instead of payment
 	subscriptionId?: string; // Optional: Use subscription credit instead of payment
+	clientMutationId?: string; // Optional: Idempotency key to prevent duplicate bookings
 }): Promise<
 	| { error: string }
 	| { success: true; bookingId: string; checkoutUrl?: string | null }
@@ -323,6 +325,22 @@ export async function createBookingAndCheckout(params: {
 	if (!adminClient) {
 		logStep(log, "createBookingAndCheckout:error", { reason: "admin_client_unavailable" });
 		return { error: "Service unavailable. Please try again later." };
+	}
+
+	// Idempotency check - return cached response if this request was already processed
+	if (params.clientMutationId) {
+		const { getCachedResponse } = await import("@/lib/utils/idempotency");
+		const cachedResponse = await getCachedResponse<
+			| { error: string }
+			| { success: true; bookingId: string; checkoutUrl?: string | null }
+		>(adminClient, params.clientMutationId);
+
+		if (cachedResponse) {
+			logStep(log, "createBookingAndCheckout:idempotent_hit", {
+				clientMutationId: params.clientMutationId,
+			});
+			return cachedResponse;
+		}
 	}
 
 	const {
@@ -1019,11 +1037,17 @@ export async function createBookingAndCheckout(params: {
 						bookingId: booking.id,
 						hasCheckoutUrl: !!session.url,
 					});
-					return {
-						success: true,
+					const stripeSuccessResponse = {
+						success: true as const,
 						bookingId: booking.id,
 						checkoutUrl: session.url,
 					};
+					// Cache successful response for idempotency
+					if (params.clientMutationId) {
+						const { cacheResponse } = await import("@/lib/utils/idempotency");
+						await cacheResponse(adminClient, params.clientMutationId, stripeSuccessResponse);
+					}
+					return stripeSuccessResponse;
 				} catch (stripeError) {
 					logStepError(log, "createBookingAndCheckout:stripe_checkout_failed", stripeError, { bookingId: booking.id });
 					// Fall back to manual payment instructions
@@ -1033,10 +1057,16 @@ export async function createBookingAndCheckout(params: {
 
 		// Success - booking created, student will pay tutor directly (manual payment)
 		logStep(log, "createBookingAndCheckout:success", { bookingId: booking.id, paymentMethod: "manual" });
-		return {
-			success: true,
+		const manualSuccessResponse = {
+			success: true as const,
 			bookingId: booking.id,
 		};
+		// Cache successful response for idempotency
+		if (params.clientMutationId) {
+			const { cacheResponse } = await import("@/lib/utils/idempotency");
+			await cacheResponse(adminClient, params.clientMutationId, manualSuccessResponse);
+		}
+		return manualSuccessResponse;
 	} catch (error) {
 		logStepError(log, "createBookingAndCheckout:unexpected_error", error, {
 			serviceId: params.serviceId,

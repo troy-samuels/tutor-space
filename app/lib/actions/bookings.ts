@@ -584,6 +584,7 @@ export async function createBookingAndCheckout(params: {
   currency: string;
   packageId?: string; // Optional: Use package instead of payment
   subscriptionId?: string; // Optional: Use subscription credit instead of payment
+  clientMutationId?: string; // Optional: Idempotency key to prevent duplicate bookings
 }): Promise<
   | { error: string }
   | { success: true; bookingId: string; checkoutUrl?: string | null }
@@ -600,6 +601,19 @@ export async function createBookingAndCheckout(params: {
 
   if (!adminClient) {
     return { error: "Service unavailable. Please try again later." };
+  }
+
+  // Idempotency check - return cached response if this request was already processed
+  if (params.clientMutationId) {
+    const { getCachedResponse } = await import("@/lib/utils/idempotency");
+    const cachedResponse = await getCachedResponse<
+      | { error: string }
+      | { success: true; bookingId: string; checkoutUrl?: string | null }
+    >(adminClient, params.clientMutationId);
+    if (cachedResponse) {
+      console.log(`[Booking] Returning cached response for ${params.clientMutationId}`);
+      return cachedResponse;
+    }
   }
 
   const {
@@ -1285,11 +1299,17 @@ export async function createBookingAndCheckout(params: {
           });
 
           // Return checkout URL for redirect
-          return {
-            success: true,
+          const stripeSuccessResponse = {
+            success: true as const,
             bookingId: booking.id,
             checkoutUrl: session.url,
           };
+          // Cache the response for idempotency
+          if (params.clientMutationId) {
+            const { cacheResponse } = await import("@/lib/utils/idempotency");
+            await cacheResponse(adminClient, params.clientMutationId, stripeSuccessResponse);
+          }
+          return stripeSuccessResponse;
       }
         catch (stripeError) {
           console.error("Failed to create Stripe checkout:", stripeError);
@@ -1299,10 +1319,16 @@ export async function createBookingAndCheckout(params: {
     }
 
     // Success - booking created, student will pay tutor directly (manual payment)
-    return {
-      success: true,
+    const manualSuccessResponse = {
+      success: true as const,
       bookingId: booking.id,
     };
+    // Cache the response for idempotency
+    if (params.clientMutationId) {
+      const { cacheResponse } = await import("@/lib/utils/idempotency");
+      await cacheResponse(adminClient, params.clientMutationId, manualSuccessResponse);
+    }
+    return manualSuccessResponse;
   } catch (error) {
     console.error("Error in createBookingAndCheckout:", error);
     return { error: "An unexpected error occurred. Please try again." };

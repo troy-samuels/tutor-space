@@ -142,6 +142,9 @@ export default function StudentInfoForm({
 
     startTransition(async () => {
       try {
+        // Generate unique mutation ID for idempotency (prevents duplicate bookings)
+        const clientMutationId = crypto.randomUUID();
+
         const result = await createBookingAndCheckout({
           tutorId: tutor.id,
           serviceId: service.id,
@@ -161,6 +164,7 @@ export default function StudentInfoForm({
           amount: service.price_amount,
           currency: service.price_currency,
           subscriptionId: selectedSubscriptionId || undefined,
+          clientMutationId,
         });
 
         if ("error" in result) {
