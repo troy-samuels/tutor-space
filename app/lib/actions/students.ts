@@ -11,6 +11,13 @@ import {
 import { sendStudentInviteEmail } from "@/lib/emails/student-invite";
 import { resend, EMAIL_CONFIG } from "@/lib/resend";
 import { QuickInviteEmail, QuickInviteEmailText } from "@/emails/quick-invite";
+import { softDeleteStudent } from "@/lib/repositories/students";
+import {
+  getTraceId,
+  createRequestLogger,
+  logStep,
+  logStepError,
+} from "@/lib/logger";
 
 /**
  * Send a quick invite email with booking link from the dashboard
@@ -94,6 +101,7 @@ export async function listStudents(): Promise<StudentRecord[]> {
     .from("students")
     .select("*")
     .eq("tutor_id", user.id)
+    .is("deleted_at", null)
     .order("full_name", { ascending: true });
 
   return (data as StudentRecord[] | null) ?? [];
@@ -837,4 +845,47 @@ export async function reactivateStudentAccess(studentId: string) {
     console.error("Error reactivating student access:", error);
     return { error: "An unexpected error occurred" };
   }
+}
+
+/**
+ * Soft delete a student (sets deleted_at timestamp)
+ */
+export async function deleteStudent(studentId: string) {
+  const traceId = await getTraceId();
+  const { supabase, user } = await requireTutor();
+
+  if (!user) {
+    return { error: "You must be logged in to delete students." };
+  }
+
+  const log = createRequestLogger(traceId, user.id);
+  logStep(log, "deleteStudent:start", { studentId });
+
+  // Verify the student exists and belongs to this tutor
+  const { data: existing, error: existingError } = await supabase
+    .from("students")
+    .select("id, full_name")
+    .eq("id", studentId)
+    .eq("tutor_id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  if (existingError || !existing) {
+    logStep(log, "deleteStudent:not_found", { studentId });
+    return { error: "We couldn't find that student. Please try again." };
+  }
+
+  logStep(log, "softDelete:student", { studentId, deletedAt: new Date().toISOString() });
+  const result = await softDeleteStudent(supabase, studentId, user.id);
+
+  if (!result.success) {
+    logStepError(log, "softDelete:student:failed", result.error, { studentId });
+    return { error: "We couldn't delete that student. Please try again." };
+  }
+
+  revalidatePath("/students");
+  revalidatePath("/students/access-requests");
+
+  logStep(log, "deleteStudent:success", { studentId });
+  return { success: true };
 }

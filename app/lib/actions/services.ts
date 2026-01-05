@@ -15,6 +15,13 @@ import {
   canSyncStripeConnectProducts,
   syncServiceToStripeConnect,
 } from "@/lib/services/stripe-connect-products";
+import { softDeleteService } from "@/lib/repositories/services";
+import {
+  getTraceId,
+  createRequestLogger,
+  logStep,
+  logStepError,
+} from "@/lib/logger";
 
 // Note: Import ServiceInput directly from @/lib/validators/service in UI components
 // Note: ServiceRecord type moved to @/lib/types/service.ts
@@ -301,11 +308,15 @@ export async function updateService(id: string, payload: ServiceInput) {
 }
 
 export async function deleteService(id: string) {
+  const traceId = await getTraceId();
   const authResult = await getAuthUserResult();
   if (!authResult.success) {
     return { error: authResult.error };
   }
   const user = authResult.data;
+  const log = createRequestLogger(traceId, user.id);
+
+  logStep(log, "deleteService:start", { serviceId: id });
 
   const supabase = await createClient();
   const { data: existing, error: existingError } = await supabase
@@ -313,10 +324,12 @@ export async function deleteService(id: string) {
     .select("id, stripe_product_id, stripe_price_id")
     .eq("id", id)
     .eq("tutor_id", user.id)
+    .is("deleted_at", null)
     .single<Pick<ServiceRecord, "id" | "stripe_product_id" | "stripe_price_id">>();
 
   if (existingError || !existing) {
-    return { error: "We couldn’t find that service. Please try again." };
+    logStep(log, "deleteService:not_found", { serviceId: id });
+    return { error: "We couldn't find that service. Please try again." };
   }
 
   const stripeAccountId = await getStripeAccountId(supabase, user.id);
@@ -327,25 +340,25 @@ export async function deleteService(id: string) {
         stripeProductId: existing.stripe_product_id ?? null,
         stripePriceId: existing.stripe_price_id ?? null,
       });
+      logStep(log, "deleteService:stripe_archived", { serviceId: id });
     } catch (syncError) {
-      console.error("[Services] Stripe archive failed:", syncError);
-      return { error: "We couldn’t remove that Stripe product. Please try again." };
+      logStepError(log, "deleteService:stripe_archive_failed", syncError, { serviceId: id });
+      return { error: "We couldn't remove that Stripe product. Please try again." };
     }
   }
 
-  const { error } = await supabase
-    .from("services")
-    .delete()
-    .eq("id", id)
-    .eq("tutor_id", user.id);
+  logStep(log, "softDelete:service", { serviceId: id, deletedAt: new Date().toISOString() });
+  const result = await softDeleteService(supabase, id, user.id);
 
-  if (error) {
-    return { error: "We couldn’t delete that service. Please try again." };
+  if (!result.success) {
+    logStepError(log, "softDelete:service:failed", result.error, { serviceId: id });
+    return { error: "We couldn't delete that service. Please try again." };
   }
 
   revalidatePath("/services");
   revalidatePath("/marketing/links");
   revalidatePath("/@");
 
+  logStep(log, "deleteService:success", { serviceId: id });
   return { success: true };
 }

@@ -12,7 +12,6 @@
  */
 
 import pino from "pino";
-import { headers } from "next/headers";
 import { randomUUID } from "crypto";
 
 // ============================================================================
@@ -46,13 +45,17 @@ export default logger;
 /**
  * Get traceId from x-request-id header or generate a UUID fallback.
  * Safe to call in any context (handles missing headers gracefully).
+ * Uses dynamic import for next/headers to support Node.js test environment.
  */
 export async function getTraceId(): Promise<string> {
 	try {
+		// Dynamic import to avoid breaking Node.js test environment
+		const { headers } = await import("next/headers");
 		const headersList = await headers();
 		return headersList.get("x-request-id") || randomUUID();
 	} catch {
 		// headers() throws if called outside of a request context
+		// or if next/headers module is unavailable (test environment)
 		return randomUUID();
 	}
 }

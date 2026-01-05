@@ -115,6 +115,7 @@ export async function getBookingById(
 		.from("bookings")
 		.select(selectClause)
 		.eq("id", bookingId)
+		.is("deleted_at", null)
 		.single();
 
 	if (error) {
@@ -163,6 +164,7 @@ export async function listBookingsForTutor(
 		.from("bookings")
 		.select(selectClause)
 		.eq("tutor_id", tutorId)
+		.is("deleted_at", null)
 		.order("scheduled_at", { ascending: true });
 
 	if (options?.statuses) {
@@ -196,6 +198,7 @@ export async function countBookingsInRange(
 		.from("bookings")
 		.select("id", { count: "exact", head: true })
 		.eq("tutor_id", tutorId)
+		.is("deleted_at", null)
 		.in("status", ["pending", "confirmed"])
 		.gte("scheduled_at", start.toISOString())
 		.lte("scheduled_at", end.toISOString());
@@ -231,6 +234,7 @@ export async function checkBookingConflicts(
 		.from("bookings")
 		.select("id, scheduled_at, duration_minutes")
 		.eq("tutor_id", tutorId)
+		.is("deleted_at", null)
 		.in("status", ["pending", "confirmed"])
 		.gte("scheduled_at", windowStart.toISOString())
 		.lte("scheduled_at", windowEnd.toISOString());
@@ -346,6 +350,7 @@ export async function getServiceById(
 		)
 		.eq("id", serviceId)
 		.eq("tutor_id", tutorId)
+		.is("deleted_at", null)
 		.single();
 
 	if (error) {
@@ -510,7 +515,30 @@ export async function updateBookingCheckoutSession(
 // ============================================================================
 
 /**
- * Delete a booking (used for race condition cleanup).
+ * Soft delete a booking by setting deleted_at timestamp.
+ * Returns success/error result instead of throwing.
+ */
+export async function softDeleteBooking(
+	client: SupabaseClient,
+	bookingId: string,
+	tutorId: string
+): Promise<{ success: boolean; error?: string }> {
+	const { error } = await client
+		.from("bookings")
+		.update({ deleted_at: new Date().toISOString() })
+		.eq("id", bookingId)
+		.eq("tutor_id", tutorId)
+		.is("deleted_at", null);
+
+	if (error) {
+		return { success: false, error: error.message };
+	}
+	return { success: true };
+}
+
+/**
+ * Hard delete a booking (used only for race condition cleanup).
+ * @deprecated Use softDeleteBooking() for normal deletion.
  */
 export async function deleteBooking(
 	client: SupabaseClient,
@@ -550,12 +578,13 @@ export async function getOrCreateStudent(
 		source?: string;
 	}
 ): Promise<{ id: string; user_id: string | null; isNew: boolean }> {
-	// Check if student exists
+	// Check if student exists (exclude soft-deleted)
 	const { data: existing, error: existingError } = await client
 		.from("students")
 		.select("id, user_id, status")
 		.eq("tutor_id", tutorId)
 		.eq("email", studentData.email.toLowerCase().trim())
+		.is("deleted_at", null)
 		.single();
 
 	if (existingError && existingError.code !== "PGRST116") {
@@ -633,6 +662,7 @@ export async function getStudentById(
 		.select("id, user_id, full_name, email, timezone, status")
 		.eq("id", studentId)
 		.eq("tutor_id", tutorId)
+		.is("deleted_at", null)
 		.single();
 
 	if (error) {
@@ -658,6 +688,7 @@ export async function getStudentByEmail(
 		.select("id, user_id, full_name, email, timezone, status")
 		.eq("tutor_id", tutorId)
 		.eq("email", email.toLowerCase().trim())
+		.is("deleted_at", null)
 		.single();
 
 	if (error) {
