@@ -42,6 +42,7 @@ export default async function CalendarPage() {
       services={services}
       students={students}
       tutorTimezone={profile?.timezone ?? "UTC"}
+      tutorId={user.id}
     />
   );
 }

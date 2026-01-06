@@ -10,9 +10,8 @@ import {
   getApprovedTutors,
   getTutorForBooking,
   getTutorBookings,
-  type TutorSearchResult,
-  type TutorWithDetails,
 } from "@/lib/actions/student-connections";
+import type { TutorSearchResult, TutorWithDetails } from "@/lib/actions/types";
 import { generateBookableSlots, groupSlotsByDate, filterFutureSlots, type BookableSlot } from "@/lib/utils/slots";
 import { StudentBookingForm } from "./StudentBookingForm";
 import { formatCurrency } from "@/lib/utils";

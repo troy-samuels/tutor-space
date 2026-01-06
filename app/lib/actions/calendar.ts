@@ -9,6 +9,7 @@ import {
   type CalendarProvider,
 } from "@/lib/calendar/config";
 import { formatCalendarConfigIssues } from "@/lib/calendar/errors";
+import type { CalendarConnectionStatus } from "@/lib/actions/types";
 
 type CalendarConnectionRow = {
   provider: CalendarProvider;
@@ -17,16 +18,6 @@ type CalendarConnectionRow = {
   last_synced_at: string | null;
   sync_status: string;
   error_message: string | null;
-};
-
-export type CalendarConnectionStatus = {
-  provider: CalendarProvider;
-  connected: boolean;
-  accountEmail?: string | null;
-  accountName?: string | null;
-  lastSyncedAt?: string | null;
-  syncStatus?: string;
-  error?: string | null;
 };
 
 async function requireTutor() {

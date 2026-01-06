@@ -2,6 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type {
+  SchedulingPreferences,
+  RecurringBlockedTime,
+  RecurringBlockedTimeInput,
+  TimeOffPeriod,
+  TimeOffPeriodInput,
+  ExpandedRecurringBlock,
+} from "@/lib/actions/types";
 
 async function requireTutor() {
   const supabase = await createClient();
@@ -20,14 +28,6 @@ async function requireTutor() {
 // ============================================
 // SCHEDULING PREFERENCES
 // ============================================
-
-export type SchedulingPreferences = {
-  maxLessonsPerDay: number | null;
-  maxLessonsPerWeek: number | null;
-  advanceBookingDaysMin: number;
-  advanceBookingDaysMax: number;
-  bufferTimeMinutes: number;
-};
 
 export async function getSchedulingPreferences(): Promise<{
   preferences: SchedulingPreferences | null;
@@ -110,28 +110,6 @@ export async function saveSchedulingPreferences(
 // ============================================
 // RECURRING BLOCKED TIMES
 // ============================================
-
-export type RecurringBlockedTime = {
-  id: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  label: string | null;
-  isActive: boolean;
-  effectiveFrom: string | null;
-  effectiveUntil: string | null;
-  createdAt: string;
-};
-
-export type RecurringBlockedTimeInput = {
-  dayOfWeek: number;
-  startTime: string; // HH:MM format
-  endTime: string; // HH:MM format
-  label?: string;
-  isActive?: boolean;
-  effectiveFrom?: string; // YYYY-MM-DD format
-  effectiveUntil?: string; // YYYY-MM-DD format
-};
 
 export async function listRecurringBlockedTimes(): Promise<{
   items: RecurringBlockedTime[];
@@ -306,30 +284,6 @@ export async function deleteRecurringBlockedTime(
 // TIME-OFF PERIODS
 // ============================================
 
-export type TimeOffPeriod = {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  allDay: boolean;
-  startTime: string | null;
-  endTime: string | null;
-  showOnCalendar: boolean;
-  blockBookings: boolean;
-  createdAt: string;
-};
-
-export type TimeOffPeriodInput = {
-  name: string;
-  startDate: string; // YYYY-MM-DD format
-  endDate: string; // YYYY-MM-DD format
-  allDay?: boolean;
-  startTime?: string; // HH:MM format
-  endTime?: string; // HH:MM format
-  showOnCalendar?: boolean;
-  blockBookings?: boolean;
-};
-
 export async function listTimeOffPeriods(): Promise<{
   items: TimeOffPeriod[];
   error?: string;
@@ -503,14 +457,6 @@ export async function deleteTimeOffPeriod(
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
-
-export type ExpandedRecurringBlock = {
-  id: string;
-  occurrenceDate: string;
-  startTime: string;
-  endTime: string;
-  label: string | null;
-};
 
 export async function expandRecurringBlocksForRange(
   startDate: string,

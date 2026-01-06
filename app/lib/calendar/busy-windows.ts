@@ -306,12 +306,16 @@ async function ensureFreshAccessToken(
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    const requiresReauth = errorText.includes("invalid_grant");
     console.error("[CalendarBusy] Refresh token request failed", response.status, connection.id);
     await adminClient
       .from("calendar_connections")
       .update({
         sync_status: "error",
-        error_message: `Token refresh failed (${response.status}).`,
+        error_message: requiresReauth
+          ? "Google authorization expired. Please reconnect."
+          : `Token refresh failed (${response.status}).`,
       })
       .eq("id", connection.id);
     return null;
@@ -357,61 +361,39 @@ async function fetchGoogleBusyWindows(
   timeMin: string,
   timeMax: string
 ): Promise<TimeWindow[]> {
-  const windows: TimeWindow[] = [];
-  let pageToken: string | undefined;
+  const response = await fetch("https://www.googleapis.com/calendar/v3/freebusy", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      timeMin,
+      timeMax,
+      items: [{ id: "primary" }],
+    }),
+  });
 
-  do {
-    // Use events.list so calendar.events scope (events-only) is sufficient
-    const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
-    url.searchParams.set("timeMin", timeMin);
-    url.searchParams.set("timeMax", timeMax);
-    url.searchParams.set("singleEvents", "true");
-    url.searchParams.set("orderBy", "startTime");
-    url.searchParams.set("showDeleted", "false");
-    url.searchParams.set("maxResults", "2500"); // high cap to minimize pagination
-    url.searchParams.set(
-      "fields",
-      "items(id,start,end,status,transparency),nextPageToken"
-    );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Google freebusy failed with status ${response.status}: ${errorText}`);
+  }
 
-    if (pageToken) {
-      url.searchParams.set("pageToken", pageToken);
-    }
+  const data = await response.json();
+  const busy = data?.calendars?.primary?.busy;
+  if (!Array.isArray(busy)) {
+    return [];
+  }
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Google events failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const items = Array.isArray(data?.items) ? data.items : [];
-
-    for (const item of items as Array<{
-      id?: string;
-      start?: { dateTime?: string; date?: string };
-      end?: { dateTime?: string; date?: string };
-      status?: string;
-      transparency?: string;
-    }>) {
-      if (item.status === "cancelled") continue;
-      if (item.transparency === "transparent") continue; // treat free blocks as available
-
-      const startIso = googleDateToIso(item.start);
-      const endIso = googleDateToIso(item.end);
-      if (!startIso || !endIso) continue;
-
-      windows.push({ start: startIso, end: endIso });
-    }
-
-    pageToken = typeof data?.nextPageToken === "string" ? data.nextPageToken : undefined;
-  } while (pageToken);
-
-  return windows;
+  return busy
+    .map((slot: { start?: string; end?: string }) => {
+      if (!slot.start || !slot.end) return null;
+      const startIso = googleDateToIso({ dateTime: slot.start });
+      const endIso = googleDateToIso({ dateTime: slot.end });
+      if (!startIso || !endIso) return null;
+      return { start: startIso, end: endIso };
+    })
+    .filter((slot: TimeWindow | null): slot is TimeWindow => Boolean(slot));
 }
 
 async function fetchOutlookBusyWindows(

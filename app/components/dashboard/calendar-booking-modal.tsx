@@ -29,6 +29,7 @@ type CalendarBookingModalProps = {
   services: ServiceSummary[];
   students: StudentSummary[];
   tutorTimezone: string;
+  tutorId: string;
 };
 
 export function CalendarBookingModal({
@@ -40,6 +41,7 @@ export function CalendarBookingModal({
   services,
   students,
   tutorTimezone,
+  tutorId,
 }: CalendarBookingModalProps) {
   const defaultDate = initialDate || new Date();
   const defaultHour = initialHour ?? 9;
@@ -103,10 +105,13 @@ export function CalendarBookingModal({
         }
         // Import ensureStudent dynamically
         const { ensureStudent } = await import("@/lib/actions/students");
+        const normalizedEmail = newStudentEmail.trim().toLowerCase();
+        const clientMutationId = `idempotency-student-${tutorId}-${normalizedEmail}`;
         const studentResult = await ensureStudent({
           full_name: newStudentName.trim(),
-          email: newStudentEmail.trim().toLowerCase(),
+          email: normalizedEmail,
           timezone: newStudentTimezone,
+          clientMutationId,
         });
         if (studentResult.error) {
           setError(studentResult.error);

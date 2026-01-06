@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Video, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
-import { getDailyLessons, type DailyLesson } from "@/lib/actions/calendar-sidebar";
+import { getDailyLessons } from "@/lib/actions/calendar-sidebar";
+import type { DailyLesson } from "@/lib/actions/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 

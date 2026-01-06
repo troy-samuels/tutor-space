@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import type { CalendarEvent, CalendarViewType } from "@/lib/types/calendar";
 import { rescheduleBooking } from "@/lib/actions/bookings";
 import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
-import { getDailyLessons, type DailyLesson } from "@/lib/actions/calendar-sidebar";
+import { getDailyLessons } from "@/lib/actions/calendar-sidebar";
+import type { DailyLesson } from "@/lib/actions/types";
 import { getDayEvents } from "@/lib/actions/calendar-events";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { detectUserTimezone } from "@/lib/utils/timezones";
@@ -48,6 +49,7 @@ type CalendarPageClientProps = {
   services?: ServiceSummary[];
   students?: StudentSummary[];
   tutorTimezone?: string;
+  tutorId: string;
 };
 
 export function CalendarPageClient({
@@ -55,6 +57,7 @@ export function CalendarPageClient({
   services = [],
   students = [],
   tutorTimezone = "UTC",
+  tutorId,
 }: CalendarPageClientProps) {
   const [view, setView] = useState<CalendarViewType>("month");
   const [activeDate, setActiveDate] = useState<Date>(new Date());
@@ -557,6 +560,7 @@ export function CalendarPageClient({
         services={services}
         students={students}
         tutorTimezone={tutorTimezone}
+        tutorId={tutorId}
       />
 
       <RescheduleDialog

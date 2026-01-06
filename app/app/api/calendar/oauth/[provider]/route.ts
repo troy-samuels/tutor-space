@@ -198,26 +198,30 @@ export async function GET(
     }, isPopup);
   }
 
-  const { error: upsertError } = await supabase.from("calendar_connections").upsert(
-    {
-      tutor_id: user.id,
-      provider: typedProvider,
-      provider_account_id: providerAccountId,
-      account_email: accountEmail,
-      account_name: accountName,
-      access_token_encrypted: accessTokenEncrypted,
-      refresh_token_encrypted: refreshTokenEncrypted,
-      access_token_expires_at: expiresAt,
-      scope: tokenResponse.scope ?? config.scopes.join(" "),
-      sync_enabled: true, // Explicitly set to ensure dashboard sync works
-      sync_status: "healthy",
-      last_synced_at: new Date().toISOString(),
-      error_message: null,
-    },
-    {
+  const upsertPayload: Record<string, unknown> = {
+    tutor_id: user.id,
+    provider: typedProvider,
+    provider_account_id: providerAccountId,
+    account_email: accountEmail,
+    account_name: accountName,
+    access_token_encrypted: accessTokenEncrypted,
+    access_token_expires_at: expiresAt,
+    scope: tokenResponse.scope ?? config.scopes.join(" "),
+    sync_enabled: true, // Explicitly set to ensure dashboard sync works
+    sync_status: "healthy",
+    last_synced_at: new Date().toISOString(),
+    error_message: null,
+  };
+
+  if (refreshTokenEncrypted) {
+    upsertPayload.refresh_token_encrypted = refreshTokenEncrypted;
+  }
+
+  const { error: upsertError } = await supabase
+    .from("calendar_connections")
+    .upsert(upsertPayload, {
       onConflict: "tutor_id,provider",
-    }
-  );
+    });
 
   if (upsertError) {
     console.error("[Calendar OAuth] saving connection failed", upsertError);

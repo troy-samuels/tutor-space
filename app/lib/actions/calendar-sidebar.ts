@@ -4,25 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "date-fns";
 import { getDashboardExternalEvents } from "@/lib/actions/calendar-events";
 import type { PackageType } from "@/lib/types/calendar";
-
-export type DailyLesson = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  status: string;
-  meeting_url: string | null;
-  meeting_provider: string | null;
-  payment_status: string | null;
-  packageType: PackageType;
-  student: {
-    id: string;
-    full_name: string;
-    email: string;
-  } | null;
-  service: {
-    name: string;
-  } | null;
-};
+import type { DailyLesson, DayBookingInfo } from "@/lib/actions/types";
 
 // Helper to map offer_type to PackageType
 function mapOfferTypeToPackageType(offerType?: string | null): PackageType {
@@ -65,6 +47,7 @@ export async function getDailyLessons(date: Date) {
     .gte("scheduled_at", dayStart)
     .lte("scheduled_at", dayEnd)
     .in("status", ["pending", "confirmed", "completed"])
+    .is("deleted_at", null)
     .order("scheduled_at", { ascending: true });
 
   if (error) {
@@ -100,11 +83,6 @@ export async function getDailyLessons(date: Date) {
 }
 
 // Type for booking counts with package type information
-export type DayBookingInfo = {
-  count: number;
-  packageTypes: PackageType[];
-};
-
 export async function getMonthlyBookingCounts(year: number, month: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -131,7 +109,8 @@ export async function getMonthlyBookingCounts(year: number, month: number) {
       .eq("tutor_id", user.id)
       .gte("scheduled_at", monthStart)
       .lte("scheduled_at", monthEnd)
-      .in("status", ["pending", "confirmed", "completed"]),
+      .in("status", ["pending", "confirmed", "completed"])
+      .is("deleted_at", null),
     // 2. External calendar events (uses service role via helper)
     getDashboardExternalEvents({ tutorId: user.id, year, month }),
   ]);

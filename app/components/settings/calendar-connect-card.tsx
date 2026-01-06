@@ -3,11 +3,8 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, CalendarDays } from "lucide-react";
-import {
-  requestCalendarConnection,
-  disconnectCalendar,
-  type CalendarConnectionStatus,
-} from "@/lib/actions/calendar";
+import { requestCalendarConnection, disconnectCalendar } from "@/lib/actions/calendar";
+import type { CalendarConnectionStatus } from "@/lib/actions/types";
 
 const ICONS = {
   google: CalendarDays,

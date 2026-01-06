@@ -3,7 +3,7 @@
 import { Ban, CalendarDays, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import type { DailyLesson } from "@/lib/actions/calendar-sidebar";
+import type { DailyLesson } from "@/lib/actions/types";
 import type { CalendarEvent } from "@/lib/types/calendar";
 import { StudentLessonCard } from "./student-lesson-card";
 

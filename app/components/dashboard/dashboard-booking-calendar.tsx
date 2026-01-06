@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isBefore, isSameDay, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek, subMonths } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { getMonthlyBookingCounts, type DayBookingInfo } from "@/lib/actions/calendar-sidebar";
+import { getMonthlyBookingCounts } from "@/lib/actions/calendar-sidebar";
+import type { DayBookingInfo } from "@/lib/actions/types";
 import { PACKAGE_COLORS, type PackageType } from "@/lib/types/calendar";
 
 type DashboardBookingCalendarProps = {
