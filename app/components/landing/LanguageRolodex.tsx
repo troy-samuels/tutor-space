@@ -20,34 +20,16 @@ const LANGUAGES = [
 export function LanguageRolodex() {
   const [position, setPosition] = useState(0);
   const [isAnimating, setIsAnimating] = useState(true);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    // Check for reduced motion preference
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-
     const interval = setInterval(() => {
       setPosition((prev) => prev + 1);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [prefersReducedMotion]);
+  }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
-
     if (position === LANGUAGES.length) {
       const timeout = setTimeout(() => {
         setIsAnimating(false);
@@ -59,18 +41,10 @@ export function LanguageRolodex() {
 
       return () => clearTimeout(timeout);
     }
-  }, [position, prefersReducedMotion]);
+  }, [position]);
 
   const currentIndex = position % LANGUAGES.length;
   const extendedLanguages = [...LANGUAGES, LANGUAGES[0]];
-
-  if (prefersReducedMotion) {
-    return (
-      <span className="inline-block font-bold text-primary">
-        languages
-      </span>
-    );
-  }
 
   const lineHeight = 1.2;
 
