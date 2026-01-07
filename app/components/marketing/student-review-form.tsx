@@ -6,7 +6,8 @@ import { useFormState } from "react-dom";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { submitTutorSiteReview, type SubmitReviewState, type ExistingReview } from "@/lib/actions/reviews";
+import { submitTutorSiteReview } from "@/lib/actions/reviews";
+import type { SubmitReviewState, ExistingReview } from "@/lib/actions/types";
 import { cn } from "@/lib/utils";
 
 export type StudentReviewFormProps = {

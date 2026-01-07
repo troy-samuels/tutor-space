@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentJourneyClient } from "./StudentJourneyClient";
 import { getStudentJourney } from "@/lib/actions/student-timeline";
 import { getStudentProgress } from "@/lib/actions/progress";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentSession, getStudentDisplayName } from "@/lib/auth";
 
 export const metadata = {
   title: "My Journey | TutorLingua",
@@ -13,13 +13,14 @@ export const metadata = {
 };
 
 export default async function StudentJourneyPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Cached auth call - deduplicates across the request
+  const { user, student } = await getStudentSession();
 
   if (!user) {
     redirect("/student/login");
   }
 
+  const studentName = getStudentDisplayName(student, user);
   // Fetch journey data, progress, and subscription in parallel
   // getStudentJourney() returns events, milestones, and stats
   const [journeyResult, progressData, { data: subscriptionSummary }, avatarUrl] = await Promise.all([
@@ -44,7 +45,7 @@ export default async function StudentJourneyPage() {
 
   return (
     <StudentPortalLayout
-      studentName={user.email}
+      studentName={studentName}
       avatarUrl={avatarUrl}
       subscriptionSummary={subscriptionSummary}
       homeworkCount={openHomeworkCount}

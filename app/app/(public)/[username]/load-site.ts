@@ -3,12 +3,17 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseLanguagesWithFlags } from "@/lib/utils/language-flags";
+import {
+  getPublicProfileByUsernameWithEmail,
+  getTutorSiteByTutorIdAndStatus,
+  listSiteResourcesForPublicPage,
+  listSiteReviewsForPublicPage,
+  listSiteServicesBySiteId,
+} from "@/lib/repositories/tutor-sites";
 
 type PageParams = {
   username: string;
 };
-
-export type PublicSiteData = Awaited<ReturnType<typeof loadPublicSite>>;
 
 export async function loadPublicSite(
   params: PageParams,
@@ -24,44 +29,27 @@ export async function loadPublicSite(
     { data: profile },
   ] = await Promise.all([
     supabase.auth.getUser(),
-    supabase
-      .from("public_profiles")
-      .select(
-        "id, full_name, username, tagline, bio, avatar_url, email, stripe_payment_link, languages_taught, instagram_handle, tiktok_handle, facebook_handle, x_handle, website_url"
-      )
-      .eq("username", params.username.toLowerCase())
-      .single(),
+    getPublicProfileByUsernameWithEmail(supabase, params.username.toLowerCase()),
   ]);
 
   if (!profile) {
     notFound();
   }
 
-  const { data: site } = await supabase
-    .from("tutor_sites")
-    .select("*")
-    .eq("tutor_id", profile.id)
-    .eq("status", "published")
-    .single();
+  const { data: site } = await getTutorSiteByTutorIdAndStatus(
+    supabase,
+    profile.id,
+    "published"
+  );
 
   if (!site) {
     notFound();
   }
 
   const [siteServicesResult, reviewsResult, resourcesResult, studentRecordResult] = await Promise.all([
-    supabase
-      .from("tutor_site_services")
-      .select("service_id")
-      .eq("tutor_site_id", site.id),
-    supabase
-      .from("tutor_site_reviews")
-      .select("author_name, quote, rating")
-      .eq("tutor_site_id", site.id)
-      .order("sort_order"),
-    supabase
-      .from("tutor_site_resources")
-      .select("id, label, url")
-      .eq("tutor_site_id", site.id),
+    listSiteServicesBySiteId(supabase, site.id),
+    listSiteReviewsForPublicPage(supabase, site.id),
+    listSiteResourcesForPublicPage(supabase, site.id),
     user
       ? supabase
           .from("students")

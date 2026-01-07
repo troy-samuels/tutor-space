@@ -17,7 +17,7 @@ import {
   Trophy,
   TrendingUp,
 } from "lucide-react";
-import type { TimelineEvent } from "@/lib/actions/student-timeline";
+import type { TimelineEvent } from "@/lib/actions/types";
 
 type StudentJourneyClientProps = {
   events: TimelineEvent[];

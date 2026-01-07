@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { EmailAudienceId } from "@/lib/constants/email-audiences";
 import { queueEmailCampaign } from "@/lib/server/email-queue";
+import type { BroadcastActionState } from "@/lib/actions/types";
 
 const audienceValues: EmailAudienceId[] = [
   "all",
@@ -23,11 +24,6 @@ const sendBroadcastSchema = z.object({
   send_option: z.enum(["now", "schedule"]).default("now"),
   scheduled_for: z.string().optional(),
 });
-
-export type BroadcastActionState = {
-  error?: string;
-  success?: string;
-};
 
 export async function sendBroadcastEmail(
   _prevState: BroadcastActionState,

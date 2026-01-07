@@ -31,13 +31,21 @@ export { resetPassword, updatePassword } from "./password";
 // OAuth Flows
 export { signInWithOAuth, signInWithGoogleIdToken } from "./oauth";
 
-// Helpers (for internal use and testing)
+// Utilities (sync functions)
 export {
 	isStripeConfigured,
 	isStudentPath,
 	resolveStudentRedirect,
 	resolveTutorRedirect,
+	resolveAuthCallbackBase,
+	buildAuthCallbackUrlFromHeaders,
+	convertToProxyVerifyUrl,
+} from "./utils";
+
+// Helpers (async server actions)
+export {
 	withTimeout,
 	getClientIp,
 	getUserAgent,
+	sendFastVerificationEmail,
 } from "./helpers";

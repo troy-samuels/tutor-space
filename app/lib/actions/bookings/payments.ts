@@ -7,6 +7,12 @@ import {
 	sendBookingPaymentRequestEmail,
 } from "@/lib/emails/booking-emails";
 import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
+import {
+	getBookingForPayment,
+	markBookingPaid,
+	getFullTutorProfileForBooking,
+	updateBookingCheckoutSession,
+} from "@/lib/repositories/bookings";
 import { requireTutor } from "./helpers";
 import {
 	getTraceId,
@@ -26,7 +32,7 @@ import { recordAudit } from "@/lib/repositories/audit";
  */
 export async function markBookingAsPaid(bookingId: string) {
 	const traceId = await getTraceId();
-	const { supabase, user } = await requireTutor();
+	const { user } = await requireTutor();
 
 	if (!user) {
 		return { error: "You need to be signed in to update bookings." };
@@ -35,39 +41,15 @@ export async function markBookingAsPaid(bookingId: string) {
 	const log = createRequestLogger(traceId, user.id);
 	logStep(log, "markBookingAsPaid:start", { bookingId });
 
-	// Verify the booking belongs to this tutor
-	const { data: booking, error: fetchError } = await supabase
-		.from("bookings")
-		.select(
-			`
-				id,
-				tutor_id,
-				status,
-				payment_status,
-				scheduled_at,
-				timezone,
-				payment_amount,
-				currency,
-				services (
-					name,
-					price_amount,
-					price_currency,
-					duration_minutes
-				),
-				students (
-					full_name,
-					email
-				),
-				tutor:profiles!bookings_tutor_id_fkey (
-					full_name,
-					email
-				)
-			`
-		)
-		.eq("id", bookingId)
-		.single();
+	const adminClient = createServiceRoleClient();
+	if (!adminClient) {
+		return { error: "Service unavailable. Please try again." };
+	}
 
-	if (fetchError || !booking) {
+	// Verify the booking belongs to this tutor using repository
+	const booking = await getBookingForPayment(adminClient, bookingId, user.id);
+
+	if (!booking) {
 		return { error: "Booking not found." };
 	}
 
@@ -79,19 +61,10 @@ export async function markBookingAsPaid(bookingId: string) {
 	const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
 	const tutorProfile = Array.isArray(booking.tutor) ? booking.tutor[0] : booking.tutor;
 
-	// Update booking status
-	// SECURITY: Include tutor_id check in UPDATE for defense-in-depth
-	const { error: updateError } = await supabase
-		.from("bookings")
-		.update({
-			status: "confirmed",
-			payment_status: "paid",
-			updated_at: new Date().toISOString(),
-		})
-		.eq("id", bookingId)
-		.eq("tutor_id", user.id);
-
-	if (updateError) {
+	// Update booking status using repository
+	try {
+		await markBookingPaid(adminClient, bookingId, user.id);
+	} catch (updateError) {
 		logStepError(log, "markBookingAsPaid:update_failed", updateError, { bookingId });
 		return { error: "Failed to mark booking as paid. Please try again." };
 	}
@@ -99,7 +72,7 @@ export async function markBookingAsPaid(bookingId: string) {
 	logStep(log, "markBookingAsPaid:status_updated", { bookingId });
 
 	// Record audit log for manual payment
-	await recordAudit(supabase, {
+	await recordAudit(adminClient, {
 		actorId: user.id,
 		targetId: bookingId,
 		entityType: "booking",
@@ -173,7 +146,7 @@ export async function markBookingAsPaid(bookingId: string) {
  */
 export async function sendPaymentRequestForBooking(bookingId: string) {
 	const traceId = await getTraceId();
-	const { supabase, user } = await requireTutor();
+	const { user } = await requireTutor();
 
 	if (!user) {
 		return { error: "You need to be signed in." };
@@ -188,34 +161,10 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 		return { error: "Service unavailable." };
 	}
 
-	// Fetch booking with student, service, and tutor profile
-	const { data: booking, error: fetchError } = await supabase
-		.from("bookings")
-		.select(`
-			id,
-			tutor_id,
-			scheduled_at,
-			duration_minutes,
-			timezone,
-			payment_amount,
-			currency,
-			services (
-				id,
-				name,
-				price_amount,
-				price_currency
-			),
-			students (
-				id,
-				full_name,
-				email,
-				timezone
-			)
-		`)
-		.eq("id", bookingId)
-		.single();
+	// Fetch booking with student, service, and tutor profile using repository
+	const booking = await getBookingForPayment(adminClient, bookingId, user.id);
 
-	if (fetchError || !booking) {
+	if (!booking) {
 		return { error: "Booking not found." };
 	}
 
@@ -230,19 +179,8 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 		return { error: "Student email not found." };
 	}
 
-	// Get tutor profile for payment settings
-	const { data: tutorProfile } = await adminClient
-		.from("profiles")
-		.select(`
-			full_name, email, timezone,
-			stripe_account_id, stripe_charges_enabled, stripe_onboarding_status,
-			payment_instructions, venmo_handle, paypal_email, zelle_phone,
-			stripe_payment_link, custom_payment_url,
-			video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
-			custom_video_url, custom_video_name
-		`)
-		.eq("id", user.id)
-		.single();
+	// Get tutor profile for payment settings using repository
+	const tutorProfile = await getFullTutorProfileForBooking(adminClient, user.id);
 
 	if (!tutorProfile) {
 		return { error: "Could not load tutor profile." };
@@ -294,17 +232,14 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 						amount: paymentAmount,
 					},
 				],
-				transferDestinationAccountId: tutorProfile.stripe_account_id,
+				transferDestinationAccountId: tutorProfile.stripe_account_id ?? undefined,
 			});
 
 			paymentUrl = session.url ?? undefined;
 
-			// Store checkout session ID on booking
+			// Store checkout session ID on booking using repository
 			if (session.id) {
-				await adminClient
-					.from("bookings")
-					.update({ stripe_checkout_session_id: session.id })
-					.eq("id", bookingId);
+				await updateBookingCheckoutSession(adminClient, bookingId, session.id);
 			}
 		} catch (stripeError) {
 			logStepError(log, "sendPaymentRequest:stripe_checkout_failed", stripeError, { bookingId });

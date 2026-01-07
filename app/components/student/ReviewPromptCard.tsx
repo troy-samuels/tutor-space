@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Star, Edit2 } from "lucide-react";
-import type { TutorForReview } from "@/lib/actions/reviews";
+import type { TutorForReview } from "@/lib/actions/types";
 
 type ReviewPromptCardProps = {
   tutor: TutorForReview;

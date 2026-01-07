@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { approveStudentAccessWithClients } from "../lib/actions/students.ts";
+// Import directly from access.ts to avoid pulling in next/headers from barrel exports
+import { approveStudentAccessWithClients } from "../lib/actions/students/access.ts";
 
 type ApproveSupabaseClient = Parameters<typeof approveStudentAccessWithClients>[0];
 type ApproveAdminClient = Parameters<typeof approveStudentAccessWithClients>[1];
@@ -11,6 +12,7 @@ type SendApprovedEmailFn = NonNullable<ApproveOptions>["sendApprovedEmail"];
 type SelectChain<T> = {
   filters: Array<{ column: string; value: unknown }>;
   eq: (column: string, value: unknown) => SelectChain<T>;
+  is: (column: string, value: unknown) => SelectChain<T>;
   single: () => Promise<{ data: T | null; error: unknown }>;
 };
 
@@ -27,10 +29,15 @@ function createSelectChain<T>(result: T | null): SelectChain<T> {
       this.filters.push({ column, value });
       return this;
     },
+    is(column, value) {
+      this.filters.push({ column, value });
+      return this;
+    },
     async single() {
+      // Return null data without error - repository layer checks for null, not error
       return {
         data: result,
-        error: result ? null : new Error("not found"),
+        error: null,
       };
     },
   };
@@ -102,10 +109,15 @@ function buildAdminClient({
           return {
             select: () => profileSelect ?? createSelectChain(null),
           };
+        case "audit_logs":
+          return {
+            insert: () => Promise.resolve({ data: null, error: null }),
+          };
         default:
           return {
             select: () => createSelectChain(null),
             update: () => createUpdateChain(),
+            insert: () => Promise.resolve({ data: null, error: null }),
           };
       }
     },

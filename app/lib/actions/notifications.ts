@@ -2,44 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-
-export type NotificationType =
-  | "booking_new"
-  | "booking_confirmed"
-  | "booking_cancelled"
-  | "booking_reminder"
-  | "payment_received"
-  | "payment_failed"
-  | "message_new"
-  | "message_reply"
-  | "student_new"
-  | "student_access_request"
-  | "package_purchased"
-  | "package_expiring"
-  | "review_received"
-  | "review_approved"
-  | "system_announcement"
-  | "account_update"
-  | "homework_assigned"
-  | "homework_due_reminder"
-  | "homework_submission_received"
-  | "drill_assigned"
-  | "drill_due_reminder";
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  user_role: "tutor" | "student";
-  type: NotificationType;
-  title: string;
-  body: string | null;
-  icon: string | null;
-  link: string | null;
-  metadata: Record<string, unknown>;
-  read: boolean;
-  read_at: string | null;
-  created_at: string;
-}
+import type { NotificationType, Notification } from "@/lib/actions/types";
 
 /**
  * Get notifications for the current user

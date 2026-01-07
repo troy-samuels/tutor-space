@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DrillWithContext, DrillType } from "@/lib/actions/drills";
+import type { DrillWithContext, DrillType } from "@/lib/actions/types";
 
 interface DrillsListClientProps {
   pendingDrills: DrillWithContext[];

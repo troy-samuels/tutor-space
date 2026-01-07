@@ -39,9 +39,8 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
-  type Notification,
-  type NotificationType,
 } from "@/lib/actions/notifications";
+import type { Notification, NotificationType } from "@/lib/actions/types";
 import { formatDistanceToNow, format } from "date-fns";
 
 const iconMap: Record<NotificationType, React.ComponentType<{ className?: string }>> = {

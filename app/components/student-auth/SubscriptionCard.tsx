@@ -5,7 +5,7 @@ import { CreditCard, ArrowRight, Pause } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { StudentSubscriptionCredit } from "@/lib/actions/student-bookings";
+import type { StudentSubscriptionCredit } from "@/lib/actions/types";
 
 type SubscriptionCardProps = {
   subscription: StudentSubscriptionCredit;

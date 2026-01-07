@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { SiteConfig } from "@/lib/types/site";
 import { normalizeSiteConfig } from "@/lib/site/site-config";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import { getSiteConfigByTutorId } from "@/lib/repositories/tutor-sites";
 import StudioEditorClient from "./editor/studio-editor-client";
 
 export const dynamic = "force-dynamic";
@@ -54,11 +55,10 @@ export default async function PagesBuilder() {
       )
       .eq("id", user.id)
       .maybeSingle<ProfileBasics>(),
-    supabase
-      .from("tutor_sites")
-      .select("id, config")
-      .eq("tutor_id", user.id)
-      .maybeSingle<{ id: string; config: SiteConfig | null }>(),
+    getSiteConfigByTutorId(supabase, user.id) as Promise<{
+      data: { id: string; config: SiteConfig | null } | null;
+      error: { code?: string } | null;
+    }>,
     supabase
       .from("services")
       .select("id, name, description, is_active")

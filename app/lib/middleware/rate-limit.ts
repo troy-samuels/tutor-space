@@ -292,4 +292,36 @@ export const ServerActionLimiters = {
       window: 10 * 60 * 1000, // 10 minutes
       prefix: "sa:access",
     }),
+
+  // Email invite: 10 emails per 5 minutes (prevents spam)
+  email: (headersList: Headers) =>
+    rateLimitServerAction(headersList, {
+      limit: 10,
+      window: 5 * 60 * 1000, // 5 minutes
+      prefix: "sa:email",
+    }),
+
+  // Bulk import: 3 imports per 10 minutes (prevents resource exhaustion)
+  import: (headersList: Headers) =>
+    rateLimitServerAction(headersList, {
+      limit: 3,
+      window: 10 * 60 * 1000, // 10 minutes
+      prefix: "sa:import",
+    }),
+
+  // File upload: 20 uploads per 5 minutes (prevents storage exhaustion)
+  upload: (headersList: Headers) =>
+    rateLimitServerAction(headersList, {
+      limit: 20,
+      window: 5 * 60 * 1000, // 5 minutes
+      prefix: "sa:upload",
+    }),
+
+  // Homework submission: 10 submissions per 10 minutes
+  homeworkSubmission: (headersList: Headers) =>
+    rateLimitServerAction(headersList, {
+      limit: 10,
+      window: 10 * 60 * 1000, // 10 minutes
+      prefix: "sa:hw-submit",
+    }),
 };

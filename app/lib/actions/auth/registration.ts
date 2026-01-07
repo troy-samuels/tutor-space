@@ -34,12 +34,8 @@ import {
 	ONBOARDING_ROUTE,
 	EMAIL_PATTERN,
 } from "./types";
-import {
-	isStripeConfigured,
-	buildAuthCallbackUrlFromHeaders,
-	getClientIp,
-	getUserAgent,
-} from "./helpers";
+import { getClientIp, getUserAgent } from "./helpers";
+import { isStripeConfigured, buildAuthCallbackUrlFromHeaders } from "./utils";
 
 // ============================================================================
 // Types
@@ -301,9 +297,10 @@ export async function signUp(
 	}
 
 	if (existingUser) {
-		logStep(log, "signUp:email_exists", { email });
+		// Return success-like message to prevent email enumeration
+		logStep(log, "signUp:completed", { email });
 		return {
-			error: "That email is already registered. Please log in instead.",
+			success: "Please check your email to complete registration.",
 		};
 	}
 

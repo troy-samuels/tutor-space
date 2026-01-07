@@ -31,9 +31,7 @@ import {
 import { AIPracticeCard } from "@/components/student/AIPracticeCard";
 import { DrillProgressCard } from "@/components/student-auth/DrillProgressCard";
 import { StudentOnboardingChecklist } from "@/components/student/StudentOnboardingChecklist";
-import type { DrillWithContext } from "@/lib/actions/drills";
-import type { TutorForReview } from "@/lib/actions/reviews";
-import type { OnboardingProgress } from "@/lib/actions/student-onboarding";
+import type { DrillWithContext, TutorForReview, OnboardingProgress } from "@/lib/actions/types";
 import {
   LEVEL_LABELS,
   SKILL_LABELS,

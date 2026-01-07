@@ -9,7 +9,7 @@ import {
   BriefingCardSkeleton,
 } from "./lesson-briefing-card";
 import { getPendingBriefings } from "@/lib/actions/copilot";
-import type { LessonBriefing, PendingBriefingsResult } from "@/lib/actions/copilot";
+import type { LessonBriefing, PendingBriefingsResult } from "@/lib/actions/types";
 
 // Re-export types for the server component
 export type { LessonBriefing, PendingBriefingsResult };

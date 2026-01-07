@@ -2,60 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-
-export interface PaymentRecord {
-  id: string;
-  booking_id: string | null;
-  digital_product_purchase_id: string | null;
-  amount_cents: number;
-  currency: string;
-  payment_status: string;
-  payment_method: string | null;
-  stripe_payment_intent_id: string | null;
-  created_at: string;
-  // Related data
-  booking?: {
-    id: string;
-    scheduled_at: string;
-    duration_minutes: number;
-    services: { name: string } | null;
-  } | null;
-  digital_product?: {
-    id: string;
-    title: string;
-  } | null;
-  tutor?: {
-    full_name: string | null;
-    email: string;
-  } | null;
-}
-
-export interface PackagePurchaseRecord {
-  id: string;
-  total_price_cents: number;
-  currency: string;
-  remaining_minutes: number;
-  status: string;
-  expires_at: string | null;
-  created_at: string;
-  session_package_templates: {
-    name: string;
-    session_count: number;
-    total_minutes: number;
-  } | null;
-  tutor?: {
-    full_name: string | null;
-    email: string;
-  } | null;
-}
-
-export interface BillingSummary {
-  totalSpent: number;
-  currency: string;
-  lessonsPurchased: number;
-  productsPurchased: number;
-  packagesPurchased: number;
-}
+import type { PaymentRecord, PackagePurchaseRecord, BillingSummary } from "@/lib/actions/types";
 
 /**
  * Get student billing history

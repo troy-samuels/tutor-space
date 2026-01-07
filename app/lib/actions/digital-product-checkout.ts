@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { calculateCommission } from "@/lib/repositories/marketplace";
 
 type BuyDigitalProductResult = { url?: string; error?: string };
 
@@ -45,15 +46,9 @@ export async function buyDigitalProduct(productId: string): Promise<BuyDigitalPr
     return { error: "Tutor is not ready to receive payments." };
   }
 
-  const { data: sales } = await admin
-    .from("marketplace_transactions")
-    .select("gross_amount_cents")
-    .eq("tutor_id", product.tutor_id)
-    .eq("status", "completed");
-
-  const lifetimeSales = sales?.reduce((sum, row) => sum + (row.gross_amount_cents || 0), 0) ?? 0;
-  const commissionRate = lifetimeSales >= 50000 ? 0.10 : 0.15;
-  const applicationFeeAmount = Math.round(product.price_cents * commissionRate);
+  // Use repository for commission calculation (single source of truth)
+  const commission = await calculateCommission(admin, product.tutor_id, product.price_cents);
+  const applicationFeeAmount = commission.platformFeeCents;
 
   const downloadToken = randomBytes(32).toString("hex");
   const { data: purchase, error: insertError } = await admin

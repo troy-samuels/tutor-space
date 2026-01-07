@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
+import type { StudentPreferences, StudentEmailPreferences } from "@/lib/actions/types";
 
 const preferencesSchema = z.object({
   timezone: z.string().min(1),
@@ -27,24 +28,6 @@ const passwordChangeSchema = z.object({
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
-
-export interface StudentPreferences {
-  id: string;
-  user_id: string;
-  timezone: string;
-  preferred_language: string;
-  notification_sound: boolean;
-  theme: "light" | "dark" | "system";
-  avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface StudentEmailPreferences {
-  email_booking_reminders: boolean;
-  email_lesson_updates: boolean;
-  email_marketing: boolean;
-}
 
 /**
  * Get the current student's preferences
@@ -252,6 +235,7 @@ export async function changeStudentPassword(
  */
 export async function getStudentAccountInfo(): Promise<{
   email: string;
+  full_name: string | null;
   created_at: string;
   connected_tutors: number;
 } | null> {
@@ -262,6 +246,11 @@ export async function getStudentAccountInfo(): Promise<{
 
   const serviceClient = createServiceRoleClient();
   if (!serviceClient) return null;
+
+  const metadataName =
+    typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name.trim()
+      : null;
 
   // Count connected tutors
   const { count, error: connectionsError } = await serviceClient
@@ -274,8 +263,24 @@ export async function getStudentAccountInfo(): Promise<{
     console.error("Failed to count connections:", connectionsError);
   }
 
+  const { data: student, error: studentError } = await serviceClient
+    .from("students")
+    .select("full_name")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (studentError && !isTableMissing(studentError, "students")) {
+    console.error("Failed to load student name:", studentError);
+  }
+
+  const fullName = student?.full_name?.trim() || metadataName || null;
+
   return {
     email: user.email || "",
+    full_name: fullName,
     created_at: user.created_at,
     connected_tutors: count || 0,
   };

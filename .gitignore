@@ -18,6 +18,7 @@ app/coverage/
 
 # Editor artifacts
 .cursor/
+*.bak
 
 # Supabase local config
 supabase/.branches
@@ -34,4 +35,11 @@ supabase/.temp
 # Test artifacts
 app/test-results/
 app/playwright-report/
-app/supabase/.temp/
+
+# Storybook build
+app/storybook-static/
+
+# IDE
+.idea/
+*.swp
+*.swo

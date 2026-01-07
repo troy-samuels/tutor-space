@@ -4,38 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-export type InviteLink = {
-  id: string;
-  tutorId: string;
-  token: string;
-  name: string;
-  expiresAt: string;
-  isActive: boolean;
-  serviceIds: string[];
-  usageCount: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type InviteLinkWithServices = InviteLink & {
-  services?: Array<{ id: string; name: string }>;
-};
-
-export type ValidatedInviteLink = {
-  id: string;
-  tutorId: string;
-  name: string;
-  serviceIds: string[];
-  isValid: boolean;
-  tutorUsername: string;
-  tutorFullName: string | null;
-  tutorAvatarUrl: string | null;
-};
+import type { InviteLink, InviteLinkWithServices, ValidatedInviteLink } from "@/lib/actions/types";
 
 // =============================================================================
 // HELPERS

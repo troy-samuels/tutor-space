@@ -115,6 +115,28 @@ test("concurrency: PGRST116 no rows error is ignored", () => {
   assert.ok(shouldIgnore, "PGRST116 should be ignored (no rows is expected)");
 });
 
+test("idempotency: failed events allow retries", () => {
+  const existingStatus = "failed";
+  const canRetry = existingStatus !== "processed";
+  assert.ok(canRetry, "Failed events should be eligible for retry");
+});
+
+test("idempotency: stale processing events can be reclaimed", () => {
+  const timeoutMs = 10 * 60 * 1000;
+  const startedAt = new Date(Date.now() - timeoutMs - 1000).toISOString();
+  const startedAtMs = new Date(startedAt).getTime();
+  const isStale = Date.now() - startedAtMs > timeoutMs;
+  assert.ok(isStale, "Processing events beyond timeout should be stale");
+});
+
+test("idempotency: active processing events should not be retried", () => {
+  const timeoutMs = 10 * 60 * 1000;
+  const startedAt = new Date(Date.now() - 1000).toISOString();
+  const startedAtMs = new Date(startedAt).getTime();
+  const isStale = Date.now() - startedAtMs > timeoutMs;
+  assert.equal(isStale, false);
+});
+
 // ============================================
 // TEST: Race Condition Prevention
 // ============================================

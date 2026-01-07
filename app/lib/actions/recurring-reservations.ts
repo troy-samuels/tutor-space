@@ -2,6 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type {
+  RecurringReservation,
+  RecurringReservationInput,
+  ReservedSlot,
+  ReservationException,
+} from "@/lib/actions/types";
 
 async function requireTutor() {
   const supabase = await createClient();
@@ -20,62 +26,6 @@ async function requireTutor() {
 // ============================================
 // TYPES
 // ============================================
-
-export type RecurringReservation = {
-  id: string;
-  tutorId: string;
-  studentId: string;
-  studentName: string | null;
-  serviceId: string;
-  serviceName: string | null;
-  dayOfWeek: number;
-  startTime: string;
-  durationMinutes: number;
-  timezone: string;
-  effectiveFrom: string;
-  effectiveUntil: string | null;
-  isActive: boolean;
-  autoCreateBookings: boolean;
-  autoBookDaysAhead: number | null;
-  createdAt: string;
-};
-
-export type RecurringReservationInput = {
-  studentId: string;
-  serviceId: string;
-  dayOfWeek: number;
-  startTime: string; // HH:MM format
-  durationMinutes?: number;
-  timezone: string;
-  effectiveFrom?: string; // YYYY-MM-DD format
-  effectiveUntil?: string; // YYYY-MM-DD format
-  autoCreateBookings?: boolean;
-  autoBookDaysAhead?: number;
-};
-
-export type ReservedSlot = {
-  reservationId: string;
-  studentId: string;
-  studentName: string | null;
-  serviceId: string;
-  serviceName: string | null;
-  occurrenceDate: string;
-  startTime: string;
-  durationMinutes: number;
-  timezone: string;
-  isException: boolean;
-  exceptionType: string | null;
-};
-
-export type ReservationException = {
-  id: string;
-  reservationId: string;
-  occurrenceDate: string;
-  exceptionType: "cancelled" | "rescheduled" | "skipped";
-  rescheduledTo: string | null;
-  reason: string | null;
-  createdAt: string;
-};
 
 // ============================================
 // RECURRING RESERVATIONS CRUD

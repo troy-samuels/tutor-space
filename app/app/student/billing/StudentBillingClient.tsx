@@ -25,11 +25,7 @@ import {
   ShoppingBag,
   DollarSign,
 } from "lucide-react";
-import {
-  type PaymentRecord,
-  type PackagePurchaseRecord,
-  type BillingSummary,
-} from "@/lib/actions/student-billing";
+import type { PaymentRecord, PackagePurchaseRecord, BillingSummary } from "@/lib/actions/types";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 

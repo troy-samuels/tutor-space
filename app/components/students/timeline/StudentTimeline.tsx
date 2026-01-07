@@ -14,11 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TimelineEvent } from "./TimelineEvent";
-import {
-  getStudentTimeline,
-  type TimelineEvent as TimelineEventType,
-  type TimelineEventType as EventType,
-} from "@/lib/actions/student-timeline";
+import { getStudentTimeline } from "@/lib/actions/student-timeline";
+import type { TimelineEvent as TimelineEventType, TimelineEventType as EventType } from "@/lib/actions/types";
 
 type StudentTimelineProps = {
   studentId: string;

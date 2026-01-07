@@ -2,28 +2,9 @@
 
 import { resend, EMAIL_CONFIG } from "@/lib/resend";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import type { SendEmailParams, SendEmailResult } from "@/lib/email/types";
 
 type Tag = { name: string; value: string };
-
-export type SendEmailParams = {
-  to: string | string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
-  from?: string;
-  replyTo?: string | string[];
-  tags?: Tag[];
-  category?: string;
-  idempotencyKey?: string;
-  allowSuppressed?: boolean;
-  metadata?: Record<string, unknown>;
-};
-
-type SendEmailResult =
-  | { success: true; suppressed: string[]; data?: Record<string, unknown> | null }
-  | { success: false; suppressed: string[]; error?: string; skipped?: boolean };
 
 /**
   * Sends email through Resend with suppression guard and lightweight logging.

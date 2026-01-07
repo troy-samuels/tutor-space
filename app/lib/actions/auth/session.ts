@@ -16,13 +16,8 @@ import {
 } from "@/lib/logger";
 import { sanitizeRedirectPath } from "@/lib/auth/redirects";
 import type { User } from "@supabase/supabase-js";
-import {
-	resolveStudentRedirect,
-	resolveTutorRedirect,
-	withTimeout,
-	getClientIp,
-	getUserAgent,
-} from "./helpers";
+import { withTimeout, getClientIp, getUserAgent } from "./helpers";
+import { resolveStudentRedirect, resolveTutorRedirect } from "./utils";
 import type { AuthActionState } from "./types";
 import { EMAIL_PATTERN } from "./types";
 
@@ -176,24 +171,10 @@ export async function signIn(
 		}
 
 		if (message.includes("invalid login credentials")) {
-			if (existingUser) {
-				return {
-					error:
-						"That email and password don't match. If you've forgotten your password, use the reset link or create a new one.",
-				};
-			}
-
-			return {
-				error:
-					"That email and password don't match. Double-check your details or reset your password.",
-			};
+			return { error: "Invalid email or password." };
 		}
 
-		return {
-			error:
-				rawMessage ||
-				"We couldn't log you in just yet. Try again in a moment or reset your password.",
-		};
+		return { error: "Unable to sign in. Please try again or reset your password." };
 	}
 
 	// Get user role using repository pattern

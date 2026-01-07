@@ -2,48 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export type OnboardingTemplateItem = {
-  id: string;
-  label: string;
-  description?: string;
-  order: number;
-};
-
-export type OnboardingTemplate = {
-  id: string;
-  tutor_id: string;
-  name: string;
-  is_default: boolean;
-  items: OnboardingTemplateItem[];
-  created_at: string;
-  updated_at: string;
-};
-
-export type OnboardingProgress = {
-  id: string;
-  student_id: string;
-  tutor_id: string;
-  template_id: string | null;
-  completed_items: string[];
-  status: "not_started" | "in_progress" | "completed";
-  started_at: string | null;
-  completed_at: string | null;
-  created_at: string;
-  updated_at: string;
-  template?: OnboardingTemplate;
-};
-
-export type OnboardingOverview = {
-  not_started: number;
-  in_progress: number;
-  completed: number;
-  total: number;
-};
+import type {
+  OnboardingTemplateItem,
+  OnboardingTemplate,
+  OnboardingProgress,
+  OnboardingOverview,
+} from "@/lib/actions/types";
 
 type CreateTemplateInput = {
   name: string;

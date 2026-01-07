@@ -4,17 +4,13 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import type { AutomationActionState, UnsubscribeActionState } from "@/lib/actions/types";
 
 const automationSchema = z.object({
   auto_welcome_enabled: z.boolean().optional(),
   auto_reengage_enabled: z.boolean().optional(),
   auto_reengage_days: z.coerce.number().min(7).max(365).optional(),
 });
-
-export type AutomationActionState = {
-  error?: string;
-  success?: string;
-};
 
 export async function updateEmailAutomationSettings(
   _prevState: AutomationActionState,
@@ -58,13 +54,6 @@ export async function updateEmailAutomationSettings(
 const unsubscribeSchema = z.object({
   token: z.string().uuid(),
 });
-
-export type UnsubscribeActionState = {
-  error?: string;
-  success?: string;
-  studentName?: string;
-  tutorName?: string;
-};
 
 export async function unsubscribeStudentAction(
   _prevState: UnsubscribeActionState,

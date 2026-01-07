@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Star } from "lucide-react";
 import { ReviewPromptCard } from "./ReviewPromptCard";
 import { ReviewModal } from "./ReviewModal";
-import type { TutorForReview } from "@/lib/actions/reviews";
+import type { TutorForReview } from "@/lib/actions/types";
 
 type ReviewPromptSectionProps = {
   tutors: TutorForReview[];

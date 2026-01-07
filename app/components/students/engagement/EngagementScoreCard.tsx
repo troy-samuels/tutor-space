@@ -38,13 +38,8 @@ import {
 } from "lucide-react";
 import { EngagementScoreMeter } from "./EngagementScoreMeter";
 import { RiskStatusBadge } from "./RiskStatusBadge";
-import {
-  refreshEngagementScore,
-  overrideRiskStatus,
-  clearRiskStatusOverride,
-  type EngagementScore,
-  type RiskStatus,
-} from "@/lib/actions/student-engagement";
+import { refreshEngagementScore, overrideRiskStatus, clearRiskStatusOverride } from "@/lib/actions/student-engagement";
+import type { EngagementScore, RiskStatus } from "@/lib/actions/types";
 
 type EngagementScoreCardProps = {
   studentId: string;

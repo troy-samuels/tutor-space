@@ -6,6 +6,7 @@ import { rescheduleBooking as rescheduleBookingAction } from "@/lib/actions/book
 import { getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
 import { z } from "zod";
+import type { RescheduleHistoryItem } from "@/lib/actions/types";
 
 const rescheduleSchema = z.object({
   bookingId: z.string().uuid(),
@@ -13,16 +14,6 @@ const rescheduleSchema = z.object({
   reason: z.string().optional(),
   requestedBy: z.enum(["tutor", "student"]),
 });
-
-export interface RescheduleHistoryItem {
-  id: string;
-  booking_id: string;
-  previous_scheduled_at: string;
-  new_scheduled_at: string;
-  requested_by: "tutor" | "student";
-  reason: string | null;
-  created_at: string;
-}
 
 /**
  * Reschedule a booking to a new time

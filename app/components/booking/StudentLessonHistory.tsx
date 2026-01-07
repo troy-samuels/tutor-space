@@ -11,7 +11,7 @@ import {
   BookOpen,
   CheckCircle,
 } from "lucide-react";
-import type { StudentLessonHistoryData } from "@/lib/actions/student-lessons";
+import type { StudentLessonHistoryData } from "@/lib/actions/types";
 import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
 
 interface StudentLessonHistoryProps {

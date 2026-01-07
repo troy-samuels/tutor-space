@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Save, Calendar, Clock, AlertCircle } from "lucide-react";
-import {
-  getSchedulingPreferences,
-  saveSchedulingPreferences,
-  type SchedulingPreferences,
-} from "@/lib/actions/calendar-settings";
+import { getSchedulingPreferences, saveSchedulingPreferences } from "@/lib/actions/calendar-settings";
+import type { SchedulingPreferences } from "@/lib/actions/types";
 
 export function SchedulingPreferencesCard() {
   const [isLoading, setIsLoading] = useState(true);

@@ -3,21 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { linkSchema, type LinkFormValues } from "@/lib/validators/link";
-
-export type LinkRecord = {
-  id: string;
-  tutor_id: string;
-  title: string;
-  url: string;
-  description: string | null;
-  icon_url: string | null;
-  button_style: string | null;
-  is_visible: boolean;
-  sort_order: number;
-  click_count: number | null;
-  created_at: string;
-  updated_at: string;
-};
+import type { LinkRecord } from "@/lib/actions/types";
 
 export async function createLink(values: LinkFormValues) {
   const supabase = await createClient();

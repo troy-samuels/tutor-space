@@ -62,6 +62,8 @@ TutorLingua is the operating system for independent language tutors: direct book
 | Server Actions | Business logic via `'use server'` directives |
 | Row Level Security | Data isolation per tutor/student |
 | @supabase/ssr | Server-side session management |
+| Upstash Redis | Rate limiting (sliding window algorithm) |
+| Pino | Structured JSON logging with trace IDs |
 
 ### Payments
 | Technology | Purpose |
@@ -102,67 +104,83 @@ TutorLingua is the operating system for independent language tutors: direct book
 
 ## Architecture
 
-### Server Actions Pattern
-All business logic runs server-side via Next.js Server Actions:
+### The 10x Laws
+
+TutorLingua follows five engineering laws enforced via CI/CD:
+
+| Law | Principle | Enforcement |
+|-----|-----------|-------------|
+| **Repository** | Actions never call Supabase directly | `scripts/check-repository-law.sh` |
+| **Observability** | Every request gets traceId, every step logged | `withActionLogging()` |
+| **Safety** | Create/Payment ops must be idempotent | `withIdempotency()` |
+| **Security** | Rate limit before expensive operations | `ServerActionLimiters.*` |
+| **Audit** | Status changes recorded with before/after | `recordAudit()` |
+
+See [Engineering Standards](docs/ENGINEERING_STANDARDS.md) for implementation details.
+
+### The Sentinel
+
+Architecture protection via GitHub Actions (`.github/workflows/verify.yml`):
+
+1. **Quality Gate**: ESLint + TypeScript strict mode
+2. **Repository Law Enforcer**: `scripts/check-repository-law.sh`
+   - Scans `/lib/actions/` for forbidden patterns (`supabase.from()`, `supabase.rpc()`)
+   - 46 legacy files grandfathered in `scripts/repository-law-baseline.txt`
+   - New violations fail the build
+3. **Test Suite**: 790+ unit tests, Playwright E2E smoke tests
+4. **Security Scanning**: StackHawk + OWASP ZAP for CASA compliance
+
+### Modular Action Structure
+
 ```
-lib/actions/           # 49 server action modules
-├── auth.ts           # Authentication (signup, login, password reset)
-├── bookings.ts       # Booking lifecycle (create, cancel, reschedule)
-├── availability.ts   # Weekly schedule management
-├── students.ts       # Student CRUD and access control
-├── messaging.ts      # Realtime messaging operations
-├── progress.ts       # Learning goals, assessments, homework
-├── lesson-subscriptions.ts  # Subscription tier management
-├── digital-products.ts      # Digital product sales
-├── copilot.ts        # Lesson briefing generation
-├── ai-assistant.ts   # AI conversation management
-├── practice.ts       # AI practice scenario operations
-└── ... (38 more modules)
+lib/actions/
+├── auth/           # Session, registration, password, OAuth
+├── bookings/       # Create, cancel, reschedule, queries, payments
+├── students/       # CRUD, access control, import
+├── progress/       # Homework, goals, assessments, practice
+├── subscriptions/  # Credits, billing, tiers
+├── marketplace/    # Sales, delivery, products
+├── tutor-sites/    # Site CRUD, publish, SEO
+├── messaging/      # Messages, threads, uploads
+└── [35 standalone] # Single-purpose action files
 ```
 
 ### Repository Pattern
-Data access abstraction in `/lib/repositories/` encapsulates Supabase queries for reuse across actions and API routes.
+
+Data access in `/lib/repositories/` encapsulates all Supabase queries:
+- `bookings.ts` - Atomic booking operations
+- `audit.ts` - Immutable audit trail
+- `tutor-sites.ts` - Site versioning
+- `messaging.ts` - Thread and message queries
 
 ### Service Layer
+
 Business services in `/lib/services/`:
 - `calendar/` - Google & Outlook calendar sync
-- `payments/` - Stripe payment utilities
+- `payments/` - Stripe utilities
 - `checkout-agent.ts` - Advanced checkout logic
 - `connect.ts` - Stripe Connect account management
-- `stripe-connect-products.ts` - Sync services to Stripe products/prices
 
 ### Middleware Architecture
+
 `middleware.ts` enforces:
 - Authentication on protected routes
 - Onboarding completion gates
 - Tier-based access control (Pro vs. Studio)
-- Redirects for unauthorized access
-
-### Validation Layer
-Zod schemas in `/lib/validators/`:
-- `availabilityFormSchema`
-- `profileFormSchema`
-- `serviceFormSchema`
-- `tutorSiteFormSchema`
+- Rate limiting via Upstash Redis
 
 ### Component Architecture
+
 ```
 components/
 ├── ui/              # shadcn/ui base components (40+)
-├── dashboard/       # Dashboard widgets and metrics
+├── dashboard/       # Dashboard widgets
 ├── booking/         # Public booking flow
-├── bookings/        # Tutor booking management
-├── students/        # Student CRM interface
-├── student/         # Student portal components
-├── calendar/        # Calendar views (month, week, day)
-├── messaging/       # Realtime messaging interface
-├── classroom/       # LiveKit video room
+├── students/        # Student CRM
+├── classroom/       # LiveKit video
 ├── practice/        # AI practice UI
-├── drills/          # Interactive game components
-├── copilot/         # Lesson briefing widget
-├── page-builder/    # Tutor site wizard
-├── site/            # Tutor site display
-└── ... (30+ more directories)
+├── copilot/         # Lesson briefing
+└── ... (30+ more)
 ```
 
 ---
@@ -538,8 +556,8 @@ Strict CSP headers with whitelisted third-party domains for Stripe, LiveKit, Sup
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- Supabase project + CLI
+- Node.js 22.x
+- Supabase project + CLI (migrations in root `/supabase/`)
 - Stripe + Stripe Connect (for tutor payouts)
 - Resend API key
 - Optional: LiveKit + S3 storage + Deepgram, Google/Microsoft OAuth apps, PostHog keys
@@ -707,18 +725,21 @@ npm run storybook     # View component stories at localhost:6006
 ## Deployment
 
 ### Vercel Configuration
-1. Set **Root Directory** to `app` in Project Settings
+1. Set **Root Directory** to `app` in Project Settings (or during `vercel link`)
 2. Set **Framework Preset** to `Next.js` (not "Other")
-3. Add required environment variables
-4. Set `OPENAI_API_KEY` as server-side only (not `NEXT_PUBLIC_*`)
+3. Add production environment variables from `app/.env.example`
+4. Keep secrets server-side only (`OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `CRON_SECRET`, `ADMIN_SESSION_SECRET`)
+5. Vercel CLI: run `vercel link` from repo root, confirm root directory = `app`, then `vercel deploy --prod`
 
 ### Cron Jobs
-Configure Vercel Cron or external scheduler for:
-- `/api/cron/send-reminders` - Lesson reminders (every 15 min)
+Cron schedules live in `app/vercel.json` (adjust as needed). If using an external scheduler, include `Authorization: Bearer $CRON_SECRET`.
+- `/api/cron/send-reminders` - Lesson reminders (hourly)
 - `/api/cron/calendar-sync` - Calendar sync (every 30 min)
 - `/api/cron/lesson-analysis` - Recording analysis (hourly)
 - `/api/cron/generate-briefings` - Lesson briefings (every 30 min)
-- `/api/cron/homework-reminders` - Homework notifications (daily)
+- `/api/cron/homework-reminders` - Homework notifications (hourly)
+- `/api/cron/message-digest` - Unread message digests (daily)
+- `/api/cron/cleanup-analytics` - Analytics retention cleanup (daily at 03:00 UTC)
 
 ### Health Monitoring
 - `/admin/health` - System health dashboard
@@ -770,33 +791,28 @@ Configure Vercel Cron or external scheduler for:
 ## Project Structure
 
 ```
-app/
-├── app/                    # Next.js App Router
-│   ├── (dashboard)/        # Authenticated dashboard & classroom
-│   ├── (public)/           # Public pages (sites, profiles, blog)
-│   ├── api/                # API routes (60+ endpoints)
-│   ├── book/               # Public booking flow
-│   ├── signup/, login/     # Auth pages
-│   └── student/            # Student portal
-├── components/             # UI & feature components (100+)
-├── lib/                    # Server actions, services, utilities
-│   ├── actions/            # 49 server action modules
-│   ├── services/           # Business services
-│   ├── repositories/       # Data access layer
-│   ├── validators/         # Zod schemas
-│   ├── supabase/           # Database clients
-│   ├── stripe/             # Stripe utilities
-│   └── utils/              # Helper functions
-├── emails/                 # React Email templates
-├── supabase/               # Database config & migrations
-├── e2e/                    # Playwright E2E tests
-├── tests/                  # Unit & integration tests
-├── stories/                # Storybook stories
-├── docs/                   # Product documentation
-├── public/                 # Static assets
-├── i18n/                   # Internationalization config
-├── messages/               # Translation files (10 languages)
-└── scripts/                # Build & automation scripts
+.
+├── app/                    # Next.js application
+│   ├── app/                # App Router routes
+│   ├── components/         # UI & feature components (100+)
+│   ├── lib/                # Server actions, services, utilities
+│   ├── emails/             # React Email templates
+│   ├── e2e/                # Playwright E2E tests
+│   ├── tests/              # Unit & integration tests
+│   ├── stories/            # Storybook stories
+│   ├── docs/               # Product documentation
+│   ├── public/             # Static assets
+│   ├── i18n/               # next-intl request config
+│   ├── messages/           # Translation JSON files (10 languages)
+│   └── scripts/            # Build & automation scripts
+├── supabase/               # Database config & migrations (source of truth)
+│   ├── migrations/         # Active migrations
+│   └── migrations_archive/ # Legacy migrations (do not apply)
+├── docs/                   # Design/ops documentation
+├── .github/                # CI workflows
+├── SECURITY.md
+├── STRIPE-SETUP-GUIDE.md
+└── README.md
 ```
 
 ---
@@ -818,7 +834,7 @@ Supports 10 languages via `next-intl`:
 | nl | Dutch |
 | zh | Chinese |
 
-Translation files located in `/messages/{locale}.json`.
+Translation files located in `app/messages/{locale}.json`.
 
 ---
 

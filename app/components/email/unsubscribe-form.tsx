@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { unsubscribeStudentAction, type UnsubscribeActionState } from "@/lib/actions/email-preferences";
+import { unsubscribeStudentAction } from "@/lib/actions/email-preferences";
+import type { UnsubscribeActionState } from "@/lib/actions/types";
 import { CheckCircle2, Info } from "lucide-react";
 
 const initialState: UnsubscribeActionState = {};

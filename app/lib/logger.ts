@@ -104,31 +104,38 @@ const SENSITIVE_KEYS = [
 /**
  * Sanitize input by redacting sensitive fields.
  * Checks if any key contains a sensitive substring (case-insensitive).
+ * Recursively sanitizes nested objects AND arrays.
  */
-export function sanitizeInput(
-	input: Record<string, unknown>
-): Record<string, unknown> {
-	if (!input || typeof input !== "object") {
+export function sanitizeInput(input: unknown): unknown {
+	// Handle null/undefined
+	if (input === null || input === undefined) {
 		return input;
 	}
 
-	return Object.fromEntries(
-		Object.entries(input).map(([key, value]) => {
-			const lowerKey = key.toLowerCase();
-			const isSensitive = SENSITIVE_KEYS.some((s) => lowerKey.includes(s));
+	// Handle arrays - map and recursively sanitize each element
+	if (Array.isArray(input)) {
+		return input.map((item) => sanitizeInput(item));
+	}
 
-			if (isSensitive) {
-				return [key, "[REDACTED]"];
-			}
+	// Handle objects
+	if (typeof input === "object") {
+		return Object.fromEntries(
+			Object.entries(input as Record<string, unknown>).map(([key, value]) => {
+				const lowerKey = key.toLowerCase();
+				const isSensitive = SENSITIVE_KEYS.some((s) => lowerKey.includes(s));
 
-			// Recursively sanitize nested objects (but not arrays)
-			if (value && typeof value === "object" && !Array.isArray(value)) {
-				return [key, sanitizeInput(value as Record<string, unknown>)];
-			}
+				if (isSensitive) {
+					return [key, "[REDACTED]"];
+				}
 
-			return [key, value];
-		})
-	);
+				// Recursively sanitize (handles nested objects AND arrays)
+				return [key, sanitizeInput(value)];
+			})
+		);
+	}
+
+	// Primitives pass through unchanged
+	return input;
 }
 
 // ============================================================================
@@ -141,16 +148,17 @@ export function sanitizeInput(
  */
 export function enrichError(error: unknown): object {
 	if (error instanceof Error) {
+		const errWithExtras = error as unknown as Record<string, unknown>;
 		return {
 			name: error.name,
 			message: error.message,
 			stack: error.stack,
 			// Include any additional properties (e.g., Supabase error codes)
-			...(typeof (error as Record<string, unknown>).code === "string" && {
-				code: (error as Record<string, unknown>).code,
+			...(typeof errWithExtras.code === "string" && {
+				code: errWithExtras.code,
 			}),
-			...(typeof (error as Record<string, unknown>).details === "string" && {
-				details: (error as Record<string, unknown>).details,
+			...(typeof errWithExtras.details === "string" && {
+				details: errWithExtras.details,
 			}),
 		};
 	}

@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // ============================================================================
 
 /** How long a 'processing' reservation is considered valid before it's stale */
-const PROCESSING_TIMEOUT_MS = 60_000; // 60 seconds
+const PROCESSING_TIMEOUT_MS = 300_000; // 5 minutes (increased from 60s to prevent race conditions)
 
 /** How often to poll when waiting for another request to complete */
 const POLL_INTERVAL_MS = 500; // 500ms
@@ -45,8 +45,11 @@ interface ClaimResult {
  */
 async function claimIdempotencyKey(
 	client: SupabaseClient,
-	key: string
+	key: string,
+	ownerId?: string
 ): Promise<ClaimResult> {
+	const reservationOwnerId = ownerId ?? null;
+
 	// First, try to INSERT a new row with status='processing'
 	const { error: insertError } = await client.from("processed_requests").insert({
 		idempotency_key: key,
@@ -54,6 +57,7 @@ async function claimIdempotencyKey(
 		response_body: null,
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString(),
+		owner_id: reservationOwnerId,
 	});
 
 	// If INSERT succeeded, we claimed the key
@@ -156,31 +160,58 @@ async function completeReservation<T>(
 }
 
 /**
- * Check if a reservation is stale (processing for too long) and release it.
- * Returns true if the reservation was released, false otherwise.
+ * Check if a reservation is stale (processing for too long).
+ *
+ * HARDENED: Does NOT delete the reservation. Instead, logs a CRITICAL warning
+ * and returns false. This prevents race conditions where a slow-but-alive
+ * request could have its reservation stolen by a concurrent request.
+ *
+ * The original request should eventually complete or fail on its own.
+ * If reservations are truly stuck, they should be cleaned up via:
+ * - Manual intervention
+ * - A separate cleanup job with longer thresholds
+ *
+ * @param requestingOwnerId - The traceId of the request attempting to claim
  */
 async function releaseStaleReservation(
 	client: SupabaseClient,
-	key: string
+	key: string,
+	requestingOwnerId?: string
 ): Promise<boolean> {
 	const staleThreshold = new Date(Date.now() - PROCESSING_TIMEOUT_MS).toISOString();
 
-	// Only delete if it's still 'processing' AND older than threshold
-	const { data, error } = await client
+	// Check if the reservation is stale
+	const { data: staleRow } = await client
 		.from("processed_requests")
-		.delete()
+		.select("idempotency_key, created_at, updated_at, owner_id")
 		.eq("idempotency_key", key)
 		.eq("status", "processing")
 		.lt("updated_at", staleThreshold)
-		.select("idempotency_key");
+		.single();
 
-	if (error) {
-		console.error("[Idempotency] Failed to release stale reservation:", error.message);
-		return false;
+	if (!staleRow) {
+		return false; // Not stale
 	}
 
-	// If we deleted a row, it was stale
-	return (data?.length ?? 0) > 0;
+	const ageMs = Date.now() - new Date(staleRow.updated_at).getTime();
+
+	// CRITICAL: Log but DO NOT delete - let the original request complete or timeout
+	// This prevents the race condition where a slow request has its lock stolen
+	console.error("[Idempotency] CRITICAL: Stale reservation detected", {
+		key,
+		originalOwner: staleRow.owner_id,
+		requestingOwner: requestingOwnerId,
+		originalCreatedAt: staleRow.created_at,
+		staleSince: staleRow.updated_at,
+		ageMs,
+		ageMinutes: Math.round(ageMs / 60000),
+		thresholdMinutes: PROCESSING_TIMEOUT_MS / 60000,
+		action: "BLOCKED - not deleting active reservation",
+	});
+
+	// Return false to indicate we did NOT release it
+	// The requesting client should retry later or fail gracefully
+	return false;
 }
 
 /**
@@ -268,24 +299,27 @@ export async function cacheResponse<T>(
  * 1. Try to INSERT a row with status='processing' (atomic claim)
  * 2. If INSERT fails (unique constraint), poll until status='completed' or timeout
  * 3. If INSERT succeeds, execute operation and UPDATE to status='completed'
- * 4. Handle stale reservations (>60s processing) by releasing and retrying
+ * 4. Handle stale reservations (>5min processing) by logging CRITICAL (NOT deleting)
  *
  * Usage:
  * ```ts
+ * const traceId = await getTraceId();
  * const { cached, response } = await withIdempotency(
  *   adminClient,
  *   params.clientMutationId,
  *   async () => {
  *     // ... operation logic ...
  *     return result;
- *   }
+ *   },
+ *   traceId // Optional: owner tracking for debugging stale reservations
  * );
  * ```
  */
 export async function withIdempotency<T>(
 	client: SupabaseClient,
 	idempotencyKey: string | undefined,
-	fn: () => Promise<T>
+	fn: () => Promise<T>,
+	ownerId?: string
 ): Promise<IdempotencyResult<T>> {
 	// If no key provided, execute without idempotency
 	if (!idempotencyKey) {
@@ -293,7 +327,7 @@ export async function withIdempotency<T>(
 	}
 
 	// 1. Try to claim the key atomically
-	const claim = await claimIdempotencyKey(client, idempotencyKey);
+	const claim = await claimIdempotencyKey(client, idempotencyKey, ownerId);
 
 	// 2. If already completed, return cached response
 	if (claim.status === "already_completed") {
@@ -309,15 +343,18 @@ export async function withIdempotency<T>(
 		}
 
 		// Poll timed out - check if the reservation is stale
-		const released = await releaseStaleReservation(client, idempotencyKey);
+		// NOTE: releaseStaleReservation now only LOGS, it does NOT delete
+		const released = await releaseStaleReservation(client, idempotencyKey, ownerId);
 
 		if (released) {
-			// Stale reservation was released, retry the claim
-			return withIdempotency(client, idempotencyKey, fn);
+			// This branch is now effectively dead code since releaseStaleReservation
+			// always returns false. Kept for future flexibility if we add
+			// owner-based reclaim logic.
+			return withIdempotency(client, idempotencyKey, fn, ownerId);
 		}
 
-		// Reservation is not stale but we can't get the result
-		// This shouldn't happen in normal operation
+		// Reservation is not stale (or is stale but we're not releasing it)
+		// The requesting client should fail gracefully
 		throw new Error(
 			`Idempotency key "${idempotencyKey}" is locked by another request that has not completed`
 		);

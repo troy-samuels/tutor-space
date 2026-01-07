@@ -2,17 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { availabilityFormSchema, type AvailabilitySlotInput } from "@/lib/validators/availability";
-
-export type AvailabilityRecord = {
-  id: string;
-  tutor_id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-  is_available: boolean;
-  created_at: string;
-  updated_at: string;
-};
+import type { AvailabilityRecord } from "@/lib/actions/types";
 
 async function requireTutor() {
   const supabase = await createClient();

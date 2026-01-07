@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { LinkManager } from "@/components/marketing/link-manager";
-import type { LinkRecord } from "@/lib/actions/links";
+import type { LinkRecord } from "@/lib/actions/types";
 
 type LinkAnalyticsPoint = {
   date: string;

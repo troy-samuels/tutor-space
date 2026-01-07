@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getAllBlogPosts } from "@/lib/blog";
 import { NICHE_DATA } from "@/lib/marketing/niche-data";
+import { listPublishedSitesWithProfiles } from "@/lib/repositories/tutor-sites";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
@@ -21,10 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .not("username", "is", null);
 
   // Get tutors with published mini-sites for root-level username routes
-  const { data: publishedSites } = await supabase
-    .from("tutor_sites")
-    .select("tutor_id, updated_at, profiles!inner(username)")
-    .eq("status", "published");
+  const { data: publishedSites } = await listPublishedSitesWithProfiles(supabase);
 
   const miniSiteUrls =
     publishedSites?.map((site) => ({

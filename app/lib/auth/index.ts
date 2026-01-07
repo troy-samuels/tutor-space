@@ -47,6 +47,16 @@ export {
   requireAdminClient,
 } from "./server";
 
+// Cached session utilities (React.cache for per-request deduplication)
+export {
+  getSession,
+  getStudentSession,
+  getStudentDisplayName,
+  type SessionResult,
+  type StudentSessionResult,
+  type StudentSessionData,
+} from "./cached-session";
+
 // Access status constants and helpers
 export {
   // Status constants

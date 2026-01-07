@@ -175,11 +175,12 @@ SelectContent.displayName = "SelectContent";
 
 export interface SelectItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   value: string;
+  label?: string;
   children: React.ReactNode;
 }
 
 export const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
-  ({ value, children, className, ...props }, ref) => {
+  ({ value, label, children, className, ...props }, ref) => {
     const { value: selected, onSelect } = useSelectContext();
     const isSelected = selected === value;
 
@@ -194,7 +195,9 @@ export const SelectItem = React.forwardRef<HTMLButtonElement, SelectItemProps>(
           isSelected ? "bg-primary/10 text-primary" : "text-foreground",
           className
         )}
-        onClick={() => onSelect(value, typeof children === "string" ? children : undefined)}
+        onClick={() =>
+          onSelect(value, label ?? (typeof children === "string" ? children : undefined))
+        }
         {...props}
       >
         <span>{children}</span>

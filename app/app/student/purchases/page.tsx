@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentPurchasesClient } from "@/components/student-auth/StudentPurchasesClient";
-import { getAllStudentCredits } from "@/lib/actions/student-bookings";
+import { getAllStudentCredits, getConnectedTutorOfferings } from "@/lib/actions/student-bookings";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentDisplayName } from "@/lib/utils/student-name";
 
 export const metadata = {
   title: "My Purchases | Student Portal",
@@ -20,21 +21,22 @@ export default async function PurchasesPage() {
     redirect("/student/login?redirect=/student/purchases");
   }
 
-  // Get all student credits and avatar in parallel
-  const [creditsResult, avatarUrl] = await Promise.all([
+  const studentName = await getStudentDisplayName(supabase, user);
+  // Get all student credits, tutor offerings, and avatar in parallel
+  const [creditsResult, offeringsResult, avatarUrl] = await Promise.all([
     getAllStudentCredits(),
+    getConnectedTutorOfferings(),
     getStudentAvatarUrl(),
   ]);
   const { packages, subscriptions, error } = creditsResult;
-
-  // Get student name for layout
-  const studentName = user.user_metadata?.full_name || null;
+  const connectedTutors = offeringsResult.tutors || [];
 
   return (
     <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl}>
       <StudentPurchasesClient
         packages={packages || []}
         subscriptions={subscriptions || []}
+        connectedTutors={connectedTutors}
         error={error}
       />
     </StudentPortalLayout>

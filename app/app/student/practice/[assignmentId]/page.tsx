@@ -11,8 +11,9 @@ import {
   BLOCK_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getTutorHasPracticeAccess } from "@/lib/practice/access";
+import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
 
 export const metadata = {
   title: "Practice | TutorLingua",
@@ -49,6 +50,8 @@ export default async function PracticeSessionPage({ params }: PageProps) {
   if (!student) {
     redirect("/student/progress");
   }
+
+  const studentName = student.full_name || (user.user_metadata?.full_name as string | undefined) || null;
 
   // Check subscription
   const hasPracticeEnabledColumn = Object.prototype.hasOwnProperty.call(
@@ -171,10 +174,13 @@ export default async function PracticeSessionPage({ params }: PageProps) {
   }
 
   const scenario = assignment.scenario as any;
-  const { data: subscriptionSummary } = await getStudentSubscriptionSummary();
+  const [{ data: subscriptionSummary }, avatarUrl] = await Promise.all([
+    getStudentSubscriptionSummary(),
+    getStudentAvatarUrl(),
+  ]);
 
   return (
-    <StudentPortalLayout studentName={user.email} hideNav subscriptionSummary={subscriptionSummary}>
+    <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl} hideNav subscriptionSummary={subscriptionSummary}>
       <div className="h-[calc(100vh-64px)]">
         <PracticeSessionClient
           sessionId={session?.id || null}

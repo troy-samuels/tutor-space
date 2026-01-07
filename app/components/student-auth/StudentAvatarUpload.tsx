@@ -80,13 +80,13 @@ export function StudentAvatarUpload({
   };
 
   const getInitials = (name: string | null | undefined): string => {
-    if (!name) return "?";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    const trimmed = name?.trim();
+    if (!trimmed) return "?";
+    const parts = trimmed.split(" ").filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
   };
 
   return (

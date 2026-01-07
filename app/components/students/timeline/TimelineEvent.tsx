@@ -32,7 +32,7 @@ import {
   Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TimelineEvent as TimelineEventType } from "@/lib/actions/student-timeline";
+import type { TimelineEvent as TimelineEventType } from "@/lib/actions/types";
 
 type TimelineEventProps = {
   event: TimelineEventType;

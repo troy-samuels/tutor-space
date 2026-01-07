@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
-import type { LinkRecord } from "@/lib/actions/links";
+import type { LinkRecord } from "@/lib/actions/types";
 import { LinkEditor } from "@/components/marketing/link-editor";
 import type { LinkFormValues } from "@/lib/validators/link";
 

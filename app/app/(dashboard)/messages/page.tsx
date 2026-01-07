@@ -2,6 +2,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RealtimeMessagesContainer } from "@/components/messaging/RealtimeMessagesContainer";
 import type { ConversationThread, ConversationMessage } from "@/lib/actions/messaging";
+import {
+  getTutorProfileAvatar,
+  listMessagesForThread,
+  listThreadsForTutor,
+  markMessagesReadByTutor,
+  markThreadReadByTutor,
+} from "@/lib/repositories/messaging";
 
 type PageProps = {
   searchParams: Promise<{ thread?: string }>;
@@ -20,31 +27,9 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
 
   // Fetch tutor's avatar
-  const { data: tutorProfile } = await supabase
-    .from("profiles")
-    .select("avatar_url")
-    .eq("id", user.id)
-    .single();
+  const { data: tutorProfile } = await getTutorProfileAvatar(supabase, user.id);
 
-  const { data: threads } = await supabase
-    .from("conversation_threads")
-    .select(
-      `
-      id,
-      tutor_id,
-      student_id,
-      last_message_preview,
-      last_message_at,
-      tutor_unread,
-      students (
-        full_name,
-        email,
-        status
-      )
-    `
-    )
-    .eq("tutor_id", user!.id)
-    .order("last_message_at", { ascending: false });
+  const { data: threads } = await listThreadsForTutor(supabase, user!.id);
 
   const threadList = (threads as ConversationThread[] | null) ?? [];
   const activeThreadId =
@@ -55,25 +40,13 @@ export default async function TutorMessagesPage({ searchParams }: PageProps) {
   let messages: ConversationMessage[] = [];
 
   if (activeThreadId) {
-    const { data: messageRows } = await supabase
-      .from("conversation_messages")
-      .select("id, thread_id, sender_role, body, attachments, created_at")
-      .eq("thread_id", activeThreadId)
-      .order("created_at", { ascending: true });
+    const { data: messageRows } = await listMessagesForThread(supabase, activeThreadId);
 
     messages = (messageRows as ConversationMessage[] | null) ?? [];
 
     // Mark messages as read
-    await supabase
-      .from("conversation_messages")
-      .update({ read_by_tutor: true })
-      .eq("thread_id", activeThreadId)
-      .eq("read_by_tutor", false);
-
-    await supabase
-      .from("conversation_threads")
-      .update({ tutor_unread: false })
-      .eq("id", activeThreadId);
+    await markMessagesReadByTutor(supabase, activeThreadId);
+    await markThreadReadByTutor(supabase, activeThreadId);
   }
 
   return (

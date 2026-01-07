@@ -8,6 +8,7 @@ import { MessageComposer } from "@/components/messaging/message-composer";
 import { MessageDisplay } from "@/components/messaging/message-display";
 import { useRealtimeMessages } from "@/lib/hooks/useRealtimeMessages";
 import { createClient } from "@/lib/supabase/client";
+import { markMessagesReadByTutor, markThreadReadByTutor } from "@/lib/repositories/messaging";
 import type { ConversationThread, ConversationMessage } from "@/lib/actions/messaging";
 
 type Props = {
@@ -66,15 +67,8 @@ export function RealtimeMessagesContainer({
             thread.id === activeThreadId ? { ...thread, tutor_unread: false } : thread
           )
         );
-        void supabase
-          .from("conversation_messages")
-          .update({ read_by_tutor: true })
-          .eq("thread_id", activeThreadId)
-          .eq("read_by_tutor", false);
-        void supabase
-          .from("conversation_threads")
-          .update({ tutor_unread: false })
-          .eq("id", activeThreadId);
+        void markMessagesReadByTutor(supabase, activeThreadId);
+        void markThreadReadByTutor(supabase, activeThreadId);
       }
     },
     [activeThreadId, supabase]

@@ -2,76 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export type TimelineEventType =
-  | "student_created"
-  | "onboarding_started"
-  | "onboarding_completed"
-  | "onboarding_item_completed"
-  | "booking_created"
-  | "booking_completed"
-  | "booking_cancelled"
-  | "booking_rescheduled"
-  | "message_sent"
-  | "message_received"
-  | "homework_assigned"
-  | "homework_completed"
-  | "homework_submitted"
-  | "practice_session_completed"
-  | "drill_completed"
-  | "goal_created"
-  | "goal_completed"
-  | "assessment_recorded"
-  | "payment_received"
-  | "package_purchased"
-  | "subscription_started"
-  | "status_changed"
-  | "risk_status_changed"
-  | "note_added"
-  | "label_added"
-  | "label_removed"
-  | "first_lesson"
-  | "lesson_milestone";
-
-export type TimelineEvent = {
-  id: string;
-  student_id: string;
-  tutor_id: string;
-  event_type: TimelineEventType;
-  event_title: string;
-  event_description: string | null;
-  event_metadata: Record<string, unknown>;
-  related_booking_id: string | null;
-  related_homework_id: string | null;
-  related_message_id: string | null;
-  visible_to_student: boolean;
-  is_milestone: boolean;
-  event_at: string;
-  created_at: string;
-};
-
-export type TimelineOptions = {
-  limit?: number;
-  offset?: number;
-  eventTypes?: TimelineEventType[];
-  startDate?: string;
-  endDate?: string;
-  milestonesOnly?: boolean;
-};
-
-export type JourneyStats = {
-  total_events: number;
-  milestones_count: number;
-  first_event_at: string | null;
-  latest_event_at: string | null;
-  lessons_completed: number;
-  homework_completed: number;
-  days_since_start: number | null;
-};
+import type { TimelineEventType, TimelineEvent, TimelineOptions, JourneyStats } from "@/lib/actions/types";
 
 // ============================================================================
 // HELPER: Require authenticated tutor
@@ -502,4 +433,3 @@ export async function getTimelineEventCounts(
 
   return counts;
 }
-

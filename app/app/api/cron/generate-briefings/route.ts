@@ -1,10 +1,10 @@
 /**
  * Cron Job: Generate Pre-Lesson Briefings
  *
- * Runs daily (or on demand) to generate AI-powered briefings for upcoming lessons.
+ * Runs every 30 minutes (or on demand) to generate AI-powered briefings for upcoming lessons.
  * Generates briefings for lessons scheduled within the next 24-48 hours.
  *
- * Schedule: Daily at 00:00 UTC via Vercel cron
+ * Schedule: every 30 minutes via Vercel cron (see app/vercel.json)
  */
 
 import { NextRequest, NextResponse } from "next/server";

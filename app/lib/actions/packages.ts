@@ -1,16 +1,7 @@
 "use server";
 
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-
-export type ActivePackage = {
-  id: string;
-  name: string;
-  remaining_minutes: number;
-  expires_at: string | null;
-  purchase_id: string;
-  total_minutes: number;
-  redeemed_minutes: number;
-};
+import type { ActivePackage } from "@/lib/actions/types";
 
 /**
  * Gets active session packages for a student with a specific tutor.

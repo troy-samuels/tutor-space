@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  countUnreadThreadsForStudentIds,
+  countUnreadThreadsForTutor,
+  getStudentMessagingContext,
+} from "@/lib/repositories/messaging";
 
 type Mode = "tutor" | "student";
 
@@ -29,37 +34,40 @@ export function useUnreadMessages(mode: Mode, options?: Options) {
         }
 
         if (mode === "tutor") {
-          const { count } = await supabase
-            .from("conversation_threads")
-            .select("id", { count: "exact", head: true })
-            .eq("tutor_id", user.id)
-            .eq("tutor_unread", true);
+          const { count } = await countUnreadThreadsForTutor(supabase, user.id);
 
           if (isActive) setCount(count ?? 0);
           return;
         }
 
-        const { data: studentRows, error: studentError } = await supabase
-          .from("students")
-          .select("id")
-          .eq("user_id", user.id);
+        // Use context-aware query that considers both students table and connections
+        const { data: messagingContext, error: contextError } = await getStudentMessagingContext(
+          supabase,
+          user.id
+        );
 
-        if (studentError) {
-          throw studentError;
+        if (contextError) {
+          throw contextError;
         }
 
-        const studentIds = (studentRows ?? []).map((row) => row.id).filter(Boolean);
+        const { connections, studentRecords } = messagingContext ?? { connections: [], studentRecords: [] };
+
+        // Only count unread for approved connections
+        const approvedTutorIds = new Set(
+          connections.filter((c) => c.status === "approved").map((c) => c.tutor_id)
+        );
+
+        // Get student IDs for approved connections + legacy approved students
+        const studentIds = studentRecords
+          .filter((s) => approvedTutorIds.has(s.tutor_id) || s.connection_status === "approved")
+          .map((s) => s.id);
 
         if (studentIds.length === 0) {
           if (isActive) setCount(0);
           return;
         }
 
-        const { count } = await supabase
-          .from("conversation_threads")
-          .select("id", { count: "exact", head: true })
-          .in("student_id", studentIds)
-          .eq("student_unread", true);
+        const { count } = await countUnreadThreadsForStudentIds(supabase, studentIds);
 
         if (isActive) setCount(count ?? 0);
       } catch (error) {

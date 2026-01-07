@@ -8,7 +8,7 @@ import {
   DialogBody,
 } from "@/components/ui/dialog";
 import { StudentReviewForm } from "@/components/marketing/student-review-form";
-import type { TutorForReview } from "@/lib/actions/reviews";
+import type { TutorForReview } from "@/lib/actions/types";
 
 type ReviewModalProps = {
   tutor: TutorForReview;

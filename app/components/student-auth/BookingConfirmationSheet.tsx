@@ -15,8 +15,8 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { createStudentBooking, type StudentPackage } from "@/lib/actions/student-bookings";
-import type { TutorSearchResult } from "@/lib/actions/student-connections";
+import { createStudentBooking } from "@/lib/actions/student-bookings";
+import type { StudentPackage, TutorSearchResult } from "@/lib/actions/types";
 
 type Service = {
   id: string;

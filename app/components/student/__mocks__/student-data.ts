@@ -43,6 +43,7 @@ Focus especially on:
     created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     topic: "Restaurant & Dining",
+    deleted_at: null,
     practice_assignment_id: "pa-1",
     practice_assignment: {
       id: "pa-1",
@@ -70,6 +71,7 @@ Focus especially on:
     created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     topic: "Grammar",
+    deleted_at: null,
     practice_assignment_id: null,
   },
   {
@@ -93,6 +95,7 @@ Focus especially on:
     created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     topic: "Listening",
+    deleted_at: null,
     practice_assignment_id: null,
     latest_submission: {
       id: "sub-1",
@@ -123,6 +126,7 @@ Focus especially on:
     created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     topic: "Pronunciation",
+    deleted_at: null,
     practice_assignment_id: null,
     latest_submission: {
       id: "sub-2",
@@ -151,6 +155,7 @@ Focus especially on:
     created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     topic: "Writing",
+    deleted_at: null,
     practice_assignment_id: null,
     latest_submission: {
       id: "sub-3",
@@ -183,6 +188,7 @@ export const mockHomeworkWithAudioInstruction: HomeworkAssignment = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   topic: "Medical Spanish",
+  deleted_at: null,
   practice_assignment_id: "pa-2",
   practice_assignment: {
     id: "pa-2",
@@ -425,6 +431,7 @@ export const mockLearningGoals: LearningGoal[] = [
     completed_at: null,
     created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    deleted_at: null,
   },
   {
     id: "goal-2",
@@ -438,6 +445,7 @@ export const mockLearningGoals: LearningGoal[] = [
     completed_at: null,
     created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    deleted_at: null,
   },
   {
     id: "goal-3",
@@ -451,6 +459,7 @@ export const mockLearningGoals: LearningGoal[] = [
     completed_at: null,
     created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    deleted_at: null,
   },
   {
     id: "goal-4",
@@ -464,6 +473,7 @@ export const mockLearningGoals: LearningGoal[] = [
     completed_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     created_at: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    deleted_at: null,
   },
 ];
 

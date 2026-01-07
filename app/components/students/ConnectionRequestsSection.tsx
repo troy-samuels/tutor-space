@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   approveConnectionRequest,
   rejectConnectionRequest,
-  type PendingConnectionRequest,
 } from "@/lib/actions/student-connections";
+import type { PendingConnectionRequest } from "@/lib/actions/types";
 
 interface ConnectionRequestsSectionProps {
   requests: PendingConnectionRequest[];

@@ -3,7 +3,7 @@
 import { Clock, MessageSquare, Calendar, Video, User } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import type { DailyLesson } from "@/lib/actions/calendar-sidebar";
+import type { DailyLesson } from "@/lib/actions/types";
 
 type StudentLessonCardProps = {
   lesson: DailyLesson;

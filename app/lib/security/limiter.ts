@@ -14,6 +14,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const LIMITS = {
 	/** Public booking pages - IP-based */
 	booking: { requests: 10, window: "5 m" as const },
+	/** Homework uploads - IP-based */
+	upload: { requests: 20, window: "5 m" as const },
+	/** Homework submissions - IP-based */
+	homework_submission: { requests: 10, window: "10 m" as const },
 	/** AI Practice chat - User ID-based (legacy) */
 	ai: { requests: 30, window: "1 m" as const },
 	/** AI Practice - Studio tier tutors (30/min) */
@@ -24,6 +28,16 @@ const LIMITS = {
 	auth: { requests: 5, window: "15 m" as const },
 	/** General API calls */
 	api: { requests: 60, window: "1 m" as const },
+	/** Messaging - text messages - User ID-based (60/hour) */
+	messaging: { requests: 60, window: "1 h" as const },
+	/** Messaging - audio messages - User ID-based (30/hour) */
+	messaging_audio: { requests: 30, window: "1 h" as const },
+	/** Tutor site create - User ID-based (5/day) */
+	site_create: { requests: 5, window: "24 h" as const },
+	/** Tutor site update - User ID-based (30/hour) */
+	site_update: { requests: 30, window: "1 h" as const },
+	/** Tutor site publish - User ID-based (10/hour) */
+	site_publish: { requests: 10, window: "1 h" as const },
 } as const;
 
 /** Monthly message cap for AI Practice (margin protection) */

@@ -5,7 +5,14 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { sendBookingCancelledEmail } from "@/lib/emails/booking-emails";
 import { sendTutorCancellationEmail } from "@/lib/emails/ops-emails";
 import { deleteCalendarEventsForBooking } from "@/lib/calendar/busy-windows";
-import { requireTutor, isCancelledStatus } from "./helpers";
+import { recordAudit } from "@/lib/repositories/audit";
+import {
+	getBookingForCancel,
+	updateBookingStatus,
+	getStudentByEmail,
+} from "@/lib/repositories/bookings";
+import { requireTutor } from "./helpers";
+import { isCancelledStatus } from "./types";
 import {
 	getTraceId,
 	createRequestLogger,
@@ -24,7 +31,7 @@ import {
  */
 export async function cancelBooking(bookingId: string) {
 	const traceId = await getTraceId();
-	const { supabase, user } = await requireTutor();
+	const { user } = await requireTutor();
 
 	if (!user) {
 		return { error: "You need to be signed in to cancel bookings." };
@@ -33,35 +40,15 @@ export async function cancelBooking(bookingId: string) {
 	const log = createRequestLogger(traceId, user.id);
 	logStep(log, "cancelBooking:start", { bookingId });
 
-	// Verify the booking belongs to this tutor
-	const { data: booking, error: fetchError } = await supabase
-		.from("bookings")
-		.select(
-			`
-				id,
-				tutor_id,
-				status,
-				scheduled_at,
-				duration_minutes,
-				timezone,
-				services (
-					name,
-					duration_minutes
-				),
-				students (
-					full_name,
-					email
-				),
-				tutor:profiles!bookings_tutor_id_fkey (
-					full_name,
-					email
-				)
-			`
-		)
-		.eq("id", bookingId)
-		.single();
+	const adminClient = createServiceRoleClient();
+	if (!adminClient) {
+		return { error: "Service unavailable. Please try again." };
+	}
 
-	if (fetchError || !booking) {
+	// Verify the booking belongs to this tutor using repository
+	const booking = await getBookingForCancel(adminClient, bookingId);
+
+	if (!booking) {
 		return { error: "Booking not found." };
 	}
 
@@ -82,24 +69,35 @@ export async function cancelBooking(bookingId: string) {
 		return { error: "Booking is already cancelled." };
 	}
 
-	// Update booking status
-	const { error: updateError } = await supabase
-		.from("bookings")
-		.update({
-			status: "cancelled",
-			cancelled_at: new Date().toISOString(),
-			cancelled_by: "tutor",
-			updated_at: new Date().toISOString(),
-		})
-		.eq("id", bookingId)
-		.eq("tutor_id", user.id);
-
-	if (updateError) {
+	// Update booking status using repository
+	try {
+		await updateBookingStatus(adminClient, bookingId, user.id, "cancelled", {
+			cancelledAt: new Date().toISOString(),
+			cancelledBy: "tutor",
+		});
+	} catch (updateError) {
 		logStepError(log, "cancelBooking:update_failed", updateError, { bookingId });
 		return { error: "Failed to cancel booking. Please try again." };
 	}
 
 	logStep(log, "cancelBooking:status_updated", { bookingId });
+
+	// Record audit log for booking cancellation
+	const auditClient = createServiceRoleClient();
+	if (auditClient) {
+		await recordAudit(auditClient, {
+			actorId: user.id,
+			targetId: bookingId,
+			entityType: "booking",
+			actionType: "update_status",
+			metadata: {
+				before: { status: booking.status },
+				after: { status: "cancelled" },
+				cancelledBy: "tutor",
+				scheduledAt: booking.scheduled_at,
+			},
+		});
+	}
 
 	// Refund package minutes if this booking used a package
 	const { refundPackageMinutes } = await import("@/lib/actions/packages");
@@ -112,7 +110,7 @@ export async function cancelBooking(bookingId: string) {
 		logStep(log, "cancelBooking:package_refund_success", { bookingId });
 	}
 
-	const { refundSubscriptionLesson } = await import("@/lib/actions/lesson-subscriptions");
+	const { refundSubscriptionLesson } = await import("@/lib/actions/subscriptions");
 	const subscriptionRefund = await refundSubscriptionLesson(bookingId);
 
 	if (!subscriptionRefund.success) {
@@ -149,20 +147,14 @@ export async function cancelBooking(bookingId: string) {
 
 	// Send in-app notification to student about cancellation
 	// Need to get student's user_id if they have an account
-	const adminClient = createServiceRoleClient();
-	if (adminClient && student) {
+	if (student?.email) {
 		try {
-			const { data: studentRecord } = await adminClient
-				.from("students")
-				.select("user_id")
-				.eq("email", student.email)
-				.eq("tutor_id", user.id)
-				.single();
+			const studentRecord = await getStudentByEmail(adminClient, student.email, user.id);
 
 			if (studentRecord?.user_id) {
 				const { notifyBookingCancelled } = await import("@/lib/actions/notifications");
 				await notifyBookingCancelled({
-					userId: studentRecord.user_id,
+					userId: studentRecord.user_id as string,
 					userRole: "student",
 					otherPartyName: tutorProfile?.full_name ?? "Your tutor",
 					serviceName,

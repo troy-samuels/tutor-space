@@ -5,8 +5,8 @@ import { format } from "date-fns";
 import Link from "next/link";
 import Image from "next/image";
 import { RefreshCw, AlertCircle, Calendar, CreditCard, BookOpen } from "lucide-react";
-import type { StudentSubscriptionView } from "@/lib/actions/lesson-subscriptions";
-import { cancelSubscription } from "@/lib/actions/lesson-subscriptions";
+import type { StudentSubscriptionView } from "@/lib/actions/subscriptions";
+import { cancelSubscription } from "@/lib/actions/subscriptions";
 import { formatCurrency } from "@/lib/utils";
 
 interface SubscriptionsClientProps {

@@ -5,9 +5,17 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { createBookingAndCheckout } from "./bookings";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
-import { getTutorForBooking, getTutorBookings, type TutorWithDetails } from "./student-connections";
-import { getStudentSubscription } from "./lesson-subscriptions";
+import { getTutorForBooking, getTutorBookings } from "./student-connections";
+import { getStudentSubscription } from "./subscriptions";
 import type { SubscriptionWithDetails } from "@/lib/subscription";
+import type {
+  StudentPackage,
+  TutorBookingDetails,
+  GroupedSlots,
+  StudentPackageCredit,
+  StudentSubscriptionCredit,
+  TutorOffering,
+} from "@/lib/actions/types";
 
 interface CreateStudentBookingParams {
   tutorId: string;
@@ -19,15 +27,6 @@ interface CreateStudentBookingParams {
   currency: string;
   packageId?: string; // Optional: Use package instead of payment
 }
-
-export type StudentPackage = {
-  id: string;
-  name: string;
-  remaining_minutes: number;
-  expires_at: string | null;
-  purchase_id: string;
-  total_minutes: number;
-};
 
 /**
  * Get the logged-in student's active packages for a specific tutor
@@ -380,29 +379,6 @@ export async function getStudentBookings(): Promise<{
 /**
  * Type for subscription balance with available lessons
  */
-export type SubscriptionBalance = {
-  lessonsAvailable: number;
-  lessonsUsed: number;
-  lessonsAllocated: number;
-  lessonsRolledOver: number;
-};
-
-/**
- * Combined tutor booking details including services, packages, and subscriptions
- */
-export type TutorBookingDetails = {
-  tutor: TutorWithDetails;
-  packages: StudentPackage[];
-  subscription: {
-    id: string;
-    status: string;
-    lessonsAvailable: number;
-    lessonsPerMonth: number;
-    currentPeriodEnd: string | null;
-  } | null;
-  existingBookings: { scheduled_at: string; duration_minutes: number; status: string }[];
-};
-
 /**
  * Get all booking details for a tutor including services, packages, and subscriptions
  * This is the main function used by the student booking page
@@ -482,16 +458,6 @@ export async function getTutorBookingDetails(tutorId: string): Promise<{
 /**
  * Grouped time slots by date
  */
-export type GroupedSlots = {
-  date: string; // ISO date string (YYYY-MM-DD)
-  displayDate: string; // Formatted date for display (e.g., "Mon, Dec 16")
-  slots: {
-    start: string; // ISO datetime string
-    end: string; // ISO datetime string
-    displayTime: string; // Formatted time (e.g., "2:30 PM")
-  }[];
-}[];
-
 /**
  * Generate available time slots for a tutor's service
  */
@@ -602,29 +568,6 @@ export async function getAvailableSlots(
 /**
  * Types for aggregated student credits across all tutors
  */
-export type StudentPackageCredit = {
-  purchaseId: string;
-  tutorId: string;
-  tutorName: string;
-  tutorAvatar: string | null;
-  packageName: string;
-  remainingMinutes: number;
-  totalMinutes: number;
-  expiresAt: string | null;
-};
-
-export type StudentSubscriptionCredit = {
-  subscriptionId: string;
-  tutorId: string;
-  tutorName: string;
-  tutorAvatar: string | null;
-  serviceName: string;
-  lessonsAvailable: number;
-  lessonsPerMonth: number;
-  status: string;
-  renewsAt: string | null;
-};
-
 /**
  * Get all packages and subscriptions for the logged-in student across ALL tutors
  * Used by the My Purchases page
@@ -821,4 +764,86 @@ export async function getAllStudentCredits(): Promise<{
   }
 
   return { packages, subscriptions: subscriptionCredits };
+}
+
+/**
+ * Get connected tutors with their available offerings (packages/subscriptions)
+ * Used by My Purchases page to show contextual CTAs
+ */
+export async function getConnectedTutorOfferings(): Promise<{
+  tutors?: TutorOffering[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Please log in" };
+  }
+
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) {
+    return { error: "Service unavailable" };
+  }
+
+  // Get approved connections
+  const { data: connections, error: connectionError } = await adminClient
+    .from("student_tutor_connections")
+    .select("tutor_id")
+    .eq("student_user_id", user.id)
+    .eq("status", "approved");
+
+  // Handle missing table gracefully
+  if (isTableMissing(connectionError, "student_tutor_connections")) {
+    return { tutors: [] };
+  }
+
+  if (connectionError) {
+    console.error("[getConnectedTutorOfferings] Error:", connectionError);
+    return { error: "Failed to load connections" };
+  }
+
+  if (!connections || connections.length === 0) {
+    return { tutors: [] };
+  }
+
+  const tutorIds = connections.map((c) => c.tutor_id);
+
+  // Fetch tutor profiles
+  const { data: tutors } = await adminClient
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", tutorIds);
+
+  // Check for package templates
+  const { data: packageTemplates } = await adminClient
+    .from("session_package_templates")
+    .select("tutor_id")
+    .in("tutor_id", tutorIds)
+    .eq("is_active", true);
+
+  // Check for subscription-enabled services
+  const { data: subscriptionServices } = await adminClient
+    .from("services")
+    .select("tutor_id")
+    .in("tutor_id", tutorIds)
+    .eq("subscriptions_enabled", true)
+    .eq("is_active", true);
+
+  // Build tutor offerings map
+  const packagesSet = new Set(packageTemplates?.map((p) => p.tutor_id) || []);
+  const subscriptionsSet = new Set(subscriptionServices?.map((s) => s.tutor_id) || []);
+
+  const offerings: TutorOffering[] = (tutors || []).map((tutor) => ({
+    tutorId: tutor.id,
+    tutorName: tutor.full_name || "Tutor",
+    tutorAvatar: tutor.avatar_url,
+    hasPackages: packagesSet.has(tutor.id),
+    hasSubscriptions: subscriptionsSet.has(tutor.id),
+  }));
+
+  return { tutors: offerings };
 }

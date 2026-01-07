@@ -8,7 +8,8 @@ import {
   arrayMove,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { createLink, updateLink, deleteLink, updateLinksOrder, type LinkRecord } from "@/lib/actions/links";
+import { createLink, updateLink, deleteLink, updateLinksOrder } from "@/lib/actions/links";
+import type { LinkRecord } from "@/lib/actions/types";
 import type { LinkFormValues } from "@/lib/validators/link";
 import { LinkAnalytics } from "@/components/marketing/link-analytics";
 import { LinkEditor } from "@/components/marketing/link-editor";

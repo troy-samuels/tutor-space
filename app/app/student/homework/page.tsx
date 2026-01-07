@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { HomeworkPageClient } from "./HomeworkPageClient";
 import { getStudentProgress, getStudentPracticeData } from "@/lib/actions/progress";
 import { getDrillCounts, getStudentDrills } from "@/lib/actions/drills";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentSession, getStudentDisplayName } from "@/lib/auth";
 
 export const metadata = {
   title: "Homework | Student Portal",
@@ -13,47 +13,15 @@ export const metadata = {
 };
 
 export default async function HomeworkPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Single cached auth call replaces 3 sequential queries
+  const { user, student } = await getStudentSession();
 
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const studentTokenCookie = cookieStore.get("student_auth_token");
-
-  let studentId: string | null = null;
-  let studentName: string | null = null;
-
-  if (studentTokenCookie?.value) {
-    const { data: student } = await supabase
-      .from("students")
-      .select("*")
-      .eq("access_token", studentTokenCookie.value)
-      .maybeSingle();
-
-    if (student) {
-      studentId = student.id;
-      studentName = student.full_name ?? student.name ?? null;
-    }
-  }
-
-  if (!studentId && user) {
-    const { data: student } = await supabase
-      .from("students")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (student) {
-      studentId = student.id;
-      studentName = student.full_name ?? student.name ?? null;
-    }
-  }
-
-  if (!studentId && !user) {
+  if (!user) {
     redirect("/student/login?redirect=/student/homework");
   }
+
+  const studentId = student?.id ?? null;
+  const studentName = getStudentDisplayName(student, user);
 
   const [progressData, practiceData, subscriptionSummaryResult, avatarUrl] =
     await Promise.all([
@@ -74,15 +42,10 @@ export default async function HomeworkPage() {
   const lessonsCompleted =
     progressData.stats?.lessons_completed ?? progressData.stats?.total_lessons ?? 0;
   const hasCompletedFirstClass = lessonsCompleted > 0;
-  const displayName =
-    studentName ??
-    (user?.user_metadata as { full_name?: string } | null)?.full_name ??
-    user?.email ??
-    null;
 
   return (
     <StudentPortalLayout
-      studentName={displayName}
+      studentName={studentName}
       avatarUrl={avatarUrl}
       subscriptionSummary={subscriptionSummary}
       homeworkCount={openHomeworkCount}

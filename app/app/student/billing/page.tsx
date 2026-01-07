@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentBillingClient } from "./StudentBillingClient";
 import { getStudentBillingHistory } from "@/lib/actions/student-billing";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentDisplayName } from "@/lib/utils/student-name";
 
 export const metadata = {
   title: "Billing | TutorLingua",
@@ -19,6 +20,7 @@ export default async function StudentBillingPage() {
     redirect("/student/login");
   }
 
+  const studentName = await getStudentDisplayName(supabase, user);
   const [billingData, { data: subscriptionSummary }, avatarUrl] = await Promise.all([
     getStudentBillingHistory(),
     getStudentSubscriptionSummary(),
@@ -26,7 +28,7 @@ export default async function StudentBillingPage() {
   ]);
 
   return (
-    <StudentPortalLayout studentName={user.email} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
+    <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
       <StudentBillingClient
         payments={billingData.payments}
         packages={billingData.packages}

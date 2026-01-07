@@ -28,12 +28,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
-import {
-  type AIConversation,
-  type AIMessage,
-  createConversation,
-  deleteConversation,
-} from "@/lib/actions/ai-assistant";
+import { createConversation, deleteConversation } from "@/lib/actions/ai-assistant";
+import type { AIConversation, AIMessage } from "@/lib/actions/types";
 import { CONTEXT_TYPES } from "@/lib/constants/ai-context-types";
 
 interface AIChatInterfaceProps {

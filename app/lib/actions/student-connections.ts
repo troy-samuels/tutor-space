@@ -4,40 +4,29 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import {
+  createThread,
+  getThreadByTutorStudent,
+  insertMessage,
+  updateThreadPreview,
+  upsertThread,
+} from "@/lib/repositories/messaging";
+import {
   sendAccessRequestNotification,
   sendAccessApprovedEmail,
 } from "@/lib/emails/access-emails";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
+import type {
+  ConnectionStatus,
+  TutorSearchResult,
+  StudentConnection,
+  PendingConnectionRequest,
+  TutorWithDetails,
+} from "@/lib/actions/types";
 
 const CONNECTIONS_TABLE = "student_tutor_connections";
 const isMissingConnectionsTable = (error?: { message?: string; code?: string; hint?: string | null; details?: string | null } | null) =>
   isTableMissing(error, CONNECTIONS_TABLE);
 
-export type ConnectionStatus = "pending" | "approved" | "rejected";
-
-export type TutorSearchResult = {
-  id: string;
-  username: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  tagline: string | null;
-};
-
-export type StudentConnection = {
-  id: string;
-  tutor_id: string;
-  status: ConnectionStatus;
-  initial_message: string | null;
-  requested_at: string;
-  resolved_at: string | null;
-  tutor: {
-    id: string;
-    username: string;
-    full_name: string | null;
-    avatar_url: string | null;
-    tagline: string | null;
-  };
-};
 
 /**
  * Search for tutors by username or name
@@ -218,66 +207,60 @@ export async function requestConnection(params: {
 
       // Create conversation thread if student record was created/updated
       if (studentRecordId!) {
-        // Check if thread already exists
-        const { data: existingThread } = await adminClient
-          .from("conversation_threads")
-          .select("id")
-          .eq("tutor_id", params.tutorId)
-          .eq("student_id", studentRecordId)
-          .single();
+        const preview = params.message.trim().substring(0, 160);
+        const now = new Date().toISOString();
 
-        let threadId: string;
+        const { data: existingThread, error: existingThreadError } = await getThreadByTutorStudent(
+          adminClient,
+          params.tutorId,
+          studentRecordId
+        );
 
-        if (existingThread) {
-          threadId = existingThread.id;
-        } else {
-          // Create new thread
-          const { data: newThread, error: threadError } = await adminClient
-            .from("conversation_threads")
-            .insert({
-              tutor_id: params.tutorId,
-              student_id: studentRecordId,
-              last_message_preview: params.message.trim().substring(0, 160),
-              last_message_at: new Date().toISOString(),
-              tutor_unread: true,
-              student_unread: false,
-            })
-            .select("id")
-            .single();
+        let threadId: string | null = existingThread?.id ?? null;
 
-          if (threadError) {
+        if (!threadId) {
+          if (existingThreadError && existingThreadError.code !== "PGRST116") {
+            console.error("Failed to check conversation thread:", existingThreadError);
+          }
+
+          const { data: newThread, error: threadError } = await createThread(adminClient, {
+            tutorId: params.tutorId,
+            studentId: studentRecordId,
+            lastMessagePreview: preview,
+            lastMessageAt: now,
+            tutorUnread: true,
+            studentUnread: false,
+          });
+
+          if (threadError || !newThread) {
             console.error("Failed to create conversation thread:", threadError);
           } else {
             threadId = newThread.id;
           }
         }
 
-        // Create the initial message in the thread
-        if (threadId!) {
-          const { error: messageError } = await adminClient
-            .from("conversation_messages")
-            .insert({
-              thread_id: threadId,
-              sender_role: "student",
-              body: params.message.trim(),
-              read_by_student: true,
-              read_by_tutor: false,
-            });
+        if (threadId) {
+          const { error: messageError } = await insertMessage(adminClient, {
+            threadId,
+            tutorId: params.tutorId,
+            studentId: studentRecordId,
+            senderRole: "student",
+            body: params.message.trim(),
+            readByStudent: true,
+            readByTutor: false,
+          });
 
           if (messageError) {
             console.error("Failed to create initial message:", messageError);
           }
 
-          // Update thread with message preview if this was an existing thread
-          if (existingThread) {
-            await adminClient
-              .from("conversation_threads")
-              .update({
-                last_message_preview: params.message.trim().substring(0, 160),
-                last_message_at: new Date().toISOString(),
-                tutor_unread: true,
-              })
-              .eq("id", threadId);
+          if (existingThread?.id) {
+            await updateThreadPreview(adminClient, threadId, {
+              lastMessagePreview: preview,
+              lastMessageAt: now,
+              tutorUnread: true,
+              studentUnread: false,
+            });
           }
         }
       }
@@ -496,15 +479,6 @@ export async function getConnectionStatus(tutorId: string): Promise<{
 // TUTOR-SIDE ACTIONS
 // ============================================
 
-export type PendingConnectionRequest = {
-  id: string;
-  student_user_id: string;
-  initial_message: string | null;
-  requested_at: string;
-  student_email: string;
-  student_name: string | null;
-};
-
 /**
  * Get pending connection requests for a tutor
  */
@@ -677,14 +651,14 @@ export async function approveConnectionRequest(
         }
 
         if (studentRecord?.id) {
-          const { error: threadError } = await adminClient
-            .from("conversation_threads")
-            .insert({
-              tutor_id: user.id,
-              student_id: studentRecord.id,
-            })
-            .select("id")
-            .single();
+          const { error: threadError } = await upsertThread(
+            adminClient,
+            {
+              tutorId: user.id,
+              studentId: studentRecord.id,
+            },
+            { ignoreDuplicates: true }
+          );
 
           if (threadError && threadError.code !== "23505") {
             console.error("Failed to create conversation thread:", threadError);
@@ -779,30 +753,6 @@ export async function rejectConnectionRequest(
 // ============================================
 // STUDENT BOOKING ACTIONS
 // ============================================
-
-export type TutorWithDetails = {
-  id: string;
-  username: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  tagline: string | null;
-  timezone: string;
-  services: {
-    id: string;
-    name: string;
-    description: string | null;
-    duration_minutes: number;
-    price_amount: number;
-    price_currency: string;
-    is_active: boolean;
-  }[];
-  availability: {
-    day_of_week: number;
-    start_time: string;
-    end_time: string;
-    is_available: boolean;
-  }[];
-};
 
 /**
  * Get tutor details for booking (services, availability, etc.)

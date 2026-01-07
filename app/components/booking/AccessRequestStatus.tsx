@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Clock, XCircle, Ban, Mail, ArrowLeft, RotateCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { AccessStatus } from "@/lib/actions/student-auth";
+import type { AccessStatus } from "@/lib/actions/types";
 
 interface TutorInfo {
   id: string;

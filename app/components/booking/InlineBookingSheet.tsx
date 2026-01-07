@@ -5,8 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, Loader2, LogIn, ShieldAlert, CalendarClock, RefreshCw } from "lucide-react";
 import BookingInterface from "./BookingInterface";
 import type { BookableSlot } from "@/lib/utils/slots";
-import type { StudentLessonHistoryData } from "@/lib/actions/student-lessons";
-import { AccessStatus } from "@/lib/actions/student-auth";
+import type { AccessStatus, StudentLessonHistoryData } from "@/lib/actions/types";
 
 type Service = {
   id: string;

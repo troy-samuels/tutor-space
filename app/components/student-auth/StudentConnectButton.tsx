@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { UserPlus, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { getConnectionStatus, type ConnectionStatus } from "@/lib/actions/student-connections";
+import { getConnectionStatus } from "@/lib/actions/student-connections";
+import type { ConnectionStatus } from "@/lib/actions/types";
 import { ConnectionRequestModal } from "./ConnectionRequestModal";
 
 interface StudentConnectButtonProps {

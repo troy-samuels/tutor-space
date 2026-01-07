@@ -1,123 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/middleware/rate-limit";
+import { handleDownload, DOWNLOAD_RATE_LIMIT_CONFIG } from "@/lib/actions/marketplace";
 
-type DigitalProductPurchase = {
-  id: string;
-  status: string;
-  download_count: number;
-  download_limit: number;
-  products: {
-    storage_path: string | null;
-    fulfillment_type: string | null;
-    external_url: string | null;
-    tutor_id: string;
-  } | null;
-};
-
+/**
+ * GET /api/digital-products/download/[token]
+ *
+ * Secure file download endpoint with:
+ * - Rate limiting: 3 downloads per token per hour
+ * - Optimistic locking to prevent race conditions
+ * - Audit trail for every download attempt
+ * - IP tracking for fraud detection
+ */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+	request: NextRequest,
+	{ params }: { params: Promise<{ token: string }> }
 ) {
-  // Rate limit: 10 download attempts per token per 5 minutes
-  const rateLimitResult = await rateLimit(request, {
-    limit: 10,
-    window: 5 * 60 * 1000, // 5 minutes
-  });
+	// Rate limit: 3 download attempts per token per hour
+	// (Previously was 10/5min, now stricter for abuse prevention)
+	const rateLimitResult = await rateLimit(request, {
+		limit: DOWNLOAD_RATE_LIMIT_CONFIG.maxDownloads,
+		window: DOWNLOAD_RATE_LIMIT_CONFIG.windowMs,
+	});
 
-  if (!rateLimitResult.success) {
-    return NextResponse.json(
-      { error: "Too many download attempts. Please wait a few minutes and try again." },
-      { status: 429 }
-    );
-  }
+	if (!rateLimitResult.success) {
+		return NextResponse.json(
+			{ error: "Download limit exceeded. Please try again in 1 hour." },
+			{ status: 429 }
+		);
+	}
 
-  const { token } = await params;
-  const adminClient = createServiceRoleClient();
+	const { token } = await params;
 
-  if (!adminClient) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
+	// Get client IP
+	const clientIp =
+		request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+		request.headers.get("x-real-ip") ||
+		"unknown";
 
-  const { data: purchase, error } = await adminClient
-    .from("digital_product_purchases")
-    .select(
-      `
-      id,
-      status,
-      download_count,
-      download_limit,
-      products:digital_products (
-        storage_path,
-        fulfillment_type,
-        external_url,
-        tutor_id
-      )
-    `
-    )
-    .eq("download_token", token)
-    .single<DigitalProductPurchase>();
+	// Handle download using marketplace action
+	const result = await handleDownload(token, clientIp);
 
-  if (error || !purchase) {
-    return NextResponse.json({ error: "Link not found." }, { status: 404 });
-  }
+	if (result.error) {
+		// Map errors to appropriate HTTP status codes
+		const statusCode = getStatusCode(result.error);
+		return NextResponse.json({ error: result.error }, { status: statusCode });
+	}
 
-  if (purchase.status !== "paid") {
-    return NextResponse.json({ error: "Payment pending." }, { status: 403 });
-  }
+	if (!result.data?.redirectUrl) {
+		return NextResponse.json({ error: "Unable to generate download link." }, { status: 500 });
+	}
 
-  if (purchase.download_count >= purchase.download_limit) {
-    return NextResponse.json({ error: "Download limit reached." }, { status: 403 });
-  }
-
-  const product = purchase.products;
-
-  if (!product) {
-    return NextResponse.json({ error: "Product missing." }, { status: 404 });
-  }
-
-  if (product.fulfillment_type === "link" && product.external_url) {
-    // Use atomic increment with optimistic locking to prevent race conditions
-    const { data: updated, error: updateError } = await adminClient
-      .from("digital_product_purchases")
-      .update({ download_count: purchase.download_count + 1 })
-      .eq("id", purchase.id)
-      .eq("download_count", purchase.download_count) // Optimistic lock
-      .select("download_count")
-      .single();
-
-    if (updateError || !updated) {
-      return NextResponse.json({ error: "Download limit reached or concurrent access detected." }, { status: 403 });
-    }
-
-    return NextResponse.redirect(product.external_url, { status: 302 });
-  }
-
-  if (!product.storage_path) {
-    return NextResponse.json({ error: "File unavailable." }, { status: 404 });
-  }
-
-  const { data: signedUrlData, error: signedError } = await adminClient.storage
-    .from("digital-products")
-    .createSignedUrl(product.storage_path, 60 * 5); // 5 minutes
-
-  if (signedError || !signedUrlData?.signedUrl) {
-    return NextResponse.json({ error: "Unable to generate download link." }, { status: 500 });
-  }
-
-  // Use atomic increment with optimistic locking to prevent race conditions
-  const { data: updated, error: updateError } = await adminClient
-    .from("digital_product_purchases")
-    .update({ download_count: purchase.download_count + 1 })
-    .eq("id", purchase.id)
-    .eq("download_count", purchase.download_count) // Optimistic lock
-    .select("download_count")
-    .single();
-
-  if (updateError || !updated) {
-    return NextResponse.json({ error: "Download limit reached or concurrent access detected." }, { status: 403 });
-  }
-
-  return NextResponse.redirect(signedUrlData.signedUrl, { status: 302 });
+	return NextResponse.redirect(result.data.redirectUrl, { status: 302 });
 }
 
+/**
+ * Map error messages to HTTP status codes.
+ */
+function getStatusCode(error: string): number {
+	if (error.includes("not found")) return 404;
+	if (error.includes("Payment pending")) return 403;
+	if (error.includes("limit reached") || error.includes("concurrent")) return 403;
+	if (error.includes("unavailable")) return 404;
+	return 500;
+}

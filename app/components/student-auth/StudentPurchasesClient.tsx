@@ -1,26 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { Package, CreditCard, Search, Ticket } from "lucide-react";
+import { Package, CreditCard, Search, Ticket, Calendar, UserPlus, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PackageCard } from "./PackageCard";
 import { SubscriptionCard } from "./SubscriptionCard";
-import type { StudentPackageCredit, StudentSubscriptionCredit } from "@/lib/actions/student-bookings";
+import type { StudentPackageCredit, StudentSubscriptionCredit, TutorOffering } from "@/lib/actions/types";
 
 type StudentPurchasesClientProps = {
   packages: StudentPackageCredit[];
   subscriptions: StudentSubscriptionCredit[];
+  connectedTutors: TutorOffering[];
   error?: string;
 };
 
 export function StudentPurchasesClient({
   packages,
   subscriptions,
+  connectedTutors,
   error,
 }: StudentPurchasesClientProps) {
   const hasPackages = packages.length > 0;
   const hasSubscriptions = subscriptions.length > 0;
   const isEmpty = !hasPackages && !hasSubscriptions;
+  const hasConnectedTutors = connectedTutors.length > 0;
 
   // Calculate totals
   const totalMinutes = packages.reduce((sum, p) => sum + p.remainingMinutes, 0);
@@ -78,24 +81,87 @@ export function StudentPurchasesClient({
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Smart empty state based on connection status */}
       {isEmpty && !error && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/50 px-6 py-12 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <Ticket className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-foreground">
-            No Packages or Subscriptions
-          </h2>
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            When you purchase packages or subscribe to lesson plans from your tutors, they&apos;ll appear here.
-          </p>
-          <Button asChild className="mt-4">
-            <Link href="/student/search">
-              <Search className="mr-2 h-4 w-4" />
-              Browse Tutors
-            </Link>
-          </Button>
+          {!hasConnectedTutors ? (
+            // State A: No tutors connected
+            <>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <UserPlus className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">
+                Connect with a Tutor First
+              </h2>
+              <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                Find a tutor and request to connect before purchasing packages.
+              </p>
+              <Button asChild className="mt-4">
+                <Link href="/student/search">
+                  <Search className="mr-2 h-4 w-4" />
+                  Find Tutors
+                </Link>
+              </Button>
+            </>
+          ) : (
+            // State B/C: Connected to tutor(s)
+            <>
+              {connectedTutors.some((t) => t.hasPackages || t.hasSubscriptions) ? (
+                // State B: Tutor has packages/subscriptions
+                <>
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                    <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h2 className="mt-4 text-lg font-semibold text-foreground">
+                    Ready to Get Started?
+                  </h2>
+                  <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                    Purchase a lesson package or subscribe for regular lessons with{" "}
+                    {connectedTutors.length === 1
+                      ? connectedTutors[0].tutorName
+                      : "your tutors"}
+                    .
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {connectedTutors.map((tutor) => (
+                      <Button key={tutor.tutorId} asChild variant="outline" size="sm">
+                        <Link href={`/student/book?tutor=${tutor.tutorId}`}>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {connectedTutors.length === 1 ? "Book a Lesson" : tutor.tutorName}
+                        </Link>
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                // State C: Tutor has NO packages/subscriptions (pay-as-you-go only)
+                <>
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                    <Calendar className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h2 className="mt-4 text-lg font-semibold text-foreground">
+                    Book Lessons Directly
+                  </h2>
+                  <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                    {connectedTutors.length === 1
+                      ? `${connectedTutors[0].tutorName} accepts pay-as-you-go bookings.`
+                      : "Your tutors accept pay-as-you-go bookings."}{" "}
+                    No packages required.
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {connectedTutors.map((tutor) => (
+                      <Button key={tutor.tutorId} asChild size="sm">
+                        <Link href={`/student/book?tutor=${tutor.tutorId}`}>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {connectedTutors.length === 1 ? "Book a Lesson" : tutor.tutorName}
+                        </Link>
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
 

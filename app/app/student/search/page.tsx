@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { TutorSearch } from "@/components/student-auth/TutorSearch";
 import { UpcomingLessons } from "@/components/student-auth/UpcomingLessons";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
 
 export const metadata: Metadata = {

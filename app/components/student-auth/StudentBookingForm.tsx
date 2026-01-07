@@ -6,8 +6,8 @@ import { toZonedTime } from "date-fns-tz";
 import { ArrowLeft, Calendar, Clock, DollarSign, Loader2, CheckCircle, Package, CreditCard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { BookableSlot } from "@/lib/utils/slots";
-import type { TutorWithDetails } from "@/lib/actions/student-connections";
-import { createStudentBooking, getStudentPackagesForTutor, type StudentPackage } from "@/lib/actions/student-bookings";
+import type { TutorWithDetails, StudentPackage } from "@/lib/actions/types";
+import { createStudentBooking, getStudentPackagesForTutor } from "@/lib/actions/student-bookings";
 import { formatCurrency } from "@/lib/utils";
 
 interface Service {

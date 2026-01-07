@@ -14,23 +14,50 @@ import {
 import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
 import { createCalendarEventForBooking, getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
+import { recordAudit } from "@/lib/repositories/audit";
 import {
 	requireTutor,
 	ensureConversationThread,
-	checkAdvanceBookingWindow,
 	checkBookingLimits,
-	type TutorProfileData,
 } from "./helpers";
-import type { BookingRecord, ManualBookingInput } from "./types";
+import type { BookingRecord, ManualBookingInput, TutorProfileData } from "./types";
+import { checkAdvanceBookingWindow } from "./types";
 import {
 	getTraceId,
 	createRequestLogger,
 	logStep,
 	logStepError,
+	sanitizeInput,
 	enrichError,
 	type Logger,
 } from "@/lib/logger";
 import { withIdempotency } from "@/lib/utils/idempotency";
+import {
+	findBookingsInTimeRange,
+	getTutorProfileBookingSettings,
+	getFullTutorProfileForBooking,
+	getActiveServiceForTutor,
+	getTutorAvailability,
+	getOrCreateStudent,
+	getStudentById,
+	getStudentByEmail,
+	getStudentTutorConnection,
+	upsertStudentTutorConnection,
+	insertBookingAtomic,
+	updateBookingMeetingUrl,
+	updateBookingCheckoutSession,
+	hardDeleteBooking,
+	getBookingWithDetails,
+	getServiceWithTutorProfile,
+	getBookingPrerequisites,
+	createStudentWithConnection,
+	checkConflictsInWindow,
+	checkPostInsertConflict,
+	getStudentStripeInfo,
+	updateStudentStripeCustomerId,
+	type CreateBookingInput as RepositoryCreateBookingInput,
+	type FullTutorProfile,
+} from "@/lib/repositories/bookings";
 
 // ============================================================================
 // Internal Input Type for createBooking
@@ -77,30 +104,20 @@ export async function createBooking(input: CreateBookingInput) {
 
 	// CONFLICT VALIDATION: Check for overlapping bookings before insert
 	// This prevents double-booking the same timeslot
-	const { data: existingBookings } = await supabase
-		.from("bookings")
-		.select("id, scheduled_at, duration_minutes")
-		.eq("tutor_id", user.id)
-		.in("status", ["pending", "confirmed"])
-		.gte(
-			"scheduled_at",
-			new Date(
-				new Date(input.scheduled_at).getTime() - 24 * 60 * 60 * 1000
-			).toISOString()
-		)
-		.lte(
-			"scheduled_at",
-			new Date(
-				new Date(input.scheduled_at).getTime() + 24 * 60 * 60 * 1000
-			).toISOString()
-		);
-
 	const initialBookingStart = new Date(input.scheduled_at);
 	const initialBookingEnd = new Date(
 		initialBookingStart.getTime() + input.duration_minutes * 60 * 1000
 	);
 
-	const hasConflict = existingBookings?.some((existing) => {
+	let existingBookings: Awaited<ReturnType<typeof findBookingsInTimeRange>>;
+	try {
+		existingBookings = await findBookingsInTimeRange(adminClient, user.id, initialBookingStart);
+	} catch (error) {
+		logStepError(log, "createBooking:conflict_check_failed", error, {});
+		return { error: "Could not verify availability. Please try again." };
+	}
+
+	const hasConflict = existingBookings.some((existing) => {
 		const existingStart = new Date(existing.scheduled_at);
 		const existingEnd = new Date(
 			existingStart.getTime() + existing.duration_minutes * 60 * 1000
@@ -116,15 +133,13 @@ export async function createBooking(input: CreateBookingInput) {
 		};
 	}
 
-	const { data: tutorProfile } = await adminClient
-		.from("profiles")
-		.select(`
-			timezone,
-			advance_booking_days_min, advance_booking_days_max,
-			max_lessons_per_day, max_lessons_per_week
-		`)
-		.eq("id", user.id)
-		.single();
+	let tutorProfile: Awaited<ReturnType<typeof getTutorProfileBookingSettings>>;
+	try {
+		tutorProfile = await getTutorProfileBookingSettings(adminClient, user.id);
+	} catch (error) {
+		logStepError(log, "createBooking:profile_fetch_failed", error, {});
+		return { error: "Could not load tutor settings. Please try again." };
+	}
 
 	const tutorTimezone = tutorProfile?.timezone || input.timezone || "UTC";
 
@@ -153,41 +168,36 @@ export async function createBooking(input: CreateBookingInput) {
 		return { error: bookingLimits.error };
 	}
 
-	// Create the booking atomically to avoid race conditions
-	const { data: bookingResult, error: bookingError } = await adminClient.rpc(
-		"create_booking_atomic",
-		{
-			p_tutor_id: user.id,
-			p_student_id: input.student_id,
-			p_service_id: input.service_id,
-			p_scheduled_at: input.scheduled_at,
-			p_duration_minutes: input.duration_minutes,
-			p_timezone: tutorTimezone,
-			p_status: "confirmed",
-			p_payment_status: "unpaid",
-			p_payment_amount: 0,
-			p_currency: null,
-			p_student_notes: input.notes ?? null,
-		}
-	);
-
-	const booking = Array.isArray(bookingResult)
-		? bookingResult[0]
-		: (bookingResult as { id: string; created_at: string } | null);
-
-	if (bookingError || !booking) {
-		if (bookingError?.code === "P0001" || bookingError?.code === "23P01") {
+	// Create the booking atomically to avoid race conditions (repository)
+	let booking: { id: string; created_at: string };
+	try {
+		booking = await insertBookingAtomic(adminClient, {
+			tutorId: user.id,
+			studentId: input.student_id,
+			serviceId: input.service_id,
+			scheduledAt: input.scheduled_at,
+			durationMinutes: input.duration_minutes,
+			timezone: tutorTimezone,
+			status: "confirmed",
+			paymentStatus: "unpaid",
+			paymentAmount: 0,
+			currency: null,
+			studentNotes: input.notes ?? null,
+		});
+	} catch (bookingError) {
+		const err = bookingError as { code?: string };
+		if (err?.code === "P0001" || err?.code === "23P01") {
 			return {
 				error:
 					"This time slot was just booked. Please refresh and select a different time.",
 			};
 		}
 
-		if (bookingError?.code === "P0002") {
+		if (err?.code === "P0002") {
 			return { error: "This time window is blocked by the tutor." };
 		}
 
-		if (bookingError?.code === "55P03") {
+		if (err?.code === "55P03") {
 			return { error: "Please retry booking; the tutor calendar is busy right now." };
 		}
 
@@ -204,36 +214,42 @@ export async function createBooking(input: CreateBookingInput) {
 	const postInsertStart = new Date(input.scheduled_at);
 	const postInsertEnd = new Date(postInsertStart.getTime() + input.duration_minutes * 60 * 1000);
 
-	const { data: conflictingBookings } = await adminClient
-		.from("bookings")
-		.select("id, scheduled_at, duration_minutes, created_at")
-		.eq("tutor_id", user.id)
-		.in("status", ["pending", "confirmed"])
-		.neq("id", booking.id)
-		.lte("scheduled_at", postInsertEnd.toISOString())
-		.order("created_at", { ascending: true });
+	let conflictingBookings: Awaited<ReturnType<typeof findBookingsInTimeRange>>;
+	try {
+		conflictingBookings = await findBookingsInTimeRange(adminClient, user.id, postInsertStart, booking.id);
+	} catch (error) {
+		logStepError(log, "createBooking:post_insert_check_failed", error, { bookingId: booking.id });
+		conflictingBookings = [];
+	}
 
-	const hasPostInsertConflict = conflictingBookings?.some((existing) => {
+	const hasPostInsertConflict = conflictingBookings.some((existing) => {
 		const existingStart = new Date(existing.scheduled_at);
 		const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
-		return postInsertStart < existingEnd && postInsertEnd > existingStart && new Date(existing.created_at) < new Date(booking.created_at);
+		return postInsertStart < existingEnd && postInsertEnd > existingStart && new Date(existing.created_at ?? "") < new Date(booking.created_at);
 	});
 
 	if (hasPostInsertConflict) {
-		await adminClient.from("bookings").delete().eq("id", booking.id).eq("tutor_id", user.id);
+		try {
+			await hardDeleteBooking(adminClient, booking.id, user.id);
+		} catch (deleteError) {
+			logStepError(log, "createBooking:rollback_delete_failed", deleteError, { bookingId: booking.id });
+		}
 		return {
 			error:
 				"This time slot was just booked. Please refresh and select a different time.",
 		};
 	}
 
-	const { data, error } = await supabase
-		.from("bookings")
-		.select("*, students(full_name, email), services(name)")
-		.eq("id", booking.id)
-		.single<BookingRecord>();
+	let data: BookingRecord | null;
+	try {
+		const bookingDetails = await getBookingWithDetails(adminClient, booking.id, user.id);
+		data = bookingDetails as unknown as BookingRecord;
+	} catch (fetchError) {
+		logStepError(log, "createBooking:fetch_details_failed", fetchError, { bookingId: booking.id });
+		return { error: "We couldn't load the new booking. Please try again." };
+	}
 
-	if (error) {
+	if (!data) {
 		return { error: "We couldn't load the new booking. Please try again." };
 	}
 
@@ -265,6 +281,25 @@ export async function createBooking(input: CreateBookingInput) {
 	} catch (calendarError) {
 		logStepError(log, "createBooking:calendar_event_failed", calendarError, { bookingId: data.id });
 	}
+
+	const sanitizedBooking = sanitizeInput(data) as Record<string, unknown>;
+
+	// Record audit log for booking creation
+	await recordAudit(adminClient, {
+		actorId: user.id,
+		targetId: data.id,
+		entityType: "booking",
+		actionType: "create",
+		beforeState: null,
+		afterState: sanitizedBooking,
+		metadata: {
+			studentId: data.student_id,
+			scheduledAt: data.scheduled_at,
+			durationMinutes: data.duration_minutes,
+			serviceId: data.service_id,
+			source: "tutor_dashboard",
+		},
+	});
 
 	logStep(log, "createBooking:success", { bookingId: data.id });
 	return { data };
@@ -332,65 +367,23 @@ export async function createBookingAndCheckout(params: {
 		return { error: "Service unavailable. Please try again later." };
 	}
 
-	// Idempotency check - return cached response if this request was already processed
-	if (params.clientMutationId) {
-		const { getCachedResponse } = await import("@/lib/utils/idempotency");
-		const cachedResponse = await getCachedResponse<
-			| { error: string }
-			| { success: true; bookingId: string; checkoutUrl?: string | null }
-		>(adminClient, params.clientMutationId);
+	// Use atomic idempotency wrapper to prevent duplicate bookings
+	const { withIdempotency } = await import("@/lib/utils/idempotency");
+	const { cached, response } = await withIdempotency(
+		adminClient,
+		params.clientMutationId,
+		async () => {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
 
-		if (cachedResponse) {
-			logStep(log, "createBookingAndCheckout:idempotent_hit", {
-				clientMutationId: params.clientMutationId,
-			});
-			return cachedResponse;
-		}
-	}
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	try {
-		// Group 1: Parallelize serviceRecord + FULL tutorProfile fetch (dependency injection)
-		const [serviceResult, tutorProfileResult] = await Promise.all([
-			adminClient
-				.from("services")
-				.select(`
-					id,
-					tutor_id,
-					name,
-					description,
-					duration_minutes,
-					price,
-					price_amount,
-					currency,
-					price_currency,
-					is_active
-				`)
-				.eq("id", params.serviceId)
-				.eq("tutor_id", params.tutorId)
-				.eq("is_active", true)
-				.single(),
-			adminClient
-				.from("profiles")
-				.select(`
-					buffer_time_minutes, timezone,
-					advance_booking_days_min, advance_booking_days_max,
-					max_lessons_per_day, max_lessons_per_week,
-					full_name, email, payment_instructions, venmo_handle, paypal_email, zelle_phone,
-					stripe_payment_link, custom_payment_url,
-					video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
-					calendly_link, custom_video_url, custom_video_name,
-					stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_onboarding_status
-				`)
-				.eq("id", params.tutorId)
-				.single(),
-		]);
-
-		const serviceRecord = serviceResult.data;
-		const tutorProfile = tutorProfileResult.data as TutorProfileData | null;
+			try {
+		// Group 1: Parallelize serviceRecord + FULL tutorProfile fetch (repository)
+		const { service: serviceRecord, tutorProfile } = await getServiceWithTutorProfile(
+			adminClient,
+			params.serviceId,
+			params.tutorId
+		);
 
 		if (!serviceRecord) {
 			return { error: "Service not found or inactive" };
@@ -454,35 +447,17 @@ export async function createBookingAndCheckout(params: {
 			return { error: bookingLimits.error };
 		}
 
-		// Group 2: Parallelize availability, existingBookings, busyWindows, and existingStudent fetch
-		const [availabilityResult, existingBookingsResult, busyResult, existingStudentResult] = await Promise.all([
-			adminClient
-				.from("availability")
-				.select("day_of_week, start_time, end_time, is_available")
-				.eq("tutor_id", params.tutorId)
-				.eq("is_available", true),
-			adminClient
-				.from("bookings")
-				.select("id, scheduled_at, duration_minutes, status")
-				.eq("tutor_id", params.tutorId)
-				.in("status", ["pending", "confirmed"])
-				.gte("scheduled_at", new Date().toISOString()),
+		// Group 2: Parallelize prerequisites and calendar busy windows (repository)
+		const [prerequisites, busyResult] = await Promise.all([
+			getBookingPrerequisites(adminClient, params.tutorId, params.student.email),
 			getCalendarBusyWindowsWithStatus({
 				tutorId: params.tutorId,
 				start: new Date(params.scheduledAt),
 				days: 60,
 			}),
-			adminClient
-				.from("students")
-				.select("id, user_id, status")
-				.eq("tutor_id", params.tutorId)
-				.eq("email", params.student.email)
-				.single(),
 		]);
 
-		const availability = availabilityResult.data;
-		const existingBookings = existingBookingsResult.data;
-		const existingStudent = existingStudentResult.data;
+		const { availability, existingBookings, existingStudent } = prerequisites;
 
 		if (busyResult.unverifiedProviders.length) {
 			return {
@@ -515,11 +490,7 @@ export async function createBookingAndCheckout(params: {
 			return { error: validation.errors.join(" ") };
 		}
 
-		// 4. Create or find student record
-		let studentId: string;
-		let studentProfileId: string | null = user?.id ?? null;
-
-		// Enforce student status - only active/trial students can book
+		// 4. Enforce student status - only active/trial students can book
 		if (existingStudent) {
 			const blockedStatuses = ["paused", "alumni", "inactive", "suspended"];
 			if (blockedStatuses.includes(existingStudent.status)) {
@@ -529,164 +500,74 @@ export async function createBookingAndCheckout(params: {
 			}
 		}
 
-		if (existingStudent) {
-			studentId = existingStudent.id;
-			studentProfileId = existingStudent.user_id ?? studentProfileId;
+		// 4a. Create or update student with connection management (repository)
+		let studentId: string;
+		let studentProfileId: string | null;
 
-			// Update student info
-			const updatePayload: Record<string, unknown> = {
-				full_name: params.student.fullName,
-				phone: params.student.phone,
-				timezone: params.student.timezone || "UTC",
-				parent_name: params.student.parentName,
-				parent_email: params.student.parentEmail,
-				parent_phone: params.student.parentPhone,
-				updated_at: new Date().toISOString(),
-			};
-
-			if (!existingStudent.user_id && user?.id) {
-				updatePayload.user_id = user.id;
-			}
-
-			await adminClient
-				.from("students")
-				.update(updatePayload)
-				.eq("id", studentId)
-				.eq("tutor_id", params.tutorId);
-		} else {
-			// Create new student
-			const { data: newStudent, error: studentError } = await adminClient
-				.from("students")
-				.insert({
-					tutor_id: params.tutorId,
-					user_id: user?.id ?? null,
-					full_name: params.student.fullName,
+		try {
+			const studentResult = await createStudentWithConnection(
+				adminClient,
+				params.tutorId,
+				{
 					email: params.student.email,
+					fullName: params.student.fullName,
 					phone: params.student.phone,
-					timezone: params.student.timezone || "UTC",
-					parent_name: params.student.parentName,
-					parent_email: params.student.parentEmail,
-					parent_phone: params.student.parentPhone,
-					source: "booking_page",
-				})
-				.select("id, user_id")
-				.single();
-
-			if (studentError || !newStudent) {
-				logStepError(log, "createBookingAndCheckout:student_create_failed", studentError, {
-					studentEmail: params.student.email,
-				});
-				return { error: "Failed to save student information. Please try again." };
-			}
-
-			studentId = newStudent.id;
-			studentProfileId = newStudent.user_id ?? studentProfileId;
+					timezone: params.student.timezone,
+					parentName: params.student.parentName,
+					parentEmail: params.student.parentEmail,
+					parentPhone: params.student.parentPhone,
+				},
+				{
+					studentUserId: user?.id ?? null,
+					autoApprove: !!user?.id,
+				}
+			);
+			studentId = studentResult.studentId;
+			studentProfileId = studentResult.studentProfileId;
+		} catch (studentError) {
+			logStepError(log, "createBookingAndCheckout:student_create_failed", studentError, {
+				studentEmail: params.student.email,
+			});
+			return { error: "Failed to save student information. Please try again." };
 		}
 
-		if (studentId) {
-			await ensureConversationThread(adminClient, params.tutorId, studentId);
+		// Ensure conversation thread exists
+		await ensureConversationThread(adminClient, params.tutorId, studentId);
 
-			// Sync access + connection for logged-in students so portal flows work
-			if (user?.id) {
-				let connectionTableAvailable = true;
-				const { data: existingConnection, error: existingConnectionError } = await adminClient
-					.from("student_tutor_connections")
-					.select("id, status")
-					.eq("student_user_id", user.id)
-					.eq("tutor_id", params.tutorId)
-					.maybeSingle();
-
-				if (existingConnectionError) {
-					if (isTableMissing(existingConnectionError, "student_tutor_connections")) {
-						connectionTableAvailable = false;
-						console.warn("[Bookings] Connection table missing, skipping connection sync");
-					} else if (existingConnectionError.code !== "PGRST116") {
-						console.error("Failed to look up connection:", existingConnectionError);
-					}
-				}
-
-				if (connectionTableAvailable) {
-					if (!existingConnection) {
-						const { error: insertConnectionError } = await adminClient
-							.from("student_tutor_connections")
-							.insert({
-								student_user_id: user.id,
-								tutor_id: params.tutorId,
-								status: "approved",
-								requested_at: new Date().toISOString(),
-								resolved_at: new Date().toISOString(),
-								initial_message: "Auto-approved from booking",
-							});
-
-						if (insertConnectionError && !isTableMissing(insertConnectionError, "student_tutor_connections")) {
-							console.error("Failed to create connection:", insertConnectionError);
-						}
-					} else if (existingConnection.status !== "approved") {
-						const { error: updateConnectionError } = await adminClient
-							.from("student_tutor_connections")
-							.update({
-								status: "approved",
-								resolved_at: new Date().toISOString(),
-							})
-							.eq("id", existingConnection.id);
-
-						if (updateConnectionError && !isTableMissing(updateConnectionError, "student_tutor_connections")) {
-							console.error("Failed to update connection:", updateConnectionError);
-						}
-					}
-				}
-
-				// Ensure calendar access flag is aligned for legacy checks
-				await adminClient
-					.from("students")
-					.update({
-						calendar_access_status: "approved",
-						access_approved_at: new Date().toISOString(),
-						updated_at: new Date().toISOString(),
-					})
-					.eq("id", studentId)
-					.eq("tutor_id", params.tutorId);
-			}
-		}
-
-		// 5. Create booking record atomically to avoid race conditions
+		// 5. Create booking record atomically to avoid race conditions (repository)
 		// If packageId or subscriptionId provided, booking will be confirmed immediately
 		const usingCredit = !!(params.packageId || params.subscriptionId);
-		const { data: bookingResult, error: bookingError } = await adminClient.rpc(
-			"create_booking_atomic",
-			{
-				p_tutor_id: params.tutorId,
-				p_student_id: studentId,
-				p_service_id: params.serviceId,
-				p_scheduled_at: params.scheduledAt,
-				p_duration_minutes: serviceRecord.duration_minutes,
-				p_timezone: tutorTimezone,
-				p_status: usingCredit ? "confirmed" : "pending",
-				p_payment_status: usingCredit ? "paid" : "unpaid",
-				p_payment_amount: normalizedPriceCents,
-				p_currency: serviceCurrency,
-				p_student_notes: params.notes,
-			}
-		);
 
-		const booking = Array.isArray(bookingResult)
-			? bookingResult[0]
-			: (bookingResult as { id: string; created_at: string } | null);
-
-		if (bookingError || !booking) {
-			if (bookingError?.code === "P0001") {
+		let booking: { id: string; created_at: string };
+		try {
+			booking = await insertBookingAtomic(adminClient, {
+				tutorId: params.tutorId,
+				studentId,
+				serviceId: params.serviceId,
+				scheduledAt: params.scheduledAt,
+				durationMinutes: serviceRecord.duration_minutes,
+				timezone: tutorTimezone,
+				status: usingCredit ? "confirmed" : "pending",
+				paymentStatus: usingCredit ? "paid" : "unpaid",
+				paymentAmount: normalizedPriceCents,
+				currency: serviceCurrency,
+				studentNotes: params.notes,
+			});
+		} catch (bookingError) {
+			const err = bookingError as { code?: string };
+			if (err?.code === "P0001") {
 				return {
 					error: "This time slot was just booked. Please select a different time.",
 				};
 			}
 
-			if (bookingError?.code === "P0002") {
+			if (err?.code === "P0002") {
 				return {
 					error: "This time window is blocked by the tutor.",
 				};
 			}
 
-			if (bookingError?.code === "55P03") {
+			if (err?.code === "55P03") {
 				return {
 					error: "Please retry booking; the tutor calendar is busy right now.",
 				};
@@ -701,41 +582,49 @@ export async function createBookingAndCheckout(params: {
 
 		logStep(log, "createBookingAndCheckout:booking_created", { bookingId: booking.id });
 
-		// 5.5. POST-INSERT CONFLICT CHECK: Prevent race conditions
-		// Check if another booking was created at the same time slot while we were processing
-		const bookingStartTime = new Date(params.scheduledAt);
-		const bookingEndTime = new Date(bookingStartTime.getTime() + serviceRecord.duration_minutes * 60 * 1000);
+		let bookingAuditState: Record<string, unknown> | null = null;
+		try {
+			const bookingDetails = await getBookingWithDetails(adminClient, booking.id, params.tutorId);
+			bookingAuditState = sanitizeInput(bookingDetails ?? booking) as Record<string, unknown>;
+		} catch (auditError) {
+			logStepError(log, "createBookingAndCheckout:audit_snapshot_failed", auditError, {
+				bookingId: booking.id,
+			});
+			bookingAuditState = sanitizeInput(booking) as Record<string, unknown>;
+		}
 
-		const { data: conflictingBookings } = await adminClient
-			.from("bookings")
-			.select("id, scheduled_at, duration_minutes, created_at")
-			.eq("tutor_id", params.tutorId)
-			.in("status", ["pending", "confirmed"])
-			.neq("id", booking.id) // Exclude our own booking
-			.lte("scheduled_at", bookingEndTime.toISOString())
-			.order("created_at", { ascending: true });
-
-		// Check for actual time overlap
-		const hasConflict = conflictingBookings?.some((existing) => {
-			const existingStart = new Date(existing.scheduled_at);
-			const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
-
-			// Overlap if: our start < their end AND our end > their start
-			const overlaps =
-				bookingStartTime < existingEnd && bookingEndTime > existingStart;
-
-			// Only conflict if the other booking was created before ours (first-come-first-serve)
-			return overlaps && new Date(existing.created_at) < new Date(booking.created_at);
+		// Record audit log for booking creation
+		await recordAudit(adminClient, {
+			actorId: params.tutorId,
+			targetId: booking.id,
+			entityType: "booking",
+			actionType: "create",
+			beforeState: null,
+			afterState: bookingAuditState,
+			metadata: {
+				studentId,
+				scheduledAt: params.scheduledAt,
+				durationMinutes: serviceRecord.duration_minutes,
+				serviceId: params.serviceId,
+				source: "public_checkout",
+				paymentMethod: params.packageId ? "package" : params.subscriptionId ? "subscription" : "stripe",
+			},
 		});
+
+		// 5.5. POST-INSERT CONFLICT CHECK: Prevent race conditions (repository)
+		const hasConflict = await checkPostInsertConflict(
+			adminClient,
+			params.tutorId,
+			booking.id,
+			booking.created_at,
+			params.scheduledAt,
+			serviceRecord.duration_minutes
+		);
 
 		if (hasConflict) {
 			// Another booking was created first - delete ours and return error
 			logStep(log, "createBookingAndCheckout:race_condition", { bookingId: booking.id, action: "delete" });
-			await adminClient
-				.from("bookings")
-				.delete()
-				.eq("id", booking.id)
-				.eq("tutor_id", params.tutorId);
+			await hardDeleteBooking(adminClient, booking.id, params.tutorId);
 			return {
 				error: "This time slot was just booked by someone else. Please select a different time.",
 			};
@@ -754,12 +643,8 @@ export async function createBookingAndCheckout(params: {
 			});
 
 			if (!redemptionResult.success) {
-				// Failed to redeem - delete booking and return error
-				await adminClient
-					.from("bookings")
-					.delete()
-					.eq("id", booking.id)
-					.eq("tutor_id", params.tutorId);
+				// Failed to redeem - delete booking and return error (repository)
+				await hardDeleteBooking(adminClient, booking.id, params.tutorId);
 				return {
 					error: redemptionResult.error || "Failed to redeem package minutes"
 				};
@@ -775,7 +660,7 @@ export async function createBookingAndCheckout(params: {
 
 		// 5b. If subscription redemption requested, process it
 		if (params.subscriptionId) {
-			const { redeemSubscriptionLesson } = await import("@/lib/actions/lesson-subscriptions");
+			const { redeemSubscriptionLesson } = await import("@/lib/actions/subscriptions");
 
 			const redemptionResult = await redeemSubscriptionLesson(
 				params.subscriptionId,
@@ -783,12 +668,8 @@ export async function createBookingAndCheckout(params: {
 			);
 
 			if (redemptionResult.error) {
-				// Failed to redeem - delete booking and return error
-				await adminClient
-					.from("bookings")
-					.delete()
-					.eq("id", booking.id)
-					.eq("tutor_id", params.tutorId);
+				// Failed to redeem - delete booking and return error (repository)
+				await hardDeleteBooking(adminClient, booking.id, params.tutorId);
 				return {
 					error: redemptionResult.error
 				};
@@ -827,16 +708,9 @@ export async function createBookingAndCheckout(params: {
 					meetingProvider = "none";
 			}
 
-			// Update booking with meeting URL
-			if (meetingUrl) {
-				await adminClient
-					.from("bookings")
-					.update({
-						meeting_url: meetingUrl,
-						meeting_provider: meetingProvider,
-					})
-					.eq("id", booking.id)
-					.eq("tutor_id", params.tutorId);
+			// Update booking with meeting URL (repository)
+			if (meetingUrl && meetingProvider) {
+				await updateBookingMeetingUrl(adminClient, booking.id, params.tutorId, meetingUrl, meetingProvider);
 			}
 		}
 
@@ -981,16 +855,12 @@ export async function createBookingAndCheckout(params: {
 			} else {
 				// Tutor has Stripe Connect - create checkout session
 				try {
-					// First, ensure student has a Stripe customer ID
-					const { data: studentProfile } = await adminClient
-						.from("profiles")
-						.select("stripe_customer_id, email, full_name")
-						.eq("id", studentProfileId)
-						.single();
+					// First, ensure student has a Stripe customer ID (repository)
+					const stripeInfo = await getStudentStripeInfo(adminClient, studentProfileId);
 
-					let stripeCustomerId = studentProfile?.stripe_customer_id;
-					const studentEmail = studentProfile?.email || params.student.email;
-					const studentName = studentProfile?.full_name || params.student.fullName;
+					let stripeCustomerId = stripeInfo?.stripe_customer_id;
+					const studentEmail = stripeInfo?.email || params.student.email;
+					const studentName = stripeInfo?.full_name || params.student.fullName;
 
 					if (!stripeCustomerId) {
 						// Create Stripe customer for the student
@@ -1007,11 +877,8 @@ export async function createBookingAndCheckout(params: {
 						});
 						stripeCustomerId = customer.id;
 
-						// Save to database
-						await adminClient
-							.from("profiles")
-							.update({ stripe_customer_id: stripeCustomerId })
-							.eq("id", studentProfileId);
+						// Save to database (repository)
+						await updateStudentStripeCustomerId(adminClient, studentProfileId, stripeCustomerId);
 					}
 
 					// Create checkout session with destination charges
@@ -1054,11 +921,7 @@ export async function createBookingAndCheckout(params: {
 						bookingId: booking.id,
 						checkoutUrl: session.url,
 					};
-					// Cache successful response for idempotency
-					if (params.clientMutationId) {
-						const { cacheResponse } = await import("@/lib/utils/idempotency");
-						await cacheResponse(adminClient, params.clientMutationId, stripeSuccessResponse);
-					}
+					// Response is automatically cached by withIdempotency wrapper
 					return stripeSuccessResponse;
 				} catch (stripeError) {
 					logStepError(log, "createBookingAndCheckout:stripe_checkout_failed", stripeError, { bookingId: booking.id });
@@ -1073,19 +936,27 @@ export async function createBookingAndCheckout(params: {
 			success: true as const,
 			bookingId: booking.id,
 		};
-		// Cache successful response for idempotency
-		if (params.clientMutationId) {
-			const { cacheResponse } = await import("@/lib/utils/idempotency");
-			await cacheResponse(adminClient, params.clientMutationId, manualSuccessResponse);
-		}
+		// Response is automatically cached by withIdempotency wrapper
 		return manualSuccessResponse;
-	} catch (error) {
-		logStepError(log, "createBookingAndCheckout:unexpected_error", error, {
-			serviceId: params.serviceId,
-			scheduledAt: params.scheduledAt,
+		} catch (error) {
+			logStepError(log, "createBookingAndCheckout:unexpected_error", error, {
+				serviceId: params.serviceId,
+				scheduledAt: params.scheduledAt,
+			});
+			return { error: "An unexpected error occurred. Please try again." };
+		}
+	},
+		traceId
+	);
+
+	// Log if this was a cached response
+	if (cached) {
+		logStep(log, "createBookingAndCheckout:idempotent_hit", {
+			clientMutationId: params.clientMutationId,
 		});
-		return { error: "An unexpected error occurred. Please try again." };
 	}
+
+	return response;
 }
 
 // ============================================================================
@@ -1124,49 +995,33 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		return { error: "Service unavailable. Please try again." };
 	}
 
-	// Validate input
-	if (!input.student_id && !input.new_student) {
-		return { error: "Please select or add a student." };
-	}
+	// Use atomic idempotency wrapper to prevent duplicate bookings
+	const { withIdempotency } = await import("@/lib/utils/idempotency");
+	const { cached, response } = await withIdempotency(
+		adminClient,
+		input.clientMutationId,
+		async () => {
+			// Validate input
+			if (!input.student_id && !input.new_student) {
+				return { error: "Please select or add a student." };
+			}
 
-	if (!input.service_id) {
-		return { error: "Please select a service." };
-	}
+			if (!input.service_id) {
+				return { error: "Please select a service." };
+			}
 
-	// Parallelize service and tutorProfile fetch
-	const [serviceResult, tutorProfileResult] = await Promise.all([
-		supabase
-			.from("services")
-			.select("id, name, duration_minutes, price_amount, price_currency")
-			.eq("id", input.service_id)
-			.eq("tutor_id", user.id)
-			.single(),
-		adminClient
-			.from("profiles")
-			.select(`
-				full_name, email, timezone,
-				advance_booking_days_min, advance_booking_days_max,
-				max_lessons_per_day, max_lessons_per_week,
-				video_provider, zoom_personal_link, google_meet_link, microsoft_teams_link,
-				calendly_link, custom_video_url, custom_video_name,
-				stripe_account_id, stripe_charges_enabled, stripe_onboarding_status,
-				payment_instructions, venmo_handle, paypal_email, zelle_phone,
-				stripe_payment_link, custom_payment_url
-			`)
-			.eq("id", user.id)
-			.single(),
-	]);
+			// Parallelize service and tutorProfile fetch (repository)
+	const { service, tutorProfile } = await getServiceWithTutorProfile(
+		adminClient,
+		input.service_id,
+		user.id
+	);
 
-	const service = serviceResult.data;
-	const serviceError = serviceResult.error;
-	const tutorProfile = tutorProfileResult.data;
-	const profileError = tutorProfileResult.error;
-
-	if (serviceError || !service) {
+	if (!service) {
 		return { error: "Service not found. Please select a valid service." };
 	}
 
-	if (profileError || !tutorProfile) {
+	if (!tutorProfile) {
 		return { error: "Could not load your profile. Please try again." };
 	}
 
@@ -1196,87 +1051,59 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		return { error: bookingLimits.error };
 	}
 
-	// Check for conflicts
-	const { data: existingBookings } = await supabase
-		.from("bookings")
-		.select("id, scheduled_at, duration_minutes")
-		.eq("tutor_id", user.id)
-		.in("status", ["pending", "confirmed"])
-		.gte("scheduled_at", new Date(new Date(input.scheduled_at).getTime() - 24 * 60 * 60 * 1000).toISOString())
-		.lte("scheduled_at", new Date(new Date(input.scheduled_at).getTime() + 24 * 60 * 60 * 1000).toISOString());
+	// Check for conflicts (repository)
+	const conflictResult = await checkConflictsInWindow(
+		adminClient,
+		user.id,
+		input.scheduled_at,
+		input.duration_minutes
+	);
 
-	const bookingStart = new Date(input.scheduled_at);
-	const bookingEnd = new Date(bookingStart.getTime() + input.duration_minutes * 60 * 1000);
-
-	const hasConflict = existingBookings?.some((existing) => {
-		const existingStart = new Date(existing.scheduled_at);
-		const existingEnd = new Date(existingStart.getTime() + existing.duration_minutes * 60 * 1000);
-		return bookingStart < existingEnd && bookingEnd > existingStart;
-	});
-
-	if (hasConflict) {
+	if (conflictResult.hasConflict) {
 		return { error: "This time slot conflicts with an existing booking. Please select a different time." };
 	}
 
-	// Get or create student
+	// Get or create student (repository)
 	let studentId = input.student_id;
 	let studentData: { id: string; full_name: string; email: string; timezone?: string } | null = null;
 
 	if (input.new_student) {
-		// Create new student
-		const { data: newStudent, error: studentError } = await adminClient
-			.from("students")
-			.insert({
-				tutor_id: user.id,
+		try {
+			const studentResult = await getOrCreateStudent(adminClient, user.id, {
+				email: input.new_student.email,
+				fullName: input.new_student.name,
+				timezone: input.new_student.timezone,
+				source: "manual",
+			});
+			studentId = studentResult.id;
+			studentData = {
+				id: studentResult.id,
 				full_name: input.new_student.name,
 				email: input.new_student.email.toLowerCase().trim(),
 				timezone: input.new_student.timezone,
-				source: "manual",
-				calendar_access_status: "approved",
-			})
-			.select("id, full_name, email, timezone")
-			.single();
-
-		if (studentError) {
-			// Check if student already exists
-			if (studentError.code === "23505") {
-				const { data: existing } = await adminClient
-					.from("students")
-					.select("id, full_name, email, timezone")
-					.eq("tutor_id", user.id)
-					.eq("email", input.new_student.email.toLowerCase().trim())
-					.single();
-
-				if (existing) {
-					studentId = existing.id;
-					studentData = existing;
-				} else {
-					return { error: "A student with this email already exists but could not be retrieved." };
-				}
-			} else {
-				logStepError(log, "createManualBooking:student_create_failed", studentError, {
-					email: input.new_student?.email,
-				});
-				return { error: "Could not create student. Please try again." };
+			};
+			if (studentResult.isNew) {
+				logStep(log, "createManualBooking:student_created", { studentId });
 			}
-		} else {
-			studentId = newStudent.id;
-			studentData = newStudent;
-			logStep(log, "createManualBooking:student_created", { studentId });
+		} catch (studentError) {
+			logStepError(log, "createManualBooking:student_create_failed", studentError, {
+				email: input.new_student?.email,
+			});
+			return { error: "Could not create student. Please try again." };
 		}
 	} else if (studentId) {
-		// Fetch existing student
-		const { data: existing } = await supabase
-			.from("students")
-			.select("id, full_name, email, timezone")
-			.eq("id", studentId)
-			.eq("tutor_id", user.id)
-			.single();
+		// Fetch existing student (repository)
+		const existing = await getStudentById(adminClient, studentId, user.id);
 
 		if (!existing) {
 			return { error: "Student not found. Please select a valid student." };
 		}
-		studentData = existing;
+		studentData = {
+			id: existing.id as string,
+			full_name: existing.full_name as string,
+			email: existing.email as string,
+			timezone: existing.timezone as string | undefined,
+		};
 	}
 
 	if (!studentId || !studentData) {
@@ -1320,30 +1147,25 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		}
 	}
 
-	// Create booking
-	const { data: bookingResult, error: bookingError } = await adminClient.rpc(
-		"create_booking_atomic",
-		{
-			p_tutor_id: user.id,
-			p_student_id: studentId,
-			p_service_id: input.service_id,
-			p_scheduled_at: input.scheduled_at,
-			p_duration_minutes: input.duration_minutes,
-			p_timezone: tutorTimezone,
-			p_status: bookingStatus,
-			p_payment_status: paymentStatus,
-			p_payment_amount: paymentAmount,
-			p_currency: service.price_currency ?? "USD",
-			p_student_notes: input.notes ?? null,
-		}
-	);
-
-	const booking = Array.isArray(bookingResult)
-		? bookingResult[0]
-		: (bookingResult as { id: string; created_at: string } | null);
-
-	if (bookingError || !booking) {
-		if (bookingError?.code === "P0001" || bookingError?.code === "23P01") {
+	// Create booking (repository)
+	let booking: { id: string; created_at: string };
+	try {
+		booking = await insertBookingAtomic(adminClient, {
+			tutorId: user.id,
+			studentId,
+			serviceId: input.service_id,
+			scheduledAt: input.scheduled_at,
+			durationMinutes: input.duration_minutes,
+			timezone: tutorTimezone,
+			status: bookingStatus,
+			paymentStatus,
+			paymentAmount,
+			currency: service.price_currency ?? "USD",
+			studentNotes: input.notes ?? null,
+		});
+	} catch (bookingError) {
+		const err = bookingError as { code?: string };
+		if (err?.code === "P0001" || err?.code === "23P01") {
 			return { error: "This time slot was just booked. Please refresh and select a different time." };
 		}
 		logStepError(log, "createManualBooking:booking_rpc_failed", bookingError, {
@@ -1355,15 +1177,9 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 
 	logStep(log, "createManualBooking:booking_created", { bookingId: booking.id });
 
-	// Update booking with meeting URL
-	if (meetingUrl) {
-		await adminClient
-			.from("bookings")
-			.update({
-				meeting_url: meetingUrl,
-				meeting_provider: meetingProvider,
-			})
-			.eq("id", booking.id);
+	// Update booking with meeting URL (repository)
+	if (meetingUrl && meetingProvider) {
+		await updateBookingMeetingUrl(adminClient, booking.id, user.id, meetingUrl, meetingProvider);
 	}
 
 	// Ensure conversation thread exists
@@ -1411,16 +1227,13 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 							amount: paymentAmount, // Price in cents
 						},
 					],
-					transferDestinationAccountId: tutorProfile.stripe_account_id,
+					transferDestinationAccountId: tutorProfile.stripe_account_id ?? undefined,
 				});
 
 				paymentUrl = session.url ?? undefined;
 
-				// Store checkout session ID on booking
-				await adminClient
-					.from("bookings")
-					.update({ stripe_checkout_session_id: session.id })
-					.eq("id", booking.id);
+				// Store checkout session ID on booking (repository)
+				await updateBookingCheckoutSession(adminClient, booking.id, session.id);
 
 			} catch (stripeError) {
 				logStepError(log, "createManualBooking:stripe_checkout_failed", stripeError, { bookingId: booking.id });
@@ -1527,16 +1340,55 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 	revalidatePath("/bookings");
 	revalidatePath("/calendar");
 
+	let bookingAuditState: Record<string, unknown> | null = null;
+	try {
+		const bookingDetails = await getBookingWithDetails(adminClient, booking.id, user.id);
+		bookingAuditState = sanitizeInput(bookingDetails ?? booking) as Record<string, unknown>;
+	} catch (auditError) {
+		logStepError(log, "createManualBooking:audit_snapshot_failed", auditError, { bookingId: booking.id });
+		bookingAuditState = sanitizeInput(booking) as Record<string, unknown>;
+	}
+
+	// Record audit log for booking creation
+	await recordAudit(adminClient, {
+		actorId: user.id,
+		targetId: booking.id,
+		entityType: "booking",
+		actionType: "create",
+		beforeState: null,
+		afterState: bookingAuditState,
+		metadata: {
+			studentId,
+			scheduledAt: input.scheduled_at,
+			durationMinutes: input.duration_minutes,
+			serviceId: input.service_id,
+			source: "manual_with_payment_link",
+			paymentOption: input.payment_option,
+		},
+	});
+
 	logStep(log, "createManualBooking:success", {
 		bookingId: booking.id,
 		hasPaymentUrl: !!paymentUrl,
 		paymentOption: input.payment_option,
 	});
 
-	return {
-		data: {
-			bookingId: booking.id,
-			paymentUrl,
+		return {
+			data: {
+				bookingId: booking.id,
+				paymentUrl,
+			},
+		};
 		},
-	};
+	traceId
+	);
+
+	// Log if this was a cached response
+	if (cached) {
+		logStep(log, "createManualBooking:idempotent_hit", {
+			clientMutationId: input.clientMutationId,
+		});
+	}
+
+	return response;
 }

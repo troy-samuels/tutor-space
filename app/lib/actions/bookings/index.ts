@@ -1,5 +1,3 @@
-"use server";
-
 // ============================================================================
 // Booking Actions - Main Entry Point
 // ============================================================================
@@ -18,11 +16,9 @@
 //
 // ============================================================================
 
-// Types
-export type { BookingRecord, ManualBookingInput, CreateBookingInput } from "./types";
-
-// Helpers (constants and status checks)
-export { MAX_RESCHEDULES, isCancelledStatus } from "./helpers";
+// Types and constants (from types.ts - no server-only deps)
+export type { BookingRecord, ManualBookingInput, CreateBookingInput, TutorProfileData } from "./types";
+export { MAX_RESCHEDULES, isCancelledStatus } from "./types";
 
 // Queries (read-only)
 export {

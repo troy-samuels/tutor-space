@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Globe, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { GroupedSlots } from "@/lib/actions/student-bookings";
+import type { GroupedSlots } from "@/lib/actions/types";
 
 type TimeSlotSelectorProps = {
   slots: GroupedSlots;

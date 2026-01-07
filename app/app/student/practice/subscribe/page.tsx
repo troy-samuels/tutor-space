@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { SubscribeClient } from "./SubscribeClient";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
+import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
 
 export const metadata = {
   title: "Conversation Practice | TutorLingua",
@@ -29,6 +30,7 @@ export default async function SubscribePage() {
     redirect("/student/progress");
   }
 
+  const studentName = student.full_name || (user.user_metadata?.full_name as string | undefined) || null;
   // Check if already subscribed
   const isSubscribed = (student.ai_practice_enabled === true &&
     (!student.ai_practice_current_period_end ||
@@ -40,10 +42,13 @@ export default async function SubscribePage() {
   }
 
   const tutorName = (student.profiles as any)?.full_name || "your tutor";
-  const { data: subscriptionSummary } = await getStudentSubscriptionSummary();
+  const [{ data: subscriptionSummary }, avatarUrl] = await Promise.all([
+    getStudentSubscriptionSummary(),
+    getStudentAvatarUrl(),
+  ]);
 
   return (
-    <StudentPortalLayout studentName={user.email} subscriptionSummary={subscriptionSummary}>
+    <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
       <SubscribeClient
         studentId={student.id}
         tutorId={student.tutor_id}

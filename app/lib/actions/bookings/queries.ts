@@ -3,8 +3,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getActivePackages } from "@/lib/actions/packages";
-import { requireTutor, checkAdvanceBookingWindow, checkBookingLimits } from "./helpers";
+import { requireTutor, checkBookingLimits } from "./helpers";
 import type { BookingRecord } from "./types";
+import { checkAdvanceBookingWindow } from "./types";
+import {
+	listBookingsForTutor,
+	getTutorProfileBookingSettings,
+	findBookingsInTimeRange,
+	getBlockedTimesInRange,
+	checkUserProfileExists,
+	getStudentProfileByUserId,
+	getStudentIdByEmailAndTutor,
+	getNextBookingForStudent,
+} from "@/lib/repositories/bookings";
 
 // ============================================================================
 // List Bookings
@@ -15,31 +26,23 @@ import type { BookingRecord } from "./types";
  * Includes student, service, and package redemption data.
  */
 export async function listBookings(): Promise<BookingRecord[]> {
-	const { supabase, user } = await requireTutor();
+	const { user } = await requireTutor();
 	if (!user) {
 		return [];
 	}
 
-	const { data } = await supabase
-		.from("bookings")
-		.select(`
-			*,
-			students(full_name, email),
-			services(name),
-			session_package_redemptions(
-				id,
-				minutes_redeemed,
-				status,
-				session_package_purchases(
-					session_package_templates(name)
-				)
-			)
-		`)
-		.eq("tutor_id", user.id)
-		.order("scheduled_at", { ascending: true })
-		.limit(100);
+	const adminClient = createServiceRoleClient();
+	if (!adminClient) {
+		return [];
+	}
 
-	return (data as BookingRecord[] | null) ?? [];
+	try {
+		const data = await listBookingsForTutor(adminClient, user.id, { limit: 100 });
+		return (data as unknown as BookingRecord[]) ?? [];
+	} catch (error) {
+		console.error("Failed to list bookings:", error);
+		return [];
+	}
 }
 
 // ============================================================================
@@ -67,18 +70,15 @@ export async function checkSlotAvailabilityForTutor(params: {
 	}
 
 	const end = new Date(start.getTime() + params.durationMinutes * 60000);
-	const windowStart = new Date(start.getTime() - 3 * 60 * 60000);
-	const windowEnd = new Date(end.getTime() + 3 * 60 * 60000);
 
-	const { data: tutorProfile } = await adminClient
-		.from("profiles")
-		.select(`
-			timezone,
-			advance_booking_days_min, advance_booking_days_max,
-			max_lessons_per_day, max_lessons_per_week
-		`)
-		.eq("id", params.tutorId)
-		.single();
+	// Fetch tutor profile using repository
+	let tutorProfile: Awaited<ReturnType<typeof getTutorProfileBookingSettings>>;
+	try {
+		tutorProfile = await getTutorProfileBookingSettings(adminClient, params.tutorId);
+	} catch (error) {
+		console.error("Failed to fetch tutor profile:", error);
+		return { error: "Could not verify tutor settings. Please try again." };
+	}
 
 	const tutorTimezone = tutorProfile?.timezone ?? "UTC";
 
@@ -104,31 +104,33 @@ export async function checkSlotAvailabilityForTutor(params: {
 		return { error: bookingLimits.error };
 	}
 
-	const { data: bookings } = await adminClient
-		.from("bookings")
-		.select("id, scheduled_at, duration_minutes, status")
-		.eq("tutor_id", params.tutorId)
-		.in("status", ["pending", "confirmed"])
-		.gte("scheduled_at", windowStart.toISOString())
-		.lte("scheduled_at", windowEnd.toISOString());
+	// Fetch bookings using repository
+	let bookings: Awaited<ReturnType<typeof findBookingsInTimeRange>>;
+	try {
+		bookings = await findBookingsInTimeRange(adminClient, params.tutorId, start);
+	} catch (error) {
+		console.error("Failed to fetch bookings:", error);
+		return { error: "Could not check availability. Please try again." };
+	}
 
-	const hasBookingConflict =
-		bookings?.some((booking) => {
-			const bookingStart = new Date(booking.scheduled_at);
-			const bookingEnd = new Date(
-				bookingStart.getTime() + (booking.duration_minutes || params.durationMinutes) * 60000
-			);
-			return bookingStart < end && bookingEnd > start;
-		}) ?? false;
+	const hasBookingConflict = bookings.some((booking) => {
+		const bookingStart = new Date(booking.scheduled_at);
+		const bookingEnd = new Date(
+			bookingStart.getTime() + (booking.duration_minutes || params.durationMinutes) * 60000
+		);
+		return bookingStart < end && bookingEnd > start;
+	});
 
-	const { data: blockedTimes } = await adminClient
-		.from("blocked_times")
-		.select("id, start_time, end_time")
-		.eq("tutor_id", params.tutorId)
-		.lt("start_time", end.toISOString())
-		.gt("end_time", start.toISOString());
+	// Fetch blocked times using repository
+	let blockedTimes: Awaited<ReturnType<typeof getBlockedTimesInRange>>;
+	try {
+		blockedTimes = await getBlockedTimesInRange(adminClient, params.tutorId, start, end);
+	} catch (error) {
+		console.error("Failed to fetch blocked times:", error);
+		return { error: "Could not check blocked times. Please try again." };
+	}
 
-	const blockedConflict = (blockedTimes?.length ?? 0) > 0;
+	const blockedConflict = blockedTimes.length > 0;
 
 	return { available: !(hasBookingConflict || blockedConflict) };
 }
@@ -158,60 +160,51 @@ export async function checkStudentPackages(params: {
 		data: { user },
 	} = await supabase.auth.getUser();
 
-	if (user) {
-		// Get user's profile to check if they're a tutor
-		const { data: profile } = await supabase
-			.from("profiles")
-			.select("id")
-			.eq("id", user.id)
-			.single();
-
-		// If authenticated as a tutor, verify they own the tutorId
-		if (profile) {
-			if (profile.id !== params.tutorId) {
-				return {
-					error: "You can only check packages for your own students.",
-					packages: [],
-				};
-			}
-		} else {
-			// If authenticated as a student, verify they own the email
-			const { data: studentProfile } = await supabase
-				.from("students")
-				.select("email, user_id")
-				.eq("user_id", user.id)
-				.single();
-
-			if (studentProfile && studentProfile.email.toLowerCase() !== params.studentEmail.toLowerCase()) {
-				return {
-					error: "You can only check your own packages.",
-					packages: [],
-				};
-			}
-		}
-	}
-
 	const adminClient = createServiceRoleClient();
-
 	if (!adminClient) {
 		return { packages: [] };
 	}
 
-	try {
-		// Find student by email and tutor
-		const { data: student } = await adminClient
-			.from("students")
-			.select("id")
-			.eq("email", params.studentEmail)
-			.eq("tutor_id", params.tutorId)
-			.single();
+	if (user) {
+		// Get user's profile to check if they're a tutor using repository
+		try {
+			const profile = await checkUserProfileExists(adminClient, user.id);
 
-		if (!student) {
+			// If authenticated as a tutor, verify they own the tutorId
+			if (profile) {
+				if (profile.id !== params.tutorId) {
+					return {
+						error: "You can only check packages for your own students.",
+						packages: [],
+					};
+				}
+			} else {
+				// If authenticated as a student, verify they own the email using repository
+				const studentProfile = await getStudentProfileByUserId(adminClient, user.id);
+
+				if (studentProfile && studentProfile.email.toLowerCase() !== params.studentEmail.toLowerCase()) {
+					return {
+						error: "You can only check your own packages.",
+						packages: [],
+					};
+				}
+			}
+		} catch (error) {
+			console.error("Error checking user authorization:", error);
+			// Continue without auth verification for graceful degradation
+		}
+	}
+
+	try {
+		// Find student by email and tutor using repository
+		const studentId = await getStudentIdByEmailAndTutor(adminClient, params.studentEmail, params.tutorId);
+
+		if (!studentId) {
 			return { packages: [] };
 		}
 
 		// Get active packages
-		const packages = await getActivePackages(student.id, params.tutorId);
+		const packages = await getActivePackages(studentId, params.tutorId);
 
 		// Filter packages with enough minutes
 		const suitablePackages = packages.filter(
@@ -244,45 +237,22 @@ export async function getStudentNextBooking(studentId: string): Promise<{
 		| null;
 	error: string | null;
 }> {
-	const { supabase, user } = await requireTutor();
+	const { user } = await requireTutor();
 
 	if (!user) {
 		return { data: null, error: "You need to be signed in." };
 	}
 
-	const { data, error } = await supabase
-		.from("bookings")
-		.select("id, scheduled_at, duration_minutes, services(name)")
-		.eq("tutor_id", user.id)
-		.eq("student_id", studentId)
-		.in("status", ["pending", "confirmed"])
-		.gt("scheduled_at", new Date().toISOString())
-		.order("scheduled_at", { ascending: true })
-		.limit(1)
-		.maybeSingle();
+	const adminClient = createServiceRoleClient();
+	if (!adminClient) {
+		return { data: null, error: "Service unavailable." };
+	}
 
-	if (error) {
+	try {
+		const data = await getNextBookingForStudent(adminClient, user.id, studentId);
+		return { data, error: null };
+	} catch (error) {
 		console.error("Failed to get next booking:", error);
 		return { data: null, error: "Failed to fetch next booking" };
 	}
-
-	const rawService = data
-		? Array.isArray((data as { services?: unknown }).services)
-			? ((data as { services?: { name?: string | null }[] }).services?.[0] ?? null)
-			: ((data as { services?: { name?: string | null } }).services ?? null)
-		: null;
-
-	const normalized = data
-		? {
-				id: String(data.id),
-				scheduled_at: String(data.scheduled_at),
-				duration_minutes: (data as { duration_minutes?: number | null }).duration_minutes ?? null,
-				services:
-					rawService && typeof rawService === "object"
-						? { name: (rawService as { name?: string | null }).name ?? null }
-						: null,
-			}
-		: null;
-
-	return { data: normalized, error: null };
 }

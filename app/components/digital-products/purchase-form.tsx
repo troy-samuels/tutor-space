@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Loader2, ShoppingCart } from "lucide-react";
-import { buyDigitalProduct } from "@/lib/actions/digital-product-checkout";
+import { buyDigitalProduct } from "@/lib/actions/marketplace";
 
 export function ProductPurchaseForm({
   productId,

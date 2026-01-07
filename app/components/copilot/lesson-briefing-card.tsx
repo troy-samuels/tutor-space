@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EngagementIndicator } from "./engagement-indicator";
 import { dismissBriefing, markBriefingViewed } from "@/lib/actions/copilot";
-import type { LessonBriefing } from "@/lib/actions/copilot";
+import type { LessonBriefing } from "@/lib/actions/types";
 
 interface LessonBriefingCardProps {
   briefing: LessonBriefing;

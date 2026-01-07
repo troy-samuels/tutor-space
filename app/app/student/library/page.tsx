@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentLibraryGrid, type LibraryItem } from "@/components/student-auth/StudentLibraryGrid";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentDisplayName } from "@/lib/utils/student-name";
 
 export const metadata = {
   title: "My Library | TutorLingua",
@@ -19,6 +20,7 @@ export default async function StudentLibraryPage() {
     redirect("/student/login");
   }
 
+  const studentName = await getStudentDisplayName(supabase, user);
   // Fetch avatar and purchases in parallel
   const [avatarUrl, { data: purchases }] = await Promise.all([
     getStudentAvatarUrl(),
@@ -69,7 +71,7 @@ export default async function StudentLibraryPage() {
   });
 
   return (
-    <StudentPortalLayout studentName={user.email} avatarUrl={avatarUrl}>
+    <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

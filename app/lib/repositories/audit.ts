@@ -5,7 +5,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // ============================================================================
 
 /** Entity types that can be audited */
-export type AuditEntityType = "booking" | "student" | "billing";
+export type AuditEntityType =
+	| "booking"
+	| "student"
+	| "billing"
+	| "homework"
+	| "goal"
+	| "assessment"
+	| "account" // Auth operations (login, signup, password changes)
+	| "marketplace" // Digital products and marketplace transactions
+	| "site" // Tutor site builder updates
+	| "messaging"; // Conversation threads and messages
 
 /** Action types for audit entries */
 export type AuditActionType =
@@ -13,7 +23,50 @@ export type AuditActionType =
 	| "update"
 	| "update_status"
 	| "manual_payment"
-	| "delete";
+	| "delete"
+	| "submit"
+	| "review"
+	// Auth-specific action types
+	| "login_success"
+	| "login_failed"
+	| "password_change"
+	| "password_reset_requested"
+	| "email_confirmed"
+	| "account_created"
+	// Billing-specific action types (Lesson Subscriptions)
+	| "credit_redeemed"
+	| "credit_refunded"
+	| "subscription_created"
+	| "subscription_cancelled"
+	| "subscription_renewed"
+	| "template_created"
+	| "template_updated"
+	| "template_deleted"
+	// Marketplace-specific action types (Digital Products)
+	| "product_created"
+	| "product_updated"
+	| "product_price_updated"
+	| "product_published"
+	| "product_unpublished"
+	| "product_deleted"
+	| "purchase_initiated"
+	| "purchase_completed"
+	| "purchase_refunded"
+	| "commission_calculated"
+	| "download_accessed"
+	| "download_served"
+	// Site-specific action types (Tutor Sites)
+	| "site_created"
+	| "site_metadata_updated"
+	| "site_theme_updated"
+	| "site_published"
+	| "site_unpublished"
+	| "site_page_created"
+	| "site_page_updated"
+	| "site_page_deleted"
+	// Messaging-specific action types
+	| "message_sent"
+	| "thread_created";
 
 export interface RecordAuditInput {
 	readonly actorId: string;
@@ -21,6 +74,8 @@ export interface RecordAuditInput {
 	readonly entityType: AuditEntityType;
 	readonly actionType: AuditActionType;
 	readonly metadata?: Record<string, unknown>;
+	readonly beforeState?: Record<string, unknown> | null;
+	readonly afterState?: Record<string, unknown> | null;
 }
 
 export interface AuditLogEntry {
@@ -77,6 +132,8 @@ export async function recordAudit(
 		entity_type: input.entityType,
 		action_type: input.actionType,
 		metadata: input.metadata ?? {},
+		before_state: input.beforeState ?? null,
+		after_state: input.afterState ?? null,
 	});
 
 	if (error) {

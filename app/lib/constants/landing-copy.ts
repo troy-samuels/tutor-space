@@ -222,13 +222,13 @@ const landingCopyEn: LandingCopy = {
   hero: {
     headline: "Built for tutors.",
     subheadline:
-      "One link for bookings, payments, and notes. Try free.",
+      "Direct bookings, payments and assisted learning in one.",
     primaryCTA: "Sign up free",
     secondaryCTA: "See how it works",
     variants: {
       outcomeHeadline: "Less admin. More students.",
       financialHeadline: "Keep 100%—no platform fees.",
-      aspirationalHeadline: "Your independent academy, fully automated.",
+      aspirationalHeadline: "The all-in-one platform for language teachers.",
     },
   },
 

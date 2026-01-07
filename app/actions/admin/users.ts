@@ -2,32 +2,9 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getAdminUser } from "@/lib/admin/get-admin-user";
+import type { AdminUserFilter, AdminListedUser, AdminUserListResult } from "@/actions/admin/types";
 
 const PAGE_SIZE = 25;
-
-export type AdminUserFilter = {
-  search?: string;
-};
-
-export type AdminListedUser = {
-  id: string;
-  email: string | null;
-  fullName: string | null;
-  role: string | null;
-  plan: string | null;
-  onboardingCompleted: boolean | null;
-  createdAt: string | null;
-  lastSignInAt: string | null;
-  status: "active" | "banned";
-  metadata: Record<string, unknown> | null;
-};
-
-export type AdminUserListResult = {
-  users: AdminListedUser[];
-  page: number;
-  pageSize: number;
-  total: number;
-};
 
 type AdminUserRow = {
   id: string;

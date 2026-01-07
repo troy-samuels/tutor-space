@@ -5,12 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { WizardState } from "@/lib/contexts/profile-wizard-context";
 import { normalizeAndValidateUsernameSlug } from "@/lib/utils/username-slug";
-
-export type WizardSaveResult = {
-  success: boolean;
-  error?: string;
-  avatarUrl?: string;
-};
+import type { WizardSaveResult } from "@/lib/actions/types";
 
 /**
  * Update profile with partial data from wizard

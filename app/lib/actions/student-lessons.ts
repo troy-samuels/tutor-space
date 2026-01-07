@@ -1,40 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-
-export interface LessonHistoryStats {
-  total_lessons: number;
-  total_minutes: number;
-  next_lesson: {
-    id: string;
-    scheduled_at: string;
-    service_name: string;
-    meeting_url: string | null;
-    duration_minutes: number;
-  } | null;
-  last_lesson: {
-    id: string;
-    scheduled_at: string;
-    service_name: string;
-    duration_minutes: number;
-  } | null;
-}
-
-export interface Booking {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  status: string;
-  meeting_url: string | null;
-  service_name: string;
-  lesson_notes?: string | null;
-}
-
-export interface StudentLessonHistoryData {
-  stats: LessonHistoryStats;
-  upcoming: Booking[];
-  past: Booking[];
-}
+import type { LessonHistoryStats, Booking, StudentLessonHistoryData } from "@/lib/actions/types";
 
 /**
  * Fetch complete lesson history for a student

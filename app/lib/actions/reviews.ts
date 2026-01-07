@@ -3,34 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-
-export type SubmitReviewState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  review?: { author: string; quote: string; rating?: number | null };
-};
-
-export type ExistingReview = {
-  id: string;
-  rating: number;
-  title: string | null;
-  body: string;
-  displayName: string;
-  createdAt: string;
-  updatedAt: string | null;
-};
-
-export type TutorForReview = {
-  tutorId: string;
-  tutorSiteId: string;
-  tutorUsername: string;
-  tutorName: string;
-  tutorAvatarUrl: string | null;
-  completedLessonsCount: number;
-  lastCompletedAt: string;
-  hasExistingReview: boolean;
-  existingReview?: ExistingReview;
-};
+import {
+  countSiteReviewsBySiteId,
+  getSiteByTutorId,
+  getTutorSiteReviewByReviewId,
+  insertTutorSiteReview,
+  updateTutorSiteReviewByReviewId,
+} from "@/lib/repositories/tutor-sites";
+import type { SubmitReviewState, ExistingReview, TutorForReview } from "@/lib/actions/types";
 
 const reviewInputSchema = z.object({
   tutorId: z.string().uuid(),
@@ -148,14 +128,11 @@ export async function submitTutorSiteReview(
   }
 
   // Keep new testimonials appended to the end of the existing list
-  const { count } = await supabase
-    .from("tutor_site_reviews")
-    .select("id", { count: "exact", head: true })
-    .eq("tutor_site_id", tutorSiteId);
+  const { count } = await countSiteReviewsBySiteId(supabase, tutorSiteId);
 
   const author = displayName || student.full_name || user.email || "Student";
 
-  const { error: siteReviewError } = await supabase.from("tutor_site_reviews").insert({
+  const { error: siteReviewError } = await insertTutorSiteReview(supabase, {
     tutor_site_id: tutorSiteId,
     author_name: author,
     quote: body,
@@ -239,11 +216,7 @@ export async function getTutorsAvailableForReview(): Promise<{
     }
 
     // Get tutor site ID
-    const { data: site, error: siteError } = await supabase
-      .from("tutor_sites")
-      .select("id")
-      .eq("tutor_id", student.tutor_id)
-      .single();
+    const { data: site, error: siteError } = await getSiteByTutorId(supabase, student.tutor_id);
 
     if (siteError || !site) {
       continue;
@@ -260,11 +233,10 @@ export async function getTutorsAvailableForReview(): Promise<{
     // Get display name from tutor_site_reviews if review exists
     let displayName: string | null = null;
     if (existingReview) {
-      const { data: siteReview } = await supabase
-        .from("tutor_site_reviews")
-        .select("author_name")
-        .eq("review_id", existingReview.id)
-        .maybeSingle();
+      const { data: siteReview } = await getTutorSiteReviewByReviewId(
+        supabase,
+        existingReview.id
+      );
       displayName = siteReview?.author_name ?? null;
     }
 
@@ -336,11 +308,7 @@ export async function getExistingReview(tutorId: string): Promise<{
   }
 
   // Get display name from tutor_site_reviews
-  const { data: siteReview } = await supabase
-    .from("tutor_site_reviews")
-    .select("author_name")
-    .eq("review_id", review.id)
-    .maybeSingle();
+  const { data: siteReview } = await getTutorSiteReviewByReviewId(supabase, review.id);
 
   return {
     review: {
@@ -439,14 +407,15 @@ export async function updateTutorSiteReview(
   const author = displayName || student.full_name || user.email || "Student";
 
   // Update the tutor_site_reviews record
-  const { error: siteReviewError } = await supabase
-    .from("tutor_site_reviews")
-    .update({
+  const { error: siteReviewError } = await updateTutorSiteReviewByReviewId(
+    supabase,
+    existingReview.id,
+    {
       author_name: author,
       quote: body,
       rating,
-    })
-    .eq("review_id", existingReview.id);
+    }
+  );
 
   if (siteReviewError) {
     console.error("[updateTutorSiteReview] Failed to update site review", siteReviewError);

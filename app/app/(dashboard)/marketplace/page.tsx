@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MarketplaceDashboard } from "./marketplace-dashboard";
+import {
+  listTransactionsWithProducts,
+  getMarketplaceSummary,
+  getCommissionTierInfo,
+} from "@/lib/repositories/marketplace";
 
 export const metadata = {
   title: "Sales Dashboard | TutorLingua",
@@ -17,48 +22,19 @@ export default async function MarketplacePage() {
     redirect("/login?redirect=/marketplace");
   }
 
-  // Fetch marketplace transactions for this tutor
-  const { data: transactions } = await supabase
-    .from("marketplace_transactions")
-    .select(`
-      id,
-      gross_amount_cents,
-      platform_commission_cents,
-      net_amount_cents,
-      commission_rate,
-      status,
-      created_at,
-      products:digital_products (
-        id,
-        title,
-        slug,
-        category
-      )
-    `)
-    .eq("tutor_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  // Use repository functions for data fetching (single source of truth)
+  const [transactions, summary, tierInfo] = await Promise.all([
+    listTransactionsWithProducts(supabase, user.id, { limit: 50 }),
+    getMarketplaceSummary(supabase, user.id),
+    getCommissionTierInfo(supabase, user.id),
+  ]);
 
-  // Fetch summary stats
-  const { data: summaryData } = await supabase
-    .from("marketplace_transactions")
-    .select("gross_amount_cents, platform_commission_cents, net_amount_cents")
-    .eq("tutor_id", user.id)
-    .eq("status", "completed");
-
-  const summary = {
-    totalGross: summaryData?.reduce((sum, t) => sum + (t.gross_amount_cents || 0), 0) || 0,
-    totalCommission: summaryData?.reduce((sum, t) => sum + (t.platform_commission_cents || 0), 0) || 0,
-    totalNet: summaryData?.reduce((sum, t) => sum + (t.net_amount_cents || 0), 0) || 0,
-    transactionCount: summaryData?.length || 0,
-  };
-
-  // Calculate current commission tier
-  const commissionTier = summary.totalGross >= 50000 ? "reduced" : "standard";
+  // Map tier info to commission tier string
+  const commissionTier = tierInfo.isTopTier ? "reduced" : "standard";
 
   return (
     <MarketplaceDashboard
-      transactions={transactions || []}
+      transactions={transactions}
       summary={summary}
       commissionTier={commissionTier}
     />

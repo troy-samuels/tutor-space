@@ -59,17 +59,18 @@ export function HomeworkList({
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
 
   const homeworkStatusStyles: Record<HomeworkStatus, { label: string; className: string }> = {
-    assigned: { label: "Assigned", className: "bg-blue-100 text-blue-800" },
-    in_progress: { label: "In progress", className: "bg-amber-100 text-amber-800" },
-    submitted: { label: "Submitted", className: "bg-purple-100 text-purple-800" },
-    completed: { label: "Completed", className: "bg-green-100 text-green-800" },
-    cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-700" },
+    draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
+    assigned: { label: "Assigned", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+    in_progress: { label: "In progress", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
+    submitted: { label: "Submitted", className: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+    completed: { label: "Completed", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
+    cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground" },
   };
 
   const reviewStatusStyles: Record<HomeworkReviewStatus, { label: string; className: string }> = {
-    pending: { label: "Pending review", className: "bg-blue-100 text-blue-800" },
-    reviewed: { label: "Reviewed", className: "bg-emerald-100 text-emerald-800" },
-    needs_revision: { label: "Needs revision", className: "bg-amber-100 text-amber-800" },
+    pending: { label: "Pending review", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+    reviewed: { label: "Reviewed", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
+    needs_revision: { label: "Needs revision", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
   };
 
   const openHomework = homeworkItems
@@ -150,16 +151,18 @@ export function HomeworkList({
           {openHomework.length} open
         </Badge>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-6 space-y-4">
         {homeworkMessage ? (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
             {homeworkMessage}
-          </p>
+          </div>
         ) : null}
 
         {openHomework.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/50 p-4 text-sm text-muted-foreground">
-            No open homework. Your tutor will add assignments after your next lesson.
+          <div className="text-center py-8 text-muted-foreground">
+            <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-medium">No open homework</p>
+            <p className="text-xs mt-1">Your tutor will add assignments after your next lesson</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -180,11 +183,12 @@ export function HomeworkList({
                 : "No due date set";
 
               return (
-                <div
+                <Card
                   key={item.id}
-                  className="rounded-xl border border-border bg-background/80 p-4 shadow-sm transition hover:border-primary hover:shadow-md"
+                  className="transition hover:border-primary hover:shadow-lg"
                 >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-foreground">{item.title}</p>
@@ -199,7 +203,7 @@ export function HomeworkList({
                         <p className="text-sm text-muted-foreground">{item.instructions}</p>
                       ) : null}
                       {item.audio_instruction_url && (
-                        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+                        <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 p-3">
                           <audio
                             id={`audio-${item.id}`}
                             src={item.audio_instruction_url}
@@ -256,7 +260,7 @@ export function HomeworkList({
                       ) : null}
                       {latestSubmission?.tutor_feedback &&
                       latestSubmission.review_status !== "pending" ? (
-                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                           <p className="text-xs font-semibold text-primary">Tutor feedback</p>
                           <p className="text-sm text-foreground">
                             {latestSubmission.tutor_feedback}
@@ -265,7 +269,7 @@ export function HomeworkList({
                       ) : null}
                     </div>
                     <div className="flex flex-col items-start gap-2 md:items-end">
-                      <span className={`text-xs ${isOverdue ? "text-destructive" : "text-muted-foreground"}`}>
+                      <span className={`text-xs ${isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                         {dueLabel}
                       </span>
                       <div className="flex items-center gap-2">
@@ -309,11 +313,11 @@ export function HomeworkList({
                         ) : null}
                       </div>
                     </div>
-                  </div>
+                    </div>
 
-                  {submittingHomeworkId === item.id && (
-                    <div className="mt-4 border-t border-border pt-4">
-                      <HomeworkSubmissionForm
+                    {submittingHomeworkId === item.id && (
+                      <div className="mt-6 border-t border-border pt-6">
+                        <HomeworkSubmissionForm
                         homeworkId={item.id}
                         homeworkTitle={item.title}
                         onSubmitted={() => {
@@ -328,35 +332,36 @@ export function HomeworkList({
                           );
                         }}
                         onCancel={() => setSubmittingHomeworkId(null)}
-                      />
-                    </div>
-                  )}
-
-                  {showPracticeDrills && item.drills && item.drills.length > 0 && (
-                    <div className="mt-4 border-t border-border pt-4">
-                      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Practice Drills ({item.drills.length})
-                      </p>
-                      <div className="space-y-2">
-                        {item.drills.map((drill) => (
-                          <DrillMiniCard key={drill.id} drill={drill} />
-                        ))}
+                        />
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+
+                    {showPracticeDrills && item.drills && item.drills.length > 0 && (
+                      <div className="mt-6 border-t border-border pt-6">
+                        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Practice Drills ({item.drills.length})
+                        </p>
+                        <div className="space-y-2">
+                          {item.drills.map((drill) => (
+                            <DrillMiniCard key={drill.id} drill={drill} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         )}
 
         {completedHomework.length > 0 ? (
-          <div className="border-t border-border pt-3">
+          <div className="border-t border-border pt-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Recently completed
             </p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-4 space-y-3">
               {completedHomework.slice(0, completedLimit).map((item) => {
                 const latestSubmission = item.latest_submission ?? null;
                 const reviewBadge = latestSubmission
@@ -365,39 +370,38 @@ export function HomeworkList({
                 const completedStatus = homeworkStatusStyles.completed;
 
                 return (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-border bg-background/80 p-3"
-                  >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex flex-wrap items-center gap-2 text-foreground">
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
-                        <span className="font-medium">{item.title}</span>
-                        <Badge className={`text-xs ${completedStatus.className}`}>
-                          {completedStatus.label}
-                        </Badge>
-                        {reviewBadge ? (
-                          <Badge className={`text-xs ${reviewBadge.className}`}>
-                            {reviewBadge.label}
+                  <Card key={item.id}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-2 text-foreground">
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                          <span className="font-medium">{item.title}</span>
+                          <Badge className={`text-xs ${completedStatus.className}`}>
+                            {completedStatus.label}
                           </Badge>
-                        ) : null}
+                          {reviewBadge ? (
+                            <Badge className={`text-xs ${reviewBadge.className}`}>
+                              {reviewBadge.label}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {item.completed_at
+                            ? formatDistanceToNow(new Date(item.completed_at), { addSuffix: true })
+                            : "Completed"}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {item.completed_at
-                          ? formatDistanceToNow(new Date(item.completed_at), { addSuffix: true })
-                          : "Completed"}
-                      </span>
-                    </div>
-                    {latestSubmission?.tutor_feedback &&
-                    latestSubmission.review_status !== "pending" ? (
-                      <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-xs font-semibold text-primary">Tutor feedback</p>
-                        <p className="text-sm text-foreground">
-                          {latestSubmission.tutor_feedback}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
+                      {latestSubmission?.tutor_feedback &&
+                      latestSubmission.review_status !== "pending" ? (
+                        <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-xs font-semibold text-primary">Tutor feedback</p>
+                          <p className="text-sm text-foreground">
+                            {latestSubmission.tutor_feedback}
+                          </p>
+                        </div>
+                      ) : null}
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>

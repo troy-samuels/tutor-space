@@ -17,11 +17,14 @@ import {
   getTutorBookingDetails,
   getAvailableSlots,
   createStudentBooking,
-  type TutorBookingDetails,
-  type StudentPackage,
-  type GroupedSlots,
 } from "@/lib/actions/student-bookings";
-import type { TutorSearchResult, TutorWithDetails } from "@/lib/actions/student-connections";
+import type {
+  TutorBookingDetails,
+  StudentPackage,
+  GroupedSlots,
+  TutorSearchResult,
+  TutorWithDetails,
+} from "@/lib/actions/types";
 import { ServiceCard } from "./ServiceCard";
 import { TimeSlotSelector } from "./TimeSlotSelector";
 import { BookingConfirmationSheet } from "./BookingConfirmationSheet";
@@ -98,13 +101,13 @@ export function StudentBookingPage({ tutors, tutorsError }: StudentBookingPagePr
   };
 
   const getInitials = (name: string | null | undefined) => {
-    if (!name) return "?";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    const trimmed = name?.trim();
+    if (!trimmed) return "?";
+    const parts = trimmed.split(" ").filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
   };
 
   // Check if student can use credits for the selected service
@@ -170,22 +173,50 @@ export function StudentBookingPage({ tutors, tutorsError }: StudentBookingPagePr
           disabled={isPending}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Choose a tutor to book with..." />
+            {selectedTutor ? (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage
+                    src={selectedTutor.avatar_url || undefined}
+                    alt={selectedTutor.full_name || "Tutor"}
+                  />
+                  <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                    {getInitials(selectedTutor.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate text-sm font-medium text-foreground">
+                  {selectedTutor.full_name || `@${selectedTutor.username}`}
+                </span>
+              </div>
+            ) : (
+              <SelectValue placeholder="Choose a tutor to book with..." />
+            )}
           </SelectTrigger>
           <SelectContent>
-            {tutors.map((tutor) => (
-              <SelectItem key={tutor.id} value={tutor.id}>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.full_name || "Tutor"} />
-                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                      {getInitials(tutor.full_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{tutor.full_name || tutor.username}</span>
-                </div>
-              </SelectItem>
-            ))}
+            {tutors.map((tutor) => {
+              const displayName = tutor.full_name || `@${tutor.username}`;
+              return (
+                <SelectItem key={tutor.id} value={tutor.id} label={displayName}>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={tutor.avatar_url || undefined} alt={tutor.full_name || "Tutor"} />
+                      <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                        {getInitials(tutor.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{displayName}</span>
+                      <span className="text-xs text-muted-foreground">@{tutor.username}</span>
+                      {tutor.tagline && (
+                        <span className="text-xs text-muted-foreground line-clamp-1">
+                          {tutor.tagline}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>

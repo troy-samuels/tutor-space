@@ -19,17 +19,10 @@ import { EngagementScoreMeter } from "./engagement/EngagementScoreMeter";
 import { RiskStatusBadge } from "./engagement/RiskStatusBadge";
 import { StudentTimeline } from "./timeline/StudentTimeline";
 import { getOrCreateThreadByStudentId } from "@/lib/actions/messaging";
-import {
-  getStudentOnboardingProgress,
-  initializeStudentOnboarding,
-  type OnboardingProgress,
-} from "@/lib/actions/student-onboarding";
-import {
-  getStudentEngagementScore,
-  type EngagementScore,
-  type RiskStatus,
-} from "@/lib/actions/student-engagement";
-import type { StudentDetailData } from "@/lib/data/student-detail";
+import { getStudentOnboardingProgress, initializeStudentOnboarding } from "@/lib/actions/student-onboarding";
+import { getStudentEngagementScore } from "@/lib/actions/student-engagement";
+import type { OnboardingProgress, EngagementScore, RiskStatus } from "@/lib/actions/types";
+import type { StudentDetailData } from "@/lib/data/types";
 
 type StudentDetailViewProps = {
   studentId: string;

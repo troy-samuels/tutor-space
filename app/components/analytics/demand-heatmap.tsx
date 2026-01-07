@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, Info } from "lucide-react";
-import { getDemandHeatmap, type DemandSlot } from "@/lib/actions/analytics-demand";
+import { getDemandHeatmap } from "@/lib/actions/analytics-demand";
+import type { DemandSlot } from "@/lib/actions/types";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6 AM to 9 PM

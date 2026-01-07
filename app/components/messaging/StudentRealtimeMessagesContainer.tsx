@@ -9,6 +9,7 @@ import { MessageComposer } from "@/components/messaging/message-composer";
 import { MessageDisplay } from "@/components/messaging/message-display";
 import { useRealtimeMessages } from "@/lib/hooks/useRealtimeMessages";
 import { createClient } from "@/lib/supabase/client";
+import { markMessagesReadByStudent, markThreadReadByStudent } from "@/lib/repositories/messaging";
 import type { ConversationMessage } from "@/lib/actions/messaging";
 
 type StudentThreadProfile = {
@@ -79,16 +80,8 @@ export function StudentRealtimeMessagesContainer({
   const markThreadRead = useCallback(async () => {
     if (!activeThreadId) return;
 
-    await supabase
-      .from("conversation_messages")
-      .update({ read_by_student: true })
-      .eq("thread_id", activeThreadId)
-      .eq("read_by_student", false);
-
-    await supabase
-      .from("conversation_threads")
-      .update({ student_unread: false })
-      .eq("id", activeThreadId);
+    await markMessagesReadByStudent(supabase, activeThreadId);
+    await markThreadReadByStudent(supabase, activeThreadId);
   }, [activeThreadId, supabase]);
 
   const handleNewMessage = useCallback(

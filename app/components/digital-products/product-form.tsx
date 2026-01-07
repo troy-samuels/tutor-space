@@ -5,7 +5,7 @@ import { Loader2, Upload, Link as LinkIcon, FileText, X, Video, ChevronLeft, Che
 import {
   createDigitalProduct,
   type ProductFormState,
-} from "@/lib/actions/digital-products";
+} from "@/lib/actions/marketplace";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants/student-settings";
 
 const initialState: ProductFormState = {};

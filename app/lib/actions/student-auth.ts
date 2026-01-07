@@ -3,18 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { upsertThread } from "@/lib/repositories/messaging";
 import { buildAuthCallbackUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
 import { sendAccessRequestNotification } from "@/lib/emails/access-emails";
-
-export type AccessStatus = "pending" | "approved" | "denied" | "suspended" | "no_record";
-
-export type StudentAccessInfo = {
-  status: AccessStatus;
-  student_id?: string;
-  tutor_name?: string;
-  requested_at?: string;
-  has_active_package?: boolean;
-};
+import type { AccessStatus, StudentAccessInfo } from "@/lib/actions/types";
 
 type StudentAccessRecord = {
   id: string;
@@ -813,15 +805,13 @@ export async function signupWithInviteLink(params: {
     });
 
     // Create conversation thread for messaging (auto-create like approval flow)
-    await adminClient.from("conversation_threads").upsert(
+    await upsertThread(
+      adminClient,
       {
-        tutor_id: tutorId,
-        student_id: studentId,
+        tutorId,
+        studentId,
       },
-      {
-        onConflict: "tutor_id,student_id",
-        ignoreDuplicates: true,
-      }
+      { ignoreDuplicates: true }
     );
 
     revalidatePath(bookPath);

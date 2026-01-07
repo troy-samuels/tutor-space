@@ -1,53 +1,16 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-
-export type DrillType = "pronunciation" | "grammar" | "vocabulary" | "fluency";
-export type DrillStatus = "pending" | "assigned" | "in_progress" | "completed";
-
-export interface ScrambleData {
-  words: string[];
-  solution?: string[];
-}
-
-export interface MatchData {
-  pairs: Array<{ id: string; left: string; right: string }>;
-}
-
-export interface GapFillData {
-  sentence: string;
-  answer: string;
-  options: string[];
-}
-
-export interface DrillContent {
-  type: "scramble" | "match" | "gap-fill";
-  prompt?: string;
-  data: ScrambleData | MatchData | GapFillData;
-}
-
-export interface LessonDrill {
-  id: string;
-  recording_id: string | null;
-  student_id: string;
-  tutor_id: string;
-  booking_id: string | null;
-  homework_assignment_id: string | null;
-  content: DrillContent;
-  drill_type: DrillType;
-  status: DrillStatus;
-  focus_area: string | null;
-  due_date: string | null;
-  is_completed: boolean;
-  completed_at: string | null;
-  created_at: string;
-}
-
-export interface DrillWithContext extends LessonDrill {
-  tutor_name?: string;
-  lesson_date?: string;
-  homework_title?: string;
-}
+import type {
+  DrillType,
+  DrillStatus,
+  ScrambleData,
+  MatchData,
+  GapFillData,
+  DrillContent,
+  LessonDrill,
+  DrillWithContext,
+} from "@/lib/actions/types";
 
 /**
  * Get all drills for a student

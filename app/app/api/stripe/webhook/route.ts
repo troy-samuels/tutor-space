@@ -12,6 +12,7 @@ import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
 import { recordSystemEvent, recordSystemMetric, shouldSample } from "@/lib/monitoring";
 import { sendLessonSubscriptionEmails } from "@/lib/emails/ops-emails";
 import { SIGNUP_CHECKOUT_FLOW } from "@/lib/services/signup-checkout";
+import { markPurchasePaid, recordMarketplaceSale } from "@/lib/repositories/marketplace";
 
 type ServiceRoleClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 
@@ -84,43 +85,134 @@ type LessonSubscriptionRow = {
     | null;
 };
 
+type ProcessedStripeEventStatus = "processing" | "processed" | "failed";
+
+type ProcessedStripeEventRow = {
+  status: ProcessedStripeEventStatus;
+  processing_started_at: string | null;
+  updated_at: string | null;
+};
+
 async function claimStripeEvent(
   event: Stripe.Event,
   supabase: ServiceRoleClient
 ) {
-  const { data: existingEvent, error: existingError } = await supabase
-    .from("processed_stripe_events")
-    .select("event_id")
-    .eq("event_id", event.id)
-    .maybeSingle();
-
-  if (existingEvent) {
-    return { duplicate: true };
-  }
-
-  // Only ignore the "no rows" error; anything else should bubble so Stripe retries
-  if (existingError && existingError.code !== "PGRST116") {
-    throw existingError;
-  }
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const timeoutSeconds = Number(process.env.STRIPE_WEBHOOK_PROCESSING_TIMEOUT_SECONDS ?? "600");
+  const timeoutMs = Math.max(timeoutSeconds, 60) * 1000;
 
   const { error: insertError } = await supabase
     .from("processed_stripe_events")
     .insert({
       event_id: event.id,
       event_type: event.type,
-      processed_at: new Date().toISOString(),
+      processed_at: nowIso,
       metadata: { livemode: event.livemode },
+      status: "processing",
+      processing_started_at: nowIso,
+      updated_at: nowIso,
     });
 
-  if (insertError?.code === "23505") {
-    return { duplicate: true };
+  if (!insertError) {
+    return { duplicate: false };
   }
 
-  if (insertError) {
+  if (insertError.code !== "23505") {
     throw insertError;
   }
 
+  const { data: existingEvent, error: existingError } = await supabase
+    .from("processed_stripe_events")
+    .select("status, processing_started_at, updated_at")
+    .eq("event_id", event.id)
+    .maybeSingle<ProcessedStripeEventRow>();
+
+  if (existingError && existingError.code !== "PGRST116") {
+    throw existingError;
+  }
+
+  if (!existingEvent) {
+    return { duplicate: false };
+  }
+
+  if (existingEvent.status === "processed") {
+    return { duplicate: true };
+  }
+
+  const startedAt = existingEvent.processing_started_at || existingEvent.updated_at;
+  const startedAtMs = startedAt ? new Date(startedAt).getTime() : 0;
+  const isStale = !startedAt || Number.isNaN(startedAtMs) || Date.now() - startedAtMs > timeoutMs;
+
+  if (existingEvent.status === "processing" && !isStale) {
+    return { duplicate: true };
+  }
+
+  const { data: takeover, error: updateError } = await supabase
+    .from("processed_stripe_events")
+    .update({
+      status: "processing",
+      processing_started_at: nowIso,
+      updated_at: nowIso,
+      last_error: null,
+      last_error_at: null,
+    })
+    .eq("event_id", event.id)
+    .eq("status", existingEvent.status)
+    .select("event_id")
+    .maybeSingle();
+
+  if (updateError && updateError.code !== "PGRST116") {
+    throw updateError;
+  }
+
+  if (!takeover) {
+    return { duplicate: true };
+  }
+
   return { duplicate: false };
+}
+
+async function markStripeEventProcessed(
+  event: Stripe.Event,
+  supabase: ServiceRoleClient
+) {
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase
+    .from("processed_stripe_events")
+    .update({
+      status: "processed",
+      processed_at: nowIso,
+      updated_at: nowIso,
+      last_error: null,
+      last_error_at: null,
+    })
+    .eq("event_id", event.id);
+
+  if (error) {
+    console.error("Failed to mark Stripe event as processed:", error);
+  }
+}
+
+async function markStripeEventFailed(
+  event: Stripe.Event,
+  supabase: ServiceRoleClient,
+  error: unknown
+) {
+  const nowIso = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from("processed_stripe_events")
+    .update({
+      status: "failed",
+      updated_at: nowIso,
+      last_error: error instanceof Error ? error.message : String(error),
+      last_error_at: nowIso,
+    })
+    .eq("event_id", event.id);
+
+  if (updateError) {
+    console.error("Failed to mark Stripe event as failed:", updateError);
+  }
 }
 
 /**
@@ -263,7 +355,8 @@ export async function POST(req: NextRequest) {
   // Handle different event types
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
         const session = event.data.object as Stripe.Checkout.Session;
         await handleCheckoutSessionCompleted(session, supabase);
         break;
@@ -315,9 +408,17 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutSessionAsyncPaymentFailed(session, supabase);
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
+
+    await markStripeEventProcessed(event, supabase);
 
     void recordSystemMetric({
       metric: `stripe_webhook:${event.type}`,
@@ -328,6 +429,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error(`Error handling webhook event ${event.type}:`, error);
+    await markStripeEventFailed(event, supabase, error);
     void recordSystemEvent({
       source: "stripe_webhook",
       message: `Error handling event ${event.type}`,
@@ -669,36 +771,44 @@ async function handleCheckoutSessionCompleted(
     session.currency?.toUpperCase() ??
     "USD";
 
+  const emailTasks: Array<{ label: string; promise: Promise<unknown> }> = [];
+
   if (studentEmail && amountCents > 0) {
-    await sendPaymentReceiptEmail({
-      studentName: bookingDetails?.students?.full_name ?? "Student",
-      studentEmail,
-      tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
-      serviceName: bookingDetails?.services?.name ?? "Lesson",
-      scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
-      timezone: bookingDetails?.timezone ?? "UTC",
-      amountCents,
-      currency,
-      paymentMethod: (session.payment_method_types?.[0] ?? "card").toUpperCase(),
-      invoiceNumber:
-        typeof session.invoice === "string" ? session.invoice : undefined,
+    emailTasks.push({
+      label: "student_receipt",
+      promise: sendPaymentReceiptEmail({
+        studentName: bookingDetails?.students?.full_name ?? "Student",
+        studentEmail,
+        tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
+        serviceName: bookingDetails?.services?.name ?? "Lesson",
+        scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+        timezone: bookingDetails?.timezone ?? "UTC",
+        amountCents,
+        currency,
+        paymentMethod: (session.payment_method_types?.[0] ?? "card").toUpperCase(),
+        invoiceNumber:
+          typeof session.invoice === "string" ? session.invoice : undefined,
+      }),
     });
   }
 
   // Send payment notification to tutor if it was a Connect payment
   const tutorEmail = bookingDetails?.tutor?.email;
   if (tutorEmail && amountCents > 0 && session.metadata?.tutorId) {
-    await sendPaymentReceiptEmail({
-      studentName: bookingDetails?.tutor?.full_name ?? "Tutor",
-      studentEmail: tutorEmail,
-      tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
-      serviceName: bookingDetails?.services?.name ?? "Lesson",
-      scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
-      timezone: bookingDetails?.timezone ?? "UTC",
-      amountCents,
-      currency,
-      paymentMethod: "STRIPE",
-      notes: `Payment received from ${bookingDetails?.students?.full_name ?? "student"} via Stripe Connect. Funds will be available in your Stripe account according to your payout schedule.`,
+    emailTasks.push({
+      label: "tutor_receipt",
+      promise: sendPaymentReceiptEmail({
+        studentName: bookingDetails?.tutor?.full_name ?? "Tutor",
+        studentEmail: tutorEmail,
+        tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
+        serviceName: bookingDetails?.services?.name ?? "Lesson",
+        scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+        timezone: bookingDetails?.timezone ?? "UTC",
+        amountCents,
+        currency,
+        paymentMethod: "STRIPE",
+        notes: `Payment received from ${bookingDetails?.students?.full_name ?? "student"} via Stripe Connect. Funds will be available in your Stripe account according to your payout schedule.`,
+      }),
     });
   }
 
@@ -706,19 +816,31 @@ async function handleCheckoutSessionCompleted(
   const tutorNotifyEmail = bookingDetails?.tutor?.email;
   const tutorName = bookingDetails?.tutor?.full_name ?? "Tutor";
   if (tutorNotifyEmail && amountCents > 0) {
-    await sendTutorBookingNotificationEmail({
-      tutorName,
-      tutorEmail: tutorNotifyEmail,
-      studentName: bookingDetails?.students?.full_name ?? "Student",
-      studentEmail: studentEmail ?? "",
-      serviceName: bookingDetails?.services?.name ?? "Lesson",
-      scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
-      durationMinutes: 60,
-      timezone: bookingDetails?.timezone ?? "UTC",
-      amount: amountCents,
-      currency,
-      notes: undefined,
-      dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/bookings`,
+    emailTasks.push({
+      label: "tutor_booking_notification",
+      promise: sendTutorBookingNotificationEmail({
+        tutorName,
+        tutorEmail: tutorNotifyEmail,
+        studentName: bookingDetails?.students?.full_name ?? "Student",
+        studentEmail: studentEmail ?? "",
+        serviceName: bookingDetails?.services?.name ?? "Lesson",
+        scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+        durationMinutes: 60,
+        timezone: bookingDetails?.timezone ?? "UTC",
+        amount: amountCents,
+        currency,
+        notes: undefined,
+        dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/bookings`,
+      }),
+    });
+  }
+
+  if (emailTasks.length > 0) {
+    const results = await Promise.allSettled(emailTasks.map((task) => task.promise));
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(`[Webhook] Failed to send ${emailTasks[index].label} email:`, result.reason);
+      }
     });
   }
 
@@ -792,77 +914,49 @@ async function handleDigitalProductPurchase(
 
   if (error || !purchase) {
     console.error("Digital product purchase not found", error);
-    return;
+    throw new Error(`Purchase ${purchaseId} not found - triggering Stripe retry`);
   }
 
-  await supabase
-    .from("digital_product_purchases")
-    .update({
-      status: "paid",
-      completed_at: new Date().toISOString(),
-      stripe_session_id: session.id,
-    })
-    .eq("id", purchase.id);
+  // Verify payment intent succeeded before fulfilling (same pattern as booking handler)
+  if (session.payment_intent) {
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      session.payment_intent as string
+    );
+    if (paymentIntent.status !== "succeeded") {
+      console.error(
+        `Payment intent ${paymentIntent.id} status is ${paymentIntent.status}, skipping fulfillment`
+      );
+      return;
+    }
+  }
 
   // ============================================
-  // MARKETPLACE COMMISSION CAPTURE
-  // Tiered: 15% until $500 lifetime sales, then 10%
+  // ATOMIC SALE RECORDING
+  // Uses repository functions for atomicity and consistency
   // ============================================
+
+  // Mark purchase as paid atomically via RPC
+  await markPurchasePaid(supabase, purchase.id, session.id);
+
+  // Record sale atomically (commission calc + transaction insert + stats update in one RPC)
   if (purchase.products?.tutor_id && session.amount_total) {
-    const tutorId = purchase.products.tutor_id;
-    const grossAmount = session.amount_total;
-
-    // Get tutor's lifetime sales to determine commission tier
-    const { data: salesData } = await supabase
-      .from("marketplace_transactions")
-      .select("gross_amount_cents")
-      .eq("tutor_id", tutorId)
-      .eq("status", "completed");
-
-    const lifetimeSales = salesData?.reduce(
-      (sum, t) => sum + (t.gross_amount_cents || 0),
-      0
-    ) || 0;
-
-    // Tiered commission: 15% until $500 (50000 cents), then 10%
-    const commissionRate = lifetimeSales >= 50000 ? 0.10 : 0.15;
-    const platformCommission = Math.round(grossAmount * commissionRate);
-    const netAmount = grossAmount - platformCommission;
-
-    // Record the marketplace transaction
-    const { error: transactionError } = await supabase
-      .from("marketplace_transactions")
-      .insert({
-        purchase_id: purchase.id,
-        product_id: purchase.products.id,
-        tutor_id: tutorId,
-        gross_amount_cents: grossAmount,
-        platform_commission_cents: platformCommission,
-        net_amount_cents: netAmount,
-        commission_rate: commissionRate,
-        stripe_payment_intent_id: session.payment_intent as string,
-        status: "completed",
+    try {
+      const result = await recordMarketplaceSale(supabase, {
+        purchaseId: purchase.id,
+        productId: purchase.products.id,
+        tutorId: purchase.products.tutor_id,
+        grossAmountCents: session.amount_total,
+        stripePaymentIntentId: session.payment_intent as string,
       });
 
-    if (transactionError) {
-      console.error("Failed to record marketplace transaction:", transactionError);
-      // Don't throw - the payment succeeded, we just couldn't track commission
-    } else {
       console.log(
-        `✅ Marketplace commission recorded: $${(grossAmount / 100).toFixed(2)} gross, ` +
-        `${(commissionRate * 100).toFixed(0)}% rate ($${(platformCommission / 100).toFixed(2)}), ` +
-        `$${(netAmount / 100).toFixed(2)} net to tutor`
+        `✅ Marketplace sale recorded atomically: $${(session.amount_total / 100).toFixed(2)} gross, ` +
+        `${(result.commissionRate * 100).toFixed(0)}% rate ($${(result.platformCommissionCents / 100).toFixed(2)}), ` +
+        `$${(result.netAmountCents / 100).toFixed(2)} net to tutor`
       );
-    }
-
-    // Update product sales stats
-    const { error: statsError } = await supabase.rpc("increment_product_sales", {
-      p_product_id: purchase.products.id,
-      p_amount: grossAmount,
-    });
-
-    if (statsError) {
-      console.error("Failed to update product sales stats:", statsError);
+    } catch (error) {
+      console.error("Failed to record marketplace sale:", error);
+      // Don't throw - payment succeeded, we just couldn't track commission
     }
   }
   // ============================================
@@ -872,45 +966,60 @@ async function handleDigitalProductPurchase(
   // Add to student library if metadata indicates digital download
   if (session.metadata?.product_type === "digital_download" && session.metadata?.studentUserId && purchase.products?.id) {
     try {
-      // Find student record for this user, if available
-      const { data: studentRecord } = await supabase
-        .from("students")
+      // Check for existing library item to prevent duplicates on webhook retry
+      const { data: existingItem } = await supabase
+        .from("student_library_items")
         .select("id")
-        .eq("user_id", session.metadata.studentUserId)
+        .eq("digital_product_purchase_id", purchase.id)
         .maybeSingle();
 
-      const studentId = studentRecord?.id ?? null;
+      if (existingItem) {
+        console.log(`Student library item already exists for purchase ${purchase.id}, skipping`);
+      } else {
+        // Find student record for this user, if available
+        const { data: studentRecord } = await supabase
+          .from("students")
+          .select("id")
+          .eq("user_id", session.metadata.studentUserId)
+          .maybeSingle();
 
-      const insertPayload: Record<string, any> = {
-        product_id: purchase.products.id,
-        digital_product_purchase_id: purchase.id,
-      };
-      if (studentId) {
-        insertPayload.student_id = studentId;
-      }
-      if (session.metadata.studentUserId) {
-        insertPayload.student_user_id = session.metadata.studentUserId;
-      }
+        const studentId = studentRecord?.id ?? null;
 
-      const { error: libraryError } = await supabase
-        .from("student_library_items")
-        .insert(insertPayload);
+        const insertPayload: Record<string, any> = {
+          product_id: purchase.products.id,
+          digital_product_purchase_id: purchase.id,
+        };
+        if (studentId) {
+          insertPayload.student_id = studentId;
+        }
+        if (session.metadata.studentUserId) {
+          insertPayload.student_user_id = session.metadata.studentUserId;
+        }
 
-      if (libraryError) {
-        console.error("Failed to insert student library item", libraryError);
+        const { error: libraryError } = await supabase
+          .from("student_library_items")
+          .insert(insertPayload);
+
+        if (libraryError) {
+          console.error("Failed to insert student library item", libraryError);
+        }
       }
     } catch (libraryInsertError) {
       console.error("Unexpected error inserting student library item", libraryInsertError);
     }
   }
 
-  await sendDigitalProductDeliveryEmail({
-    to: purchase.buyer_email,
-    studentName: purchase.buyer_name,
-    tutorName: purchase.tutor?.full_name || "Your tutor",
-    productTitle: purchase.products?.title || "Your purchase",
-    downloadUrl,
-  });
+  try {
+    await sendDigitalProductDeliveryEmail({
+      to: purchase.buyer_email,
+      studentName: purchase.buyer_name,
+      tutorName: purchase.tutor?.full_name || "Your tutor",
+      productTitle: purchase.products?.title || "Your purchase",
+      downloadUrl,
+    });
+  } catch (error) {
+    console.error("Failed to send digital product delivery email:", error);
+  }
 }
 
 /**
@@ -1073,19 +1182,34 @@ async function handleSubscriptionDeleted(
  * Handle successful invoice payment
  * Update subscription status and extend access period
  */
+function getSubscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  const parentSubscription = invoice.parent?.subscription_details?.subscription;
+  if (parentSubscription) {
+    return typeof parentSubscription === "string"
+      ? parentSubscription
+      : parentSubscription?.id ?? null;
+  }
+
+  const subscription = invoice.subscription as
+    | string
+    | { id?: string | null }
+    | null
+    | undefined;
+
+  if (subscription) {
+    return typeof subscription === "string" ? subscription : subscription.id ?? null;
+  }
+
+  return null;
+}
+
 async function handleInvoicePaymentSucceeded(
   invoice: Stripe.Invoice,
   supabase: ServiceRoleClient
 ) {
   console.log(`Invoice ${invoice.id} payment succeeded`);
 
-  // Get subscription ID from parent.subscription_details
-  const subscriptionDetails = invoice.parent?.subscription_details;
-  const subscriptionId = subscriptionDetails
-    ? (typeof subscriptionDetails.subscription === "string"
-        ? subscriptionDetails.subscription
-        : subscriptionDetails.subscription?.id)
-    : null;
+  const subscriptionId = getSubscriptionIdFromInvoice(invoice);
 
   // Only process subscription invoices
   if (!subscriptionId) {
@@ -1147,13 +1271,7 @@ async function handleInvoicePaymentFailed(
 ) {
   console.log(`Invoice ${invoice.id} payment failed`);
 
-  // Get subscription ID from parent.subscription_details
-  const subscriptionDetails = invoice.parent?.subscription_details;
-  const subscriptionId = subscriptionDetails
-    ? (typeof subscriptionDetails.subscription === "string"
-        ? subscriptionDetails.subscription
-        : subscriptionDetails.subscription?.id)
-    : null;
+  const subscriptionId = getSubscriptionIdFromInvoice(invoice);
 
   // Only process subscription invoices
   if (!subscriptionId) {
@@ -1247,17 +1365,20 @@ async function handleInvoicePaymentFailed(
   if (profile.email) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co";
     const updatePaymentUrl = `${baseUrl}/settings/billing`;
+    try {
+      await sendPaymentFailedEmail({
+        userEmail: profile.email,
+        userName: profile.full_name || "there",
+        planName,
+        amountDue,
+        nextRetryDate,
+        updatePaymentUrl,
+      });
 
-    await sendPaymentFailedEmail({
-      userEmail: profile.email,
-      userName: profile.full_name || "there",
-      planName,
-      amountDue,
-      nextRetryDate,
-      updatePaymentUrl,
-    });
-
-    console.log(`Payment failed email sent to ${profile.email}`);
+      console.log(`Payment failed email sent to ${profile.email}`);
+    } catch (error) {
+      console.error("Failed to send payment failed email:", error);
+    }
   }
 
   // If payment has failed multiple times, consider downgrading
@@ -1394,6 +1515,36 @@ async function handleCheckoutSessionExpired(
   });
 
   console.log(`✅ Signup checkout session ${session.id} marked as expired for user ${signupUserId}`);
+}
+
+/**
+ * Handle async payment failure for checkout sessions
+ * Logs failure and keeps booking unpaid.
+ */
+async function handleCheckoutSessionAsyncPaymentFailed(
+  session: Stripe.Checkout.Session,
+  supabase: ServiceRoleClient
+) {
+  const bookingId = session.metadata?.bookingId;
+  if (!bookingId) {
+    console.log("Async payment failed without bookingId metadata");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      payment_status: "unpaid",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", bookingId)
+    .neq("payment_status", "paid");
+
+  if (error) {
+    console.error("Failed to record async payment failure for booking:", error);
+  } else {
+    console.log(`⚠️ Async payment failed for booking ${bookingId}, left as unpaid`);
+  }
 }
 
 /**
@@ -1657,21 +1808,25 @@ async function handleLessonSubscriptionUpdate(
 
     const context = await loadLessonSubscriptionContext(supabase, existingSub.id);
     if (context) {
-      await sendLessonSubscriptionEmails({
-        studentEmail: context.studentEmail,
-        studentName: context.studentName,
-        tutorEmail: context.tutorEmail,
-        tutorName: context.tutorName,
-        status: subscription.cancel_at_period_end
-          ? "cancellation_scheduled"
-          : "renewed",
-        planName: context.planName,
-        lessonsPerMonth: context.lessonsPerMonth,
-        periodEnd: context.periodEnd,
-        manageUrl: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")}/student/subscriptions`
-          : undefined,
-      });
+      try {
+        await sendLessonSubscriptionEmails({
+          studentEmail: context.studentEmail,
+          studentName: context.studentName,
+          tutorEmail: context.tutorEmail,
+          tutorName: context.tutorName,
+          status: subscription.cancel_at_period_end
+            ? "cancellation_scheduled"
+            : "renewed",
+          planName: context.planName,
+          lessonsPerMonth: context.lessonsPerMonth,
+          periodEnd: context.periodEnd,
+          manageUrl: process.env.NEXT_PUBLIC_APP_URL
+            ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")}/student/subscriptions`
+            : undefined,
+        });
+      } catch (error) {
+        console.error("Failed to send lesson subscription renewal email:", error);
+      }
     }
   } else {
     // Create new subscription record
@@ -1725,19 +1880,23 @@ async function handleLessonSubscriptionUpdate(
 
     const context = await loadLessonSubscriptionContext(supabase, newSub?.id || "");
     if (context) {
-      await sendLessonSubscriptionEmails({
-        studentEmail: context.studentEmail,
-        studentName: context.studentName,
-        tutorEmail: context.tutorEmail,
-        tutorName: context.tutorName,
-        status: "activated",
-        planName: context.planName,
-        lessonsPerMonth: context.lessonsPerMonth,
-        periodEnd: context.periodEnd,
-        manageUrl: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")}/student/subscriptions`
-          : undefined,
-      });
+      try {
+        await sendLessonSubscriptionEmails({
+          studentEmail: context.studentEmail,
+          studentName: context.studentName,
+          tutorEmail: context.tutorEmail,
+          tutorName: context.tutorName,
+          status: "activated",
+          planName: context.planName,
+          lessonsPerMonth: context.lessonsPerMonth,
+          periodEnd: context.periodEnd,
+          manageUrl: process.env.NEXT_PUBLIC_APP_URL
+            ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")}/student/subscriptions`
+            : undefined,
+        });
+      } catch (error) {
+        console.error("Failed to send lesson subscription activation email:", error);
+      }
     }
   }
 
@@ -1827,19 +1986,23 @@ async function handleLessonSubscriptionDeleted(
 
     const context = await loadLessonSubscriptionContext(supabase, sub.id);
     if (context) {
-      await sendLessonSubscriptionEmails({
-        studentEmail: context.studentEmail,
-        studentName: context.studentName,
-        tutorEmail: context.tutorEmail,
-        tutorName: context.tutorName,
-        status: "canceled",
-        planName: context.planName,
-        lessonsPerMonth: context.lessonsPerMonth,
-        periodEnd: context.periodEnd,
-        manageUrl: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")}/student/subscriptions`
-          : undefined,
-      });
+      try {
+        await sendLessonSubscriptionEmails({
+          studentEmail: context.studentEmail,
+          studentName: context.studentName,
+          tutorEmail: context.tutorEmail,
+          tutorName: context.tutorName,
+          status: "canceled",
+          planName: context.planName,
+          lessonsPerMonth: context.lessonsPerMonth,
+          periodEnd: context.periodEnd,
+          manageUrl: process.env.NEXT_PUBLIC_APP_URL
+            ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")}/student/subscriptions`
+            : undefined,
+        });
+      } catch (error) {
+        console.error("Failed to send lesson subscription cancellation email:", error);
+      }
     }
   }
 

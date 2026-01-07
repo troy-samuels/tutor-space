@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -96,6 +96,7 @@ export async function uploadStudentAvatar(
   }
 
   revalidatePath("/student/settings");
+  revalidatePath("/student"); // Invalidate student pages to refresh avatar
   return { success: true, avatarUrl: publicUrl };
 }
 
@@ -144,11 +145,35 @@ export async function deleteStudentAvatar(): Promise<{ success: boolean; error?:
   }
 
   revalidatePath("/student/settings");
+  revalidatePath("/student"); // Invalidate student pages to refresh avatar
   return { success: true };
 }
 
 /**
- * Get student avatar URL
+ * Cached fetch of avatar URL from database.
+ * Cache is keyed by userId and revalidated on avatar changes.
+ */
+const getCachedAvatarUrl = unstable_cache(
+  async (userId: string): Promise<string | null> => {
+    const serviceClient = createServiceRoleClient();
+    if (!serviceClient) return null;
+
+    const { data } = await serviceClient
+      .from("student_preferences")
+      .select("avatar_url")
+      .eq("user_id", userId)
+      .single();
+
+    return data?.avatar_url || null;
+  },
+  ["student-avatar"],
+  {
+    revalidate: 3600, // 1 hour cache
+  }
+);
+
+/**
+ * Get student avatar URL (cached)
  */
 export async function getStudentAvatarUrl(): Promise<string | null> {
   const supabase = await createClient();
@@ -156,16 +181,7 @@ export async function getStudentAvatarUrl(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const serviceClient = createServiceRoleClient();
-  if (!serviceClient) return null;
-
-  const { data } = await serviceClient
-    .from("student_preferences")
-    .select("avatar_url")
-    .eq("user_id", user.id)
-    .single();
-
-  return data?.avatar_url || null;
+  return getCachedAvatarUrl(user.id);
 }
 
 /**

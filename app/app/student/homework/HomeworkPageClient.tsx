@@ -3,13 +3,14 @@
 import { HomeworkList } from "@/components/student/HomeworkList";
 import { AIPracticeCard } from "@/components/student/AIPracticeCard";
 import { DrillProgressCard } from "@/components/student-auth/DrillProgressCard";
+import { Card, CardContent } from "@/components/ui/card";
 import type {
   HomeworkAssignment,
   LearningStats,
   StudentPracticeData,
 } from "@/lib/actions/progress";
-import type { DrillWithContext } from "@/lib/actions/drills";
-import { BookOpen, Lock } from "lucide-react";
+import type { DrillWithContext } from "@/lib/actions/types";
+import { Lock } from "lucide-react";
 
 type HomeworkPageClientProps = {
   homework: HomeworkAssignment[];
@@ -34,17 +35,13 @@ export function HomeworkPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <BookOpen className="h-5 w-5" />
-          <span className="text-sm font-medium">Student Portal</span>
-        </div>
+      <div>
         <h1 className="text-2xl font-bold tracking-tight">Homework</h1>
         <p className="text-muted-foreground">
           See everything your tutor assigned — including AI-generated homework and linked practice.
         </p>
         {!hasCompletedFirstClass && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-2">
             Once your first class is marked complete, we&apos;ll also unlock any linked practice drills here.
           </p>
         )}
@@ -79,12 +76,14 @@ export function HomeworkPageClient({
           )}
         </>
       ) : (
-        <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          <Lock className="h-4 w-4" />
-          <p className="leading-snug">
-            Practice drills will appear after your first class is completed. For now, focus on the homework above.
-          </p>
-        </div>
+        <Card className="border-dashed">
+          <CardContent className="p-6 flex items-center gap-3 text-sm text-muted-foreground">
+            <Lock className="h-5 w-5 opacity-50" />
+            <p className="leading-snug">
+              Practice drills will appear after your first class is completed. For now, focus on the homework above.
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

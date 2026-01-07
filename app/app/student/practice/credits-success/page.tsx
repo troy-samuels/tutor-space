@@ -11,7 +11,9 @@ import {
   BLOCK_AUDIO_MINUTES,
   BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
+import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentDisplayName } from "@/lib/utils/student-name";
 
 export const metadata = {
   title: "Credits Unlocked | TutorLingua",
@@ -32,6 +34,7 @@ export default async function CreditsSuccessPage({ searchParams }: PageProps) {
     redirect("/student/login");
   }
 
+  const studentName = await getStudentDisplayName(supabase, user);
   const { data: student } = await supabase
     .from("students")
     .select("id, tutor_id")
@@ -87,11 +90,14 @@ export default async function CreditsSuccessPage({ searchParams }: PageProps) {
     }
   }
 
-  const { data: subscriptionSummary } = await getStudentSubscriptionSummary();
+  const [{ data: subscriptionSummary }, avatarUrl] = await Promise.all([
+    getStudentSubscriptionSummary(),
+    getStudentAvatarUrl(),
+  ]);
   const blockPriceDollars = (AI_PRACTICE_BLOCK_PRICE_CENTS / 100).toFixed(0);
 
   return (
-    <StudentPortalLayout studentName={user.email} subscriptionSummary={subscriptionSummary}>
+    <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
       <div className="mx-auto max-w-lg space-y-6 px-4 py-12 text-center">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
           <CheckCircle className="h-10 w-10 text-emerald-600" />

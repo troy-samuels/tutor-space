@@ -2,28 +2,9 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getAdminUser } from "@/lib/admin/get-admin-user";
+import type { AuditLogEntry, AuditLogResult } from "@/actions/admin/types";
 
 const PAGE_SIZE = 50;
-
-export type AuditLogEntry = {
-  id: string;
-  action: string;
-  targetType: string | null;
-  targetId: string | null;
-  metadata: Record<string, unknown>;
-  ipAddress: string | null;
-  userAgent: string | null;
-  adminName: string | null;
-  adminRole: string | null;
-  createdAt: string;
-};
-
-export type AuditLogResult = {
-  entries: AuditLogEntry[];
-  page: number;
-  pageSize: number;
-  total: number;
-};
 
 export async function getAuditLogForAdmin(
   page = 1

@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentBookingPage } from "@/components/student-auth/StudentBookingPage";
-import { getApprovedTutors, type TutorSearchResult } from "@/lib/actions/student-connections";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getApprovedTutors } from "@/lib/actions/student-connections";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getStudentDisplayName } from "@/lib/utils/student-name";
 
 export const metadata = {
   title: "Book a Lesson | Student Portal",
@@ -21,6 +22,7 @@ export default async function BookPage() {
     redirect("/student/login?redirect=/student/book");
   }
 
+  const studentName = await getStudentDisplayName(supabase, user);
   // Get approved tutors, subscription summary, and avatar in parallel
   const [tutorsResult, { data: subscriptionSummary }, avatarUrl] = await Promise.all([
     getApprovedTutors(),
@@ -28,9 +30,6 @@ export default async function BookPage() {
     getStudentAvatarUrl(),
   ]);
   const { tutors, error: tutorsError } = tutorsResult;
-
-  // Get student name for layout
-  const studentName = user.user_metadata?.full_name || null;
 
   return (
     <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>

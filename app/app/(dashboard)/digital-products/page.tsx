@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { DigitalProductForm } from "@/components/digital-products/product-form";
 import { DigitalProductList } from "@/components/digital-products/product-list";
-import { listDigitalProductsForTutor } from "@/lib/actions/digital-products";
+import { listDigitalProductsForTutor } from "@/lib/actions/marketplace";
 
 export const dynamic = "force-dynamic";
 

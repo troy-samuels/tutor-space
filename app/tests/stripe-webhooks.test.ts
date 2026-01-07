@@ -103,6 +103,36 @@ test("checkout.session.completed: handles unpaid status correctly", () => {
   assert.equal(session.payment_status, "unpaid");
 });
 
+test("checkout.session.async_payment_succeeded: async payment event payload", () => {
+  const event = createMockStripeEvent({
+    type: "checkout.session.async_payment_succeeded",
+    data: createMockCheckoutSession({
+      paymentStatus: "paid",
+      metadata: { bookingId: "booking_async" },
+    }),
+  });
+
+  assert.equal(event.type, "checkout.session.async_payment_succeeded");
+  const session = event.data.object as { payment_status?: string; metadata?: Record<string, string> };
+  assert.equal(session.payment_status, "paid");
+  assert.equal(session.metadata?.bookingId, "booking_async");
+});
+
+test("checkout.session.async_payment_failed: async payment failure payload", () => {
+  const event = createMockStripeEvent({
+    type: "checkout.session.async_payment_failed",
+    data: createMockCheckoutSession({
+      paymentStatus: "unpaid",
+      metadata: { bookingId: "booking_async_failed" },
+    }),
+  });
+
+  assert.equal(event.type, "checkout.session.async_payment_failed");
+  const session = event.data.object as { payment_status?: string; metadata?: Record<string, string> };
+  assert.equal(session.payment_status, "unpaid");
+  assert.equal(session.metadata?.bookingId, "booking_async_failed");
+});
+
 // ============================================
 // TEST: customer.subscription.created
 // ============================================

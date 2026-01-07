@@ -5,7 +5,7 @@ import { Package, AlertTriangle, ArrowRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { StudentPackageCredit } from "@/lib/actions/student-bookings";
+import type { StudentPackageCredit } from "@/lib/actions/types";
 
 type PackageCardProps = {
   pkg: StudentPackageCredit;

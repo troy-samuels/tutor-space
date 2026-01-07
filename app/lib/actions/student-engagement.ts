@@ -3,53 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import type { RiskStatus, EngagementScore, AtRiskStudent, EngagementDashboard } from "@/lib/actions/types";
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-export type RiskStatus = "healthy" | "at_risk" | "critical" | "churned";
-
-export type EngagementScore = {
-  id: string;
-  student_id: string;
-  tutor_id: string;
-  score: number;
-  lesson_frequency_score: number;
-  response_rate_score: number;
-  homework_completion_score: number;
-  practice_engagement_score: number;
-  risk_status: RiskStatus;
-  risk_status_override: RiskStatus | null;
-  override_reason: string | null;
-  override_at: string | null;
-  override_by: string | null;
-  days_since_last_lesson: number | null;
-  days_since_last_message: number | null;
-  last_computed_at: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type AtRiskStudent = {
-  id: string;
-  full_name: string;
-  email: string;
-  engagement_score: number;
-  risk_status: RiskStatus;
-  days_since_last_lesson: number | null;
-  days_since_last_message: number | null;
-  last_activity_at: string | null;
-};
-
-export type EngagementDashboard = {
-  total_students: number;
-  healthy_count: number;
-  at_risk_count: number;
-  critical_count: number;
-  churned_count: number;
-  average_score: number;
-};
 
 // ============================================================================
 // HELPER: Require authenticated tutor

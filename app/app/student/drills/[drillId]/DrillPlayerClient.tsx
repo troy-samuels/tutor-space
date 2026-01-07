@@ -27,7 +27,7 @@ import type {
   ScrambleData,
   MatchData,
   GapFillData,
-} from "@/lib/actions/drills";
+} from "@/lib/actions/types";
 
 interface DrillPlayerClientProps {
   drill: DrillWithContext;

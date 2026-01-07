@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentSettingsClient } from "./StudentSettingsClient";
 import {
@@ -8,7 +7,8 @@ import {
   getStudentAccountInfo,
 } from "@/lib/actions/student-settings";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
+import { getSession } from "@/lib/auth";
 
 export const metadata = {
   title: "Settings | TutorLingua",
@@ -16,24 +16,24 @@ export const metadata = {
 };
 
 export default async function StudentSettingsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Cached auth call - deduplicates across the request
+  const { user } = await getSession();
 
   if (!user) {
     redirect("/student/login");
   }
 
-  // Fetch all settings data
-  const [preferences, emailPreferences, accountInfo, avatarUrl] = await Promise.all([
+  // Fetch all settings data in parallel
+  const [preferences, emailPreferences, accountInfo, avatarUrl, { data: subscriptionSummary }] = await Promise.all([
     getStudentPreferences(),
     getStudentEmailPreferences(),
     getStudentAccountInfo(),
     getStudentAvatarUrl(),
+    getStudentSubscriptionSummary(),
   ]);
-  const { data: subscriptionSummary } = await getStudentSubscriptionSummary();
 
   return (
-    <StudentPortalLayout studentName={accountInfo?.email} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
+    <StudentPortalLayout studentName={accountInfo?.full_name} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
       <StudentSettingsClient
         preferences={preferences}
         emailPreferences={emailPreferences}

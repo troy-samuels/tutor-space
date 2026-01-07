@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { StudentRealtimeMessagesContainer } from "@/components/messaging/StudentRealtimeMessagesContainer";
-import { MessageSquare, Search } from "lucide-react";
+import { MessageSquare, Search, Clock } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ConversationMessage } from "@/lib/actions/messaging";
-import { getStudentSubscriptionSummary } from "@/lib/actions/lesson-subscriptions";
+import {
+  listMessagesForThread,
+  listThreadsForStudentIds,
+  markMessagesReadByStudent,
+  markThreadReadByStudent,
+  getStudentMessagingContext,
+} from "@/lib/repositories/messaging";
+import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
+import { getSession } from "@/lib/auth";
 
 type PageProps = {
   searchParams: Promise<{ thread?: string }>;
@@ -14,36 +22,44 @@ type PageProps = {
 
 export default async function StudentMessagesPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  // Cached auth call - deduplicated across the request
+  const { user, supabase } = await getSession();
 
   if (!user) {
     redirect("/student/login?redirect=/student/messages");
   }
 
-  // Get all student records for this user (across all tutors)
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, full_name, tutor_id, connection_status")
-    .eq("user_id", user.id);
-
-  const studentIds = students?.map((s) => s.id) || [];
-  const studentName = students?.[0]?.full_name || user.user_metadata?.full_name || null;
-
-  const connectionStatuses = Object.fromEntries(
-    students?.map((s) => [s.id, s.connection_status]) || []
-  ) as Record<string, string | null>;
-
-  // Fetch subscription summary and avatar in parallel
-  const [{ data: subscriptionSummary }, studentAvatarUrl] = await Promise.all([
+  // Tier 1: Fetch all independent data in parallel
+  const [messagingContextResult, { data: subscriptionSummary }, studentAvatarUrl] = await Promise.all([
+    getStudentMessagingContext(supabase, user.id),
     getStudentSubscriptionSummary(),
     getStudentAvatarUrl(),
   ]);
 
-  // If no student records, show empty state
-  if (studentIds.length === 0) {
+  const { connections, studentRecords } = messagingContextResult.data ?? { connections: [], studentRecords: [] };
+
+  // Filter connections by status
+  const approvedConnections = connections.filter((c) => c.status === "approved");
+  const pendingConnections = connections.filter((c) => c.status === "pending");
+
+  // Get student IDs for approved connections (matching tutor_id)
+  // Also include legacy students with approved connection_status but no explicit connection record
+  const approvedTutorIds = new Set(approvedConnections.map((c) => c.tutor_id));
+  const approvedStudentIds = studentRecords
+    .filter((s) => approvedTutorIds.has(s.tutor_id) || s.connection_status === "approved")
+    .map((s) => s.id);
+
+  // Combine for unique student IDs (handles legacy + new connection system)
+  const studentIds = [...new Set(approvedStudentIds)];
+  const studentName = studentRecords?.[0]?.full_name || user.user_metadata?.full_name || null;
+
+  const connectionStatuses = Object.fromEntries(
+    studentRecords?.map((s) => [s.id, s.connection_status]) || []
+  ) as Record<string, string | null>;
+
+  // Case 1: No connections and no student records - show "Find Tutors"
+  if (connections.length === 0 && studentRecords.length === 0) {
     return (
       <StudentPortalLayout studentName={studentName} avatarUrl={studentAvatarUrl} subscriptionSummary={subscriptionSummary}>
         <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
@@ -64,26 +80,55 @@ export default async function StudentMessagesPage({ searchParams }: PageProps) {
     );
   }
 
-  // Get all conversation threads for this student
-  const { data: threads } = await supabase
-    .from("conversation_threads")
-    .select(
-      `
-      id,
-      tutor_id,
-      student_id,
-      last_message_preview,
-      last_message_at,
-      student_unread,
-      profiles:tutor_id (
-        full_name,
-        username,
-        avatar_url
-      )
-    `
-    )
-    .in("student_id", studentIds)
-    .order("last_message_at", { ascending: false });
+  // Case 2: Only pending connections - show "Awaiting Approval" state
+  if (studentIds.length === 0 && pendingConnections.length > 0) {
+    return (
+      <StudentPortalLayout studentName={studentName} avatarUrl={studentAvatarUrl} subscriptionSummary={subscriptionSummary}>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center px-4">
+          <Clock className="h-16 w-16 text-muted-foreground/50 mb-4" />
+          <h2 className="text-xl font-semibold text-foreground">Awaiting Tutor Approval</h2>
+          <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+            You have {pendingConnections.length} pending connection request{pendingConnections.length > 1 ? "s" : ""}.
+            You&apos;ll be able to message tutors once they approve your request.
+          </p>
+
+          {/* Show pending tutors */}
+          <div className="mt-6 space-y-3">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Pending Requests</p>
+            {pendingConnections.map((connection) => (
+              <div
+                key={connection.id}
+                className="flex items-center gap-3 px-4 py-2 rounded-lg bg-muted/50"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={connection.profiles?.avatar_url || undefined} alt={connection.profiles?.full_name || "Tutor"} />
+                  <AvatarFallback>
+                    {connection.profiles?.full_name?.charAt(0) || "T"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground">
+                  {connection.profiles?.full_name || connection.profiles?.username || "Tutor"}
+                </span>
+                <span className="ml-auto text-xs text-muted-foreground bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded">
+                  Pending
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <Link
+            href="/student/search"
+            className="mt-6 text-sm text-primary hover:underline"
+          >
+            Find more tutors
+          </Link>
+        </div>
+      </StudentPortalLayout>
+    );
+  }
+
+  // Tier 2: Fetch threads (depends on studentIds)
+  const { data: threads } = await listThreadsForStudentIds(supabase, studentIds);
 
   const threadList = threads ?? [];
   const activeThreadId =
@@ -94,24 +139,16 @@ export default async function StudentMessagesPage({ searchParams }: PageProps) {
   let messages: ConversationMessage[] = [];
 
   if (activeThreadId) {
-    const { data: messageRows } = await supabase
-      .from("conversation_messages")
-      .select("id, thread_id, sender_role, body, attachments, created_at")
-      .eq("thread_id", activeThreadId)
-      .order("created_at", { ascending: true });
+    const { data: messageRows } = await listMessagesForThread(supabase, activeThreadId);
 
     messages = (messageRows as ConversationMessage[] | null) ?? [];
 
-    await supabase
-      .from("conversation_messages")
-      .update({ read_by_student: true })
-      .eq("thread_id", activeThreadId)
-      .eq("read_by_student", false);
-
-    await supabase
-      .from("conversation_threads")
-      .update({ student_unread: false })
-      .eq("id", activeThreadId);
+    // Fire-and-forget: mark as read without blocking page render
+    // These operations don't affect the UI, so no need to await
+    Promise.all([
+      markMessagesReadByStudent(supabase, activeThreadId),
+      markThreadReadByStudent(supabase, activeThreadId),
+    ]).catch((err) => console.error("[Messages] Failed to mark as read:", err));
   }
 
   return (

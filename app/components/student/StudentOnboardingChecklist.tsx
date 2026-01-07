@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, Sparkles, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { OnboardingProgress } from "@/lib/actions/student-onboarding";
+import type { OnboardingProgress } from "@/lib/actions/types";
 
 type StudentOnboardingChecklistProps = {
   progress: OnboardingProgress | null;

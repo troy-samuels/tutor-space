@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertTriangle, MessageSquare, Calendar, ChevronRight } from "lucide-react";
 import { RiskStatusBadge } from "../engagement/RiskStatusBadge";
-import type { AtRiskStudent, RiskStatus } from "@/lib/actions/student-engagement";
+import type { AtRiskStudent, RiskStatus } from "@/lib/actions/types";
 
 type AtRiskStudentsWidgetProps = {
   students: AtRiskStudent[];

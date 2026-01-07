@@ -32,8 +32,8 @@ import {
   rescheduleBooking,
   getAvailableRescheduleTimes,
   getRescheduleHistory,
-  type RescheduleHistoryItem,
 } from "@/lib/actions/reschedule";
+import type { RescheduleHistoryItem } from "@/lib/actions/types";
 import { format, parseISO } from "date-fns";
 
 interface RescheduleModalProps {

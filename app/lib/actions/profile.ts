@@ -5,12 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { profileSchema, type ProfileFormValues } from "@/lib/validators/profile";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
-
-export type ProfileActionState = {
-  error?: string;
-  success?: string;
-  fields?: Partial<ProfileFormValues>;
-};
+import type { ProfileActionState } from "@/lib/actions/types";
 
 export async function updateProfile(
   _prevState: ProfileActionState,

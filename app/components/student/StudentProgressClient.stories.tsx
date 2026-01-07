@@ -207,6 +207,7 @@ export const GoalFocused: Story = {
         completed_at: null,
         created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        deleted_at: null,
       },
     ],
     assessments: mockAssessments.slice(0, 4),

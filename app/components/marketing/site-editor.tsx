@@ -567,10 +567,12 @@ export function SiteEditor({
 
     try {
       const result = await publishSite(siteId);
-      if (result.success) {
+      if ("success" in result && result.success) {
         setStatus("published");
         setSaveMessage("Site published!");
         setTimeout(() => setSaveMessage(null), 3000);
+      } else if ("error" in result && result.error) {
+        setSaveMessage(result.error);
       }
     } catch {
       setSaveMessage("Failed to publish");

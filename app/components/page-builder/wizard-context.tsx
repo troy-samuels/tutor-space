@@ -536,7 +536,7 @@ export function PageBuilderWizardProvider({ children, initialData }: WizardProvi
         faq: state.faq,
       },
       show_faq: state.faq.length > 0,
-      _prev_updated_at: state.lastUpdatedAt,
+      _prev_updated_at: state.lastUpdatedAt ?? undefined,
     };
   }, [state]);
 

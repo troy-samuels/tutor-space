@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Loader2, UserPlus, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { searchTutors, getMyConnections, type TutorSearchResult, type StudentConnection } from "@/lib/actions/student-connections";
+import { searchTutors, getMyConnections } from "@/lib/actions/student-connections";
+import type { TutorSearchResult, StudentConnection } from "@/lib/actions/types";
 import { ConnectionRequestModal } from "./ConnectionRequestModal";
 
 type TutorSearchProps = {

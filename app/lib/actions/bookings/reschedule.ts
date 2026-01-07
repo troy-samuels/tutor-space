@@ -6,7 +6,16 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
 import { sendBookingRescheduledEmails } from "@/lib/emails/ops-emails";
 import { getCalendarBusyWindowsWithStatus, updateCalendarEventForBooking } from "@/lib/calendar/busy-windows";
-import { MAX_RESCHEDULES, isCancelledStatus, checkAdvanceBookingWindow, checkBookingLimits } from "./helpers";
+import { checkBookingLimits } from "./helpers";
+import { MAX_RESCHEDULES, isCancelledStatus, checkAdvanceBookingWindow } from "./types";
+import { recordAudit } from "@/lib/repositories/audit";
+import {
+	getBookingForReschedule,
+	getFullTutorProfileForBooking,
+	getTutorAvailability,
+	findFutureBookingsForTutor,
+	updateBookingSchedule,
+} from "@/lib/repositories/bookings";
 import type { BookingRecord } from "./types";
 import {
 	getTraceId,
@@ -57,44 +66,15 @@ export async function rescheduleBooking(params: {
 		newStart: params.newStart,
 	});
 
-	// Fetch booking with student + service context for authorization and defaults
-	const { data: booking, error: bookingError } = await adminClient
-		.from("bookings")
-		.select(`
-			id,
-			tutor_id,
-			student_id,
-			scheduled_at,
-			duration_minutes,
-			status,
-			timezone,
-			reschedule_count,
-			payment_status,
-			payment_amount,
-			currency,
-			meeting_url,
-			meeting_provider,
-			students (
-				id,
-				user_id,
-				full_name,
-				email
-			),
-			services (
-				id,
-				name,
-				duration_minutes
-			)
-		`)
-		.eq("id", params.bookingId)
-		.single();
+	// Fetch booking with student + service context for authorization and defaults (using repository)
+	const booking = await getBookingForReschedule(adminClient, params.bookingId);
 
-	if (bookingError || !booking) {
+	if (!booking) {
 		logStep(log, "rescheduleBooking:booking_not_found", { bookingId: params.bookingId });
 		return { error: "Booking not found." };
 	}
 	logStep(log, "rescheduleBooking:booking_fetched", { bookingId: params.bookingId, status: booking.status });
-	const bookingRecord: Record<string, unknown> = booking;
+	const bookingRecord = booking as unknown as Record<string, unknown>;
 
 	const studentUserId = Array.isArray(bookingRecord.students)
 		? (bookingRecord.students[0] as { user_id?: string })?.user_id
@@ -123,34 +103,25 @@ export async function rescheduleBooking(params: {
 		return { error: `Maximum reschedules (${MAX_RESCHEDULES}) reached.` };
 	}
 
-	const { data: tutorProfile } = await adminClient
-		.from("profiles")
-		.select("buffer_time_minutes, timezone, full_name, email, advance_booking_days_min, advance_booking_days_max, max_lessons_per_day, max_lessons_per_week")
-		.eq("id", booking.tutor_id)
-		.single();
+	// Parallelize all 4 independent fetches for performance using repository functions
+	const [
+		tutorProfile,
+		availability,
+		existingBookings,
+		busyResult
+	] = await Promise.all([
+		getFullTutorProfileForBooking(adminClient, booking.tutor_id),
+		getTutorAvailability(adminClient, booking.tutor_id),
+		findFutureBookingsForTutor(adminClient, booking.tutor_id, params.bookingId),
+		getCalendarBusyWindowsWithStatus({
+			tutorId: booking.tutor_id,
+			start: new Date(params.newStart),
+			days: 60,
+		}),
+	]);
 
 	const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
 	const tutorTimezone = tutorProfile?.timezone || booking.timezone || params.timezone || "UTC";
-
-	const { data: availability } = await adminClient
-		.from("availability")
-		.select("day_of_week, start_time, end_time, is_available")
-		.eq("tutor_id", booking.tutor_id)
-		.eq("is_available", true);
-
-	const { data: existingBookings } = await adminClient
-		.from("bookings")
-		.select("id, scheduled_at, duration_minutes, status")
-		.eq("tutor_id", booking.tutor_id)
-		.in("status", ["pending", "confirmed"])
-		.neq("id", params.bookingId)
-		.gte("scheduled_at", new Date().toISOString());
-
-	const busyResult = await getCalendarBusyWindowsWithStatus({
-		tutorId: booking.tutor_id,
-		start: new Date(params.newStart),
-		days: 60,
-	});
 
 	if (busyResult.unverifiedProviders.length) {
 		logStep(log, "rescheduleBooking:calendar_unverified", { providers: busyResult.unverifiedProviders });
@@ -234,27 +205,42 @@ export async function rescheduleBooking(params: {
 	}
 	logStep(log, "rescheduleBooking:validation_passed", { newStart: params.newStart, durationMinutes });
 
-	const { data: updated, error: updateError } = await adminClient
-		.from("bookings")
-		.update({
-			scheduled_at: params.newStart,
-			duration_minutes: durationMinutes,
-			timezone: tutorTimezone,
-			reschedule_count: (booking.reschedule_count ?? 0) + 1,
-			reschedule_requested_at: new Date().toISOString(),
-			reschedule_requested_by: requestedBy,
-			reschedule_reason: params.reason ?? null,
-			updated_at: new Date().toISOString(),
-		})
-		.eq("id", params.bookingId)
-		.select("*, students(full_name, email), services(name)")
-		.single<BookingRecord>();
-
-	if (updateError || !updated) {
+	// Update booking using repository function
+	let updated: BookingRecord;
+	try {
+		const rawUpdated = await updateBookingSchedule(
+			adminClient,
+			params.bookingId,
+			params.newStart,
+			durationMinutes,
+			tutorTimezone,
+			{
+				rescheduleCount: (booking.reschedule_count ?? 0) + 1,
+				requestedBy,
+				reason: params.reason,
+			}
+		);
+		updated = rawUpdated as unknown as BookingRecord;
+	} catch (updateError) {
 		logStepError(log, "rescheduleBooking:update_failed", updateError, { bookingId: params.bookingId });
 		return { error: "Could not reschedule this booking. Please try again." };
 	}
 	logStep(log, "rescheduleBooking:booking_updated", { bookingId: params.bookingId, newStart: params.newStart });
+
+	// Record audit log for booking reschedule
+	await recordAudit(adminClient, {
+		actorId: user?.id ?? booking.tutor_id,
+		targetId: params.bookingId,
+		entityType: "booking",
+		actionType: "update",
+		metadata: {
+			before: { scheduledAt: previousSchedule.scheduledAt },
+			after: { scheduledAt: params.newStart },
+			requestedBy: params.requestedBy ?? (isTutor ? "tutor" : "student"),
+			rescheduleCount: (booking.reschedule_count ?? 0) + 1,
+			reason: params.reason,
+		},
+	});
 
 	try {
 		const updatedStudent = Array.isArray(updated.students) ? updated.students[0] : updated.students;

@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   toggleDigitalProductPublish,
   deleteDigitalProduct,
-} from "@/lib/actions/digital-products";
+} from "@/lib/actions/marketplace";
 import type { DigitalProductRecord } from "@/lib/types/digital-product";
 import { DigitalProductCard } from "./digital-product-card";
 

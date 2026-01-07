@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -30,12 +21,11 @@ import {
   Settings,
 } from "lucide-react";
 import {
-  type StudentPreferences,
-  type StudentEmailPreferences,
   updateStudentPreferences,
   updateStudentEmailPreferences,
   changeStudentPassword,
 } from "@/lib/actions/student-settings";
+import type { StudentPreferences, StudentEmailPreferences } from "@/lib/actions/types";
 import {
   COMMON_TIMEZONES,
   SUPPORTED_LANGUAGES,
@@ -47,6 +37,7 @@ interface StudentSettingsClientProps {
   emailPreferences: StudentEmailPreferences | null;
   accountInfo: {
     email: string;
+    full_name: string | null;
     created_at: string;
     connected_tutors: number;
   } | null;
@@ -201,69 +192,70 @@ export function StudentSettingsClient({
 
         {/* Account Tab */}
         <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>
-                Your account details and connected tutors
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
+            <SectionTitle
+              icon={<User className="h-4 w-4 text-primary" />}
+              title="Account Information"
+              helper="Your account details and connected tutors"
+            />
+
+            <div className="mt-6 space-y-6">
               {/* Avatar Section */}
               <StudentAvatarUpload
                 currentAvatarUrl={avatarUrl}
-                studentName={accountInfo?.email}
+                studentName={accountInfo?.full_name}
               />
 
               {/* Account Info Fields */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Email Address</p>
-                  <p className="text-sm font-medium">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-foreground">Email Address</span>
+                  <span className="text-sm text-muted-foreground">
                     {accountInfo?.email || "Not available"}
-                  </p>
+                  </span>
                 </div>
 
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="text-sm font-medium">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-foreground">Member Since</span>
+                  <span className="text-sm text-muted-foreground">
                     {accountInfo?.created_at ? formatDate(accountInfo.created_at) : "Not available"}
-                  </p>
+                  </span>
                 </div>
 
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Connected Tutors</p>
-                  <p className="text-sm font-medium">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-foreground">Connected Tutors</span>
+                  <span className="text-sm text-muted-foreground">
                     {accountInfo?.connected_tutors || 0} tutor(s)
-                  </p>
+                  </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </TabsContent>
 
         {/* Preferences Tab */}
         <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>
-                Customize your experience
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
+            <SectionTitle
+              icon={<Settings className="h-4 w-4 text-primary" />}
+              title="Preferences"
+              helper="Customize your experience"
+            />
+
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
               {/* Timezone */}
-              <div className="space-y-2">
-                <Label htmlFor="timezone" className="text-sm font-medium">
-                  Timezone
-                </Label>
+              <Field
+                label="Timezone"
+                htmlFor="timezone"
+                helper="Used for displaying lesson times in your local time"
+              >
                 <Select
                   value={prefsData.timezone}
                   onValueChange={(value) =>
                     setPrefsData((prev) => ({ ...prev, timezone: value }))
                   }
                 >
-                  <SelectTrigger id="timezone">
+                  <SelectTrigger id="timezone" className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                   <SelectContent>
@@ -274,23 +266,17 @@ export function StudentSettingsClient({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  Used for displaying lesson times in your local time
-                </p>
-              </div>
+              </Field>
 
               {/* Preferred Language */}
-              <div className="space-y-2">
-                <Label htmlFor="language" className="text-sm font-medium">
-                  Preferred Language
-                </Label>
+              <Field label="Preferred Language" htmlFor="language">
                 <Select
                   value={prefsData.preferred_language}
                   onValueChange={(value) =>
                     setPrefsData((prev) => ({ ...prev, preferred_language: value }))
                   }
                 >
-                  <SelectTrigger id="language">
+                  <SelectTrigger id="language" className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm">
                     <SelectValue placeholder="Select language" />
                   </SelectTrigger>
                   <SelectContent>
@@ -301,20 +287,17 @@ export function StudentSettingsClient({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
 
               {/* Theme */}
-              <div className="space-y-2">
-                <Label htmlFor="theme" className="text-sm font-medium">
-                  Theme
-                </Label>
+              <Field label="Theme" htmlFor="theme">
                 <Select
                   value={prefsData.theme}
                   onValueChange={(value) =>
                     setPrefsData((prev) => ({ ...prev, theme: value as "light" | "dark" | "system" }))
                   }
                 >
-                  <SelectTrigger id="theme">
+                  <SelectTrigger id="theme" className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm">
                     <SelectValue placeholder="Select theme" />
                   </SelectTrigger>
                   <SelectContent>
@@ -323,164 +306,159 @@ export function StudentSettingsClient({
                     <SelectItem value="dark">Dark</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
+            </div>
 
-              {/* Notification Sound Toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="notification-sound" className="text-sm font-medium">
-                    Notification Sound
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Play a sound when you receive a new message
-                  </p>
-                </div>
+            {/* Notification Sound Toggle - Card style */}
+            <div className="mt-6">
+              <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground">
                 <Switch
                   id="notification-sound"
                   checked={prefsData.notification_sound}
                   onCheckedChange={(checked) =>
                     setPrefsData((prev) => ({ ...prev, notification_sound: checked }))
                   }
+                  className="mt-0.5"
                 />
-              </div>
+                <span>
+                  <span className="font-semibold">Notification Sound</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Play a sound when you receive a new message
+                  </span>
+                </span>
+              </label>
+            </div>
 
-              {/* Save Button */}
-              <div className="pt-4 border-t border-border">
-                <Button
-                  onClick={handleSavePreferences}
-                  disabled={prefsSaving}
-                  className="w-full"
-                >
-                  {prefsSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : prefsSuccess ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Saved!
-                    </>
-                  ) : (
-                    "Save Preferences"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Save Button */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <button
+                type="button"
+                onClick={handleSavePreferences}
+                disabled={prefsSaving}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {prefsSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : prefsSuccess ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Saved!
+                  </>
+                ) : (
+                  "Save Preferences"
+                )}
+              </button>
+            </div>
+          </section>
         </TabsContent>
 
         {/* Notifications Tab */}
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Notifications</CardTitle>
-              <CardDescription>
-                Choose what emails you want to receive
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="divide-y divide-border">
-                {/* Booking Reminders */}
-                <div className="flex items-center justify-between py-4 first:pt-0">
-                  <div>
-                    <Label htmlFor="booking-reminders" className="text-sm font-medium">
-                      Booking Reminders
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive reminders before your scheduled lessons
-                    </p>
-                  </div>
-                  <Switch
-                    id="booking-reminders"
-                    checked={emailData.email_booking_reminders}
-                    onCheckedChange={(checked) =>
-                      setEmailData((prev) => ({ ...prev, email_booking_reminders: checked }))
-                    }
-                  />
-                </div>
+          <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
+            <SectionTitle
+              icon={<Bell className="h-4 w-4 text-primary" />}
+              title="Email Notifications"
+              helper="Choose what emails you want to receive"
+            />
 
-                {/* Lesson Updates */}
-                <div className="flex items-center justify-between py-4">
-                  <div>
-                    <Label htmlFor="lesson-updates" className="text-sm font-medium">
-                      Lesson Updates
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified about lesson confirmations, cancellations, and changes
-                    </p>
-                  </div>
-                  <Switch
-                    id="lesson-updates"
-                    checked={emailData.email_lesson_updates}
-                    onCheckedChange={(checked) =>
-                      setEmailData((prev) => ({ ...prev, email_lesson_updates: checked }))
-                    }
-                  />
-                </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {/* Booking Reminders */}
+              <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground">
+                <Switch
+                  id="booking-reminders"
+                  checked={emailData.email_booking_reminders}
+                  onCheckedChange={(checked) =>
+                    setEmailData((prev) => ({ ...prev, email_booking_reminders: checked }))
+                  }
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold">Booking Reminders</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Receive reminders before your scheduled lessons
+                  </span>
+                </span>
+              </label>
 
-                {/* Marketing */}
-                <div className="flex items-center justify-between py-4 last:pb-0">
-                  <div>
-                    <Label htmlFor="marketing" className="text-sm font-medium">
-                      Marketing & Tips
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive tips, promotions, and updates from your tutors
-                    </p>
-                  </div>
-                  <Switch
-                    id="marketing"
-                    checked={emailData.email_marketing}
-                    onCheckedChange={(checked) =>
-                      setEmailData((prev) => ({ ...prev, email_marketing: checked }))
-                    }
-                  />
-                </div>
-              </div>
+              {/* Lesson Updates */}
+              <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground">
+                <Switch
+                  id="lesson-updates"
+                  checked={emailData.email_lesson_updates}
+                  onCheckedChange={(checked) =>
+                    setEmailData((prev) => ({ ...prev, email_lesson_updates: checked }))
+                  }
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold">Lesson Updates</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Get notified about lesson confirmations, cancellations, and changes
+                  </span>
+                </span>
+              </label>
 
-              {/* Save Button */}
-              <div className="pt-4 border-t border-border">
-                <Button
-                  onClick={handleSaveEmailPreferences}
-                  disabled={emailSaving}
-                  className="w-full"
-                >
-                  {emailSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : emailSuccess ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Saved!
-                    </>
-                  ) : (
-                    "Save Notification Settings"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Marketing */}
+              <label className="flex items-start gap-3 rounded-2xl shadow-sm bg-white/60 px-4 py-4 text-sm text-foreground sm:col-span-2">
+                <Switch
+                  id="marketing"
+                  checked={emailData.email_marketing}
+                  onCheckedChange={(checked) =>
+                    setEmailData((prev) => ({ ...prev, email_marketing: checked }))
+                  }
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-semibold">Marketing & Tips</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Receive tips, promotions, and updates from your tutors
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <button
+                type="button"
+                onClick={handleSaveEmailPreferences}
+                disabled={emailSaving}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {emailSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : emailSuccess ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Saved!
+                  </>
+                ) : (
+                  "Save Notification Settings"
+                )}
+              </button>
+            </div>
+          </section>
         </TabsContent>
 
         {/* Security Tab */}
         <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <section className="rounded-3xl bg-card p-6 shadow-md backdrop-blur">
+            <SectionTitle
+              icon={<Lock className="h-4 w-4 text-primary" />}
+              title="Change Password"
+              helper="Update your password to keep your account secure"
+            />
+
+            <div className="mt-6 space-y-5">
               {/* Current Password */}
-              <div className="space-y-2">
-                <Label htmlFor="current-password" className="text-sm font-medium">
-                  Current Password
-                </Label>
-                <Input
+              <Field label="Current Password" htmlFor="current-password">
+                <input
                   id="current-password"
                   type="password"
                   value={passwordData.currentPassword}
@@ -488,15 +466,17 @@ export function StudentSettingsClient({
                     setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
                   }
                   placeholder="Enter your current password"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
-              </div>
+              </Field>
 
               {/* New Password */}
-              <div className="space-y-2">
-                <Label htmlFor="new-password" className="text-sm font-medium">
-                  New Password
-                </Label>
-                <Input
+              <Field
+                label="New Password"
+                htmlFor="new-password"
+                helper="Must be at least 8 characters"
+              >
+                <input
                   id="new-password"
                   type="password"
                   value={passwordData.newPassword}
@@ -504,18 +484,13 @@ export function StudentSettingsClient({
                     setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
                   }
                   placeholder="Enter a new password"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
-                <p className="text-sm text-muted-foreground">
-                  Must be at least 8 characters
-                </p>
-              </div>
+              </Field>
 
               {/* Confirm Password */}
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password" className="text-sm font-medium">
-                  Confirm New Password
-                </Label>
-                <Input
+              <Field label="Confirm New Password" htmlFor="confirm-password">
+                <input
                   id="confirm-password"
                   type="password"
                   value={passwordData.confirmPassword}
@@ -523,40 +498,86 @@ export function StudentSettingsClient({
                     setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
                   }
                   placeholder="Confirm your new password"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
-              </div>
+              </Field>
+            </div>
 
-              {/* Change Password Button */}
-              <div className="pt-4 border-t border-border">
-                <Button
-                  onClick={handleChangePassword}
-                  disabled={
-                    passwordSaving ||
-                    !passwordData.currentPassword ||
-                    !passwordData.newPassword ||
-                    !passwordData.confirmPassword
-                  }
-                  className="w-full"
-                >
-                  {passwordSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Changing...
-                    </>
-                  ) : passwordSuccess ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Password Changed!
-                    </>
-                  ) : (
-                    "Change Password"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Change Password Button */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={
+                  passwordSaving ||
+                  !passwordData.currentPassword ||
+                  !passwordData.newPassword ||
+                  !passwordData.confirmPassword
+                }
+                className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {passwordSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Changing...
+                  </>
+                ) : passwordSuccess ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Password Changed!
+                  </>
+                ) : (
+                  "Change Password"
+                )}
+              </button>
+            </div>
+          </section>
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function SectionTitle({
+  icon,
+  title,
+  helper,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  helper: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+            {icon}
+          </span>
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">{helper}</p>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  helper,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  helper?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-2 text-sm text-foreground" htmlFor={htmlFor}>
+      <span className="font-medium text-foreground">{label}</span>
+      {children}
+      {helper ? <span className="text-xs text-muted-foreground">{helper}</span> : null}
+    </label>
   );
 }

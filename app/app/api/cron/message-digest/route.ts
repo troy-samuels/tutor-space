@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { sendUnreadMessagesDigestEmail } from "@/lib/emails/ops-emails";
 import { recordSystemMetric, startDuration } from "@/lib/monitoring";
+import {
+  listUnreadThreadsForStudentDigest,
+  listUnreadThreadsForTutorDigest,
+} from "@/lib/repositories/messaging";
 
 type ThreadRow = {
   id: string;
@@ -41,36 +45,8 @@ export async function GET(request: Request) {
 
   try {
     const [tutorRes, studentRes] = await Promise.all([
-      admin
-        .from("conversation_threads")
-        .select(
-          `
-          id,
-          tutor_id,
-          student_id,
-          last_message_preview,
-          last_message_at,
-          tutor_unread,
-          students(full_name, email),
-          profiles!conversation_threads_tutor_id_fkey(full_name, email)
-        `
-        )
-        .eq("tutor_unread", true),
-      admin
-        .from("conversation_threads")
-        .select(
-          `
-          id,
-          tutor_id,
-          student_id,
-          last_message_preview,
-          last_message_at,
-          student_unread,
-          students(id, full_name, email),
-          tutor:profiles!conversation_threads_tutor_id_fkey(full_name, email)
-        `
-        )
-        .eq("student_unread", true),
+      listUnreadThreadsForTutorDigest(admin),
+      listUnreadThreadsForStudentDigest(admin),
     ]);
 
     const tutorMap = new Map<

@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { slugifyKebab } from "@/lib/utils/slug";
+import { softDeleteProduct } from "@/lib/repositories/marketplace";
+import type { ProductFormState } from "@/lib/actions/types";
 
 const BUCKET = "digital-products";
 
@@ -24,11 +26,6 @@ const productSchema = z.object({
   language: z.string().optional(),
   level: z.enum(["beginner", "intermediate", "advanced", "all"]).optional(),
 });
-
-export type ProductFormState = {
-  error?: string;
-  success?: string;
-};
 
 async function uploadDigitalFile(userId: string, file: File) {
   const supabase = await createClient();
@@ -206,6 +203,13 @@ export async function toggleDigitalProductPublish(productId: string, publish: bo
   return { success: "Product updated" };
 }
 
+/**
+ * Soft delete a digital product.
+ *
+ * Sets deleted_at timestamp and unpublishes the product.
+ * Preserves purchase history integrity - existing purchases remain valid
+ * for download but the product is hidden from all listings.
+ */
 export async function deleteDigitalProduct(productId: string) {
   const supabase = await createClient();
   const {
@@ -213,17 +217,14 @@ export async function deleteDigitalProduct(productId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authorized" };
 
-  const { error } = await supabase
-    .from("digital_products")
-    .delete()
-    .eq("id", productId)
-    .eq("tutor_id", user.id);
+  // Use soft delete to preserve purchase history
+  const result = await softDeleteProduct(supabase, productId, user.id);
 
-  if (error) {
-    return { error: "Failed to delete product" };
+  if (!result.success) {
+    return { error: result.error || "Failed to delete product" };
   }
 
   revalidatePath("/digital-products");
   revalidatePath("/services");
-  return { success: "Deleted" };
+  return { success: "Product removed" };
 }

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { verifyAdminSession } from "@/lib/admin/session";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
+import { countMessagesBySenderId } from "@/lib/repositories/messaging";
 
 export async function GET(
   request: NextRequest,
@@ -77,10 +78,10 @@ export async function GET(
     .order("created_at", { ascending: false });
 
   // Get message count
-  const { count: messageCount } = await supabase
-    .from("conversation_messages")
-    .select("*", { count: "exact", head: true })
-    .eq("sender_id", student.user_id || "none");
+  const { count: messageCount } = await countMessagesBySenderId(
+    supabase,
+    student.user_id || "none"
+  );
 
   // Get tutor connections for this student
   const { data: connections, error: connectionsError } = await supabase

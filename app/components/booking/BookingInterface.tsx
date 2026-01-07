@@ -5,7 +5,7 @@ import { format, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { AnimatePresence, motion } from "framer-motion";
 import type { BookableSlot } from "@/lib/utils/slots";
-import type { StudentLessonHistoryData } from "@/lib/actions/student-lessons";
+import type { StudentLessonHistoryData } from "@/lib/actions/types";
 import StudentInfoForm from "./StudentInfoForm";
 import { StudentLessonHistory } from "./StudentLessonHistory";
 import Image from "next/image";

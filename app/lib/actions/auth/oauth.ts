@@ -15,12 +15,8 @@ import {
 	logStepError,
 } from "@/lib/logger";
 import { getAppUrl } from "@/lib/auth/redirects";
-import {
-	resolveStudentRedirect,
-	resolveTutorRedirect,
-	getClientIp,
-	getUserAgent,
-} from "./helpers";
+import { getClientIp, getUserAgent } from "./helpers";
+import { resolveStudentRedirect, resolveTutorRedirect } from "./utils";
 import type { AuthActionState } from "./types";
 
 // ============================================================================

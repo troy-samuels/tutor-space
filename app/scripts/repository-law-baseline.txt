@@ -1,0 +1,62 @@
+# Repository Law Baseline
+# ========================
+# Files listed here have legacy Repository Law violations that are grandfathered.
+# These violations should be fixed when the file is next modified.
+#
+# Generated: 2026-01-05 (verified)
+# Total legacy files: 46
+#
+# Note: Modular directories (bookings/, messaging/, tutor-sites/, students/,
+# auth/, subscriptions/, progress/, marketplace/) are CLEAN and use repositories.
+#
+# Note: Some files contain Supabase Storage operations (not database queries)
+# which are allowed but the script's pattern matching catches them.
+# Storage files: progress/uploads.ts, messaging/uploads.ts, marketplace/delivery.ts,
+#                profile.ts, profile-wizard.ts, student-avatar.ts
+#
+lib/actions/ai-assistant.ts
+lib/actions/analytics-demand.ts
+lib/actions/availability.ts
+lib/actions/blocked-times.ts
+lib/actions/booking-duration.ts
+lib/actions/calendar-events.ts
+lib/actions/calendar-settings.ts
+lib/actions/calendar-sidebar.ts
+lib/actions/calendar.ts
+lib/actions/copilot.ts
+lib/actions/digital-product-checkout.ts
+lib/actions/digital-products.ts
+lib/actions/drills.ts
+lib/actions/email-campaigns.ts
+lib/actions/email-preferences.ts
+lib/actions/engagement.ts
+lib/actions/invite-links.ts
+lib/actions/launch-sprint.ts
+lib/actions/links.ts
+lib/actions/local-trial.ts
+lib/actions/marketplace/delivery.ts
+lib/actions/messaging/uploads.ts
+lib/actions/notifications.ts
+lib/actions/onboarding.ts
+lib/actions/packages.ts
+lib/actions/profile-wizard.ts
+lib/actions/profile.ts
+lib/actions/progress/uploads.ts
+lib/actions/recording-review.ts
+lib/actions/recurring-reservations.ts
+lib/actions/reschedule.ts
+lib/actions/reviews.ts
+lib/actions/services.ts
+lib/actions/session-packages.ts
+lib/actions/stripe-payments.ts
+lib/actions/stripe.ts
+lib/actions/student-auth.ts
+lib/actions/student-avatar.ts
+lib/actions/student-billing.ts
+lib/actions/student-bookings.ts
+lib/actions/student-connections.ts
+lib/actions/student-engagement.ts
+lib/actions/student-lessons.ts
+lib/actions/student-onboarding.ts
+lib/actions/student-settings.ts
+lib/actions/student-timeline.ts

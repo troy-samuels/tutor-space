@@ -2,39 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-
-export interface AIConversation {
-  id: string;
-  user_id: string;
-  user_role: "tutor" | "student";
-  title: string | null;
-  context_type: "general" | "lesson_prep" | "student_feedback" | "content_creation" | "scheduling" | null;
-  is_active: boolean;
-  message_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AIMessage {
-  id: string;
-  conversation_id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  metadata: Record<string, unknown>;
-  tokens_used: number | null;
-  created_at: string;
-}
-
-export interface AIUsage {
-  id: string;
-  user_id: string;
-  month: string;
-  total_tokens: number;
-  total_requests: number;
-  total_conversations: number;
-  created_at: string;
-  updated_at: string;
-}
+import type { AIConversation, AIMessage, AIUsage } from "@/lib/actions/types";
 
 // Get all conversations for the current user
 export async function getConversations(): Promise<AIConversation[]> {

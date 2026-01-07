@@ -3,74 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTutorStudentProgress, getTutorStudentPracticeData } from "@/lib/actions/progress";
 import { getStudentNextBooking } from "@/lib/actions/bookings";
-import { getOrCreateThreadByStudentId, type ConversationMessage } from "@/lib/actions/messaging";
+import { getOrCreateThreadByStudentId } from "@/lib/actions/messaging";
+import { listMessagesForThread, markMessagesReadByTutor, markThreadReadByTutor } from "@/lib/repositories/messaging";
 import { getStudentStripePayments } from "@/lib/actions/stripe-payments";
-
-type StudentBookingRecord = {
-  id: string;
-  scheduled_at: string | null;
-  duration_minutes: number | null;
-  status: string;
-  payment_status: string | null;
-  payment_amount: number | null;
-  currency: string | null;
-  service: {
-    name: string | null;
-  } | null;
-};
-
-type StudentLessonNoteRecord = {
-  id: string;
-  created_at: string | null;
-  notes: string | null;
-  homework: string | null;
-  student_performance: string | null;
-  areas_to_focus: string[] | null;
-  topics_covered: string[] | null;
-};
-
-export type StudentDetailData = {
-  tutorId: string;
-  student: {
-    id: string;
-    tutor_id: string;
-    full_name: string | null;
-    email: string;
-    phone: string | null;
-    proficiency_level: string | null;
-    learning_goals: string | null;
-    native_language: string | null;
-    notes: string | null;
-    status: string | null;
-    labels: string[] | null;
-    created_at: string | null;
-    updated_at: string | null;
-  };
-  bookings: StudentBookingRecord[];
-  lessonNotes: StudentLessonNoteRecord[];
-  stats: {
-    total_lessons: number;
-    lessons_completed: number;
-    lessons_cancelled: number;
-  };
-  homework: Array<{
-    id: string;
-    created_at: string | null;
-    title?: string;
-    homework?: string | null;
-    status?: string | null;
-  }>;
-  practiceScenarios: Array<{
-    id: string;
-    title?: string;
-    language?: string;
-    level?: string;
-  }>;
-  nextBooking: Awaited<ReturnType<typeof getStudentNextBooking>>["data"];
-  threadId: string | null;
-  conversationMessages: ConversationMessage[];
-  stripePayments: Awaited<ReturnType<typeof getStudentStripePayments>>["data"];
-};
+import type { StudentDetailData, ConversationMessage, StudentBookingRecord, StudentLessonNoteRecord } from "@/lib/data/types";
 
 export async function getStudentDetailData(studentId: string): Promise<StudentDetailData | null> {
   const supabase = await createClient();
@@ -124,23 +60,11 @@ export async function getStudentDetailData(studentId: string): Promise<StudentDe
 
   let conversationMessages: ConversationMessage[] = [];
   if (threadResult.threadId) {
-    const { data: messageRows } = await supabase
-      .from("conversation_messages")
-      .select("id, thread_id, sender_role, body, created_at")
-      .eq("thread_id", threadResult.threadId)
-      .order("created_at", { ascending: true });
+    const { data: messageRows } = await listMessagesForThread(supabase, threadResult.threadId);
     conversationMessages = (messageRows as ConversationMessage[] | null) ?? [];
 
-    await supabase
-      .from("conversation_messages")
-      .update({ read_by_tutor: true })
-      .eq("thread_id", threadResult.threadId)
-      .eq("read_by_tutor", false);
-
-    await supabase
-      .from("conversation_threads")
-      .update({ tutor_unread: false })
-      .eq("id", threadResult.threadId);
+    await markMessagesReadByTutor(supabase, threadResult.threadId);
+    await markThreadReadByTutor(supabase, threadResult.threadId);
   }
 
   const bookingRecords: StudentBookingRecord[] = (bookings as StudentBookingRecord[] | null) ?? [];

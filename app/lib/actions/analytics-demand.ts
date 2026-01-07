@@ -1,13 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-
-export type DemandSlot = {
-  dayOfWeek: number;
-  hourOfDay: number;
-  bookingCount: number;
-  demandLevel: "none" | "low" | "medium" | "high" | "very_high";
-};
+import type { DemandSlot, PeakTimeRecommendation } from "@/lib/actions/types";
 
 export async function getDemandHeatmap(
   daysBack: number = 90
@@ -47,13 +41,6 @@ export async function getDemandHeatmap(
     })),
   };
 }
-
-export type PeakTimeRecommendation = {
-  dayOfWeek: number;
-  hourOfDay: number;
-  demandLevel: string;
-  recommendation: string;
-};
 
 export async function getPeakTimeRecommendations(): Promise<{
   recommendations: PeakTimeRecommendation[];

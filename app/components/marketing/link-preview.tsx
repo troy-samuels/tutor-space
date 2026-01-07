@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Instagram, Music4, Facebook, Twitter, MessageCircle, Mail } from "lucide-react";
-import type { LinkRecord } from "@/lib/actions/links";
+import type { LinkRecord } from "@/lib/actions/types";
 
 type LinkPreviewProps = {
   profile: {

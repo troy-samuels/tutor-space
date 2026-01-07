@@ -93,7 +93,7 @@ export async function resetPassword(
 		if (error) {
 			logStepError(log, "resetPassword:supabase_error", error, { email });
 
-			// Audit: Record failed attempt
+			// Audit: Record failed attempt (internal tracking only)
 			if (adminClient) {
 				await recordAudit(adminClient, {
 					actorId: email,
@@ -109,7 +109,9 @@ export async function resetPassword(
 				});
 			}
 
-			return { error: error.message };
+			// Return generic success to prevent email enumeration
+			logStep(log, "resetPassword:completed", { email });
+			return { success: "If an account exists with this email, a reset link has been sent." };
 		}
 
 		// Audit: Record successful password reset request
@@ -127,8 +129,8 @@ export async function resetPassword(
 			});
 		}
 
-		logStep(log, "resetPassword:success", { email });
-		return { success: "Password reset email sent. Please check your inbox." };
+		logStep(log, "resetPassword:completed", { email });
+		return { success: "If an account exists with this email, a reset link has been sent." };
 	} catch (error) {
 		logStepError(log, "resetPassword:unexpected_error", error, { email });
 		return { error: "An unexpected error occurred. Please try again." };
@@ -157,24 +159,9 @@ export async function updatePassword(
 	formData: FormData
 ): Promise<AuthActionState> {
 	const traceId = await getTraceId();
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	const log = createRequestLogger(traceId, user?.id ?? "unknown");
 	const clientIp = await getClientIp();
-	const userAgent = await getUserAgent();
 
-	logStep(log, "updatePassword:start", { userId: user?.id, ip: clientIp });
-
-	// Must be authenticated
-	if (!user) {
-		logStep(log, "updatePassword:not_authenticated", {});
-		return { error: "You must be signed in to update your password." };
-	}
-
-	// Rate limiting: 5 requests per 15 minutes
+	// RATE LIMIT FIRST - stop bots before touching database
 	const headersList = await headers();
 	const rateLimitResult = await rateLimitServerAction(headersList, {
 		limit: 5,
@@ -183,10 +170,27 @@ export async function updatePassword(
 	});
 
 	if (!rateLimitResult.success) {
-		logStep(log, "updatePassword:rate_limited", { userId: user.id, ip: clientIp });
+		const log = createRequestLogger(traceId, "unknown");
+		logStep(log, "updatePassword:rate_limited", { ip: clientIp });
 		return {
 			error: rateLimitResult.error || "Too many password change attempts. Please try again later.",
 		};
+	}
+
+	// NOW safe to call auth service (after rate limit passes)
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	const userAgent = await getUserAgent();
+	const log = createRequestLogger(traceId, user?.id ?? "unknown");
+
+	logStep(log, "updatePassword:start", { userId: user?.id, ip: clientIp });
+
+	// Must be authenticated
+	if (!user) {
+		logStep(log, "updatePassword:not_authenticated", {});
+		return { error: "You must be signed in to update your password." };
 	}
 
 	const password = (formData.get("password") as string) ?? "";

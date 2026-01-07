@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Instagram, Mail, Music4, Facebook, Twitter } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { LinkRecord } from "@/lib/actions/links";
+import type { LinkRecord } from "@/lib/actions/types";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 import { BioLinkList } from "@/components/bio/BioLinkList";
 import { generateProfilePageSchema, generateLinkListSchema } from "@/lib/utils/structured-data";

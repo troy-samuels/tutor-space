@@ -10,7 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DrillType } from "@/lib/actions/drills";
+import type { DrillType } from "@/lib/actions/types";
 
 interface DrillMiniCardProps {
   drill: {

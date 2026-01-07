@@ -7,12 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import {
-  toggleOnboardingItem,
-  completeStudentOnboarding,
-  type OnboardingProgress,
-  type OnboardingTemplateItem,
-} from "@/lib/actions/student-onboarding";
+import { toggleOnboardingItem, completeStudentOnboarding } from "@/lib/actions/student-onboarding";
+import type { OnboardingProgress, OnboardingTemplateItem } from "@/lib/actions/types";
 
 type OnboardingChecklistProps = {
   studentId: string;

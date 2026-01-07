@@ -13,7 +13,7 @@ import {
   updateService,
   deleteService,
 } from "@/lib/actions/services";
-import { saveServiceSubscriptionTiers } from "@/lib/actions/lesson-subscriptions";
+import { saveServiceSubscriptionTiers } from "@/lib/actions/subscriptions";
 import type { TierPricing } from "./SubscriptionTierInput";
 import type { SessionPackageRecord } from "@/lib/types/session-package";
 import type { SessionPackageInput } from "@/lib/validators/session-package";

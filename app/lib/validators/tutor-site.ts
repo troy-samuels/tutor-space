@@ -2,21 +2,31 @@ import { z } from "zod";
 
 // Core optional string with max length helper
 const optionalString = (max: number) => z.string().trim().max(max).optional().or(z.literal("").optional());
-const optionalUrl = () =>
-  z
-    .string()
-    .trim()
-    .refine((value) => {
-      if (value === "") return true;
-      if (value.startsWith("/")) return true;
-      try {
-        new URL(value);
-        return true;
-      } catch {
-        return false;
-      }
-    }, "Invalid URL")
-    .optional();
+
+export const safeUrlSchema = z
+  .string()
+  .trim()
+  .refine((value) => {
+    // Allow relative paths
+    if (value.startsWith("/")) return true;
+
+    // Explicitly block dangerous protocols (defense-in-depth)
+    const lowerValue = value.toLowerCase().trim();
+    if (lowerValue.startsWith("javascript:")) return false;
+    if (lowerValue.startsWith("data:")) return false;
+    if (lowerValue.startsWith("vbscript:")) return false;
+
+    // Validate allowed protocols via whitelist
+    try {
+      const parsed = new URL(value);
+      return ["https:", "http:", "mailto:", "tel:"].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  }, "Invalid or unsafe URL. Only https, http, mailto, tel, and relative paths are allowed.");
+
+const optionalSafeUrl = () => safeUrlSchema.or(z.literal("")).optional();
+const nullableSafeUrl = () => safeUrlSchema.or(z.literal("")).nullable().optional();
 
 // Hex color like #ffffff
 const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
@@ -78,8 +88,8 @@ export const tutorSiteDataSchema = z
     about_title: optionalString(200),
     about_subtitle: optionalString(240),
     about_body: optionalString(5000),
-    hero_image_url: optionalUrl().nullable().optional(),
-    gallery_images: z.array(z.string().url()).optional(),
+    hero_image_url: nullableSafeUrl(),
+    gallery_images: z.array(safeUrlSchema).optional(),
 
     // Theme
     theme_palette_id: themePaletteId, // Legacy, use archetype_id instead
@@ -107,7 +117,7 @@ export const tutorSiteDataSchema = z
     booking_headline: optionalString(200).nullable().optional(),
     booking_subcopy: optionalString(500).nullable().optional(),
     booking_cta_label: optionalString(60).nullable().optional(),
-    booking_cta_url: optionalUrl().nullable().optional(),
+    booking_cta_url: nullableSafeUrl(),
 
     // Visibility toggles
     show_about: z.boolean().optional(),
@@ -125,7 +135,7 @@ export const tutorSiteDataSchema = z
 
     // Contact CTA
     contact_cta_label: optionalString(120).nullable().optional(),
-    contact_cta_url: optionalUrl().nullable().optional(),
+    contact_cta_url: nullableSafeUrl(),
 
     // Additional structured content
     additional_pages: z
@@ -142,7 +152,7 @@ export const tutorSiteDataSchema = z
           .array(
             z.object({
               title: optionalString(200).transform((v) => v ?? ""),
-              url: z.string().url(),
+              url: safeUrlSchema,
               description: optionalString(400).optional(),
             })
           )
@@ -164,7 +174,7 @@ export const tutorSiteDataSchema = z
       .array(
         z.object({
           label: optionalString(120).transform((v) => v ?? ""),
-          url: z.string().url(),
+          url: safeUrlSchema,
           category: optionalString(60).optional(),
         })
       )
@@ -177,5 +187,3 @@ export const tutorSiteDataSchema = z
   .strict();
 
 export type TutorSiteDataValidated = z.infer<typeof tutorSiteDataSchema>;
-
-
