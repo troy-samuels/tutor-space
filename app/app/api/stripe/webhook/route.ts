@@ -1190,7 +1190,8 @@ function getSubscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
       : parentSubscription?.id ?? null;
   }
 
-  const subscription = invoice.subscription as
+  // Fallback for older Stripe API versions where subscription was a direct property
+  const subscription = (invoice as unknown as Record<string, unknown>).subscription as
     | string
     | { id?: string | null }
     | null
