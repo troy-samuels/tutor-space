@@ -81,6 +81,7 @@ type ControlDeckProps = {
   onThemeChange: (theme: SiteTheme) => void;
   saveStatus: SaveStatus;
   publishStatus: PublishStatus;
+  isPublished: boolean;
   onPublish: () => Promise<void>;
   shareUrl: string;
   shareHandle: string;
@@ -132,6 +133,7 @@ type StudioEditorClientProps = {
   products: ProductLite[];
   shareUrl: string;
   shareHandle: string;
+  isPublished: boolean;
 };
 
 export default function StudioEditorClient({
@@ -142,10 +144,12 @@ export default function StudioEditorClient({
   products,
   shareUrl,
   shareHandle,
+  isPublished: initialIsPublished,
 }: StudioEditorClientProps) {
   const [config, setConfig] = useState<SiteConfig>(initialConfig);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [publishStatus, setPublishStatus] = useState<PublishStatus>("idle");
+  const [isPublished, setIsPublished] = useState(initialIsPublished);
   const [shareState, setShareState] = useState<{ url: string; handle: string }>({
     url: shareUrl,
     handle: shareHandle,
@@ -251,6 +255,7 @@ export default function StudioEditorClient({
         });
       }
 
+      setIsPublished(true);
       setPublishStatus("published");
       setSaveStatus("saved");
       setTimeout(() => setPublishStatus("idle"), 3000);
@@ -284,6 +289,7 @@ export default function StudioEditorClient({
       onThemeChange={handleThemeChange}
       saveStatus={saveStatus}
       publishStatus={publishStatus}
+      isPublished={isPublished}
       onPublish={handlePublish}
       shareUrl={shareState.url}
       shareHandle={shareState.handle}
@@ -415,6 +421,7 @@ function ControlDeck({
   onThemeChange,
   saveStatus,
   publishStatus,
+  isPublished,
   onPublish,
   shareUrl,
   shareHandle,
@@ -510,7 +517,7 @@ function ControlDeck({
             title="View live site"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
             onClick={(event) => {
-              if (publishStatus !== "published") {
+              if (!isPublished) {
                 event.preventDefault();
                 setShareMessage("Publish to view live");
                 setTimeout(() => setShareMessage(null), 2000);

@@ -88,7 +88,7 @@ export async function getSiteByTutorId(supabase: SupabaseClient, tutorId: string
 export async function getSiteConfigByTutorId(supabase: SupabaseClient, tutorId: string) {
   return supabase
     .from("tutor_sites")
-    .select("id, config, updated_at")
+    .select("id, config, updated_at, status")
     .eq("tutor_id", tutorId)
     .is("deleted_at", null)
     .maybeSingle();

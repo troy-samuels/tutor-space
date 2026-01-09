@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { SiteConfig } from "@/lib/types/site";
-import { normalizeSiteConfig } from "@/lib/site/site-config";
+import { DEFAULT_SITE_CONFIG, normalizeSiteConfig } from "@/lib/site/site-config";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
 import { getSiteConfigByTutorId } from "@/lib/repositories/tutor-sites";
 import StudioEditorClient from "./editor/studio-editor-client";
@@ -56,7 +56,7 @@ export default async function PagesBuilder() {
       .eq("id", user.id)
       .maybeSingle<ProfileBasics>(),
     getSiteConfigByTutorId(supabase, user.id) as Promise<{
-      data: { id: string; config: SiteConfig | null } | null;
+      data: { id: string; config: SiteConfig | null; status: "draft" | "published" | "archived" | null } | null;
       error: { code?: string } | null;
     }>,
     supabase
@@ -77,7 +77,24 @@ export default async function PagesBuilder() {
   const products = productsResult.error ? [] : (productsResult.data as ProductLite[] | null);
 
   const initialConfig = normalizeSiteConfig(siteRow?.config);
+  const profileTagline = profile?.tagline?.trim() || "";
+  const profileBio = profile?.bio?.trim() || "";
+  const storedHeadline = siteRow?.config?.hero?.customHeadline;
+  const shouldSeedHeadline =
+    typeof storedHeadline !== "string" ||
+    storedHeadline.trim() === DEFAULT_SITE_CONFIG.hero.customHeadline.trim();
+  const shouldSeedBio = typeof siteRow?.config?.bio !== "string";
+  const seededConfig: SiteConfig = {
+    ...initialConfig,
+    hero: {
+      ...initialConfig.hero,
+      customHeadline:
+        shouldSeedHeadline && profileTagline ? profileTagline : initialConfig.hero.customHeadline,
+    },
+    bio: shouldSeedBio && profileBio ? profileBio : initialConfig.bio,
+  };
   const siteId = siteRow?.id ?? null;
+  const isPublished = siteRow?.status === "published";
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://app.tutorlingua.co";
   const shareHandleRaw = profile?.username ?? user.user_metadata?.user_name ?? user.email ?? "";
   const shareHandle = normalizeUsernameSlug(shareHandleRaw) || shareHandleRaw;
@@ -86,11 +103,12 @@ export default async function PagesBuilder() {
   return (
     <StudioEditorClient
       siteId={siteId}
-      initialConfig={initialConfig}
+      initialConfig={seededConfig}
       services={services ?? []}
       products={products ?? []}
       shareUrl={shareUrl}
       shareHandle={shareHandle}
+      isPublished={isPublished}
       profile={{
         id: profile?.id ?? user.id,
         full_name: profile?.full_name ?? user.user_metadata?.full_name ?? user.email ?? "Tutor",

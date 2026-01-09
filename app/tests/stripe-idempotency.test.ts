@@ -116,7 +116,9 @@ test("concurrency: PGRST116 no rows error is ignored", () => {
 });
 
 test("idempotency: failed events allow retries", () => {
-  const existingStatus = "failed";
+  // Simulate fetching event status from database
+  const getEventStatus = (): "failed" | "processed" | "processing" => "failed";
+  const existingStatus = getEventStatus();
   const canRetry = existingStatus !== "processed";
   assert.ok(canRetry, "Failed events should be eligible for retry");
 });

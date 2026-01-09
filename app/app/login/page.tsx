@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/forms/login-form";
+import { Logo } from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Tutor Login | TutorLingua",
@@ -14,10 +15,10 @@ export default async function TutorLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-muted via-muted/30 to-white px-4 py-12">
       <div className="w-full max-w-md space-y-6 rounded-3xl bg-white/90 p-8 shadow-lg backdrop-blur">
-        <header className="space-y-1 text-center">
-          <h1 className="text-3xl font-semibold text-primary">
-            {t("brandTitle")}
-          </h1>
+        <header className="space-y-3 text-center">
+          <div className="flex justify-center">
+            <Logo variant="wordmark" className="h-10 sm:h-12" />
+          </div>
           <p className="text-sm text-muted-foreground">{t("dashboardSubtitle")}</p>
         </header>
 
