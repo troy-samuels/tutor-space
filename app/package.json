@@ -9,7 +9,6 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "vercel-build": "rm -rf node_modules/thread-stream/test node_modules/thread-stream/bench.js 2>/dev/null; next build --webpack",
-    "postinstall": "rm -rf node_modules/thread-stream/test node_modules/thread-stream/bench.js || true",
     "start": "next start",
     "lint": "eslint",
     "translate": "node scripts/translate-deepl.js",
