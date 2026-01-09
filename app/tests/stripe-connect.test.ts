@@ -16,6 +16,7 @@ import {
   createMockConnectAccount,
   generateAccountId,
 } from "./utils/stripe-mocks.ts";
+import { buildExpressAccountParams } from "../lib/services/connect.ts";
 
 // ============================================
 // TEST: Account Creation
@@ -64,6 +65,31 @@ test("account creation: custom ID override", () => {
   });
 
   assert.equal(account.id, customId);
+});
+
+test("buildExpressAccountParams: sets metadata and capabilities", () => {
+  const params = buildExpressAccountParams("tutor_123", {
+    email: "tutor@example.com",
+    fullName: "Ada Lovelace",
+  });
+
+  assert.equal(params.type, "express");
+  assert.equal(params.metadata?.tutor_id, "tutor_123");
+  assert.equal(params.capabilities?.card_payments?.requested, true);
+  assert.equal(params.capabilities?.transfers?.requested, true);
+  assert.equal(params.individual?.first_name, "Ada");
+  assert.equal(params.individual?.last_name, "Lovelace");
+});
+
+test("buildExpressAccountParams: uses default product description", () => {
+  const params = buildExpressAccountParams("tutor_456", {
+    email: "tutor@example.com",
+  });
+
+  assert.equal(
+    params.business_profile?.product_description,
+    "Language tutoring services"
+  );
 });
 
 // ============================================

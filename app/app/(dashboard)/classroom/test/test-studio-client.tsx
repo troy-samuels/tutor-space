@@ -72,7 +72,7 @@ export default function TestStudioClient() {
             setError({
               message:
                 data.error ||
-                "Audio service isn't configured yet. Please contact support.",
+                "Classroom service isn't configured yet. Please contact support.",
               isAccessDenied: false,
             });
           } else {
@@ -173,7 +173,7 @@ export default function TestStudioClient() {
             Configuration Error
           </h1>
           <p className="text-muted-foreground">
-            Audio service is not configured. Please contact support at support@tutorlingua.co.
+            Classroom service is not configured. Please contact support at support@tutorlingua.co.
           </p>
         </div>
       </div>

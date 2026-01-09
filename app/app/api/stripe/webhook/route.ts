@@ -1417,29 +1417,57 @@ async function handleAccountUpdated(
     onboardingStatus = "restricted";
   }
 
+  const updatePayload = {
+    stripe_charges_enabled: chargesEnabled,
+    stripe_payouts_enabled: payoutsEnabled,
+    stripe_onboarding_status: onboardingStatus,
+    stripe_default_currency: account.default_currency || null,
+    stripe_country: account.country || null,
+    stripe_last_capability_check_at: new Date().toISOString(),
+    stripe_disabled_reason: requirements?.disabled_reason || null,
+    stripe_currently_due: requirements?.currently_due || null,
+    stripe_eventually_due: requirements?.eventually_due || null,
+    stripe_past_due: requirements?.past_due || null,
+    stripe_pending_verification: requirements?.pending_verification || null,
+    stripe_details_submitted: account.details_submitted ?? false,
+    updated_at: new Date().toISOString(),
+  };
+
   // Update the profile with the latest Connect status
-  const { error } = await supabase
+  const { data: updatedProfiles, error } = await supabase
     .from("profiles")
-    .update({
-      stripe_charges_enabled: chargesEnabled,
-      stripe_payouts_enabled: payoutsEnabled,
-      stripe_onboarding_status: onboardingStatus,
-      stripe_default_currency: account.default_currency || null,
-      stripe_country: account.country || null,
-      stripe_last_capability_check_at: new Date().toISOString(),
-      stripe_disabled_reason: requirements?.disabled_reason || null,
-      stripe_currently_due: requirements?.currently_due || null,
-      stripe_eventually_due: requirements?.eventually_due || null,
-      stripe_past_due: requirements?.past_due || null,
-      stripe_pending_verification: requirements?.pending_verification || null,
-      stripe_details_submitted: account.details_submitted ?? false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_account_id", account.id);
+    .update(updatePayload)
+    .eq("stripe_account_id", account.id)
+    .select("id");
 
   if (error) {
     console.error("Failed to update Connect status:", error);
     throw error;
+  }
+
+  if (!updatedProfiles || updatedProfiles.length === 0) {
+    const metadataTutorId = account.metadata?.tutor_id;
+
+    if (!metadataTutorId) {
+      console.warn(
+        "Connect account update received for unknown profile:",
+        account.id
+      );
+      return;
+    }
+
+    const { error: fallbackError } = await supabase
+      .from("profiles")
+      .update({
+        ...updatePayload,
+        stripe_account_id: account.id,
+      })
+      .eq("id", metadataTutorId);
+
+    if (fallbackError) {
+      console.error("Failed to update Connect status by metadata:", fallbackError);
+      throw fallbackError;
+    }
   }
 
   console.log(

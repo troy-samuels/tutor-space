@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, CalendarDays } from "lucide-react";
 import { requestCalendarConnection, disconnectCalendar } from "@/lib/actions/calendar";
+import { resolveCalendarOAuthErrorMessage } from "@/lib/calendar/errors";
 import type { CalendarConnectionStatus } from "@/lib/actions/types";
 
 const ICONS = {
@@ -27,6 +28,7 @@ export function CalendarConnectCard({
   const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const popupRef = useRef<Window | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -41,12 +43,19 @@ export function CalendarConnectCard({
 
       const data = event.data;
       if (data?.type !== "calendar-oauth-callback") return;
+      if (!popupRef.current) return;
 
       if (data.success) {
         // Refresh the page to show updated connection status
+        setFeedback(null);
+        setIsPopupOpen(false);
         router.refresh();
       } else if (data.error) {
-        setFeedback(data.error || "Calendar connection failed. Please try again.");
+        const message = data.error
+          ? resolveCalendarOAuthErrorMessage(data.error)
+          : "Calendar connection failed. Please try again.";
+        setFeedback(message);
+        setIsPopupOpen(false);
       }
 
       popupRef.current = null;
@@ -69,12 +78,18 @@ export function CalendarConnectCard({
   }, [router]);
 
   const handleConnect = () => {
+    if (isPending || isPopupOpen) {
+      popupRef.current?.focus();
+      setFeedback("Calendar sync is already in progress. Finish the popup or close it to retry.");
+      return;
+    }
     setFeedback(null);
     startTransition(() => {
       (async () => {
         const result = await requestCalendarConnection(provider, { popup: true });
         if (result?.error) {
           setFeedback(result.error);
+          setIsPopupOpen(false);
           return;
         }
         if (result?.url) {
@@ -83,7 +98,9 @@ export function CalendarConnectCard({
 
           if (!popupRef.current) {
             setFeedback("Popup was blocked. Please allow popups for this site.");
+            setIsPopupOpen(false);
           } else {
+            setIsPopupOpen(true);
             // Start polling to detect if popup is closed without completing
             pollIntervalRef.current = setInterval(() => {
               if (popupRef.current?.closed) {
@@ -93,6 +110,7 @@ export function CalendarConnectCard({
                   pollIntervalRef.current = null;
                 }
                 setFeedback("Calendar connection was cancelled. Click 'Connect' to try again.");
+                setIsPopupOpen(false);
                 popupRef.current = null;
               }
             }, 500);
@@ -162,10 +180,10 @@ export function CalendarConnectCard({
           <button
             type="button"
             onClick={handleConnect}
-            disabled={isPending}
+            disabled={isPending || isPopupOpen}
             className="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isPending ? "Starting sync..." : `Connect ${title}`}
+            {isPending ? "Starting sync..." : isPopupOpen ? "Finish in popup..." : `Connect ${title}`}
           </button>
         )}
         {feedback ? (

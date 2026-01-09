@@ -16,7 +16,7 @@ import { Mic, AlertCircle } from "lucide-react";
 interface RecordingConsentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (rememberChoice: boolean) => void;
   onCancel: () => void;
 }
 
@@ -31,10 +31,7 @@ export function RecordingConsentModal({
   const [rememberChoice, setRememberChoice] = useState(false);
 
   const handleConfirm = () => {
-    if (rememberChoice) {
-      localStorage.setItem(CONSENT_STORAGE_KEY, "true");
-    }
-    onConfirm();
+    onConfirm(rememberChoice);
   };
 
   return (
@@ -99,10 +96,15 @@ export function useRecordingConsent() {
     setHasConsent(stored === "true");
   }, []);
 
+  const rememberConsent = () => {
+    localStorage.setItem(CONSENT_STORAGE_KEY, "true");
+    setHasConsent(true);
+  };
+
   const resetConsent = () => {
     localStorage.removeItem(CONSENT_STORAGE_KEY);
     setHasConsent(false);
   };
 
-  return { hasConsent, resetConsent };
+  return { hasConsent, rememberConsent, resetConsent };
 }

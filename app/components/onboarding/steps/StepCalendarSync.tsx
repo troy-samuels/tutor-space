@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useTransition } from "react";
 import { Loader2, Calendar, ExternalLink } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 import { requestCalendarConnection } from "@/lib/actions/calendar";
+import { resolveCalendarOAuthErrorMessage } from "@/lib/calendar/errors";
 
 type StepCalendarSyncProps = {
   onComplete: () => void;
@@ -55,7 +56,10 @@ export function StepCalendarSync({
         setSelectedProvider(null);
         popupRef.current = null;
       } else if (data.error) {
-        setErrors({ submit: data.error || "Calendar connection failed. Please try again." });
+        const message = data.error
+          ? resolveCalendarOAuthErrorMessage(data.error)
+          : "Calendar connection failed. Please try again.";
+        setErrors({ submit: message });
         setIsConnecting(false);
         setSelectedProvider(null);
         popupRef.current = null;
@@ -73,6 +77,10 @@ export function StepCalendarSync({
   }, [onComplete, startTransition]);
 
   const handleConnect = async (provider: "google" | "outlook") => {
+    if (isConnecting) {
+      popupRef.current?.focus();
+      return;
+    }
     setIsConnecting(true);
     setSelectedProvider(provider);
     setErrors({});

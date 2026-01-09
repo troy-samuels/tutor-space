@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
-import { extractTutorStripeStatus } from "@/lib/payments/connect-status";
+import { createExpressAccount } from "@/lib/services/connect";
+import { RateLimiters } from "@/lib/middleware/rate-limit";
+import { PlatformConfig } from "@/lib/services/platform-config";
+import { withIdempotency } from "@/lib/utils/idempotency";
 import type { StripeConnectErrorCode } from "@/lib/stripe/connect-errors";
 
 type ErrorResponse = {
@@ -40,11 +43,29 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Rate limiting
+    const rateLimitResult = await RateLimiters.api(req);
+    if (!rateLimitResult.success) {
+      return errorResponse(
+        rateLimitResult.error || "Too many requests. Please wait a moment.",
+        "stripe_rate_limited",
+        429,
+        true
+      );
+    }
+
     // Parse request body
     let tutorId: string;
     try {
       const body = await req.json();
-      tutorId = body.tutorId;
+      if (typeof body?.tutorId !== "string") {
+        return errorResponse(
+          "Missing tutor ID.",
+          "missing_tutor_id",
+          400
+        );
+      }
+      tutorId = body.tutorId.trim();
     } catch {
       return errorResponse(
         "Invalid request body.",
@@ -71,6 +92,15 @@ export async function POST(req: NextRequest) {
         "admin_client_unavailable",
         500,
         true
+      );
+    }
+
+    const connectEnabled = await PlatformConfig.isStripeConnectEnabled();
+    if (!connectEnabled) {
+      return errorResponse(
+        "Stripe Connect is currently unavailable.",
+        "stripe_not_configured",
+        503
       );
     }
 
@@ -114,59 +144,28 @@ export async function POST(req: NextRequest) {
 
     // Idempotent: Reuse existing account or create new
     let accountId = profile.stripe_account_id;
-    const existingAccount = !!accountId;
+    let existingAccount = !!accountId;
 
     if (!accountId) {
-      // Parse name for prefilling
-      const nameParts = (profile.full_name || "").trim().split(/\s+/);
-      const firstName = nameParts[0] || undefined;
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
-      const userEmail = user.email;
+      const idempotencyKey = `stripe-connect-account:${tutorId}`;
+      const { response } = await withIdempotency<{ accountId: string }>(
+        adminClient,
+        idempotencyKey,
+        async () => {
+          const createdAccountId = await createExpressAccount(tutorId, adminClient, {
+            email: user.email || undefined,
+            fullName: profile.full_name,
+            bio: profile.bio,
+            tagline: profile.tagline,
+            websiteUrl: profile.website_url,
+          });
 
-      // Build prefilled params (Stripe ignores empty/undefined fields)
-      const accountParams = {
-        type: "express" as const,
-        email: userEmail,
-        business_profile: {
-          name: profile.full_name || undefined,
-          product_description: profile.bio || profile.tagline || "Language tutoring services",
-          url: profile.website_url || undefined,
-        },
-        individual: {
-          email: userEmail,
-          first_name: firstName,
-          last_name: lastName,
-        },
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        metadata: {
-          tutor_id: tutorId,
-        },
-      };
+          return { accountId: createdAccountId };
+        }
+      );
 
-      // Clean undefined values (Stripe doesn't like explicit undefined in nested objects)
-      const cleanParams = JSON.parse(JSON.stringify(accountParams));
-
-      // Create new Express account with prefilled data
-      const account = await stripe.accounts.create(cleanParams);
-
-      accountId = account.id;
-
-      // Background: Save account ID and initial status (don't await)
-      void adminClient
-        .from("profiles")
-        .update({
-          stripe_account_id: accountId,
-          ...extractTutorStripeStatus(account as unknown as Record<string, unknown>)
-        })
-        .eq("id", tutorId)
-        .then(({ error }) => {
-          if (error) {
-            console.error("[Fast Onboard] Background save failed:", error);
-          }
-        });
+      accountId = response.accountId;
+      existingAccount = false;
     }
 
     // Generate onboarding link
@@ -208,6 +207,15 @@ export async function POST(req: NextRequest) {
     console.error("[Fast Onboard] Error:", error);
 
     const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes("Idempotency key")) {
+      return errorResponse(
+        "Account setup already in progress. Please wait a moment.",
+        "stripe_rate_limited",
+        429,
+        true
+      );
+    }
 
     if (errorMessage.includes("Stripe is not configured")) {
       return errorResponse(

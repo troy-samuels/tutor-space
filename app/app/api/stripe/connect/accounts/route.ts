@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createExpressAccount } from "@/lib/services/connect";
+import { RateLimiters } from "@/lib/middleware/rate-limit";
+import { PlatformConfig } from "@/lib/services/platform-config";
+import { withIdempotency } from "@/lib/utils/idempotency";
 import type { StripeConnectErrorCode } from "@/lib/stripe/connect-errors";
 
 type ErrorResponse = {
@@ -21,6 +24,17 @@ function errorResponse(
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResult = await RateLimiters.api(req);
+    if (!rateLimitResult.success) {
+      return errorResponse(
+        rateLimitResult.error || "Too many requests. Please wait a moment.",
+        "stripe_rate_limited",
+        429,
+        true
+      );
+    }
+
     // SECURITY: Verify authenticated user
     const authClient = await createClient();
     const {
@@ -39,7 +53,14 @@ export async function POST(req: NextRequest) {
     let tutorId: string;
     try {
       const body = await req.json();
-      tutorId = body.tutorId;
+      if (typeof body?.tutorId !== "string") {
+        return errorResponse(
+          "Missing tutor ID.",
+          "missing_tutor_id",
+          400
+        );
+      }
+      tutorId = body.tutorId.trim();
     } catch {
       return errorResponse(
         "Invalid request body.",
@@ -75,25 +96,70 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if account already exists (idempotent operation)
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("stripe_account_id")
-      .eq("id", tutorId)
-      .single();
-
-    if (profile?.stripe_account_id) {
-      // Account already exists, return it
-      return NextResponse.json({ accountId: profile.stripe_account_id });
+    const connectEnabled = await PlatformConfig.isStripeConnectEnabled();
+    if (!connectEnabled) {
+      return errorResponse(
+        "Stripe Connect is currently unavailable.",
+        "stripe_not_configured",
+        503
+      );
     }
 
-    const accountId = await createExpressAccount(tutorId, supabase);
-    return NextResponse.json({ accountId });
+    const idempotencyKey = `stripe-connect-account:${tutorId}`;
+
+    const { response } = await withIdempotency<{ accountId: string }>(
+      supabase,
+      idempotencyKey,
+      async () => {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("stripe_account_id, full_name, bio, tagline, website_url, email")
+          .eq("id", tutorId)
+          .single();
+
+        if (profileError || !profile) {
+          throw new Error("Profile not found");
+        }
+
+        if (profile.stripe_account_id) {
+          return { accountId: profile.stripe_account_id };
+        }
+
+        const accountId = await createExpressAccount(tutorId, supabase, {
+          email: profile.email || user.email || undefined,
+          fullName: profile.full_name,
+          bio: profile.bio,
+          tagline: profile.tagline,
+          websiteUrl: profile.website_url,
+        });
+
+        return { accountId };
+      }
+    );
+
+    return NextResponse.json({ accountId: response.accountId });
   } catch (error) {
     console.error("[Stripe Connect] Account creation failed:", error);
 
     // Check for specific Stripe errors
     const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes("Profile not found")) {
+      return errorResponse(
+        "Unable to verify your account.",
+        "invalid_tutor_id",
+        400
+      );
+    }
+
+    if (errorMessage.includes("Idempotency key")) {
+      return errorResponse(
+        "Account setup already in progress. Please wait a moment.",
+        "stripe_rate_limited",
+        429,
+        true
+      );
+    }
 
     if (errorMessage.includes("Stripe is not configured")) {
       return errorResponse(

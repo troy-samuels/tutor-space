@@ -47,6 +47,13 @@ export function getCalendarOAuthErrorMessage(error: string): string {
   );
 }
 
+export function resolveCalendarOAuthErrorMessage(error: string): string {
+  if (Object.prototype.hasOwnProperty.call(CALENDAR_OAUTH_ERROR_MESSAGES, error)) {
+    return CALENDAR_OAUTH_ERROR_MESSAGES[error as CalendarOAuthErrorCode];
+  }
+  return error;
+}
+
 export function formatCalendarConfigIssues(
   issues: CalendarConfigIssueCode[],
   provider: CalendarProviderId

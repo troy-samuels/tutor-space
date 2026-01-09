@@ -89,7 +89,7 @@ export default function ClassroomClient() {
             setError({
               message:
                 data.error ||
-                "Audio classroom isn't configured yet. Please contact support.",
+                "Classroom isn't configured yet. Please contact support.",
               isAccessDenied: false,
             });
           } else {
@@ -208,7 +208,7 @@ export default function ClassroomClient() {
             Configuration Error
           </h1>
           <p className="text-muted-foreground">
-            Audio service is not configured. Please contact support at support@tutorlingua.co.
+            Classroom service is not configured. Please contact support at support@tutorlingua.co.
           </p>
         </div>
       </div>

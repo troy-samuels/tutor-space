@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { PreJoinMicIndicator } from "./MicVolumeIndicator";
 import {
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mic, MicOff, Video, VideoOff, Settings, Loader2 } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Settings, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PreJoinScreenProps {
@@ -40,29 +40,180 @@ export function PreJoinScreen({
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>("");
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>("");
   const [showSettings, setShowSettings] = useState(false);
+  const [deviceNotice, setDeviceNotice] = useState<{
+    tone: "warning" | "error";
+    message: string;
+  } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastRequestedRef = useRef({ audioEnabled: true, videoEnabled: true });
+  const audioEnabledRef = useRef(audioEnabled);
+  const videoEnabledRef = useRef(videoEnabled);
+
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+  }, [audioEnabled]);
+
+  useEffect(() => {
+    videoEnabledRef.current = videoEnabled;
+  }, [videoEnabled]);
+
+  const stopStream = useCallback((stream: MediaStream | null) => {
+    stream?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  const replaceStream = useCallback(
+    (nextStream: MediaStream | null) => {
+      if (mediaStreamRef.current && mediaStreamRef.current !== nextStream) {
+        stopStream(mediaStreamRef.current);
+      }
+      mediaStreamRef.current = nextStream;
+      setMediaStream(nextStream);
+    },
+    [stopStream]
+  );
+
+  const refreshDeviceList = useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const nextAudioDevices = devices.filter((d) => d.kind === "audioinput");
+      const nextVideoDevices = devices.filter((d) => d.kind === "videoinput");
+      setAudioDevices(nextAudioDevices);
+      setVideoDevices(nextVideoDevices);
+      setSelectedAudioDevice((prev) => {
+        if (prev && nextAudioDevices.some((device) => device.deviceId === prev)) return prev;
+        return nextAudioDevices[0]?.deviceId ?? "";
+      });
+      setSelectedVideoDevice((prev) => {
+        if (prev && nextVideoDevices.some((device) => device.deviceId === prev)) return prev;
+        return nextVideoDevices[0]?.deviceId ?? "";
+      });
+    } catch (err) {
+      console.error("[PreJoin] Failed to enumerate devices:", err);
+    }
+  }, []);
+
+  const buildConstraints = useCallback(
+    (audioOn: boolean, videoOn: boolean) => ({
+      audio: audioOn
+        ? selectedAudioDevice
+          ? { deviceId: { exact: selectedAudioDevice } }
+          : true
+        : false,
+      video: videoOn
+        ? selectedVideoDevice
+          ? { deviceId: { exact: selectedVideoDevice } }
+          : true
+        : false,
+    }),
+    [selectedAudioDevice, selectedVideoDevice]
+  );
+
+  const getMediaErrorMessage = (err: unknown) => {
+    const name = typeof err === "object" && err !== null && "name" in err ? (err as { name?: string }).name : "";
+    switch (name) {
+      case "NotAllowedError":
+      case "SecurityError":
+        return "Camera or microphone access is blocked. Enable permissions in your browser and try again.";
+      case "NotFoundError":
+        return "No camera or microphone detected. Connect a device or join without media.";
+      case "NotReadableError":
+        return "Camera or microphone is already in use by another app.";
+      case "OverconstrainedError":
+        return "Selected device isn't available. Try another device.";
+      default:
+        return "We couldn't access your camera or microphone. You can join without media or retry.";
+    }
+  };
+
+  const requestPreviewStream = useCallback(
+    async (
+      nextAudioEnabled: boolean,
+      nextVideoEnabled: boolean,
+      options: { allowFallback?: boolean } = {}
+    ) => {
+      lastRequestedRef.current = { audioEnabled: nextAudioEnabled, videoEnabled: nextVideoEnabled };
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setDeviceNotice({
+          tone: "error",
+          message: "Your browser doesn't support camera or microphone access.",
+        });
+        return { updated: true, audioEnabled: false, videoEnabled: false };
+      }
+
+      if (!nextAudioEnabled && !nextVideoEnabled) {
+        replaceStream(null);
+        setDeviceNotice(null);
+        return { updated: true, audioEnabled: false, videoEnabled: false };
+      }
+
+      const hadStream = Boolean(mediaStreamRef.current);
+      const allowFallback = options.allowFallback ?? false;
+
+      setIsRefreshing(true);
+      try {
+        const nextStream = await navigator.mediaDevices.getUserMedia(
+          buildConstraints(nextAudioEnabled, nextVideoEnabled)
+        );
+        replaceStream(nextStream);
+        setDeviceNotice(null);
+        return {
+          updated: true,
+          audioEnabled: nextAudioEnabled,
+          videoEnabled: nextVideoEnabled,
+        };
+      } catch (err) {
+        if (allowFallback && nextAudioEnabled && nextVideoEnabled) {
+          try {
+            const audioOnlyStream = await navigator.mediaDevices.getUserMedia(
+              buildConstraints(true, false)
+            );
+            replaceStream(audioOnlyStream);
+            setDeviceNotice({
+              tone: "warning",
+              message: "Camera unavailable. You can still join with microphone only.",
+            });
+            return { updated: true, audioEnabled: true, videoEnabled: false };
+          } catch {
+            // fall through
+          }
+
+          try {
+            const videoOnlyStream = await navigator.mediaDevices.getUserMedia(
+              buildConstraints(false, true)
+            );
+            replaceStream(videoOnlyStream);
+            setDeviceNotice({
+              tone: "warning",
+              message: "Microphone unavailable. You can still join with camera only.",
+            });
+            return { updated: true, audioEnabled: false, videoEnabled: true };
+          } catch {
+            // fall through
+          }
+        }
+
+        setDeviceNotice({ tone: "error", message: getMediaErrorMessage(err) });
+        return hadStream
+          ? { updated: false, audioEnabled: nextAudioEnabled, videoEnabled: nextVideoEnabled }
+          : { updated: true, audioEnabled: false, videoEnabled: false };
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [buildConstraints, replaceStream]
+  );
 
   useEffect(() => {
     async function initDevices() {
       try {
-        // Request both audio and video permissions
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true,
-        });
-
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
-        setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
-
-        const defaultAudio = devices.find((d) => d.kind === "audioinput");
-        if (defaultAudio) setSelectedAudioDevice(defaultAudio.deviceId);
-
-        const defaultVideo = devices.find((d) => d.kind === "videoinput");
-        if (defaultVideo) setSelectedVideoDevice(defaultVideo.deviceId);
-
-        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = stream;
-        setMediaStream(stream);
+        const outcome = await requestPreviewStream(true, true, { allowFallback: true });
+        if (outcome.updated) {
+          setAudioEnabled(outcome.audioEnabled);
+          setVideoEnabled(outcome.videoEnabled);
+        }
+        await refreshDeviceList();
         setIsLoading(false);
       } catch (err) {
         console.error("[PreJoin] Failed to get devices:", err);
@@ -73,49 +224,41 @@ export function PreJoinScreen({
     initDevices();
 
     return () => {
-      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
+      replaceStream(null);
     };
-  }, []);
+  }, [refreshDeviceList, requestPreviewStream, replaceStream]);
 
   useEffect(() => {
-    async function updateStream() {
-      if (!selectedAudioDevice && !selectedVideoDevice) return;
+    if (isLoading) return;
+    if (!selectedAudioDevice && !selectedVideoDevice) return;
 
-      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          audio: selectedAudioDevice
-            ? { deviceId: { exact: selectedAudioDevice } }
-            : true,
-          video: selectedVideoDevice
-            ? { deviceId: { exact: selectedVideoDevice } }
-            : true,
-        });
-        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = newStream;
-        setMediaStream(newStream);
-      } catch (err) {
-        console.error("[PreJoin] Failed to update stream:", err);
+    const updateStream = async () => {
+      const outcome = await requestPreviewStream(
+        audioEnabledRef.current,
+        videoEnabledRef.current,
+        { allowFallback: audioEnabledRef.current && videoEnabledRef.current }
+      );
+      if (outcome.updated) {
+        setAudioEnabled(outcome.audioEnabled);
+        setVideoEnabled(outcome.videoEnabled);
       }
-    }
+    };
 
-    if (!isLoading) {
-      updateStream();
-    }
-  }, [isLoading, selectedAudioDevice, selectedVideoDevice]);
+    void updateStream();
+  }, [isLoading, selectedAudioDevice, selectedVideoDevice, requestPreviewStream]);
 
   // Attach video stream to video element
   useEffect(() => {
-    if (videoRef.current && mediaStream && videoEnabled) {
+    if (!videoRef.current) return;
+    if (mediaStream && videoEnabled) {
       videoRef.current.srcObject = mediaStream;
+      return;
     }
+    videoRef.current.srcObject = null;
   }, [mediaStream, videoEnabled]);
 
   const handleJoin = () => {
-    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-    mediaStreamRef.current = null;
+    replaceStream(null);
     onJoin({
       audioEnabled,
       audioDeviceId: selectedAudioDevice || undefined,
@@ -124,29 +267,97 @@ export function PreJoinScreen({
     });
   };
 
-  const toggleAudio = () => {
-    setAudioEnabled((prev) => {
-      const next = !prev;
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getAudioTracks().forEach((track) => {
-          track.enabled = next;
-        });
+  const toggleAudio = async () => {
+    if (isRefreshing) return;
+    const nextAudioEnabled = !audioEnabled;
+    const currentStream = mediaStreamRef.current;
+
+    if (!nextAudioEnabled) {
+      currentStream?.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+      setAudioEnabled(false);
+      if (!videoEnabled) {
+        replaceStream(null);
       }
-      return next;
+      return;
+    }
+
+    const hasAudioTrack = (currentStream?.getAudioTracks().length ?? 0) > 0;
+    if (hasAudioTrack) {
+      currentStream?.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+      setAudioEnabled(true);
+      return;
+    }
+
+    const outcome = await requestPreviewStream(nextAudioEnabled, videoEnabled, {
+      allowFallback: nextAudioEnabled && videoEnabled,
     });
+    if (outcome.updated) {
+      setAudioEnabled(outcome.audioEnabled);
+      setVideoEnabled(outcome.videoEnabled);
+    }
   };
 
-  const toggleVideo = () => {
-    setVideoEnabled((prev) => {
-      const next = !prev;
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getVideoTracks().forEach((track) => {
-          track.enabled = next;
-        });
+  const toggleVideo = async () => {
+    if (isRefreshing) return;
+    const nextVideoEnabled = !videoEnabled;
+    const currentStream = mediaStreamRef.current;
+
+    if (!nextVideoEnabled) {
+      currentStream?.getVideoTracks().forEach((track) => {
+        track.enabled = false;
+      });
+      setVideoEnabled(false);
+      if (!audioEnabled) {
+        replaceStream(null);
       }
-      return next;
+      return;
+    }
+
+    const hasVideoTrack = (currentStream?.getVideoTracks().length ?? 0) > 0;
+    if (hasVideoTrack) {
+      currentStream?.getVideoTracks().forEach((track) => {
+        track.enabled = true;
+      });
+      setVideoEnabled(true);
+      return;
+    }
+
+    const outcome = await requestPreviewStream(audioEnabled, nextVideoEnabled, {
+      allowFallback: audioEnabled && nextVideoEnabled,
     });
+    if (outcome.updated) {
+      setAudioEnabled(outcome.audioEnabled);
+      setVideoEnabled(outcome.videoEnabled);
+    }
   };
+
+  const handleRetry = async () => {
+    if (isRefreshing) return;
+    const lastRequested = lastRequestedRef.current ?? { audioEnabled: true, videoEnabled: true };
+    const outcome = await requestPreviewStream(lastRequested.audioEnabled, lastRequested.videoEnabled, {
+      allowFallback: lastRequested.audioEnabled && lastRequested.videoEnabled,
+    });
+    if (outcome.updated) {
+      setAudioEnabled(outcome.audioEnabled);
+      setVideoEnabled(outcome.videoEnabled);
+    }
+    await refreshDeviceList();
+  };
+
+  useEffect(() => {
+    if (!navigator.mediaDevices?.addEventListener) return;
+    const handleDeviceChange = () => {
+      void refreshDeviceList();
+    };
+    navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
+    return () => {
+      navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
+    };
+  }, [refreshDeviceList]);
 
   if (isLoading) {
     return (
@@ -179,6 +390,45 @@ export function PreJoinScreen({
             </p>
           )}
         </div>
+
+        {deviceNotice && (
+          <div
+            className={cn(
+              "flex items-start gap-3 rounded-2xl border p-4 text-sm",
+              deviceNotice.tone === "error"
+                ? "border-red-200 bg-red-50 text-red-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            )}
+          >
+            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium">Camera & microphone issue</p>
+              <p
+                className={cn(
+                  "text-xs mt-1",
+                  deviceNotice.tone === "error"
+                    ? "text-red-800/80"
+                    : "text-amber-900/80"
+                )}
+              >
+                {deviceNotice.message}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              disabled={isRefreshing}
+              className="rounded-full h-8 px-3"
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Retry"
+              )}
+            </Button>
+          </div>
+        )}
 
         <div className="rounded-3xl bg-zinc-900 p-6 shadow-xl relative text-white">
           <div className="flex items-start justify-between gap-4">
@@ -257,6 +507,9 @@ export function PreJoinScreen({
                   ))}
                 </SelectContent>
               </Select>
+              {audioDevices.length === 0 && (
+                <p className="text-xs text-muted-foreground">No microphone detected.</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
@@ -277,6 +530,9 @@ export function PreJoinScreen({
                   ))}
                 </SelectContent>
               </Select>
+              {videoDevices.length === 0 && (
+                <p className="text-xs text-muted-foreground">No camera detected.</p>
+              )}
             </div>
           </div>
         )}

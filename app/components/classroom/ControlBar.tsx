@@ -125,7 +125,7 @@ export function ControlBar({
   const [egressId, setEgressId] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [showConsentModal, setShowConsentModal] = useState(false);
-  const { hasConsent } = useRecordingConsent();
+  const { hasConsent, rememberConsent } = useRecordingConsent();
 
   const checkRecordingStatus = useCallback(async () => {
     if (!recordingEnabled) return;
@@ -441,7 +441,12 @@ export function ControlBar({
         <RecordingConsentModal
           open={showConsentModal}
           onOpenChange={setShowConsentModal}
-          onConfirm={startRecording}
+          onConfirm={(rememberChoice) => {
+            if (rememberChoice) {
+              rememberConsent();
+            }
+            startRecording();
+          }}
           onCancel={() => setShowConsentModal(false)}
         />
       )}
