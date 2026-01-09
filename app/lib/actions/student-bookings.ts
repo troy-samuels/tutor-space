@@ -292,12 +292,15 @@ export async function getStudentBookings(): Promise<{
         (error.code === "42703" ||
           (error.message || "").toLowerCase().includes(`column bookings.${column}`))
     );
+  // Include lessons that started up to 3 hours ago (to catch in-progress lessons)
+  // We'll filter out completed lessons in JS after fetching
+  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
   const buildBookingsQuery = (selectClause: string) =>
     adminClient
       .from("bookings")
       .select(selectClause)
       .in("student_id", studentIds)
-      .gte("scheduled_at", new Date().toISOString())
+      .gte("scheduled_at", threeHoursAgo)
       .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")')
       .order("scheduled_at", { ascending: true });
 
@@ -352,26 +355,34 @@ export async function getStudentBookings(): Promise<{
   const tutorMap = new Map(tutorsResult.data?.map((t) => [t.id, t]) || []);
   const serviceMap = new Map(servicesResult.data?.map((s) => [s.id, s]) || []);
 
-  const result = bookingsList.map((booking) => ({
-    id: booking.id,
-    scheduled_at: booking.scheduled_at,
-    duration_minutes: booking.duration_minutes,
-    status: booking.status,
-    notes: booking.notes ?? null,
-    meeting_url: booking.meeting_url,
-    meeting_provider: booking.meeting_provider,
-    tutor: tutorMap.get(booking.tutor_id) || {
-      id: booking.tutor_id,
-      username: "",
-      full_name: null,
-      avatar_url: null,
-      tier: null,
-    },
-    service: serviceMap.get(booking.service_id) || {
-      id: booking.service_id,
-      name: "Unknown Service",
-    },
-  }));
+  const now = Date.now();
+  const result = bookingsList
+    .filter((booking) => {
+      // Keep bookings that haven't ended yet (scheduled_at + duration > now)
+      const startTime = new Date(booking.scheduled_at).getTime();
+      const endTime = startTime + booking.duration_minutes * 60 * 1000;
+      return endTime > now;
+    })
+    .map((booking) => ({
+      id: booking.id,
+      scheduled_at: booking.scheduled_at,
+      duration_minutes: booking.duration_minutes,
+      status: booking.status,
+      notes: booking.notes ?? null,
+      meeting_url: booking.meeting_url,
+      meeting_provider: booking.meeting_provider,
+      tutor: tutorMap.get(booking.tutor_id) || {
+        id: booking.tutor_id,
+        username: "",
+        full_name: null,
+        avatar_url: null,
+        tier: null,
+      },
+      service: serviceMap.get(booking.service_id) || {
+        id: booking.service_id,
+        name: "Unknown Service",
+      },
+    }));
 
   return { bookings: result };
 }

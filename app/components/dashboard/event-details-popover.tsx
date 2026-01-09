@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 import {
   X,
   User,
@@ -14,11 +13,13 @@ import {
   Trash2,
   CheckCircle,
 } from "lucide-react";
+import Link from "next/link";
 import type { CalendarEvent } from "@/lib/types/calendar";
 import { CALENDAR_COLORS } from "@/lib/types/calendar";
 import { format } from "date-fns";
 import { markBookingAsPaid, cancelBooking } from "@/lib/actions/bookings";
 import { updateBookingDuration } from "@/lib/actions/booking-duration";
+import { QuickMessageDialog } from "./quick-message-dialog";
 
 type EventDetailsPopoverProps = {
   event: CalendarEvent;
@@ -46,6 +47,7 @@ export function EventDetailsPopover({
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -369,13 +371,13 @@ export function EventDetailsPopover({
 
             {/* Send message */}
             {event.studentId && (
-              <Link
-                href={`/messages?student=${event.studentId}`}
+              <button
+                onClick={() => setIsMessageDialogOpen(true)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
                 <MessageSquare className="h-4 w-4" />
                 Send Message
-              </Link>
+              </button>
             )}
 
             {/* Cancel */}
@@ -412,6 +414,16 @@ export function EventDetailsPopover({
           </>
         )}
       </div>
+
+      {/* Quick Message Dialog */}
+      {event.studentId && event.studentName && (
+        <QuickMessageDialog
+          isOpen={isMessageDialogOpen}
+          onClose={() => setIsMessageDialogOpen(false)}
+          studentId={event.studentId}
+          studentName={event.studentName}
+        />
+      )}
     </div>
   );
 }

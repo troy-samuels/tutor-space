@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Clock, MessageSquare, Calendar, Video, User } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import type { DailyLesson } from "@/lib/actions/types";
+import { QuickMessageDialog } from "./quick-message-dialog";
 
 type StudentLessonCardProps = {
   lesson: DailyLesson;
@@ -18,6 +20,8 @@ function getInitials(name: string): string {
 }
 
 export function StudentLessonCard({ lesson, onReschedule }: StudentLessonCardProps) {
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+
   const time = format(new Date(lesson.scheduled_at), "h:mm a");
   const hasPending = lesson.status === "pending";
   const isUnpaid = lesson.payment_status === "unpaid";
@@ -64,14 +68,14 @@ export function StudentLessonCard({ lesson, onReschedule }: StudentLessonCardPro
       {/* Quick Actions */}
       <div className="mt-4 flex items-center gap-2">
         {lesson.student && (
-          <Link
-            href={`/messages?student=${lesson.student.id}`}
+          <button
+            onClick={() => setIsMessageDialogOpen(true)}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/50 text-foreground transition hover:bg-secondary"
             title="Message student"
             aria-label="Message student"
           >
             <MessageSquare className="h-4 w-4" />
-          </Link>
+          </button>
         )}
 
         {onReschedule && lesson.status !== "completed" && (
@@ -109,6 +113,16 @@ export function StudentLessonCard({ lesson, onReschedule }: StudentLessonCardPro
           </a>
         )}
       </div>
+
+      {/* Quick Message Dialog */}
+      {lesson.student && (
+        <QuickMessageDialog
+          isOpen={isMessageDialogOpen}
+          onClose={() => setIsMessageDialogOpen(false)}
+          studentId={lesson.student.id}
+          studentName={lesson.student.full_name}
+        />
+      )}
     </div>
   );
 }
