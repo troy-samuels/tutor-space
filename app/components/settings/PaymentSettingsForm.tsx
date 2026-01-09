@@ -48,73 +48,56 @@ export default function PaymentSettingsForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="bg-white border border-stone-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Payment Settings</h2>
-        <p className="text-sm text-gray-600 mb-6">
-          Stripe Connect is required to accept payments.
+    <form onSubmit={handleSubmit} className="py-4 space-y-4">
+      {/* Booking Currency */}
+      <div>
+        <label
+          htmlFor="booking_currency"
+          className="block text-sm font-medium mb-1.5"
+        >
+          Booking Currency
+        </label>
+        <select
+          id="booking_currency"
+          value={formData.booking_currency}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              booking_currency: e.target.value,
+            })
+          }
+          className="w-full max-w-xs px-3 py-2 text-sm border border-stone-200 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+        >
+          <option value="USD">USD — $</option>
+          <option value="EUR">EUR — €</option>
+          <option value="GBP">GBP — £</option>
+          <option value="CAD">CAD — $</option>
+          <option value="AUD">AUD — $</option>
+        </select>
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Used for invoices and checkout.
         </p>
-
-        <div className="space-y-6">
-          {/* Booking Currency */}
-          <div>
-            <label
-              htmlFor="booking_currency"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Booking Currency
-            </label>
-            <select
-              id="booking_currency"
-              value={formData.booking_currency}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  booking_currency: e.target.value,
-                })
-              }
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-            >
-              <option value="USD">USD — $ (United States)</option>
-              <option value="EUR">EUR — € (Eurozone)</option>
-              <option value="GBP">GBP — £ (United Kingdom)</option>
-              <option value="CAD">CAD — $ (Canada)</option>
-              <option value="AUD">AUD — $ (Australia)</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              This currency will be shown on invoices and booking checkout flows.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Success/Error Message */}
       {message && (
-        <div
-          className={`rounded-lg p-4 ${
-            message.type === "success"
-              ? "bg-green-50 border border-green-200"
-              : "bg-red-50 border border-red-200"
+        <p
+          className={`text-sm ${
+            message.type === "success" ? "text-emerald-600" : "text-red-600"
           }`}
         >
-          <p
-            className={`text-sm ${
-              message.type === "success" ? "text-green-800" : "text-red-800"
-            }`}
-          >
-            {message.text}
-          </p>
-        </div>
+          {message.text}
+        </p>
       )}
 
       {/* Submit Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-start pt-2">
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 disabled:bg-primary/40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-sm bg-primary text-white rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isPending ? "Saving..." : "Save Payment Settings"}
+          {isPending ? "Saving..." : "Save"}
         </button>
       </div>
     </form>

@@ -98,48 +98,66 @@ export default function StripeConnectPanel(props: Props) {
   const connected = Boolean(status.accountId);
   const ready = connected && status.chargesEnabled && status.payoutsEnabled && status.onboardingStatus === "completed";
 
+  // Single status label for cleaner UI
+  const statusLabel = ready
+    ? "Connected"
+    : connected
+    ? "Setup incomplete"
+    : "Not connected";
+
   return (
-    <div className="rounded-lg border border-stone-200 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Stripe Connect</h3>
-        <div className="flex gap-2">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${ready ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-700"}`}>
-            {ready ? "Ready" : connected ? "Pending" : "Not connected"}
-          </span>
-          {connected && (
-            <>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${status.chargesEnabled ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-700"}`}>
-                Charges {status.chargesEnabled ? "enabled" : "pending"}
-              </span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${status.payoutsEnabled ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-700"}`}>
-                Payouts {status.payoutsEnabled ? "enabled" : "pending"}
-              </span>
-            </>
-          )}
+    <div className="py-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-medium">Stripe Connect</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Accept card payments directly
+          </p>
         </div>
+        <span
+          className={`text-xs font-medium ${
+            ready ? "text-emerald-600" : "text-muted-foreground"
+          }`}
+        >
+          {statusLabel}
+        </span>
       </div>
-      <p className="text-sm text-muted-foreground mb-4">
-        Connect your Stripe account to accept card payments. You can still add a Stripe Payment Link as a fallback.
-      </p>
+
       <div className="flex flex-wrap gap-2">
         {!connected && (
-          <button className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-white hover:bg-primary/90" onClick={connectStripe} disabled={busy}>
+          <button
+            className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm text-white hover:bg-primary/90 disabled:opacity-50"
+            onClick={connectStripe}
+            disabled={busy}
+          >
             Connect Stripe
           </button>
         )}
         {connected && !ready && (
-          <button className="inline-flex h-9 items-center rounded-md border px-3 hover:bg-muted" onClick={() => openOnboarding()} disabled={busy}>
-            Continue onboarding
+          <button
+            className="inline-flex h-9 items-center rounded-md border border-stone-200 px-4 text-sm hover:bg-muted disabled:opacity-50"
+            onClick={() => openOnboarding()}
+            disabled={busy}
+          >
+            Continue setup
           </button>
         )}
         {connected && (
-          <button className="inline-flex h-9 items-center rounded-md border px-3 hover:bg-muted" onClick={openDashboard} disabled={busy}>
-            Open Stripe Dashboard
+          <button
+            className="inline-flex h-9 items-center rounded-md border border-stone-200 px-4 text-sm hover:bg-muted disabled:opacity-50"
+            onClick={openDashboard}
+            disabled={busy}
+          >
+            Dashboard
           </button>
         )}
-        {connected && (
-          <button className="inline-flex h-9 items-center rounded-md border px-3 hover:bg-muted" onClick={refreshStatus} disabled={busy}>
-            Refresh status
+        {connected && !ready && (
+          <button
+            className="inline-flex h-9 items-center rounded-md border border-stone-200 px-4 text-sm hover:bg-muted disabled:opacity-50"
+            onClick={refreshStatus}
+            disabled={busy}
+          >
+            Refresh
           </button>
         )}
       </div>

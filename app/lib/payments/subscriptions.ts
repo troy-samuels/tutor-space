@@ -228,3 +228,177 @@ export function hasFeatureAccess(
 	// Pro tier
 	return (PLAN_FEATURES.pro as readonly string[]).includes(feature);
 }
+
+// ============================================================================
+// Plan Transition Types & Helpers
+// ============================================================================
+
+export type TransitionStrategy =
+	| "new_subscription"
+	| "update_subscription"
+	| "one_time_payment"
+	| "cancel";
+
+export type ProrationBehavior = "create_prorations" | "none" | "always_invoice";
+
+export type EffectiveAt = "immediate" | "period_end";
+
+export interface PlanTransition {
+	fromPlan: PlatformBillingPlan;
+	toPlan: PlatformBillingPlan;
+	strategy: TransitionStrategy;
+	proration: ProrationBehavior;
+	effectiveAt: EffectiveAt;
+	isUpgrade: boolean;
+}
+
+/** Lifetime plans that don't have recurring subscriptions */
+const LIFETIME_PLANS: PlatformBillingPlan[] = ["tutor_life", "studio_life", "founder_lifetime"];
+
+/**
+ * Determines the transition strategy for changing from one plan to another.
+ * Used by both the checkout-agent and UI to show appropriate messaging.
+ */
+export function getPlanTransition(
+	fromPlan: PlatformBillingPlan,
+	toPlan: PlatformBillingPlan
+): PlanTransition {
+	const isUpgrade = isPlanUpgrade(fromPlan, toPlan);
+
+	// Same plan - no change needed
+	if (fromPlan === toPlan) {
+		return {
+			fromPlan,
+			toPlan,
+			strategy: "update_subscription",
+			proration: "none",
+			effectiveAt: "immediate",
+			isUpgrade: false,
+		};
+	}
+
+	// To lifetime - always one-time payment
+	if (LIFETIME_PLANS.includes(toPlan)) {
+		return {
+			fromPlan,
+			toPlan,
+			strategy: "one_time_payment",
+			proration: "none",
+			effectiveAt: "immediate",
+			isUpgrade: true,
+		};
+	}
+
+	// To free tier - cancel subscription
+	if (toPlan === "professional") {
+		return {
+			fromPlan,
+			toPlan,
+			strategy: "cancel",
+			proration: "none",
+			effectiveAt: "period_end",
+			isUpgrade: false,
+		};
+	}
+
+	// From free tier - new subscription
+	if (fromPlan === "professional") {
+		return {
+			fromPlan,
+			toPlan,
+			strategy: "new_subscription",
+			proration: "none",
+			effectiveAt: "immediate",
+			isUpgrade: true,
+		};
+	}
+
+	// From lifetime - new subscription (lifetime doesn't have active sub to update)
+	if (LIFETIME_PLANS.includes(fromPlan)) {
+		return {
+			fromPlan,
+			toPlan,
+			strategy: "new_subscription",
+			proration: "none",
+			effectiveAt: "immediate",
+			isUpgrade: false,
+		};
+	}
+
+	// Subscription to subscription changes
+	if (isUpgrade) {
+		// Upgrade: Pro → Studio OR monthly → annual (same tier)
+		return {
+			fromPlan,
+			toPlan,
+			strategy: "update_subscription",
+			proration: "create_prorations",
+			effectiveAt: "immediate",
+			isUpgrade: true,
+		};
+	}
+
+	// Downgrade: Studio → Pro OR annual → monthly (same tier)
+	return {
+		fromPlan,
+		toPlan,
+		strategy: "update_subscription",
+		proration: "none",
+		effectiveAt: "period_end",
+		isUpgrade: false,
+	};
+}
+
+/**
+ * Determines if changing from one plan to another is an upgrade (user pays more).
+ */
+export function isPlanUpgrade(
+	fromPlan: PlatformBillingPlan,
+	toPlan: PlatformBillingPlan
+): boolean {
+	const fromTier = getPlanTier(fromPlan);
+	const toTier = getPlanTier(toPlan);
+
+	// Free to any paid is an upgrade
+	if (fromTier === "free" && toTier !== "free") return true;
+
+	// Studio is higher tier than Pro
+	if (fromTier === "pro" && toTier === "studio") return true;
+
+	// Same tier but going to annual (higher value)
+	if (fromTier === toTier && fromTier !== "free") {
+		const monthlyPlans: PlatformBillingPlan[] = ["pro_monthly", "studio_monthly"];
+		const annualPlans: PlatformBillingPlan[] = ["pro_annual", "studio_annual"];
+		if (monthlyPlans.includes(fromPlan) && annualPlans.includes(toPlan)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Gets human-readable description of a plan transition.
+ */
+export function getPlanTransitionDescription(transition: PlanTransition): string {
+	const { fromPlan, toPlan, strategy, effectiveAt } = transition;
+
+	if (strategy === "new_subscription") {
+		return `Start a new ${getPlanDisplayName(toPlan)} subscription`;
+	}
+
+	if (strategy === "one_time_payment") {
+		return `Purchase ${getPlanDisplayName(toPlan)} (one-time payment)`;
+	}
+
+	if (strategy === "cancel") {
+		return "Cancel subscription at end of billing period";
+	}
+
+	// update_subscription
+	if (effectiveAt === "immediate") {
+		return `Upgrade to ${getPlanDisplayName(toPlan)} immediately (prorated)`;
+	}
+
+	return `Switch to ${getPlanDisplayName(toPlan)} at end of billing period`;
+}

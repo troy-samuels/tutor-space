@@ -450,27 +450,38 @@ async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
   supabase: ServiceRoleClient
 ) {
-  // Pro lifetime purchase (one-time)
-  const lifetimePlan = "tutor_life";
-  const legacyLifetimePlan = "founder_lifetime";
-  const isLifetime =
-    session.metadata?.plan === lifetimePlan || session.metadata?.plan === legacyLifetimePlan;
+  // Lifetime plans (one-time purchases)
+  const LIFETIME_PLANS = ["tutor_life", "studio_life", "founder_lifetime"];
+  const sessionPlan = session.metadata?.plan;
+  const isLifetime = sessionPlan && LIFETIME_PLANS.includes(sessionPlan);
   const profileIdFromMetadata = session.metadata?.userId;
+  const cancelSubscriptionId = session.metadata?.cancelSubscriptionId;
 
   if (isLifetime && profileIdFromMetadata) {
-    const planToApply = (session.metadata?.plan ?? lifetimePlan) as string;
+    const planToApply = sessionPlan as string;
     const tierToApply = getPlanDbTier(planToApply as any);
+
+    // Get current plan for history
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", profileIdFromMetadata)
+      .single();
+    const previousPlan = currentProfile?.plan || "professional";
+
+    // Update profile with lifetime plan
     const { error } = await supabase
       .from("profiles")
       .update({
         plan: planToApply,
         tier: tierToApply,
+        subscription_status: "lifetime",
         updated_at: new Date().toISOString(),
       })
       .eq("id", profileIdFromMetadata);
 
     if (error) {
-      console.error("Failed to mark founder lifetime purchase:", error);
+      console.error("Failed to apply lifetime purchase:", error);
       throw error;
     }
 
@@ -493,6 +504,7 @@ async function handleCheckoutSessionCompleted(
       }
     }
 
+
     console.log(`✅ Lifetime purchased for profile ${profileIdFromMetadata} (${planToApply})`);
     return;
   }
@@ -502,24 +514,27 @@ async function handleCheckoutSessionCompleted(
   if (isLifetime && !profileIdFromMetadata) {
     const customerEmail = session.customer_email || session.metadata?.customer_email;
     const acquisitionSource = session.metadata?.source || "unknown";
+    const planToApply = sessionPlan as string;
 
     if (customerEmail) {
       // First check if a profile with this email already exists
       const { data: existingProfile } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, plan")
         .eq("email", customerEmail.toLowerCase())
         .single();
 
       if (existingProfile) {
         // Update existing profile
-        const planToApply = (session.metadata?.plan ?? lifetimePlan) as string;
         const tierToApply = getPlanDbTier(planToApply as any);
+        const previousPlan = existingProfile.plan || "professional";
+
         const { error } = await supabase
           .from("profiles")
           .update({
             plan: planToApply,
             tier: tierToApply,
+            subscription_status: "lifetime",
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingProfile.id);
@@ -528,6 +543,16 @@ async function handleCheckoutSessionCompleted(
           console.error("Failed to update lifetime purchase for existing profile:", error);
           throw error;
         }
+
+        // Record plan change history
+        await supabase.from("plan_change_history").insert({
+          tutor_id: existingProfile.id,
+          previous_plan: previousPlan,
+          new_plan: planToApply,
+          change_type: "lifetime_purchase",
+          checkout_session_id: session.id,
+        });
+
         console.log(
           `✅ Lifetime purchased for existing profile ${existingProfile.id} (${planToApply}) (source: ${acquisitionSource})`
         );
@@ -541,6 +566,7 @@ async function handleCheckoutSessionCompleted(
             stripe_customer_id: session.customer as string,
             amount_paid: session.amount_total,
             currency: session.currency,
+            plan: planToApply, // Store which lifetime plan was purchased
             source: acquisitionSource,
             purchased_at: new Date().toISOString(),
             claimed: false,
@@ -552,7 +578,7 @@ async function handleCheckoutSessionCompleted(
           console.error("Failed to store lifetime purchase:", error);
           // Don't throw - the payment succeeded, we just couldn't store it
         }
-        console.log(`✅ Lifetime purchase stored for ${customerEmail} (source: ${acquisitionSource})`);
+        console.log(`✅ Lifetime purchase stored for ${customerEmail} (${planToApply}) (source: ${acquisitionSource})`);
       }
     }
     return;
@@ -1086,6 +1112,14 @@ async function handleSubscriptionUpdate(
     throw upsertError;
   }
 
+  // Get previous plan for history
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", profile.id)
+    .single();
+  const previousPlan = currentProfile?.plan || "professional";
+
   // Update profile plan and tier
   const tier = getPlanDbTier(plan); // Maps to DB enum: 'standard' | 'studio'
   const { error: updateError } = await supabase
@@ -1096,6 +1130,17 @@ async function handleSubscriptionUpdate(
   if (updateError) {
     console.error("Failed to update profile plan:", updateError);
     throw updateError;
+  }
+
+  // Record plan change if plan actually changed
+  if (previousPlan !== plan) {
+    await supabase.from("plan_change_history").insert({
+      tutor_id: profile.id,
+      previous_plan: previousPlan,
+      new_plan: plan,
+      change_type: "subscription",
+      stripe_event_id: subscription.id,
+    });
   }
 
   console.log(`✅ Subscription updated for profile ${profile.id}: ${plan} (tier: ${tier})`);
@@ -1150,7 +1195,8 @@ async function handleSubscriptionDeleted(
   }
 
   // Lifetime access should never be downgraded by subscription cancellation.
-  if (profile.plan === "tutor_life" || profile.plan === "founder_lifetime") {
+  const LIFETIME_PLANS = ["tutor_life", "studio_life", "founder_lifetime"];
+  if (LIFETIME_PLANS.includes(profile.plan)) {
     // Ensure tier is consistent with the preserved plan (e.g., prevent lingering Studio tier from prior subscriptions).
     const { error: tierError } = await supabase
       .from("profiles")
@@ -1174,6 +1220,15 @@ async function handleSubscriptionDeleted(
     console.error("Failed to downgrade profile:", updateError);
     throw updateError;
   }
+
+  // Record plan change history
+  await supabase.from("plan_change_history").insert({
+    tutor_id: profile.id,
+    previous_plan: profile.plan,
+    new_plan: fallbackPlan,
+    change_type: "cancellation",
+    stripe_event_id: subscription.id,
+  });
 
   console.log(`✅ Subscription canceled for profile ${profile.id}, plan set to ${fallbackPlan}, tier reset to standard`);
 }
