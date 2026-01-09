@@ -725,14 +725,14 @@ npm run storybook     # View component stories at localhost:6006
 ## Deployment
 
 ### Vercel Configuration
-1. Deploy from the repo root (recommended); root `vercel.json` builds the `app` subdir. If your project is already linked with **Root Directory** = `app`, you can keep that instead.
+1. Set **Root Directory** to `app` in Project Settings (or during `vercel link`)
 2. Set **Framework Preset** to `Next.js` (not "Other")
 3. Add production environment variables from `app/.env.example`
 4. Keep secrets server-side only (`OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `CRON_SECRET`, `ADMIN_SESSION_SECRET`)
-5. Vercel CLI: run `vercel link` from repo root, then `vercel deploy --prod` (if prompted for a root directory, choose repo root or `app` to match your setup)
+5. Vercel CLI: run `vercel link` from repo root, confirm root directory = `app`, then `vercel deploy --prod`
 
 ### Cron Jobs
-Cron schedules live in `vercel.json` at the repo root (adjust as needed). If deploying with Root Directory = `app`, keep `app/vercel.json` in sync. If using an external scheduler, include `Authorization: Bearer $CRON_SECRET`.
+Cron schedules live in `app/vercel.json` (adjust as needed). If using an external scheduler, include `Authorization: Bearer $CRON_SECRET`.
 - `/api/cron/send-reminders` - Lesson reminders (hourly)
 - `/api/cron/calendar-sync` - Calendar sync (every 30 min)
 - `/api/cron/lesson-analysis` - Recording analysis (hourly)
