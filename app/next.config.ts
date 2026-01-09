@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
   // outputFileTracingRoot: path.resolve(process.cwd(), ".."),
   // Remove X-Powered-By header (security best practice)
   poweredByHeader: false,
+  // Exclude packages with test files that break Turbopack bundling
+  serverExternalPackages: ["thread-stream", "pino", "pino-pretty"],
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
