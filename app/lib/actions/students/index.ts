@@ -13,32 +13,32 @@ export type {
 	StudentImportResult,
 	EnsureStudentInput,
 	EnsureStudentResult,
-} from "./types.ts";
+} from "./types";
 
 export {
 	MAX_IMPORT_ROWS,
 	STUDENT_STATUS_MAP,
 	EMAIL_REGEX,
 	studentImportSchema,
-} from "./types.ts";
+} from "./types";
 
 // Helpers (async server actions)
-export { requireTutor } from "./helpers.ts";
+export { requireTutor } from "./helpers";
 
 // Utilities (sync functions)
-export { normalizeStatus } from "./utils.ts";
+export { normalizeStatus } from "./utils";
 
 // Create Operations
-export { ensureStudent } from "./create.ts";
+export { ensureStudent } from "./create";
 
 // Query Operations
-export { listStudents, getPendingAccessRequestsCount } from "./queries.ts";
+export { listStudents, getPendingAccessRequestsCount } from "./queries";
 
 // Update Operations
-export { updateStudentLabels } from "./update.ts";
+export { updateStudentLabels } from "./update";
 
 // Delete Operations
-export { deleteStudent } from "./delete.ts";
+export { deleteStudent } from "./delete";
 
 // Access Control Operations
 export {
@@ -47,10 +47,10 @@ export {
 	denyStudentAccess,
 	suspendStudentAccess,
 	reactivateStudentAccess,
-} from "./access.ts";
+} from "./access";
 
 // Import Operations
-export { importStudentsBatch } from "./import.ts";
+export { importStudentsBatch } from "./import";
 
 // Email Operations
-export { sendQuickInviteEmail } from "./email.ts";
+export { sendQuickInviteEmail } from "./email";

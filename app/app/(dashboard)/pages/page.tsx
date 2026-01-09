@@ -82,7 +82,7 @@ export default async function PagesBuilder() {
   const storedHeadline = siteRow?.config?.hero?.customHeadline;
   const shouldSeedHeadline =
     typeof storedHeadline !== "string" ||
-    storedHeadline.trim() === DEFAULT_SITE_CONFIG.hero.customHeadline.trim();
+    storedHeadline.trim() === DEFAULT_SITE_CONFIG.hero.customHeadline?.trim();
   const shouldSeedBio = typeof siteRow?.config?.bio !== "string";
   const seededConfig: SiteConfig = {
     ...initialConfig,

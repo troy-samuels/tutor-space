@@ -12,7 +12,7 @@ import {
 	createRequestLogger,
 	logStep,
 } from "@/lib/logger";
-import { requireTutor } from "./helpers.ts";
+import { requireTutor } from "./helpers";
 
 // ============================================================================
 // List Students

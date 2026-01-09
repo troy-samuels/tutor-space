@@ -15,7 +15,7 @@
 // ============================================================================
 
 // Re-export everything from the modular structure
-export * from "./students/index.ts";
+export * from "./students/index";
 
 // Legacy type export for direct usage (deprecated - use StudentRecord from types)
-export type { StudentRecord } from "./students/types.ts";
+export type { StudentRecord } from "./students/types";
