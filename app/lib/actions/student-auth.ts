@@ -516,6 +516,45 @@ export async function studentSignup(params: {
     }
   }
 
+  // Link any existing student records to this new auth user
+  // This handles the case where a tutor already added this student (by email)
+  // before they created their account
+  if (adminClient && createdUserId) {
+    try {
+      // Find students with matching email that aren't linked yet
+      const { data: existingStudents } = await adminClient
+        .from("students")
+        .select("id, tutor_id")
+        .eq("email", email)
+        .is("user_id", null);
+
+      if (existingStudents && existingStudents.length > 0) {
+        // Link each student record to the new auth user
+        await adminClient
+          .from("students")
+          .update({
+            user_id: createdUserId,
+            calendar_access_status: "approved",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("email", email)
+          .is("user_id", null);
+
+        // Create conversation threads for each tutor relationship
+        for (const student of existingStudents) {
+          await upsertThread(
+            adminClient,
+            { tutorId: student.tutor_id, studentId: student.id },
+            { ignoreDuplicates: true }
+          );
+        }
+      }
+    } catch (linkError) {
+      console.error("Failed to link existing student records:", linkError);
+      // Non-fatal - continue with signup
+    }
+  }
+
   return { success: true };
 }
 

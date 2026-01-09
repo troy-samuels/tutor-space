@@ -480,7 +480,7 @@ export async function getStudentMessagingContext(
       // Table doesn't exist, return empty connections
       const { data: studentRecords } = await client
         .from("students")
-        .select("id, tutor_id, full_name, connection_status")
+        .select("id, tutor_id, full_name, connection_status:calendar_access_status")
         .eq("user_id", userId)
         .is("deleted_at", null);
 
@@ -498,9 +498,10 @@ export async function getStudentMessagingContext(
     }
 
     // Query 2: Get existing students records
+    // Note: calendar_access_status is aliased as connection_status for consistency with page logic
     const { data: studentRecords, error: studentsError } = await client
       .from("students")
-      .select("id, tutor_id, full_name, connection_status")
+      .select("id, tutor_id, full_name, connection_status:calendar_access_status")
       .eq("user_id", userId)
       .is("deleted_at", null);
 
