@@ -15,7 +15,8 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatInTimeZone } from "date-fns-tz";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getStudentMonthlyLessonCounts, type DayLessonInfo } from "@/lib/actions/student-schedule";
 import { PACKAGE_COLORS, type PackageType } from "@/lib/types/calendar";
 
@@ -23,9 +24,11 @@ type StudentMonthCalendarProps = {
   selectedDate?: Date | null;
   onDateSelect?: (date: Date) => void;
   tutorId?: string;
+  studentTimezone?: string;
 };
 
-const formatKey = (date: Date) => format(date, "yyyy-MM-dd");
+const formatKey = (date: Date, timezone?: string) =>
+  timezone ? formatInTimeZone(date, timezone, "yyyy-MM-dd") : format(date, "yyyy-MM-dd");
 
 // Get up to 3 dot colors for a day based on package types
 function getDotColors(packageTypes: PackageType[], selected: boolean): string[] {
@@ -52,6 +55,7 @@ export function StudentMonthCalendar({
   selectedDate: controlledSelectedDate,
   onDateSelect,
   tutorId,
+  studentTimezone,
 }: StudentMonthCalendarProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(today));
@@ -70,7 +74,8 @@ export function StudentMonthCalendar({
       const response = await getStudentMonthlyLessonCounts(
         currentMonth.getFullYear(),
         currentMonth.getMonth() + 1, // month is 1-indexed in our action
-        tutorId
+        tutorId,
+        studentTimezone
       );
       if (mounted) {
         setLessonsByDay(response.counts);
@@ -81,7 +86,7 @@ export function StudentMonthCalendar({
     return () => {
       mounted = false;
     };
-  }, [currentMonth, tutorId]);
+  }, [currentMonth, studentTimezone, tutorId]);
 
   // Sync controlled date with internal state
   useEffect(() => {
@@ -122,28 +127,26 @@ export function StudentMonthCalendar({
   return (
     <section className="flex-1 flex flex-col min-h-0 rounded-3xl border border-border bg-background/70 p-0 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5 text-primary" />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">My Schedule</p>
-            <p className="text-lg font-semibold">{format(currentMonth, "MMMM yyyy")}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-5 py-6 sm:px-6">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          {format(currentMonth, "MMMM yyyy")}
+        </h2>
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={handlePrev}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground transition hover:bg-muted"
+            aria-label="Previous month"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             type="button"
             onClick={handleNext}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm text-foreground transition hover:bg-muted"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground transition hover:bg-muted"
+            aria-label="Next month"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -171,7 +174,7 @@ export function StudentMonthCalendar({
         {/* Date Grid */}
         <div className={`flex-1 grid grid-cols-7 auto-rows-fr min-h-0 ${isLoading ? "opacity-50" : ""}`}>
           {gridDates.map((date) => {
-            const key = formatKey(date);
+            const key = formatKey(date, studentTimezone);
             const dayInfo = lessonsByDay[key];
             const lessonCount = dayInfo?.count || 0;
             const packageTypes = dayInfo?.packageTypes || [];

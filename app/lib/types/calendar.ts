@@ -33,6 +33,8 @@ export type CalendarEvent = {
   durationMinutes?: number;
   // Package type for color-coding (NEW)
   packageType?: PackageType;
+  // Short code for memorable classroom URLs (e.g., fluent-parrot-42)
+  shortCode?: string;
 };
 
 // Color configuration for different event types

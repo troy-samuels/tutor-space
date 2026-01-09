@@ -544,6 +544,48 @@ export async function updateBookingMeetingUrl(
 }
 
 /**
+ * Update booking with short code for memorable classroom URLs.
+ */
+export async function updateBookingShortCode(
+	client: SupabaseClient,
+	bookingId: string,
+	shortCode: string
+): Promise<void> {
+	const { error } = await client
+		.from("bookings")
+		.update({ short_code: shortCode })
+		.eq("id", bookingId);
+
+	if (error) {
+		throw error;
+	}
+}
+
+/**
+ * Get booking by short code for redirect routing.
+ */
+export async function getBookingByShortCode(
+	client: SupabaseClient,
+	shortCode: string
+): Promise<{ id: string; tutor_id: string } | null> {
+	const { data, error } = await client
+		.from("bookings")
+		.select("id, tutor_id")
+		.eq("short_code", shortCode)
+		.is("deleted_at", null)
+		.single();
+
+	if (error) {
+		if (error.code === "PGRST116") {
+			return null; // Not found
+		}
+		throw error;
+	}
+
+	return data as { id: string; tutor_id: string };
+}
+
+/**
  * Update booking payment status and mark as paid.
  */
 export async function markBookingPaid(

@@ -1,6 +1,7 @@
 "use client";
 
 import { format, isPast, differenceInMinutes } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { Video, ExternalLink, Clock, User, CheckCircle, Circle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,6 +11,7 @@ import type { StudentScheduleEvent } from "@/lib/actions/student-schedule";
 type StudentLessonBlockProps = {
   lesson: StudentScheduleEvent;
   compact?: boolean;
+  studentTimezone?: string;
 };
 
 function getProviderName(provider: string | null | undefined): string {
@@ -81,12 +83,34 @@ function getLessonStatus(
   };
 }
 
-export function StudentLessonBlock({ lesson, compact = false }: StudentLessonBlockProps) {
+function formatLessonTime(date: Date, timezone?: string, includeZone = false): string {
+  if (!timezone) return format(date, "h:mm a");
+  try {
+    return formatInTimeZone(date, timezone, includeZone ? "h:mm a zzz" : "h:mm a");
+  } catch (error) {
+    console.warn("[StudentSchedule] Invalid timezone for time formatting", error);
+    return format(date, "h:mm a");
+  }
+}
+
+export function StudentLessonBlock({
+  lesson,
+  compact = false,
+  studentTimezone,
+}: StudentLessonBlockProps) {
   const startTime = new Date(lesson.start);
   const isLessonPast = isPast(new Date(lesson.end));
   const isJoinable = canJoinLesson(startTime, lesson.durationMinutes || 60);
   const status = getLessonStatus(startTime, lesson.durationMinutes || 60, lesson.bookingStatus);
   const packageColors = PACKAGE_COLORS[lesson.packageType || "one_off"];
+  const resolvedStudentTimezone =
+    studentTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const tutorTimezone = lesson.tutorTimezone || null;
+  const showTutorTime = !!tutorTimezone && tutorTimezone !== resolvedStudentTimezone;
+  const studentTimeLabel = formatLessonTime(startTime, resolvedStudentTimezone);
+  const tutorTimeLabel = showTutorTime
+    ? formatLessonTime(startTime, tutorTimezone, true)
+    : null;
 
   if (compact) {
     return (
@@ -95,7 +119,7 @@ export function StudentLessonBlock({ lesson, compact = false }: StudentLessonBlo
       >
         {/* Time */}
         <div className="text-sm font-medium text-foreground min-w-[60px]">
-          {format(startTime, "h:mm a")}
+          {studentTimeLabel}
         </div>
 
         {/* Lesson Info */}
@@ -123,7 +147,7 @@ export function StudentLessonBlock({ lesson, compact = false }: StudentLessonBlo
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold">
-            {format(startTime, "h:mm a")}
+            {studentTimeLabel}
           </span>
           <span className="text-xs text-muted-foreground">
             ({lesson.durationMinutes} min)
@@ -134,6 +158,12 @@ export function StudentLessonBlock({ lesson, compact = false }: StudentLessonBlo
           {status.label}
         </span>
       </div>
+
+      {tutorTimeLabel && (
+        <div className="mb-3 text-xs text-muted-foreground">
+          Tutor time: {tutorTimeLabel}
+        </div>
+      )}
 
       {/* Lesson Title */}
       <h4 className="font-semibold text-foreground mb-2">{lesson.title}</h4>

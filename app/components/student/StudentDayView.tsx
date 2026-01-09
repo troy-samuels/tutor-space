@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { CalendarDays, Plus, Loader2 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import Link from "next/link";
@@ -11,7 +12,9 @@ import { StudentLessonBlock } from "./StudentLessonBlock";
 type StudentDayViewProps = {
   date: Date | null;
   tutorId?: string;
+  studentTimezone?: string;
   onClose?: () => void;
+  hideHeader?: boolean;
 };
 
 // Animation variants
@@ -54,7 +57,7 @@ function formatDateHeader(date: Date): string {
   return format(date, "EEEE, MMMM d");
 }
 
-export function StudentDayView({ date, tutorId, onClose }: StudentDayViewProps) {
+export function StudentDayView({ date, tutorId, studentTimezone, onClose, hideHeader }: StudentDayViewProps) {
   const [lessons, setLessons] = useState<StudentScheduleEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,10 +71,10 @@ export function StudentDayView({ date, tutorId, onClose }: StudentDayViewProps) 
       setIsLoading(true);
       setError(null);
 
-      const result = await getStudentDayLessons(
-        format(currentDate, "yyyy-MM-dd"),
-        tutorId
-      );
+      const dateKey = studentTimezone
+        ? formatInTimeZone(currentDate, studentTimezone, "yyyy-MM-dd")
+        : format(currentDate, "yyyy-MM-dd");
+      const result = await getStudentDayLessons(dateKey, tutorId, studentTimezone);
 
       if (mounted) {
         if (result.error) {
@@ -87,7 +90,7 @@ export function StudentDayView({ date, tutorId, onClose }: StudentDayViewProps) 
     return () => {
       mounted = false;
     };
-  }, [date, tutorId]);
+  }, [date, studentTimezone, tutorId]);
 
   if (!date) {
     return (
@@ -106,18 +109,20 @@ export function StudentDayView({ date, tutorId, onClose }: StudentDayViewProps) 
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm">{formatDateHeader(date)}</h3>
+      {/* Header - hidden when used inside StudentDayPanel */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">{formatDateHeader(date)}</h3>
+          </div>
+          {lessons.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
-        {lessons.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
@@ -164,7 +169,10 @@ export function StudentDayView({ date, tutorId, onClose }: StudentDayViewProps) 
                   <AnimatePresence mode="popLayout">
                     {upcomingLessons.map((lesson) => (
                       <motion.div key={lesson.id} variants={cardVariants} layout>
-                        <StudentLessonBlock lesson={lesson} />
+                        <StudentLessonBlock
+                          lesson={lesson}
+                          studentTimezone={studentTimezone}
+                        />
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -184,7 +192,10 @@ export function StudentDayView({ date, tutorId, onClose }: StudentDayViewProps) 
                   <AnimatePresence mode="popLayout">
                     {pastLessons.map((lesson) => (
                       <motion.div key={lesson.id} variants={cardVariants} layout>
-                        <StudentLessonBlock lesson={lesson} />
+                        <StudentLessonBlock
+                          lesson={lesson}
+                          studentTimezone={studentTimezone}
+                        />
                       </motion.div>
                     ))}
                   </AnimatePresence>

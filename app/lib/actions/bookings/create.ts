@@ -46,6 +46,7 @@ import {
 	insertBookingAtomic,
 	updateBookingMeetingUrl,
 	updateBookingCheckoutSession,
+	updateBookingShortCode,
 	hardDeleteBooking,
 	getBookingWithDetails,
 	getServiceWithTutorProfile,
@@ -58,6 +59,7 @@ import {
 	type CreateBookingInput as RepositoryCreateBookingInput,
 	type FullTutorProfile,
 } from "@/lib/repositories/bookings";
+import { generateUniqueShortCode } from "@/lib/utils/short-code";
 
 // ============================================================================
 // Internal Input Type for createBooking
@@ -209,6 +211,16 @@ export async function createBooking(input: CreateBookingInput) {
 	}
 
 	logStep(log, "createBooking:booking_created", { bookingId: booking.id });
+
+	// Generate and save memorable short code for classroom URL
+	try {
+		const shortCode = await generateUniqueShortCode(adminClient);
+		await updateBookingShortCode(adminClient, booking.id, shortCode);
+		logStep(log, "createBooking:short_code_created", { bookingId: booking.id, shortCode });
+	} catch (shortCodeError) {
+		// Non-blocking - booking still works with full ID
+		logStepError(log, "createBooking:short_code_failed", shortCodeError, { bookingId: booking.id });
+	}
 
 	// Post-insert conflict check (first-come-first-serve) in case of concurrent inserts
 	const postInsertStart = new Date(input.scheduled_at);
@@ -581,6 +593,16 @@ export async function createBookingAndCheckout(params: {
 		}
 
 		logStep(log, "createBookingAndCheckout:booking_created", { bookingId: booking.id });
+
+		// Generate and save memorable short code for classroom URL
+		try {
+			const shortCode = await generateUniqueShortCode(adminClient);
+			await updateBookingShortCode(adminClient, booking.id, shortCode);
+			logStep(log, "createBookingAndCheckout:short_code_created", { bookingId: booking.id, shortCode });
+		} catch (shortCodeError) {
+			// Non-blocking - booking still works with full ID
+			logStepError(log, "createBookingAndCheckout:short_code_failed", shortCodeError, { bookingId: booking.id });
+		}
 
 		let bookingAuditState: Record<string, unknown> | null = null;
 		try {
@@ -1176,6 +1198,16 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 	}
 
 	logStep(log, "createManualBooking:booking_created", { bookingId: booking.id });
+
+	// Generate and save memorable short code for classroom URL
+	try {
+		const shortCode = await generateUniqueShortCode(adminClient);
+		await updateBookingShortCode(adminClient, booking.id, shortCode);
+		logStep(log, "createManualBooking:short_code_created", { bookingId: booking.id, shortCode });
+	} catch (shortCodeError) {
+		// Non-blocking - booking still works with full ID
+		logStepError(log, "createManualBooking:short_code_failed", shortCodeError, { bookingId: booking.id });
+	}
 
 	// Update booking with meeting URL (repository)
 	if (meetingUrl && meetingProvider) {

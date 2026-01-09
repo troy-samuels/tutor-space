@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
 import { startOfMonth, endOfMonth, format, addMinutes } from "date-fns";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 // Map service offer_type to PackageType for color coding
 function mapOfferTypeToPackageType(offerType?: string | null): PackageType {
@@ -24,6 +25,7 @@ export type StudentScheduleEvent = CalendarEvent & {
   tutorId: string;
   tutorName: string;
   tutorAvatar: string | null;
+  tutorTimezone?: string | null;
 };
 
 export type DayLessonInfo = {
@@ -48,12 +50,14 @@ type BookingRecord = {
   tutor_id: string;
   service_id: string | null;
   student_id: string;
+  short_code: string | null;
 };
 
 type TutorProfile = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  timezone: string | null;
 };
 
 type ServiceRecord = {
@@ -112,7 +116,8 @@ export async function getStudentScheduleEvents(options: {
       payment_status,
       tutor_id,
       service_id,
-      student_id
+      student_id,
+      short_code
     `)
     .in("student_id", studentIds)
     .gte("scheduled_at", options.startDate)
@@ -145,7 +150,7 @@ export async function getStudentScheduleEvents(options: {
   const [tutorsResult, servicesResult] = await Promise.all([
     adminClient
       .from("profiles")
-      .select("id, full_name, avatar_url")
+      .select("id, full_name, avatar_url, timezone")
       .in("id", tutorIds),
     serviceIds.length > 0
       ? adminClient
@@ -169,6 +174,13 @@ export async function getStudentScheduleEvents(options: {
     const startDate = new Date(booking.scheduled_at);
     const endDate = addMinutes(startDate, booking.duration_minutes);
 
+    // Use short code URL if available for LiveKit classroom, otherwise use regular meeting URL
+    let meetingUrl = booking.meeting_url || undefined;
+    if (booking.short_code && booking.meeting_url?.includes("/classroom/")) {
+      // Replace full classroom URL with short code URL for better UX
+      meetingUrl = `/c/${booking.short_code}`;
+    }
+
     return {
       id: booking.id,
       title: service?.name || "Lesson",
@@ -179,14 +191,16 @@ export async function getStudentScheduleEvents(options: {
       tutorId: booking.tutor_id,
       tutorName: tutor?.full_name || "Tutor",
       tutorAvatar: tutor?.avatar_url || null,
+      tutorTimezone: tutor?.timezone || null,
       studentId: booking.student_id,
       serviceId: booking.service_id || undefined,
       serviceName: service?.name,
-      meetingUrl: booking.meeting_url || undefined,
+      meetingUrl,
       bookingStatus: booking.status,
       paymentStatus: booking.payment_status || undefined,
       durationMinutes: booking.duration_minutes,
       packageType: mapOfferTypeToPackageType(service?.offer_type),
+      shortCode: booking.short_code || undefined,
     };
   });
 
@@ -200,13 +214,25 @@ export async function getStudentScheduleEvents(options: {
 export async function getStudentMonthlyLessonCounts(
   year: number,
   month: number,
-  tutorId?: string
+  tutorId?: string,
+  timezone?: string
 ): Promise<{
   counts: Record<string, DayLessonInfo>;
   error?: string;
 }> {
-  const startDate = startOfMonth(new Date(year, month - 1));
-  const endDate = endOfMonth(new Date(year, month - 1));
+  const monthStart = startOfMonth(new Date(year, month - 1));
+  const monthEnd = endOfMonth(new Date(year, month - 1));
+  let startDate = monthStart;
+  let endDate = monthEnd;
+
+  if (timezone) {
+    try {
+      startDate = fromZonedTime(monthStart, timezone);
+      endDate = fromZonedTime(monthEnd, timezone);
+    } catch (timezoneError) {
+      console.warn("[StudentSchedule] Invalid timezone for month boundaries", timezoneError);
+    }
+  }
 
   const { events, error } = await getStudentScheduleEvents({
     startDate: startDate.toISOString(),
@@ -222,7 +248,9 @@ export async function getStudentMonthlyLessonCounts(
   const counts: Record<string, DayLessonInfo> = {};
 
   events.forEach((event) => {
-    const dateKey = format(new Date(event.start), "yyyy-MM-dd");
+    const dateKey = timezone
+      ? formatInTimeZone(event.start, timezone, "yyyy-MM-dd")
+      : format(new Date(event.start), "yyyy-MM-dd");
 
     if (!counts[dateKey]) {
       counts[dateKey] = { count: 0, packageTypes: [] };
@@ -243,13 +271,23 @@ export async function getStudentMonthlyLessonCounts(
  */
 export async function getStudentDayLessons(
   date: string,
-  tutorId?: string
+  tutorId?: string,
+  timezone?: string
 ): Promise<{ lessons: StudentScheduleEvent[]; error?: string }> {
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
+  const [year, month, day] = date.split("-").map((value) => Number(value));
+  const dayStartLocal = new Date(year, month - 1, day, 0, 0, 0, 0);
+  const dayEndLocal = new Date(year, month - 1, day, 23, 59, 59, 999);
+  let dayStart = dayStartLocal;
+  let dayEnd = dayEndLocal;
 
-  const dayEnd = new Date(date);
-  dayEnd.setHours(23, 59, 59, 999);
+  if (timezone) {
+    try {
+      dayStart = fromZonedTime(dayStartLocal, timezone);
+      dayEnd = fromZonedTime(dayEndLocal, timezone);
+    } catch (timezoneError) {
+      console.warn("[StudentSchedule] Invalid timezone for day boundaries", timezoneError);
+    }
+  }
 
   const { events, error } = await getStudentScheduleEvents({
     startDate: dayStart.toISOString(),

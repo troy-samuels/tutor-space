@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStudentTutors } from "@/lib/actions/student-schedule";
+import { getStudentPreferences } from "@/lib/actions/student-settings";
 import { StudentScheduleClient } from "./StudentScheduleClient";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function StudentSchedulePage() {
 
   // Get list of tutors this student has bookings with
   const { tutors, error } = await getStudentTutors();
+  const preferences = await getStudentPreferences();
 
   if (error) {
     console.error("Failed to load tutors:", error);
@@ -37,7 +39,10 @@ export default async function StudentSchedulePage() {
       </div>
 
       <div className="flex-1 min-h-0">
-        <StudentScheduleClient tutors={tutors || []} />
+        <StudentScheduleClient
+          tutors={tutors || []}
+          studentTimezone={preferences?.timezone || undefined}
+        />
       </div>
     </div>
   );

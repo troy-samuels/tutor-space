@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
 import { Filter, X } from "lucide-react";
 import { StudentMonthCalendar } from "@/components/student/StudentMonthCalendar";
-import { StudentDayView } from "@/components/student/StudentDayView";
+import { StudentDayPanel } from "@/components/student/StudentDayPanel";
 
 type Tutor = {
   id: string;
@@ -14,28 +13,30 @@ type Tutor = {
 
 type StudentScheduleClientProps = {
   tutors: Tutor[];
+  studentTimezone?: string;
 };
 
-export function StudentScheduleClient({ tutors }: StudentScheduleClientProps) {
+export function StudentScheduleClient({ tutors, studentTimezone }: StudentScheduleClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTutorId, setSelectedTutorId] = useState<string | undefined>(undefined);
-  const [showMobileDayView, setShowMobileDayView] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const resolvedTimezone =
+    studentTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    // On mobile, show the day view when a date is selected
-    setShowMobileDayView(true);
+    setIsPanelOpen(true);
   };
 
   const selectedTutor = tutors.find((t) => t.id === selectedTutorId);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-full min-h-0">
-      {/* Left Column: Calendar + Filter */}
-      <div className="flex-1 flex flex-col gap-4 min-h-0 lg:max-w-md">
+    <div className="flex flex-col gap-6 px-4 sm:px-6 lg:px-8">
+      {/* Centered Container */}
+      <div className="w-full max-w-2xl mx-auto">
         {/* Tutor Filter (only show if multiple tutors) */}
         {tutors.length > 1 && (
-          <div className="rounded-2xl border bg-background p-4">
+          <div className="rounded-2xl border bg-background p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Filter by Tutor</span>
@@ -79,63 +80,23 @@ export function StudentScheduleClient({ tutors }: StudentScheduleClientProps) {
           </div>
         )}
 
-        {/* Month Calendar */}
-        <div className="flex-1 min-h-[400px]">
-          <StudentMonthCalendar
-            selectedDate={selectedDate}
-            onDateSelect={handleDateSelect}
-            tutorId={selectedTutorId}
-          />
-        </div>
+        {/* Month Calendar - Centered */}
+        <StudentMonthCalendar
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+          tutorId={selectedTutorId}
+          studentTimezone={resolvedTimezone}
+        />
       </div>
 
-      {/* Right Column: Day View (Desktop) */}
-      <div className="hidden lg:flex lg:flex-1 lg:min-h-0">
-        <div className="flex-1 rounded-3xl border bg-background shadow-sm overflow-hidden">
-          <StudentDayView
-            date={selectedDate}
-            tutorId={selectedTutorId}
-          />
-        </div>
-      </div>
-
-      {/* Mobile Day View Overlay */}
-      {showMobileDayView && selectedDate && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowMobileDayView(false)}
-          />
-          {/* Panel */}
-          <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] rounded-t-3xl bg-background shadow-2xl overflow-hidden flex flex-col">
-            {/* Drag Handle */}
-            <div className="flex justify-center py-2">
-              <div className="w-12 h-1 rounded-full bg-muted-foreground/30" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-2">
-              <h3 className="font-semibold">
-                {format(selectedDate, "EEEE, MMMM d")}
-              </h3>
-              <button
-                onClick={() => setShowMobileDayView(false)}
-                className="p-2 rounded-full hover:bg-muted"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {/* Day View Content */}
-            <div className="flex-1 overflow-hidden">
-              <StudentDayView
-                date={selectedDate}
-                tutorId={selectedTutorId}
-                onClose={() => setShowMobileDayView(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Day Panel - Slides in from right */}
+      <StudentDayPanel
+        date={selectedDate}
+        tutorId={selectedTutorId}
+        studentTimezone={resolvedTimezone}
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+      />
     </div>
   );
 }
