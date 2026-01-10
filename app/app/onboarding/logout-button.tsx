@@ -1,23 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/lib/actions/auth";
 
 export function LogoutButton() {
-  const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLoggingOut, startTransition] = useTransition();
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
+  const handleLogout = () => {
+    startTransition(async () => {
       await signOut();
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      setIsLoggingOut(false);
-    }
+    });
   };
 
   return (

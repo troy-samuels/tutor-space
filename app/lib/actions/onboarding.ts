@@ -9,6 +9,11 @@ import { createLocalTrial } from "./local-trial";
 import { isStripeConfigured, getTrialDays } from "@/lib/utils/stripe-config";
 import { hasProAccess } from "@/lib/payments/subscriptions";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
+import {
+  isSignupCheckoutComplete,
+  isSignupLifetimePlan,
+  requiresSignupCheckout,
+} from "@/lib/services/signup-checkout";
 
 type StepData = {
   // Step 1
@@ -59,6 +64,45 @@ const DAY_NAME_TO_NUMBER: Record<string, number> = {
   saturday: 6,
 };
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+async function requiresSignupCheckoutGate(
+  userId: string,
+  supabase: SupabaseServerClient
+): Promise<boolean> {
+  const adminClient = createServiceRoleClient();
+  const profileClient = adminClient ?? supabase;
+
+  const { data: profile, error } = await profileClient
+    .from("profiles")
+    .select(
+      "plan, signup_checkout_plan, signup_checkout_status, signup_checkout_completed_at, stripe_subscription_id, subscription_status"
+    )
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Onboarding] Failed to load signup checkout state", error);
+    return false;
+  }
+
+  if (!profile) return false;
+
+  const plan = (profile.plan as PlatformBillingPlan | null) ?? "professional";
+  const signupPlan = (profile.signup_checkout_plan as PlatformBillingPlan | null) ?? null;
+  const stripeSecretConfigured = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+
+  if (stripeSecretConfigured && isSignupLifetimePlan(signupPlan) && !isSignupCheckoutComplete(profile)) {
+    return true;
+  }
+
+  if (stripeSecretConfigured && requiresSignupCheckout(plan, profile)) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function saveOnboardingStep(
   step: number,
   data: StepData
@@ -71,6 +115,13 @@ export async function saveOnboardingStep(
 
     if (!user) {
       return { success: false, error: "Not authenticated" };
+    }
+
+    if (await requiresSignupCheckoutGate(user.id, supabase)) {
+      return {
+        success: false,
+        error: "Please complete Stripe checkout before continuing onboarding.",
+      };
     }
 
     // Handle different steps
@@ -392,6 +443,13 @@ export async function completeOnboarding(): Promise<{
 
     if (!user) {
       return { success: false, error: "Not authenticated" };
+    }
+
+    if (await requiresSignupCheckoutGate(user.id, supabase)) {
+      return {
+        success: false,
+        error: "Please complete Stripe checkout before finishing onboarding.",
+      };
     }
 
     // Mark onboarding as complete

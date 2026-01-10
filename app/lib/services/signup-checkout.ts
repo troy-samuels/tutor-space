@@ -19,6 +19,23 @@ export type SignupCheckoutProfile = {
   signup_checkout_completed_at?: string | null;
 };
 
+export const SIGNUP_LIFETIME_PLANS: PlatformBillingPlan[] = [
+  "tutor_life",
+  "studio_life",
+  "founder_lifetime",
+  "all_access",
+];
+
+export function isSignupLifetimePlan(plan: PlatformBillingPlan | null | undefined): boolean {
+  return Boolean(plan && SIGNUP_LIFETIME_PLANS.includes(plan));
+}
+
+export function isSignupCheckoutComplete(profile: SignupCheckoutProfile | null): boolean {
+  return Boolean(
+    profile?.signup_checkout_status === "complete" || profile?.signup_checkout_completed_at
+  );
+}
+
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
 
 export function resolveSignupPriceId(plan: PlatformBillingPlan): string | null {

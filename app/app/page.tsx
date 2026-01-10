@@ -51,7 +51,7 @@ export default async function LandingPage() {
   const copy = getLandingCopy(locale);
 
   return (
-    <div className="min-h-screen bg-brand-white">
+    <div id="page-top" className="min-h-screen bg-brand-white">
       <StructuredData faq={copy.faq} />
       <LandingPrefetch />
       {/* User reaching this point is definitively NOT authenticated (redirected otherwise).

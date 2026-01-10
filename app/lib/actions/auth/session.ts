@@ -259,7 +259,7 @@ export async function signOut(): Promise<void> {
 	logStep(log, "signOut:success", { userId: user?.id });
 
 	revalidatePath("/", "layout");
-	redirect("/");
+	redirect("/#page-top");
 }
 
 // ============================================================================

@@ -231,7 +231,9 @@ export function OnboardingTimeline({
             }
           }, 500);
         } else {
-          console.error("Failed to complete onboarding:", result.error);
+          const message = result.error || "Failed to complete onboarding.";
+          console.error("Failed to complete onboarding:", message);
+          handleSaveError(7, message);
           setIsCompleting(false);
         }
       } catch (error) {

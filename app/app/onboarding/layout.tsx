@@ -12,9 +12,14 @@ import {
   retrieveLifetimeCheckoutSession,
 } from "@/lib/payments/lifetime-checkout";
 import { LogoutButton } from "./logout-button";
-import { ensureSignupCheckoutSession, resolveSignupPriceId } from "@/lib/services/signup-checkout";
+import {
+  ensureSignupCheckoutSession,
+  isSignupLifetimePlan,
+  resolveSignupPriceId,
+} from "@/lib/services/signup-checkout";
 import { getTrialDays } from "@/lib/utils/stripe-config";
 import { getAppUrl } from "@/lib/auth/redirects";
+import { SignupCheckoutGuard } from "@/components/onboarding/SignupCheckoutGuard";
 
 export default async function OnboardingLayout({
   children,
@@ -50,14 +55,7 @@ export default async function OnboardingLayout({
 
   const lifetimeSignupPlan =
     (profile?.signup_checkout_plan as PlatformBillingPlan | null) ?? null;
-  const lifetimeCheckoutPlans: PlatformBillingPlan[] = [
-    "tutor_life",
-    "studio_life",
-    "founder_lifetime",
-    "all_access",
-  ];
-  const hasLifetimeCheckoutPlan =
-    lifetimeSignupPlan && lifetimeCheckoutPlans.includes(lifetimeSignupPlan);
+  const hasLifetimeCheckoutPlan = isSignupLifetimePlan(lifetimeSignupPlan);
   const checkoutStatus = profile?.signup_checkout_status ?? null;
 
   if (
@@ -159,6 +157,7 @@ export default async function OnboardingLayout({
       initialProfile={profile ?? null}
       initialEntitlements={entitlements}
     >
+      <SignupCheckoutGuard />
       <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
         {/* Minimal header with just logout */}
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-sm">
