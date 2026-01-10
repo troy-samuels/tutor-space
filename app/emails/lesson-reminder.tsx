@@ -34,8 +34,12 @@ export function LessonReminderEmail({
         return "Zoom";
       case "google_meet":
         return "Google Meet";
+      case "microsoft_teams":
+        return "Microsoft Teams";
       case "calendly":
         return "Calendly";
+      case "livekit":
+        return "Classroom";
       case "custom":
         return customVideoName || "Video Platform";
       default:
@@ -222,8 +226,12 @@ export function LessonReminderEmailText({
         return "Zoom";
       case "google_meet":
         return "Google Meet";
+      case "microsoft_teams":
+        return "Microsoft Teams";
       case "calendly":
         return "Calendly";
+      case "livekit":
+        return "Classroom";
       case "custom":
         return customVideoName || "Video Platform";
       default:

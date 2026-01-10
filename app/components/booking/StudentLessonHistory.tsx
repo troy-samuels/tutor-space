@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { StudentLessonHistoryData } from "@/lib/actions/types";
 import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
+import { isClassroomUrl } from "@/lib/utils/classroom-links";
 
 interface StudentLessonHistoryProps {
   data: StudentLessonHistoryData;
@@ -108,8 +109,8 @@ export function StudentLessonHistory({
         </div>
 
         {/* Next Lesson Highlight */}
-        {stats.next_lesson && (
-          <div className="mt-4 bg-white rounded-xl p-4 border-2 border-border">
+      {stats.next_lesson && (
+        <div className="mt-4 bg-white rounded-xl p-4 border-2 border-border">
             <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
               Next Lesson
             </p>
@@ -130,7 +131,7 @@ export function StudentLessonHistory({
               {stats.next_lesson.meeting_url && (
                 <a
                   href={stats.next_lesson.meeting_url}
-                  target="_blank"
+                  target={isClassroomUrl(stats.next_lesson.meeting_url) ? "_self" : "_blank"}
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm"
                 >
@@ -234,7 +235,7 @@ export function StudentLessonHistory({
                       {lesson.meeting_url && lesson.status === "confirmed" && (
                         <a
                           href={lesson.meeting_url}
-                          target="_blank"
+                          target={isClassroomUrl(lesson.meeting_url) ? "_self" : "_blank"}
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition text-sm whitespace-nowrap"
                         >

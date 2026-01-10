@@ -160,6 +160,7 @@ export async function POST(request: Request) {
     const blockPrice = await getOrCreateBlockPrice(blockProduct.id);
 
     // FREEMIUM: Create checkout session with BLOCKS ONLY (no base subscription)
+    const idempotencyKey = `ai-practice-blocks:${studentId}:${assignedTutorId}:${blockPrice.id}`;
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -196,7 +197,7 @@ export async function POST(request: Request) {
         tutorId: assignedTutorId,
         type: "ai_practice_blocks",
       },
-    });
+    }, { idempotencyKey });
 
     return NextResponse.json({
       checkoutUrl: session.url,

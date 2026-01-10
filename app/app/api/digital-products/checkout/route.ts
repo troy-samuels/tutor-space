@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
   if (!productId || !buyerEmail) {
     return NextResponse.json({ error: "Product and email required." }, { status: 400 });
   }
+  const normalizedEmail = String(buyerEmail).trim().toLowerCase();
+  if (!normalizedEmail) {
+    return NextResponse.json({ error: "Product and email required." }, { status: 400 });
+  }
 
   const supabase = await createClient();
   const { data: product, error } = await supabase
@@ -42,22 +46,53 @@ export async function POST(request: NextRequest) {
   // Generate a secure download token for the purchase
   const downloadToken = randomBytes(32).toString("hex");
 
-  const { data: purchase, error: insertError } = await adminClient
+  const { data: existingPurchase } = await adminClient
     .from("digital_product_purchases")
-    .insert({
-      product_id: product.id,
-      tutor_id: product.tutor_id,
-      buyer_email: buyerEmail,
-      buyer_name: buyerName ?? null,
-      download_limit: 3,
-      download_count: 0,
-      download_token: downloadToken,
-      status: "pending",
-    })
-    .select("id")
-    .single();
+    .select("id, stripe_session_id, created_at")
+    .eq("product_id", product.id)
+    .eq("buyer_email", normalizedEmail)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (insertError || !purchase) {
+  if (existingPurchase?.stripe_session_id) {
+    try {
+      const existingSession = await stripe.checkout.sessions.retrieve(
+        existingPurchase.stripe_session_id
+      );
+      if (existingSession.status === "open" && existingSession.url) {
+        return NextResponse.json({ url: existingSession.url });
+      }
+    } catch (error) {
+      console.warn("[Digital Products] Failed to reuse checkout session", error);
+    }
+  }
+
+  const reusePurchaseId =
+    existingPurchase && !existingPurchase.stripe_session_id ? existingPurchase.id : null;
+
+  const purchase =
+    reusePurchaseId
+      ? { id: reusePurchaseId }
+      : (
+          await adminClient
+            .from("digital_product_purchases")
+            .insert({
+              product_id: product.id,
+              tutor_id: product.tutor_id,
+              buyer_email: normalizedEmail,
+              buyer_name: buyerName ?? null,
+              download_limit: 3,
+              download_count: 0,
+              download_token: downloadToken,
+              status: "pending",
+            })
+            .select("id")
+            .single()
+        ).data;
+
+  if (!purchase?.id) {
     return NextResponse.json({ error: "Unable to create purchase." }, { status: 500 });
   }
 
@@ -65,10 +100,11 @@ export async function POST(request: NextRequest) {
   const successUrl = `${appUrl}/products/${tutorUsername}?success=1`;
   const cancelUrl = `${appUrl}/products/${tutorUsername}?canceled=1`;
 
+  const idempotencyKey = `digital-product:${purchase.id}`;
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
-    customer_email: buyerEmail,
+    customer_email: normalizedEmail,
     allow_promotion_codes: true,
     line_items: [
       {
@@ -82,7 +118,7 @@ export async function POST(request: NextRequest) {
       digital_product_id: product.id,
       digital_product_purchase_id: purchase.id,
     },
-  });
+  }, { idempotencyKey });
 
   await adminClient
     .from("digital_product_purchases")
@@ -91,4 +127,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ url: session.url });
 }
-

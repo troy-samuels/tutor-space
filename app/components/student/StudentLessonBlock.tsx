@@ -1,12 +1,14 @@
 "use client";
 
-import { format, isPast, differenceInMinutes } from "date-fns";
+import { format, isPast, differenceInMinutes, addMinutes } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { Video, ExternalLink, Clock, User, CheckCircle, Circle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { PACKAGE_COLORS, type PackageType } from "@/lib/types/calendar";
 import type { StudentScheduleEvent } from "@/lib/actions/student-schedule";
+import { isClassroomUrl } from "@/lib/utils/classroom-links";
+import { getJoinEarlyMinutes, getJoinGraceMinutes } from "@/lib/utils/lesson-join-window";
 
 type StudentLessonBlockProps = {
   lesson: StudentScheduleEvent;
@@ -34,25 +36,34 @@ function getProviderName(provider: string | null | undefined): string {
   }
 }
 
-function canJoinLesson(startTime: Date, durationMinutes: number): boolean {
+function canJoinLesson(
+  startTime: Date,
+  durationMinutes: number,
+  joinEarlyMinutes: number,
+  joinGraceMinutes: number
+): boolean {
   const now = new Date();
-  const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+  const endTime = addMinutes(startTime, durationMinutes);
+  const endWithGrace = addMinutes(endTime, joinGraceMinutes);
   const minutesUntilStart = differenceInMinutes(startTime, now);
 
-  // Can join 15 minutes before start until lesson ends
-  return minutesUntilStart <= 15 && now < endTime;
+  // Can join shortly before start until the grace window ends
+  return minutesUntilStart <= joinEarlyMinutes && now < endWithGrace;
 }
 
 function getLessonStatus(
   startTime: Date,
   durationMinutes: number,
-  bookingStatus?: string
+  bookingStatus: string | undefined,
+  joinEarlyMinutes: number,
+  joinGraceMinutes: number
 ): { label: string; color: string; icon: React.ReactNode } {
   const now = new Date();
-  const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+  const endTime = addMinutes(startTime, durationMinutes);
+  const endWithGrace = addMinutes(endTime, joinGraceMinutes);
   const minutesUntilStart = differenceInMinutes(startTime, now);
 
-  if (bookingStatus === "completed" || now > endTime) {
+  if (bookingStatus === "completed" || now > endWithGrace) {
     return {
       label: "Completed",
       color: "text-green-600 bg-green-50",
@@ -60,7 +71,7 @@ function getLessonStatus(
     };
   }
 
-  if (minutesUntilStart <= 0 && now < endTime) {
+  if (minutesUntilStart <= 0 && now < endWithGrace) {
     return {
       label: "In Progress",
       color: "text-blue-600 bg-blue-50",
@@ -68,7 +79,7 @@ function getLessonStatus(
     };
   }
 
-  if (minutesUntilStart <= 15) {
+  if (minutesUntilStart <= joinEarlyMinutes) {
     return {
       label: "Starting Soon",
       color: "text-orange-600 bg-orange-50",
@@ -99,9 +110,23 @@ export function StudentLessonBlock({
   studentTimezone,
 }: StudentLessonBlockProps) {
   const startTime = new Date(lesson.start);
-  const isLessonPast = isPast(new Date(lesson.end));
-  const isJoinable = canJoinLesson(startTime, lesson.durationMinutes || 60);
-  const status = getLessonStatus(startTime, lesson.durationMinutes || 60, lesson.bookingStatus);
+  const joinEarlyMinutes = getJoinEarlyMinutes();
+  const joinGraceMinutes = getJoinGraceMinutes();
+  const lessonEndWithGrace = addMinutes(new Date(lesson.end), joinGraceMinutes);
+  const isLessonPast = isPast(lessonEndWithGrace);
+  const isJoinable = canJoinLesson(
+    startTime,
+    lesson.durationMinutes || 60,
+    joinEarlyMinutes,
+    joinGraceMinutes
+  );
+  const status = getLessonStatus(
+    startTime,
+    lesson.durationMinutes || 60,
+    lesson.bookingStatus,
+    joinEarlyMinutes,
+    joinGraceMinutes
+  );
   const packageColors = PACKAGE_COLORS[lesson.packageType || "one_off"];
   const resolvedStudentTimezone =
     studentTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -137,6 +162,8 @@ export function StudentLessonBlock({
       </div>
     );
   }
+
+  const isClassroomLink = isClassroomUrl(lesson.meetingUrl);
 
   return (
     <div
@@ -204,13 +231,13 @@ export function StudentLessonBlock({
         isJoinable ? (
           <a
             href={lesson.meetingUrl}
-            target={lesson.meetingUrl.includes("/classroom/") ? "_self" : "_blank"}
+            target={isClassroomLink ? "_self" : "_blank"}
             rel="noopener noreferrer"
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
           >
             <Video className="h-4 w-4" />
-            Join {getProviderName(lesson.meetingUrl.includes("/classroom/") ? "livekit" : undefined)}
-            {!lesson.meetingUrl.includes("/classroom/") && (
+            Join {getProviderName(isClassroomLink ? "livekit" : undefined)}
+            {!isClassroomLink && (
               <ExternalLink className="h-3.5 w-3.5 ml-1" />
             )}
           </a>
@@ -220,7 +247,7 @@ export function StudentLessonBlock({
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted px-4 py-2.5 text-sm font-medium text-muted-foreground cursor-not-allowed"
           >
             <Video className="h-4 w-4" />
-            Join available 15 min before
+            Join available {joinEarlyMinutes} min before
           </button>
         )
       ) : (

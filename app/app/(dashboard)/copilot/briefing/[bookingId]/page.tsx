@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EngagementBadge } from "@/components/copilot/engagement-indicator";
 import { getLessonBriefing, markBriefingViewed } from "@/lib/actions/copilot";
+import { createClient } from "@/lib/supabase/server";
+import { isClassroomUrl, resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 interface PageProps {
   params: Promise<{ bookingId: string }>;
@@ -31,6 +33,43 @@ export default async function BriefingPage({ params }: PageProps) {
   if (!briefing) {
     notFound();
   }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    notFound();
+  }
+
+  const [{ data: profile }, { data: bookingJoin }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("tier, plan")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("bookings")
+      .select("meeting_url, short_code")
+      .eq("id", bookingId)
+      .maybeSingle(),
+  ]);
+
+  const tutorHasStudio = tutorHasStudioAccess({
+    tier: profile?.tier ?? null,
+    plan: profile?.plan ?? null,
+  });
+  const startLessonUrl = resolveBookingMeetingUrl({
+    meetingUrl: bookingJoin?.meeting_url,
+    bookingId,
+    shortCode: bookingJoin?.short_code ?? null,
+    tutorHasStudio,
+    allowClassroomFallback: true,
+  });
+  const startLessonIsAbsolute = Boolean(startLessonUrl?.startsWith("http"));
+  const startLessonTarget =
+    startLessonIsAbsolute && !isClassroomUrl(startLessonUrl) ? "_blank" : "_self";
 
   // Mark as viewed
   if (!briefing.viewedAt) {
@@ -320,9 +359,25 @@ export default async function BriefingPage({ params }: PageProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-4 py-4">
-        <Button asChild>
-          <Link href={`/classroom/${bookingId}`}>Start Lesson</Link>
-        </Button>
+        {startLessonUrl ? (
+          startLessonIsAbsolute ? (
+            <Button asChild>
+              <a
+                href={startLessonUrl}
+                target={startLessonTarget}
+                rel={startLessonTarget === "_blank" ? "noopener noreferrer" : undefined}
+              >
+                Start Lesson
+              </a>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href={startLessonUrl}>Start Lesson</Link>
+            </Button>
+          )
+        ) : (
+          <Button disabled>Lesson link unavailable</Button>
+        )}
         <Button variant="outline" asChild>
           <Link href={`/students/${briefing.studentId}`}>View Student Profile</Link>
         </Button>

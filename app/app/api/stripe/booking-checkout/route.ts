@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createCheckoutSession } from "@/lib/stripe";
@@ -209,8 +208,8 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    // Idempotency key prevents duplicate checkout sessions on rapid clicks
-    const idempotencyKey = `booking:${bookingId}:${user.id}:${randomUUID()}`;
+    // Deterministic idempotency key prevents duplicate checkout sessions on rapid retries
+    const idempotencyKey = `booking-checkout:${bookingId}:${expectedAmountCents}:${expectedCurrency}`;
 
     // Create checkout session with destination charges
     const session = await createCheckoutSession({

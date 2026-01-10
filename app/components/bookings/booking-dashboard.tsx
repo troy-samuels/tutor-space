@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FlowProgress } from "@/components/flows/FlowProgress";
 import { detectUserTimezone } from "@/lib/utils/timezones";
+import { buildClassroomUrl, isClassroomUrl } from "@/lib/utils/classroom-links";
 import {
   Dialog,
   DialogContent,
@@ -65,6 +66,25 @@ const BOOKING_STEPS = [
   { id: "student", title: "Student", helper: "Select or add student" },
   { id: "confirm", title: "Review & Send", helper: "Payment and notes" },
 ] as const;
+
+function getMeetingProviderLabel(provider?: string | null): string {
+  switch (provider) {
+    case "zoom_personal":
+      return "Zoom";
+    case "google_meet":
+      return "Google Meet";
+    case "microsoft_teams":
+      return "Microsoft Teams";
+    case "calendly":
+      return "Calendly";
+    case "livekit":
+      return "Classroom";
+    case "custom":
+      return "Video Call";
+    default:
+      return "Meeting";
+  }
+}
 
 export function BookingDashboard({
   bookings,
@@ -876,6 +896,9 @@ function BookingListItem({
   const [refundReason, setRefundReason] = useState("");
   const [refundBusy, setRefundBusy] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
+  const meetingUrl = booking.meeting_url ?? null;
+  const meetingIsClassroom = isClassroomUrl(meetingUrl);
+  const classroomUrl = buildClassroomUrl(booking.id, booking.short_code);
 
   const canReschedule = !isCancelled &&
     booking.status !== "completed" &&
@@ -922,7 +945,7 @@ function BookingListItem({
         </div>
       </div>
 
-      {booking.meeting_url && (
+      {meetingUrl && !meetingIsClassroom && (
         <div className="flex items-center gap-2 pt-2 border-t border-current/10">
           <svg
             className="h-4 w-4 text-muted-foreground flex-shrink-0"
@@ -938,12 +961,12 @@ function BookingListItem({
             />
           </svg>
           <a
-            href={booking.meeting_url}
+            href={meetingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-primary hover:underline truncate"
           >
-            Join on {booking.meeting_provider === "zoom_personal" ? "Zoom" : booking.meeting_provider === "google_meet" ? "Google Meet" : booking.meeting_provider === "custom" ? "Video Call" : "Meeting"}
+            Join on {getMeetingProviderLabel(booking.meeting_provider)}
           </a>
         </div>
       )}
@@ -952,7 +975,7 @@ function BookingListItem({
       <div className="flex items-center gap-2 pt-2 border-t border-current/10">
         {hasStudioAccess ? (
           <Link
-            href={`/classroom/${booking.id}`}
+            href={classroomUrl}
             className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 transition"
           >
             <Video className="h-3.5 w-3.5" />

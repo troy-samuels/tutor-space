@@ -237,7 +237,6 @@ export default async function PublicProfilePage({ params }: { params: ProfilePag
   }>;
 
   const credibilityPoints = [
-    "Certified tutor with verified background checks via TutorLingua.",
     "Personalised lesson plans aligned to CEFR goals.",
     "Parent updates delivered automatically after every session.",
   ];

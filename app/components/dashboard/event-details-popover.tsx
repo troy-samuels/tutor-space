@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { markBookingAsPaid, cancelBooking } from "@/lib/actions/bookings";
 import { updateBookingDuration } from "@/lib/actions/booking-duration";
 import { QuickMessageDialog } from "./quick-message-dialog";
+import { isClassroomUrl } from "@/lib/utils/classroom-links";
 
 type EventDetailsPopoverProps = {
   event: CalendarEvent;
@@ -321,13 +322,15 @@ export function EventDetailsPopover({
         {event.meetingUrl && (
           <a
             href={event.meetingUrl}
-            target="_blank"
+            target={isClassroomUrl(event.meetingUrl) ? "_self" : "_blank"}
             rel="noopener noreferrer"
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <Video className="h-4 w-4" />
             Join Meeting
-            <ExternalLink className="h-3 w-3 ml-auto" />
+            {!isClassroomUrl(event.meetingUrl) && (
+              <ExternalLink className="h-3 w-3 ml-auto" />
+            )}
           </a>
         )}
 

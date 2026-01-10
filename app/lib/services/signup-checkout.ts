@@ -231,6 +231,7 @@ export async function ensureSignupCheckoutSession(params: {
     metadata: { profileId: user.id },
   });
 
+  const idempotencyKey = `signup-checkout:${user.id}:${plan}`;
   const session = await stripe.checkout.sessions.create({
     customer: customer.id,
     mode: "subscription",
@@ -247,7 +248,7 @@ export async function ensureSignupCheckoutSession(params: {
       plan,
       flow: SIGNUP_CHECKOUT_FLOW,
     },
-  });
+  }, { idempotencyKey });
 
   if (adminClient) {
     await updateSignupCheckoutProfile({

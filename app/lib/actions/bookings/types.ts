@@ -129,6 +129,7 @@ export type BookingRecord = {
 	student_notes: string | null;
 	meeting_url?: string | null;
 	meeting_provider?: string | null;
+	short_code?: string | null;
 	created_at: string;
 	updated_at: string;
 	students?: {

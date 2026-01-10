@@ -19,6 +19,25 @@ function formatDateTime(value: string, timezone: string) {
   return formatInTimeZone(value, timezone, "EEEE, MMMM d • h:mm a");
 }
 
+function getProviderName(provider?: string | null): string | null {
+  switch (provider) {
+    case "zoom_personal":
+      return "Zoom";
+    case "google_meet":
+      return "Google Meet";
+    case "microsoft_teams":
+      return "Microsoft Teams";
+    case "calendly":
+      return "Calendly";
+    case "livekit":
+      return "Classroom";
+    case "custom":
+      return "Video Platform";
+    default:
+      return null;
+  }
+}
+
 export function BookingRescheduledEmail(props: BookingRescheduledEmailProps) {
   const {
     recipientName,
@@ -45,9 +64,10 @@ export function BookingRescheduledEmail(props: BookingRescheduledEmailProps) {
       ? `${tutorName} moved your upcoming lesson.`
       : `${studentName} is now booked at a new time.`;
 
+  const providerName = getProviderName(meetingProvider);
   const meetingLine =
-    meetingUrl && meetingProvider
-      ? `<p style="margin: 0 0 12px 0; color: #111827; font-size: 14px;">Join via <strong>${meetingProvider}</strong>: <a href="${meetingUrl}" style="color:#4338CA; text-decoration:none;">${meetingUrl}</a></p>`
+    meetingUrl && providerName
+      ? `<p style="margin: 0 0 12px 0; color: #111827; font-size: 14px;">Join via <strong>${providerName}</strong>: <a href="${meetingUrl}" style="color:#4338CA; text-decoration:none;">${meetingUrl}</a></p>`
       : meetingUrl
       ? `<p style="margin: 0 0 12px 0; color: #111827; font-size: 14px;">Join: <a href="${meetingUrl}" style="color:#4338CA; text-decoration:none;">${meetingUrl}</a></p>`
       : "";
@@ -130,8 +150,9 @@ export function BookingRescheduledEmailText(props: BookingRescheduledEmailProps)
       ? "Your lesson was rescheduled"
       : "Lesson rescheduled";
 
+  const providerName = getProviderName(meetingProvider);
   const meetingLine = meetingUrl
-    ? `Join${meetingProvider ? ` (${meetingProvider})` : ""}: ${meetingUrl}`
+    ? `Join${providerName ? ` (${providerName})` : ""}: ${meetingUrl}`
     : "";
 
   return `${header}

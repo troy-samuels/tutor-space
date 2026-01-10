@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import type { DailyLesson } from "@/lib/actions/types";
 import { QuickMessageDialog } from "./quick-message-dialog";
+import { isClassroomUrl } from "@/lib/utils/classroom-links";
 
 type StudentLessonCardProps = {
   lesson: DailyLesson;
@@ -103,7 +104,7 @@ export function StudentLessonCard({ lesson, onReschedule }: StudentLessonCardPro
         {lesson.meeting_url && (
           <a
             href={lesson.meeting_url}
-            target="_blank"
+            target={isClassroomUrl(lesson.meeting_url) ? "_self" : "_blank"}
             rel="noopener noreferrer"
             className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/50 text-foreground transition hover:bg-secondary"
             title="Join classroom"

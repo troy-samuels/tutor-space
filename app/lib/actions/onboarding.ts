@@ -352,6 +352,7 @@ async function getPostOnboardingCheckoutUrl(userId: string, userEmail: string, f
         .eq("id", userId);
     }
 
+    const idempotencyKey = `onboarding-checkout:${userId}:${plan}`;
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       mode: "subscription",
@@ -367,7 +368,7 @@ async function getPostOnboardingCheckoutUrl(userId: string, userEmail: string, f
         plan,
         source: "post_onboarding",
       },
-    });
+    }, { idempotencyKey });
 
     return session.url ?? null;
   } catch (error) {

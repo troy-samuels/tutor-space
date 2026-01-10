@@ -19,6 +19,9 @@ export type DashboardUpcomingBooking = {
   payment_status: string | null;
   payment_amount: number | null;
   currency: string | null;
+  meeting_url?: string | null;
+  meeting_provider?: string | null;
+  short_code?: string | null;
   student: {
     full_name: string | null;
     proficiency_level: string | null;
@@ -84,7 +87,7 @@ export async function getDashboardSummaryFallback(
       supabase
         .from("bookings")
         .select(
-          "id, scheduled_at, status, payment_status, payment_amount, currency, student:students(full_name, proficiency_level), service:services(name)"
+          "id, scheduled_at, status, payment_status, payment_amount, currency, meeting_url, meeting_provider, short_code, student:students(full_name, proficiency_level), service:services(name)"
         )
         .eq("tutor_id", tutorId)
         .gte("scheduled_at", nowIso)

@@ -48,8 +48,12 @@ export function BookingConfirmationEmail({
         return "Zoom";
       case "google_meet":
         return "Google Meet";
+      case "microsoft_teams":
+        return "Microsoft Teams";
       case "calendly":
         return "Calendly";
+      case "livekit":
+        return "Classroom";
       case "custom":
         return customVideoName || "Video Platform";
       default:
@@ -317,8 +321,12 @@ export function BookingConfirmationEmailText({
         return "Zoom";
       case "google_meet":
         return "Google Meet";
+      case "microsoft_teams":
+        return "Microsoft Teams";
       case "calendly":
         return "Calendly";
+      case "livekit":
+        return "Classroom";
       case "custom":
         return customVideoName || "Video Platform";
       default:

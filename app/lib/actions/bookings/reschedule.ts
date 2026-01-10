@@ -23,6 +23,8 @@ import {
 	logStep,
 	logStepError,
 } from "@/lib/logger";
+import { isClassroomUrl, resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
+import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
 
 // ============================================================================
 // Reschedule Booking
@@ -245,6 +247,23 @@ export async function rescheduleBooking(params: {
 	try {
 		const updatedStudent = Array.isArray(updated.students) ? updated.students[0] : updated.students;
 		const updatedService = Array.isArray(updated.services) ? updated.services[0] : updated.services;
+		const tutorHasStudio = tutorHasStudioAccess({
+			tier: tutorProfile?.tier ?? null,
+			plan: tutorProfile?.plan ?? null,
+		});
+		const resolvedMeetingUrl = resolveBookingMeetingUrl({
+			meetingUrl: updated.meeting_url ?? previousSchedule.meetingUrl,
+			bookingId: updated.id,
+			shortCode: updated.short_code,
+			baseUrl: appUrl,
+			tutorHasStudio,
+			allowClassroomFallback: true,
+		});
+		const resolvedMeetingProvider = resolvedMeetingUrl
+			? updated.meeting_provider ??
+				previousSchedule.meetingProvider ??
+				(isClassroomUrl(resolvedMeetingUrl) ? "livekit" : undefined)
+			: undefined;
 
 		await sendBookingRescheduledEmails({
 			studentEmail: updatedStudent?.email,
@@ -256,8 +275,8 @@ export async function rescheduleBooking(params: {
 			newScheduledAt: updated.scheduled_at,
 			timezone: updated.timezone ?? tutorTimezone,
 			durationMinutes: updated.duration_minutes ?? durationMinutes,
-			meetingUrl: updated.meeting_url ?? previousSchedule.meetingUrl ?? undefined,
-			meetingProvider: updated.meeting_provider ?? previousSchedule.meetingProvider ?? undefined,
+			meetingUrl: resolvedMeetingUrl,
+			meetingProvider: resolvedMeetingProvider,
 			rescheduleUrl: `${appUrl.replace(/\/$/, "")}/bookings`,
 		});
 	} catch (emailError) {
@@ -265,38 +284,32 @@ export async function rescheduleBooking(params: {
 	}
 
 	try {
-		const updatedStudent = Array.isArray(updated.students) ? updated.students[0] : updated.students;
-		const updatedService = Array.isArray(updated.services) ? updated.services[0] : updated.services;
-		const studentName = updatedStudent?.full_name ?? "Student";
-		const serviceName = updatedService?.name ?? "Lesson";
-		const startDate = new Date(updated.scheduled_at);
 		const previousStart = new Date(previousSchedule.scheduledAt);
 		const previousEnd = new Date(
 			previousStart.getTime() + (previousSchedule.durationMinutes ?? durationMinutes) * 60000
 		);
-		const endDate = new Date(
-			startDate.getTime() + (updated.duration_minutes ?? durationMinutes) * 60000
-		);
-
-		const descriptionLines = [
-			`TutorLingua booking - ${serviceName}`,
-			`Student: ${studentName}`,
-			`Booking ID: ${updated.id}`,
-		];
-
-		await updateCalendarEventForBooking({
-			tutorId: booking.tutor_id,
+		const calendarDetails = await buildBookingCalendarDetails({
+			client: adminClient,
 			bookingId: updated.id,
-			title: `${serviceName} with ${studentName}`,
-			start: startDate.toISOString(),
-			end: endDate.toISOString(),
-			previousStart: previousStart.toISOString(),
-			previousEnd: previousEnd.toISOString(),
-			description: descriptionLines.join("\n"),
-			studentEmail: updatedStudent?.email ?? undefined,
-			timezone: updated.timezone ?? tutorTimezone,
-			createIfMissing: updated.status === "confirmed" || updated.status === "completed",
+			baseUrl: appUrl,
 		});
+
+		if (calendarDetails) {
+			await updateCalendarEventForBooking({
+				tutorId: calendarDetails.tutorId,
+				bookingId: calendarDetails.bookingId,
+				title: calendarDetails.title,
+				start: calendarDetails.start,
+				end: calendarDetails.end,
+				previousStart: previousStart.toISOString(),
+				previousEnd: previousEnd.toISOString(),
+				description: calendarDetails.description,
+				location: calendarDetails.location ?? undefined,
+				studentEmail: calendarDetails.studentEmail ?? undefined,
+				timezone: calendarDetails.timezone,
+				createIfMissing: updated.status === "confirmed" || updated.status === "completed",
+			});
+		}
 	} catch (calendarError) {
 		logStepError(log, "rescheduleBooking:calendar_update_failed", calendarError, { bookingId: params.bookingId });
 	}

@@ -6,6 +6,7 @@ import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { ChevronLeft, ChevronRight, Plus, Video, ExternalLink } from "lucide-react";
 import { getDayEvents } from "@/lib/actions/calendar-events";
 import type { CalendarEvent } from "@/lib/types/calendar";
+import { isClassroomUrl } from "@/lib/utils/classroom-links";
 import {
   generateTimeSlots,
   groupOverlappingEvents,
@@ -416,13 +417,15 @@ function EventDetailPanel({
         {event.meetingUrl && (
           <a
             href={event.meetingUrl}
-            target="_blank"
+            target={isClassroomUrl(event.meetingUrl) ? "_self" : "_blank"}
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Video className="h-4 w-4" />
             Join Meeting
-            <ExternalLink className="h-3 w-3" />
+            {!isClassroomUrl(event.meetingUrl) && (
+              <ExternalLink className="h-3 w-3" />
+            )}
           </a>
         )}
       </div>

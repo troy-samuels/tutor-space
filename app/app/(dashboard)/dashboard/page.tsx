@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import { TrialExpiredBanner } from "@/components/billing/TrialExpiredBanner";
 import { CopilotWidgetServer } from "@/components/copilot/copilot-widget-server";
+import { isClassroomUrl, resolveBookingMeetingUrl } from "@/lib/utils/classroom-links";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
 export default async function DashboardPage() {
@@ -85,6 +86,9 @@ export default async function DashboardPage() {
         minute: "2-digit",
       }),
       status: booking.status,
+      meetingUrl: booking.meeting_url ?? null,
+      meetingProvider: booking.meeting_provider ?? null,
+      shortCode: booking.short_code ?? null,
     };
   });
 
@@ -124,7 +128,26 @@ export default async function DashboardPage() {
 
   const planName: PlatformBillingPlan =
     (profile?.plan as PlatformBillingPlan | null) ?? "professional";
-  const showStudioDiscovery = !hasStudioAccess(planName);
+  const hasStudio = hasStudioAccess(planName);
+  const showStudioDiscovery = !hasStudio;
+
+  const resolvedMeetingUrl = nextBooking
+    ? resolveBookingMeetingUrl({
+        meetingUrl: nextBooking.meeting_url,
+        bookingId: nextBooking.id,
+        shortCode: nextBooking.short_code ?? null,
+        tutorHasStudio: hasStudio,
+        allowClassroomFallback: true,
+      })
+    : null;
+  const meetingIsClassroom = isClassroomUrl(resolvedMeetingUrl);
+  const startLessonUrl = resolvedMeetingUrl ?? null;
+  const startLessonIsAbsolute = Boolean(startLessonUrl?.startsWith("http"));
+  const startLessonTarget =
+    startLessonIsAbsolute && !isClassroomUrl(startLessonUrl) ? "_blank" : "_self";
+  const viewLessonPlanUrl =
+    startLessonUrl && isClassroomUrl(startLessonUrl) ? startLessonUrl : "/bookings";
+  const viewLessonPlanIsAbsolute = viewLessonPlanUrl.startsWith("http");
 
   // Check for local trial (when Stripe is not configured)
   let showTrialBanner = false;
@@ -221,15 +244,27 @@ export default async function DashboardPage() {
               )}
             </div>
             <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
-              {nextBooking ? (
+              {startLessonUrl ? (
                 <Button
                   asChild
                   className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
                 >
-                  <Link href={`/classroom/${nextBooking.id}`} className="flex items-center justify-center gap-2">
-                    <span>Start Lesson</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  {startLessonIsAbsolute ? (
+                    <a
+                      href={startLessonUrl}
+                      target={startLessonTarget}
+                      rel={startLessonTarget === "_blank" ? "noopener noreferrer" : undefined}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <span>Start Lesson</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  ) : (
+                    <Link href={startLessonUrl} className="flex items-center justify-center gap-2">
+                      <span>Start Lesson</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  )}
                 </Button>
               ) : (
                 <Button
@@ -242,13 +277,25 @@ export default async function DashboardPage() {
                   </span>
                 </Button>
               )}
-              <Link
-                className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
-                href={nextBooking ? `/classroom/${nextBooking.id}` : "/bookings"}
-              >
-                <span>View Lesson Plan</span>
-                <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
-              </Link>
+              {viewLessonPlanIsAbsolute ? (
+                <a
+                  className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
+                  href={viewLessonPlanUrl}
+                  target="_self"
+                  rel="noopener noreferrer"
+                >
+                  <span>View Lesson Plan</span>
+                  <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                </a>
+              ) : (
+                <Link
+                  className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
+                  href={viewLessonPlanUrl}
+                >
+                  <span>View Lesson Plan</span>
+                  <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>

@@ -21,6 +21,8 @@ import {
 	logStepError,
 } from "@/lib/logger";
 import { recordAudit } from "@/lib/repositories/audit";
+import { buildClassroomUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
+import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
 
 // ============================================================================
 // Mark Booking as Paid
@@ -105,28 +107,25 @@ export async function markBookingAsPaid(bookingId: string) {
 	}
 
 	try {
-		const serviceName = service?.name ?? "Lesson";
-		const studentName = student?.full_name ?? "Student";
-		const startDate = new Date(booking.scheduled_at);
-		const durationMinutes = service?.duration_minutes ?? 60;
-		const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-
-		const descriptionLines = [
-			`TutorLingua booking - ${serviceName}`,
-			`Student: ${studentName}`,
-			`Booking ID: ${bookingId}`,
-		];
-
-		await createCalendarEventForBooking({
-			tutorId: user.id,
+		const calendarDetails = await buildBookingCalendarDetails({
+			client: adminClient,
 			bookingId,
-			title: `${serviceName} with ${studentName}`,
-			start: startDate.toISOString(),
-			end: endDate.toISOString(),
-			description: descriptionLines.join("\n"),
-			studentEmail: studentEmail || undefined,
-			timezone: booking.timezone ?? "UTC",
+			baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 		});
+
+		if (calendarDetails) {
+			await createCalendarEventForBooking({
+				tutorId: calendarDetails.tutorId,
+				bookingId: calendarDetails.bookingId,
+				title: calendarDetails.title,
+				start: calendarDetails.start,
+				end: calendarDetails.end,
+				description: calendarDetails.description,
+				location: calendarDetails.location ?? undefined,
+				studentEmail: calendarDetails.studentEmail ?? undefined,
+				timezone: calendarDetails.timezone,
+			});
+		}
 	} catch (calendarError) {
 		logStepError(log, "markBookingAsPaid:calendar_event_failed", calendarError, { bookingId });
 	}
@@ -287,6 +286,16 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 				meetingUrl = tutorProfile.custom_video_url ?? undefined;
 				meetingProvider = "custom";
 				break;
+		}
+
+		const tutorHasStudio = tutorHasStudioAccess({
+			tier: tutorProfile?.tier ?? null,
+			plan: tutorProfile?.plan ?? null,
+		});
+		if (!meetingUrl && tutorHasStudio) {
+			const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+			meetingUrl = buildClassroomUrl(booking.id, booking.short_code ?? null, appUrl);
+			meetingProvider = "livekit";
 		}
 
 		await sendBookingConfirmationEmail({

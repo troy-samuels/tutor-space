@@ -7,6 +7,10 @@ import { Video, Clock, Calendar, Loader2, ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getStudentBookings } from "@/lib/actions/student-bookings";
 import Link from "next/link";
+import { hasStudioAccess } from "@/lib/payments/subscriptions";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
+import { buildClassroomUrl, isClassroomUrl, resolveBookingMeetingUrl } from "@/lib/utils/classroom-links";
+import { getJoinEarlyMinutes, getJoinGraceMinutes } from "@/lib/utils/lesson-join-window";
 
 type Booking = {
   id: string;
@@ -16,12 +20,14 @@ type Booking = {
   notes: string | null;
   meeting_url: string | null;
   meeting_provider: string | null;
+  short_code: string | null;
   tutor: {
     id: string;
     username: string;
     full_name: string | null;
     avatar_url: string | null;
     tier: string | null;
+    plan?: string | null;
   };
   service: {
     id: string;
@@ -35,8 +41,12 @@ function getProviderName(provider: string | null): string {
       return "Zoom";
     case "google_meet":
       return "Google Meet";
+    case "microsoft_teams":
+      return "Microsoft Teams";
     case "calendly":
       return "Calendly";
+    case "livekit":
+      return "Classroom";
     case "custom":
       return "Video Call";
     default:
@@ -59,6 +69,8 @@ export function UpcomingLessons() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+  const joinEarlyMinutes = getJoinEarlyMinutes();
+  const joinGraceMinutes = getJoinGraceMinutes();
 
   // Update "now" every minute to refresh join button availability
   useEffect(() => {
@@ -81,14 +93,17 @@ export function UpcomingLessons() {
     loadBookings();
   }, []);
 
-  // Check if the join button should be active (within 15 minutes of start or during the lesson)
+  // Check if the join button should be active (within join window)
   const canJoinLesson = (booking: Booking): boolean => {
     const startTime = new Date(booking.scheduled_at);
     const endTime = addMinutes(startTime, booking.duration_minutes);
     const minutesToStart = differenceInMinutes(startTime, now);
 
-    // Can join 15 minutes before until lesson ends
-    return minutesToStart <= 15 && !isPast(endTime);
+    // Can join shortly before until the grace window ends
+    return (
+      minutesToStart <= joinEarlyMinutes &&
+      !isPast(addMinutes(endTime, joinGraceMinutes))
+    );
   };
 
   // Format time until lesson
@@ -143,6 +158,22 @@ export function UpcomingLessons() {
           const startTime = new Date(booking.scheduled_at);
           const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
           const zonedTime = toZonedTime(startTime, userTimezone);
+          const tutorPlan =
+            (booking.tutor.plan as PlatformBillingPlan | null) ?? "professional";
+          const tutorHasStudio =
+            booking.tutor.tier === "studio" || hasStudioAccess(tutorPlan);
+          const resolvedMeetingUrl = resolveBookingMeetingUrl({
+            meetingUrl: booking.meeting_url,
+            bookingId: booking.id,
+            shortCode: booking.short_code,
+            tutorHasStudio,
+          });
+          const meetingIsClassroom = isClassroomUrl(resolvedMeetingUrl);
+          const classroomUrl = tutorHasStudio
+            ? buildClassroomUrl(booking.id, booking.short_code)
+            : null;
+          const classroomIsExternal = classroomUrl ? classroomUrl.startsWith("http") : false;
+          const showExternalJoin = !!resolvedMeetingUrl && !meetingIsClassroom;
 
           return (
             <div
@@ -199,11 +230,11 @@ export function UpcomingLessons() {
               </div>
 
               {/* Join Button - External Provider */}
-              {booking.meeting_url && (
+              {showExternalJoin && (
                 <div className="mt-4">
                   {isJoinable ? (
                     <a
-                      href={booking.meeting_url}
+                      href={resolvedMeetingUrl ?? undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
@@ -218,37 +249,49 @@ export function UpcomingLessons() {
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-medium text-muted-foreground cursor-not-allowed"
                     >
                       <Video className="h-5 w-5" />
-                      Join available 15 min before
+                      Join available {joinEarlyMinutes} min before
                     </button>
                   )}
                 </div>
               )}
 
               {/* Join Button - Native Classroom (Studio tier tutors only) */}
-              {booking.tutor.tier === "studio" && (
+              {classroomUrl && (
                 <div className="mt-3">
                   {isJoinable ? (
-                    <Link
-                      href={`/classroom/${booking.id}`}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
-                    >
-                      <Video className="h-5 w-5" />
-                      Join Native Classroom
-                    </Link>
+                    classroomIsExternal ? (
+                      <a
+                        href={classroomUrl}
+                        target="_self"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
+                      >
+                        <Video className="h-5 w-5" />
+                        Join Native Classroom
+                      </a>
+                    ) : (
+                      <Link
+                        href={classroomUrl}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
+                      >
+                        <Video className="h-5 w-5" />
+                        Join Native Classroom
+                      </Link>
+                    )
                   ) : (
                     <button
                       disabled
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-100 px-4 py-3 text-sm font-medium text-purple-400 cursor-not-allowed"
                     >
                       <Video className="h-5 w-5" />
-                      Classroom available 15 min before
+                      Classroom available {joinEarlyMinutes} min before
                     </button>
                   )}
                 </div>
               )}
 
               {/* No meeting link message */}
-              {!booking.meeting_url && (
+              {!showExternalJoin && !classroomUrl && (
                 <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
                   <p className="text-sm text-amber-700">
                     Your tutor will share the meeting link before the lesson.

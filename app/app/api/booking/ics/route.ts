@@ -1,27 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-
-type BookingIcsRecord = {
-  id: string;
-  scheduled_at: string;
-  duration_minutes: number | null;
-  timezone: string | null;
-  meeting_url: string | null;
-  students: {
-    full_name: string | null;
-    email: string | null;
-  } | null;
-  services: {
-    name: string | null;
-  } | null;
-  profiles:
-    | {
-        full_name: string | null;
-        email: string | null;
-      }
-    | { full_name: string | null; email: string | null }[]
-    | null;
-};
+import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
 
 function formatIcsDate(date: Date) {
   return date
@@ -101,80 +80,40 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
   }
 
-  const { data: bookingData, error } = await adminClient
-    .from("bookings")
-    .select(
-      `
-        id,
-        scheduled_at,
-        duration_minutes,
-        timezone,
-        meeting_url,
-        students (
-          full_name,
-          email
-        ),
-        services (
-          name
-        ),
-        profiles!bookings_tutor_id_fkey (
-          full_name,
-          email
-        )
-      `
-    )
-    .eq("id", bookingId)
-    .single();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const calendarDetails = await buildBookingCalendarDetails({
+    client: adminClient,
+    bookingId,
+    baseUrl,
+  });
 
-  const booking = (bookingData ?? null) as BookingIcsRecord | null;
-
-  if (error || !booking) {
+  if (!calendarDetails) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
-  const startDate = new Date(booking.scheduled_at);
+  const startDate = new Date(calendarDetails.start);
   if (Number.isNaN(startDate.getTime())) {
     return NextResponse.json({ error: "Invalid booking date" }, { status: 400 });
   }
 
-  const durationMinutes = booking.duration_minutes ?? 60;
-  const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-  const serviceName = booking.services?.name ?? "Lesson";
-  const tutorProfile = Array.isArray(booking.profiles)
-    ? booking.profiles[0] ?? null
-    : booking.profiles;
-  const tutorName = tutorProfile?.full_name ?? "Tutor";
-  const tutorEmail = tutorProfile?.email ?? undefined;
-  const studentName = booking.students?.full_name ?? "Student";
-  const studentEmail = booking.students?.email ?? undefined;
-
-  const descriptionLines = [
-    `Tutor: ${tutorName}`,
-    `Student: ${studentName}`,
-    `Service: ${serviceName}`,
-    booking.meeting_url ? `Meeting link: ${booking.meeting_url}` : "Meeting link: TBD",
-    `Booking ID: ${booking.id}`,
-    booking.timezone ? `Timezone: ${booking.timezone}` : null,
-  ].filter(Boolean) as string[];
-
   const icsBody = buildIcsEvent({
-    uid: `booking-${booking.id}@tutorlingua`,
-    title: `${serviceName} with ${tutorName}`,
-    description: descriptionLines.join("\n"),
+    uid: `booking-${calendarDetails.bookingId}@tutorlingua`,
+    title: calendarDetails.title,
+    description: calendarDetails.description,
     start: startDate,
-    end: endDate,
-    organizerName: tutorName,
-    organizerEmail: tutorEmail,
-    attendeeName: studentName,
-    attendeeEmail: studentEmail,
-    location: booking.meeting_url || null,
+    end: new Date(calendarDetails.end),
+    organizerName: calendarDetails.tutorName,
+    organizerEmail: calendarDetails.tutorEmail ?? undefined,
+    attendeeName: calendarDetails.studentName,
+    attendeeEmail: calendarDetails.studentEmail ?? undefined,
+    location: calendarDetails.location ?? null,
   });
 
   return new NextResponse(icsBody, {
     status: 200,
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="tutorlingua-lesson-${booking.id}.ics"`,
+      "Content-Disposition": `attachment; filename="tutorlingua-lesson-${calendarDetails.bookingId}.ics"`,
       "Cache-Control": "private, max-age=0, no-store",
     },
   });

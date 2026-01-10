@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
+import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 import { startOfMonth, endOfMonth, format, addMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
@@ -58,6 +59,8 @@ type TutorProfile = {
   full_name: string | null;
   avatar_url: string | null;
   timezone: string | null;
+  tier?: string | null;
+  plan?: string | null;
 };
 
 type ServiceRecord = {
@@ -150,7 +153,7 @@ export async function getStudentScheduleEvents(options: {
   const [tutorsResult, servicesResult] = await Promise.all([
     adminClient
       .from("profiles")
-      .select("id, full_name, avatar_url, timezone")
+      .select("id, full_name, avatar_url, timezone, tier, plan")
       .in("id", tutorIds),
     serviceIds.length > 0
       ? adminClient
@@ -174,12 +177,17 @@ export async function getStudentScheduleEvents(options: {
     const startDate = new Date(booking.scheduled_at);
     const endDate = addMinutes(startDate, booking.duration_minutes);
 
-    // Use short code URL if available for LiveKit classroom, otherwise use regular meeting URL
-    let meetingUrl = booking.meeting_url || undefined;
-    if (booking.short_code && booking.meeting_url?.includes("/classroom/")) {
-      // Replace full classroom URL with short code URL for better UX
-      meetingUrl = `/c/${booking.short_code}`;
-    }
+    const tutorHasStudio = tutorHasStudioAccess({
+      tier: tutor?.tier ?? null,
+      plan: tutor?.plan ?? null,
+    });
+    const meetingUrl = resolveBookingMeetingUrl({
+      meetingUrl: booking.meeting_url,
+      bookingId: booking.id,
+      shortCode: booking.short_code,
+      tutorHasStudio,
+      allowClassroomFallback: true,
+    });
 
     return {
       id: booking.id,
@@ -195,7 +203,7 @@ export async function getStudentScheduleEvents(options: {
       studentId: booking.student_id,
       serviceId: booking.service_id || undefined,
       serviceName: service?.name,
-      meetingUrl,
+      meetingUrl: meetingUrl ?? undefined,
       bookingStatus: booking.status,
       paymentStatus: booking.payment_status || undefined,
       durationMinutes: booking.duration_minutes,

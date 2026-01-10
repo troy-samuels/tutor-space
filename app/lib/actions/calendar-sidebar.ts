@@ -5,6 +5,7 @@ import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "date-fns";
 import { getDashboardExternalEvents } from "@/lib/actions/calendar-events";
 import type { PackageType } from "@/lib/types/calendar";
 import type { DailyLesson, DayBookingInfo } from "@/lib/actions/types";
+import { isClassroomUrl, resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 // Helper to map offer_type to PackageType
 function mapOfferTypeToPackageType(offerType?: string | null): PackageType {
@@ -20,6 +21,16 @@ export async function getDailyLessons(date: Date) {
   
   if (!user) return { lessons: [] };
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tier, plan")
+    .eq("id", user.id)
+    .maybeSingle();
+  const tutorHasStudio = tutorHasStudioAccess({
+    tier: profile?.tier ?? null,
+    plan: profile?.plan ?? null,
+  });
+
   const dayStart = startOfDay(date).toISOString();
   const dayEnd = endOfDay(date).toISOString();
 
@@ -32,6 +43,7 @@ export async function getDailyLessons(date: Date) {
       status,
       meeting_url,
       meeting_provider,
+      short_code,
       payment_status,
       students (
         id,
@@ -58,14 +70,22 @@ export async function getDailyLessons(date: Date) {
   const lessons: DailyLesson[] = (bookings || []).map((booking: any) => {
     const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
     const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+    const meetingUrl = resolveBookingMeetingUrl({
+      meetingUrl: booking.meeting_url,
+      bookingId: booking.id,
+      shortCode: booking.short_code,
+      tutorHasStudio,
+      allowClassroomFallback: true,
+    });
 
     return {
       id: booking.id,
       scheduled_at: booking.scheduled_at,
       duration_minutes: booking.duration_minutes,
       status: booking.status,
-      meeting_url: booking.meeting_url,
-      meeting_provider: booking.meeting_provider,
+      meeting_url: meetingUrl,
+      meeting_provider:
+        booking.meeting_provider ?? (isClassroomUrl(meetingUrl) ? "livekit" : null),
       payment_status: booking.payment_status,
       packageType: mapOfferTypeToPackageType(service?.offer_type),
       student: student

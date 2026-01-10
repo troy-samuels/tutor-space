@@ -12,6 +12,7 @@ import {
   PracticeReminderEmailText,
 } from "@/emails/practice-reminder";
 import { recordSystemEvent, recordSystemMetric, startDuration } from "@/lib/monitoring";
+import { isClassroomUrl, resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 type ReminderLessonRecord = {
   id: string;
@@ -20,6 +21,7 @@ type ReminderLessonRecord = {
   timezone: string;
   meeting_url: string | null;
   meeting_provider: string | null;
+  short_code?: string | null;
   reminder_24h_sent?: boolean;
   reminder_1h_sent?: boolean;
   students: {
@@ -33,6 +35,8 @@ type ReminderLessonRecord = {
   profiles: {
     full_name: string | null;
     custom_video_name: string | null;
+    tier?: string | null;
+    plan?: string | null;
   } | null;
 };
 
@@ -121,6 +125,7 @@ export async function GET(request: Request) {
         timezone,
         meeting_url,
         meeting_provider,
+        short_code,
         reminder_24h_sent,
         students (
           full_name,
@@ -132,7 +137,9 @@ export async function GET(request: Request) {
         ),
         profiles!bookings_tutor_id_fkey (
           full_name,
-          custom_video_name
+          custom_video_name,
+          tier,
+          plan
         )
       `)
       .eq("status", "confirmed")
@@ -150,6 +157,7 @@ export async function GET(request: Request) {
         timezone,
         meeting_url,
         meeting_provider,
+        short_code,
         reminder_1h_sent,
         students (
           full_name,
@@ -161,7 +169,9 @@ export async function GET(request: Request) {
         ),
         profiles!bookings_tutor_id_fkey (
           full_name,
-          custom_video_name
+          custom_video_name,
+          tier,
+          plan
         )
       `)
       .eq("status", "confirmed")
@@ -189,6 +199,22 @@ export async function GET(request: Request) {
           const student = lesson.students;
           const service = lesson.services;
           const tutor = lesson.profiles;
+          const tutorHasStudio = tutorHasStudioAccess({
+            tier: tutor?.tier ?? null,
+            plan: tutor?.plan ?? null,
+          });
+          const resolvedMeetingUrl = resolveBookingMeetingUrl({
+            meetingUrl: lesson.meeting_url,
+            bookingId: lesson.id,
+            shortCode: lesson.short_code,
+            baseUrl: PUBLIC_APP_URL,
+            tutorHasStudio,
+            allowClassroomFallback: true,
+          });
+          const resolvedMeetingProvider = resolvedMeetingUrl
+            ? lesson.meeting_provider ??
+              (isClassroomUrl(resolvedMeetingUrl) ? "livekit" : undefined)
+            : undefined;
 
           if (!student?.email || !student?.full_name) {
             console.warn(`Skipping lesson ${lesson.id}: missing student info`);
@@ -203,8 +229,8 @@ export async function GET(request: Request) {
             scheduledAt: lesson.scheduled_at,
             durationMinutes: lesson.duration_minutes,
             timezone: lesson.timezone,
-            meetingUrl: lesson.meeting_url || undefined,
-            meetingProvider: lesson.meeting_provider || undefined,
+            meetingUrl: resolvedMeetingUrl ?? undefined,
+            meetingProvider: resolvedMeetingProvider,
             customVideoName: tutor?.custom_video_name || undefined,
             hoursUntil: 24,
           });
@@ -226,12 +252,12 @@ export async function GET(request: Request) {
                 type: "booking_reminder",
                 title: "Lesson tomorrow",
                 body: `${service?.name || "Lesson"} with ${tutor?.full_name || "your tutor"}`,
-                link: lesson.meeting_url || "/student/search",
+                link: resolvedMeetingUrl || "/student/search",
                 icon: "bell",
                 metadata: {
                   booking_id: lesson.id,
-                  meeting_url: lesson.meeting_url,
-                  meeting_provider: lesson.meeting_provider,
+                  meeting_url: resolvedMeetingUrl,
+                  meeting_provider: resolvedMeetingProvider,
                   scheduled_at: lesson.scheduled_at,
                   hours_until: 24,
                 },
@@ -256,6 +282,22 @@ export async function GET(request: Request) {
           const student = lesson.students;
           const service = lesson.services;
           const tutor = lesson.profiles;
+          const tutorHasStudio = tutorHasStudioAccess({
+            tier: tutor?.tier ?? null,
+            plan: tutor?.plan ?? null,
+          });
+          const resolvedMeetingUrl = resolveBookingMeetingUrl({
+            meetingUrl: lesson.meeting_url,
+            bookingId: lesson.id,
+            shortCode: lesson.short_code,
+            baseUrl: PUBLIC_APP_URL,
+            tutorHasStudio,
+            allowClassroomFallback: true,
+          });
+          const resolvedMeetingProvider = resolvedMeetingUrl
+            ? lesson.meeting_provider ??
+              (isClassroomUrl(resolvedMeetingUrl) ? "livekit" : undefined)
+            : undefined;
 
           if (!student?.email || !student?.full_name) {
             console.warn(`Skipping lesson ${lesson.id}: missing student info`);
@@ -270,8 +312,8 @@ export async function GET(request: Request) {
             scheduledAt: lesson.scheduled_at,
             durationMinutes: lesson.duration_minutes,
             timezone: lesson.timezone,
-            meetingUrl: lesson.meeting_url || undefined,
-            meetingProvider: lesson.meeting_provider || undefined,
+            meetingUrl: resolvedMeetingUrl ?? undefined,
+            meetingProvider: resolvedMeetingProvider,
             customVideoName: tutor?.custom_video_name || undefined,
             hoursUntil: 1,
           });
@@ -293,12 +335,12 @@ export async function GET(request: Request) {
                 type: "booking_reminder",
                 title: "Lesson starting soon",
                 body: `${service?.name || "Lesson"} with ${tutor?.full_name || "your tutor"} in 1 hour`,
-                link: lesson.meeting_url || "/student/search",
+                link: resolvedMeetingUrl || "/student/search",
                 icon: "bell",
                 metadata: {
                   booking_id: lesson.id,
-                  meeting_url: lesson.meeting_url,
-                  meeting_provider: lesson.meeting_provider,
+                  meeting_url: resolvedMeetingUrl,
+                  meeting_provider: resolvedMeetingProvider,
                   scheduled_at: lesson.scheduled_at,
                   hours_until: 1,
                 },

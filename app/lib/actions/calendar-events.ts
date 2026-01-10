@@ -4,6 +4,7 @@ import { startOfDay, endOfDay, startOfWeek, endOfWeek, addDays, startOfMonth, en
 import { createClient } from "@/lib/supabase/server";
 import { getCalendarEventsWithDetails } from "@/lib/calendar/busy-windows";
 import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
+import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -96,6 +97,16 @@ async function fetchTutorLinguaBookings(
   start: Date,
   end: Date
 ): Promise<CalendarEvent[]> {
+  const { data: tutorProfile } = await supabase
+    .from("profiles")
+    .select("tier, plan")
+    .eq("id", tutorId)
+    .maybeSingle();
+  const tutorHasStudio = tutorHasStudioAccess({
+    tier: tutorProfile?.tier ?? null,
+    plan: tutorProfile?.plan ?? null,
+  });
+
   const { data, error } = await supabase
     .from("bookings")
     .select(`
@@ -106,6 +117,7 @@ async function fetchTutorLinguaBookings(
       status,
       payment_status,
       meeting_url,
+      short_code,
       students (
         id,
         full_name,
@@ -142,6 +154,14 @@ async function fetchTutorLinguaBookings(
     else if (offerType === "subscription") packageType = "subscription";
     else if (offerType === "lesson_block") packageType = "lesson_block";
 
+    const meetingUrl = resolveBookingMeetingUrl({
+      meetingUrl: booking.meeting_url,
+      bookingId: booking.id,
+      shortCode: booking.short_code,
+      tutorHasStudio,
+      allowClassroomFallback: true,
+    });
+
     return {
       id: booking.id,
       title: student?.full_name
@@ -155,12 +175,13 @@ async function fetchTutorLinguaBookings(
       studentName: student?.full_name,
       serviceId: service?.id,
       serviceName: service?.name,
-      meetingUrl: booking.meeting_url,
+      meetingUrl: meetingUrl ?? undefined,
       bookingStatus: booking.status,
       paymentStatus: booking.payment_status,
       timezone: booking.timezone,
       durationMinutes: booking.duration_minutes,
       packageType,
+      shortCode: booking.short_code ?? undefined,
     };
   });
 }

@@ -4,6 +4,7 @@ import { toZonedTime } from "date-fns-tz";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { RequestRefundButton } from "@/components/refunds/RequestRefundButton";
+import { isClassroomUrl, resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 interface SuccessPageProps {
   searchParams: Promise<{
@@ -23,6 +24,8 @@ type TutorProfileInfo = {
   stripe_payment_link: string | null;
   custom_payment_url: string | null;
   custom_video_name: string | null;
+  tier?: string | null;
+  plan?: string | null;
 } | null;
 
 type BookingSuccessRecord = {
@@ -38,6 +41,7 @@ type BookingSuccessRecord = {
   student_id: string | null;
   meeting_provider: string | null;
   meeting_url: string | null;
+  short_code?: string | null;
   students: {
     full_name: string | null;
     email: string | null;
@@ -96,6 +100,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
       student_id,
       meeting_provider,
       meeting_url,
+      short_code,
       students (
         full_name,
         email
@@ -113,17 +118,15 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
         zelle_phone,
         stripe_payment_link,
         custom_payment_url,
-        custom_video_name
+        custom_video_name,
+        tier,
+        plan
       )
     `)
     .eq("id", booking_id)
     .single();
 
   const booking = (bookingData ?? null) as BookingSuccessRecord | null;
-
-  // Also get meeting_url and meeting_provider from booking
-  const meetingUrl = booking?.meeting_url ?? null;
-  const meetingProvider = booking?.meeting_provider ?? null;
 
   if (!booking) {
     return (
@@ -141,6 +144,20 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
   const tutorProfile = Array.isArray(booking.profiles)
     ? booking.profiles[0] ?? null
     : booking.profiles;
+  const tutorHasStudio = tutorHasStudioAccess({
+    tier: tutorProfile?.tier ?? null,
+    plan: tutorProfile?.plan ?? null,
+  });
+  const meetingUrl = resolveBookingMeetingUrl({
+    meetingUrl: booking.meeting_url,
+    bookingId: booking.id,
+    shortCode: booking.short_code,
+    tutorHasStudio,
+    allowClassroomFallback: true,
+  });
+  const meetingProvider = meetingUrl
+    ? booking.meeting_provider ?? (isClassroomUrl(meetingUrl) ? "livekit" : null)
+    : null;
 
   const { data: calendarConnections } = await adminClient
     .from("calendar_connections")
@@ -282,8 +299,12 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
                       ? "Zoom"
                       : meetingProvider === "google_meet"
                         ? "Google Meet"
+                        : meetingProvider === "microsoft_teams"
+                          ? "Microsoft Teams"
                         : meetingProvider === "calendly"
                           ? "Calendly"
+                          : meetingProvider === "livekit"
+                            ? "Classroom"
                           : meetingProvider === "custom"
                             ? tutorProfile?.custom_video_name || "Video Platform"
                             : "Video call",
@@ -291,7 +312,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
               </p>
               <a
                 href={meetingUrl}
-                target="_blank"
+                target={isClassroomUrl(meetingUrl) ? "_self" : "_blank"}
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >

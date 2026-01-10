@@ -8,6 +8,7 @@ import { sendDigitalProductDeliveryEmail } from "@/lib/emails/digital-products";
 import { sendPaymentReceiptEmail, sendTutorBookingNotificationEmail, sendPaymentFailedEmail } from "@/lib/emails/booking-emails";
 import { mapPriceIdToPlan, getPlanDbTier } from "@/lib/payments/subscriptions";
 import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
+import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
 // AI Practice constants removed - freemium model uses RPC for period creation
 import { recordSystemEvent, recordSystemMetric, shouldSample } from "@/lib/monitoring";
 import { sendLessonSubscriptionEmails } from "@/lib/emails/ops-emails";
@@ -873,34 +874,29 @@ async function handleCheckoutSessionCompleted(
   // Create calendar event on tutor's connected calendar(s)
   const tutorId = session.metadata?.tutorId;
   if (tutorId && bookingDetails?.scheduled_at) {
-    const startDate = new Date(bookingDetails.scheduled_at);
-    const durationMinutes =
-      bookingDetails?.services?.duration_minutes && bookingDetails.services.duration_minutes > 0
-        ? bookingDetails.services.duration_minutes
-        : 60;
-
-    if (!Number.isNaN(startDate.getTime())) {
-      const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
-      const descriptionLines = [
-        `TutorLingua booking - ${bookingDetails?.services?.name ?? "Lesson"}`,
-        `Student: ${bookingDetails?.students?.full_name ?? "Unknown"}`,
-        `Booking ID: ${bookingId}`,
-      ];
-
-      createCalendarEventForBooking({
-        tutorId,
-        bookingId,
-        title: `${bookingDetails?.services?.name ?? "Lesson"} with ${bookingDetails?.students?.full_name ?? "Student"}`,
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        description: descriptionLines.join("\n"),
-        studentEmail: bookingDetails?.students?.email ?? undefined,
-        timezone: bookingDetails?.timezone ?? "UTC",
-      }).catch((err) => {
+    buildBookingCalendarDetails({
+      client: supabase,
+      bookingId,
+      baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    })
+      .then((calendarDetails) => {
+        if (!calendarDetails) return null;
+        return createCalendarEventForBooking({
+          tutorId: calendarDetails.tutorId,
+          bookingId: calendarDetails.bookingId,
+          title: calendarDetails.title,
+          start: calendarDetails.start,
+          end: calendarDetails.end,
+          description: calendarDetails.description,
+          location: calendarDetails.location ?? undefined,
+          studentEmail: calendarDetails.studentEmail ?? undefined,
+          timezone: calendarDetails.timezone,
+        });
+      })
+      .catch((err) => {
         // Don't fail the webhook if calendar creation fails
         console.error("[Webhook] Failed to create calendar event:", err);
       });
-    }
   }
 }
 

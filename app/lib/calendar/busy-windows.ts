@@ -499,6 +499,7 @@ export type CreateCalendarEventParams = {
   start: string; // ISO datetime
   end: string; // ISO datetime
   description?: string;
+  location?: string | null;
   studentEmail?: string;
   timezone?: string; // IANA timezone (e.g., "America/New_York")
   forceCreate?: boolean;
@@ -1119,6 +1120,7 @@ async function updateGoogleCalendarEvent(
   const event = {
     summary: params.title,
     description: params.description || "Booked via TutorLingua",
+    location: params.location ?? undefined,
     start: {
       dateTime: params.start,
       timeZone: eventTimezone,
@@ -1193,6 +1195,7 @@ async function updateOutlookCalendarEvent(
       contentType: "text",
       content: params.description || "Booked via TutorLingua",
     },
+    location: params.location ? { displayName: params.location } : undefined,
     start: {
       dateTime: params.start,
       timeZone: eventTimezone,
@@ -1310,6 +1313,7 @@ async function createGoogleCalendarEvent(
   const event = {
     summary: params.title,
     description: params.description || "Booked via TutorLingua",
+    location: params.location ?? undefined,
     start: {
       dateTime: params.start,
       timeZone: eventTimezone,
@@ -1378,6 +1382,7 @@ async function createOutlookCalendarEvent(
       contentType: "text",
       content: params.description || "Booked via TutorLingua",
     },
+    location: params.location ? { displayName: params.location } : undefined,
     start: {
       dateTime: params.start,
       timeZone: eventTimezone,

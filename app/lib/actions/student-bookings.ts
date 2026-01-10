@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { createBookingAndCheckout } from "./bookings";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
+import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 import { getTutorForBooking, getTutorBookings } from "./student-connections";
 import { getStudentSubscription } from "./subscriptions";
 import type { SubscriptionWithDetails } from "@/lib/subscription";
@@ -234,12 +235,14 @@ export async function getStudentBookings(): Promise<{
     notes: string | null;
     meeting_url: string | null;
     meeting_provider: string | null;
+    short_code: string | null;
     tutor: {
       id: string;
       username: string;
       full_name: string | null;
       avatar_url: string | null;
       tier: string | null;
+      plan?: string | null;
     };
     service: {
       id: string;
@@ -283,6 +286,7 @@ export async function getStudentBookings(): Promise<{
     status,
     meeting_url,
     meeting_provider,
+    short_code,
     tutor_id,
     service_id
   `;
@@ -333,6 +337,7 @@ export async function getStudentBookings(): Promise<{
     status: string;
     meeting_url: string | null;
     meeting_provider: string | null;
+    short_code: string | null;
     tutor_id: string;
     service_id: string;
     notes?: string | null;
@@ -344,7 +349,7 @@ export async function getStudentBookings(): Promise<{
   const [tutorsResult, servicesResult] = await Promise.all([
     adminClient
       .from("profiles")
-      .select("id, username, full_name, avatar_url, tier")
+      .select("id, username, full_name, avatar_url, tier, plan")
       .in("id", tutorIds),
     adminClient
       .from("services")
@@ -363,26 +368,41 @@ export async function getStudentBookings(): Promise<{
       const endTime = startTime + booking.duration_minutes * 60 * 1000;
       return endTime > now;
     })
-    .map((booking) => ({
-      id: booking.id,
-      scheduled_at: booking.scheduled_at,
-      duration_minutes: booking.duration_minutes,
-      status: booking.status,
-      notes: booking.notes ?? null,
-      meeting_url: booking.meeting_url,
-      meeting_provider: booking.meeting_provider,
-      tutor: tutorMap.get(booking.tutor_id) || {
-        id: booking.tutor_id,
-        username: "",
-        full_name: null,
-        avatar_url: null,
-        tier: null,
-      },
-      service: serviceMap.get(booking.service_id) || {
-        id: booking.service_id,
-        name: "Unknown Service",
-      },
-    }));
+    .map((booking) => {
+      const tutor = tutorMap.get(booking.tutor_id);
+      const tutorHasStudio = tutorHasStudioAccess({
+        tier: tutor?.tier ?? null,
+        plan: tutor?.plan ?? null,
+      });
+
+      return {
+        id: booking.id,
+        scheduled_at: booking.scheduled_at,
+        duration_minutes: booking.duration_minutes,
+        status: booking.status,
+        notes: booking.notes ?? null,
+        meeting_url: resolveBookingMeetingUrl({
+          meetingUrl: booking.meeting_url,
+          bookingId: booking.id,
+          shortCode: booking.short_code,
+          tutorHasStudio,
+        }),
+        meeting_provider: booking.meeting_provider,
+        short_code: booking.short_code,
+        tutor: tutor || {
+          id: booking.tutor_id,
+          username: "",
+          full_name: null,
+          avatar_url: null,
+          tier: null,
+          plan: null,
+        },
+        service: serviceMap.get(booking.service_id) || {
+          id: booking.service_id,
+          name: "Unknown Service",
+        },
+      };
+    });
 
   return { bookings: result };
 }

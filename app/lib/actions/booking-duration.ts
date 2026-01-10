@@ -7,6 +7,7 @@ import {
   getCalendarBusyWindowsWithStatus,
   updateCalendarEventForBooking,
 } from "@/lib/calendar/busy-windows";
+import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
 
 type BookingWithRelations = {
   id: string;
@@ -165,31 +166,24 @@ export async function updateBookingDuration(params: {
       const previousEndDate = new Date(
         startDate.getTime() + (booking.duration_minutes ?? params.durationMinutes) * 60000
       );
-      const studentName =
-        (Array.isArray(booking.students) ? booking.students[0]?.full_name : booking.students?.full_name) ||
-        "Student";
-      const serviceName =
-        (Array.isArray(booking.services) ? booking.services[0]?.name : booking.services?.name) || "Lesson";
-
-      const descriptionLines = [
-        `TutorLingua booking - ${serviceName}`,
-        `Student: ${studentName}`,
-        `Booking ID: ${booking.id}`,
-      ];
+      const calendarDetails = await buildBookingCalendarDetails({
+        client: supabase,
+        bookingId: booking.id,
+        baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      });
 
       await updateCalendarEventForBooking({
         tutorId: booking.tutor_id,
         bookingId: booking.id,
-        title: `${serviceName} with ${studentName}`,
+        title: calendarDetails?.title ?? "Lesson",
         start: startDate.toISOString(),
         end: endDate.toISOString(),
         previousStart: startDate.toISOString(),
         previousEnd: previousEndDate.toISOString(),
-        description: descriptionLines.join("\n"),
-        studentEmail:
-          (Array.isArray(booking.students) ? booking.students[0]?.email : booking.students?.email) ||
-          undefined,
-        timezone: tutorTimezone,
+        description: calendarDetails?.description,
+        location: calendarDetails?.location ?? undefined,
+        studentEmail: calendarDetails?.studentEmail ?? undefined,
+        timezone: calendarDetails?.timezone ?? tutorTimezone,
         createIfMissing: true,
       });
     } catch (calendarError) {

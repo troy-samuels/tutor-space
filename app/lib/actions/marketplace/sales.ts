@@ -146,6 +146,7 @@ export async function initiatePurchase(
 	}
 
 	try {
+		const normalizedBuyerEmail = params.buyerEmail.trim().toLowerCase();
 		// 1. Get product with tutor info
 		const product = await getProductWithTutor(adminClient, params.productId);
 
@@ -170,46 +171,83 @@ export async function initiatePurchase(
 			product.price_cents
 		);
 
-		// 3. Generate download token
-		const downloadToken = randomBytes(32).toString("hex");
+		// 3. Reuse recent pending purchase if available
+		const { data: existingPurchase } = await adminClient
+			.from("digital_product_purchases")
+			.select("id, stripe_session_id, created_at")
+			.eq("product_id", product.id)
+			.eq("buyer_email", normalizedBuyerEmail)
+			.eq("status", "pending")
+			.order("created_at", { ascending: false })
+			.limit(1)
+			.maybeSingle();
+
+		if (existingPurchase?.stripe_session_id) {
+			try {
+				const existingSession = await stripe.checkout.sessions.retrieve(
+					existingPurchase.stripe_session_id
+				);
+				if (existingSession.status === "open" && existingSession.url) {
+					return {
+						data: {
+							purchaseId: existingPurchase.id,
+							checkoutUrl: existingSession.url,
+						},
+						success: true,
+					};
+				}
+			} catch (error) {
+				logStepError(log, "initiatePurchase:reuse_failed", error, {
+					purchaseId: existingPurchase.id,
+				});
+			}
+		}
+
+		const reusePurchaseId =
+			existingPurchase && !existingPurchase.stripe_session_id ? existingPurchase.id : null;
 
 		// 4. Create purchase record
-		const purchase = await createPurchaseRecord(adminClient, {
-			productId: product.id,
-			tutorId: product.tutor_id,
-			buyerEmail: params.buyerEmail,
-			buyerName: params.buyerName,
-			downloadToken,
-			downloadLimit: 3,
-		});
+		const purchase = reusePurchaseId
+			? { id: reusePurchaseId }
+			: await createPurchaseRecord(adminClient, {
+				productId: product.id,
+				tutorId: product.tutor_id,
+				buyerEmail: normalizedBuyerEmail,
+				buyerName: params.buyerName,
+				downloadToken: randomBytes(32).toString("hex"),
+				downloadLimit: 3,
+			});
 
 		// 5. Record audit for purchase initiation
-		await recordAudit(adminClient, {
-			actorId: params.buyerEmail,
-			targetId: purchase.id,
-			entityType: "marketplace",
-			actionType: "purchase_initiated",
-			afterState: {
-				productId: product.id,
-				productTitle: product.title,
-				priceCents: product.price_cents,
-				commissionRate: commission.commissionRate,
-			},
-			metadata: {
-				tutorId: product.tutor_id,
-				ip: clientIp,
-				traceId,
-			},
-		});
+		if (!reusePurchaseId) {
+			await recordAudit(adminClient, {
+				actorId: normalizedBuyerEmail,
+				targetId: purchase.id,
+				entityType: "marketplace",
+				actionType: "purchase_initiated",
+				afterState: {
+					productId: product.id,
+					productTitle: product.title,
+					priceCents: product.price_cents,
+					commissionRate: commission.commissionRate,
+				},
+				metadata: {
+					tutorId: product.tutor_id,
+					ip: clientIp,
+					traceId,
+				},
+			});
+		}
 
 		// 6. Create Stripe checkout session
 		const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co";
 		const successUrl = `${appUrl}/student/library?purchase_success=true`;
 		const cancelUrl = `${appUrl}/student/library?purchase_canceled=1`;
 
+		const idempotencyKey = `digital-product:${purchase.id}`;
 		const session = await stripe.checkout.sessions.create({
 			mode: "payment",
-			customer_email: params.buyerEmail,
+			customer_email: normalizedBuyerEmail,
 			line_items: [{ price: product.stripe_price_id, quantity: 1 }],
 			success_url: successUrl,
 			cancel_url: cancelUrl,
@@ -226,7 +264,7 @@ export async function initiatePurchase(
 				studentUserId: params.buyerUserId ?? "",
 				productId: product.id,
 			},
-		});
+		}, { idempotencyKey });
 
 		// 7. Update purchase with Stripe session ID
 		await updatePurchaseStatus(adminClient, purchase.id, "pending", {

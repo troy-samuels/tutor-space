@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { randomUUID } from "crypto";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -147,8 +146,8 @@ export async function POST(request: NextRequest) {
     const successUrl = `${appUrl.replace(/\/$/, "")}/dashboard?checkout=success`;
     const cancelUrl = `${appUrl.replace(/\/$/, "")}/dashboard?checkout=cancel`;
 
-    // Idempotency key prevents duplicate checkout sessions on rapid clicks
-    const idempotencyKey = `subscribe:${user.id}:${plan}:${randomUUID()}`;
+    // Deterministic idempotency key prevents duplicate checkout sessions on rapid retries
+    const idempotencyKey = `subscribe:${user.id}:${plan}`;
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customer.id,

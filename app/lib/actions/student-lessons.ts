@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { LessonHistoryStats, Booking, StudentLessonHistoryData } from "@/lib/actions/types";
+import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 /**
  * Fetch complete lesson history for a student
@@ -14,6 +15,16 @@ export async function getStudentLessonHistory(
   try {
     const supabase = await createClient();
 
+    const { data: tutorProfile } = await supabase
+      .from("profiles")
+      .select("tier, plan")
+      .eq("id", tutorId)
+      .maybeSingle();
+    const tutorHasStudio = tutorHasStudioAccess({
+      tier: tutorProfile?.tier ?? null,
+      plan: tutorProfile?.plan ?? null,
+    });
+
     // Fetch all bookings for this student
     const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
@@ -24,6 +35,7 @@ export async function getStudentLessonHistory(
         duration_minutes,
         status,
         meeting_url,
+        short_code,
         services (
           name
         ),
@@ -65,12 +77,19 @@ export async function getStudentLessonHistory(
       const lessonNote = Array.isArray(booking.lesson_notes)
         ? booking.lesson_notes[0]
         : booking.lesson_notes?.[0];
+      const meetingUrl = resolveBookingMeetingUrl({
+        meetingUrl: booking.meeting_url,
+        bookingId: booking.id,
+        shortCode: booking.short_code,
+        tutorHasStudio,
+        allowClassroomFallback: true,
+      });
       return {
         id: booking.id,
         scheduled_at: booking.scheduled_at,
         duration_minutes: booking.duration_minutes,
         status: booking.status,
-        meeting_url: booking.meeting_url,
+        meeting_url: meetingUrl,
         service_name: service?.name || "Lesson",
         lesson_notes: lessonNote?.notes || null,
       };
