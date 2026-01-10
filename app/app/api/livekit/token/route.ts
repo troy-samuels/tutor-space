@@ -11,6 +11,8 @@ const DEFAULT_MAX_TOKEN_TTL_SECONDS = 6 * 60 * 60;
 const DEFAULT_TEST_TOKEN_TTL_SECONDS = 2 * 60 * 60;
 const MIN_TOKEN_TTL_SECONDS = 15 * 60;
 const TOKEN_BUFFER_MINUTES = 30;
+const DEFAULT_JOIN_EARLY_MINUTES = 15;
+const DEFAULT_JOIN_GRACE_MINUTES = 60;
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -18,14 +20,22 @@ function isUuid(value: string): boolean {
   );
 }
 
-function parsePositiveInt(value?: string | null): number | null {
+function parseNonNegativeInt(value?: string | null): number | null {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function getMaxTokenTtlSeconds(): number {
-  return parsePositiveInt(process.env.LIVEKIT_TOKEN_TTL_SECONDS) ?? DEFAULT_MAX_TOKEN_TTL_SECONDS;
+  return parseNonNegativeInt(process.env.LIVEKIT_TOKEN_TTL_SECONDS) ?? DEFAULT_MAX_TOKEN_TTL_SECONDS;
+}
+
+function getJoinEarlyMinutes(): number {
+  return parseNonNegativeInt(process.env.LIVEKIT_JOIN_EARLY_MINUTES) ?? DEFAULT_JOIN_EARLY_MINUTES;
+}
+
+function getJoinGraceMinutes(): number {
+  return parseNonNegativeInt(process.env.LIVEKIT_JOIN_GRACE_MINUTES) ?? DEFAULT_JOIN_GRACE_MINUTES;
 }
 
 function resolveTokenTtlSeconds(durationMinutes?: number | null): number {
@@ -141,6 +151,7 @@ export async function GET(request: NextRequest) {
         id,
         tutor_id,
         student_id,
+        status,
         scheduled_at,
         duration_minutes,
         students!inner (
@@ -202,8 +213,53 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // E2E Test Mode: Return mock token when LiveKit isn't configured
     const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
+    let tokenTtlLimitSeconds: number | null = null;
+    if (!isE2ETestMode) {
+      if (booking.status?.startsWith("cancelled")) {
+        return jsonResponse(
+          { error: "This lesson has been cancelled." },
+          { status: 410 }
+        );
+      }
+
+      const scheduledAtMs = booking.scheduled_at
+        ? new Date(booking.scheduled_at).getTime()
+        : Number.NaN;
+      if (Number.isFinite(scheduledAtMs)) {
+        const durationMinutes =
+          booking.duration_minutes && booking.duration_minutes > 0
+            ? booking.duration_minutes
+            : 60;
+        const joinEarlyMinutes = getJoinEarlyMinutes();
+        const joinGraceMinutes = getJoinGraceMinutes();
+        const startMs = scheduledAtMs;
+        const endMs = startMs + durationMinutes * 60 * 1000;
+        const nowMs = Date.now();
+        const endWithGraceMs = endMs + joinGraceMinutes * 60 * 1000;
+
+        if (nowMs < startMs - joinEarlyMinutes * 60 * 1000) {
+          return jsonResponse(
+            { error: `Classroom opens ${joinEarlyMinutes} minutes before the lesson starts.` },
+            { status: 409 }
+          );
+        }
+
+        if (nowMs > endWithGraceMs) {
+          return jsonResponse(
+            { error: "This lesson has ended." },
+            { status: 410 }
+          );
+        }
+
+        tokenTtlLimitSeconds = Math.max(
+          1,
+          Math.floor((endWithGraceMs - nowMs) / 1000)
+        );
+      }
+    }
+
+    // E2E Test Mode: Return mock token when LiveKit isn't configured
     if (isE2ETestMode && !isLiveKitConfigured()) {
       const participantName = isTutor
         ? tutorProfile.full_name || "Tutor"
@@ -240,7 +296,11 @@ export async function GET(request: NextRequest) {
     // Generate LiveKit token
     // Room name is the booking_id (UUID)
     // Identity is the user_id
-    const tokenTtlSeconds = resolveTokenTtlSeconds(booking.duration_minutes);
+    const baseTokenTtlSeconds = resolveTokenTtlSeconds(booking.duration_minutes);
+    const tokenTtlSeconds =
+      tokenTtlLimitSeconds != null
+        ? Math.min(baseTokenTtlSeconds, tokenTtlLimitSeconds)
+        : baseTokenTtlSeconds;
     const token = await createAccessToken(user.id, bookingId, {
       isTutor,
       participantName,
