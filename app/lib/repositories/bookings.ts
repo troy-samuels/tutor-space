@@ -1308,13 +1308,13 @@ export async function findBookingsInTimeRange(
 	tutorId: string,
 	centerTime: Date,
 	excludeBookingId?: string
-): Promise<Array<{ id: string; scheduled_at: string; duration_minutes: number; created_at?: string }>> {
+): Promise<Array<{ id: string; scheduled_at: string; duration_minutes: number; status?: string | null; created_at?: string }>> {
 	const windowStart = new Date(centerTime.getTime() - 24 * 60 * 60 * 1000);
 	const windowEnd = new Date(centerTime.getTime() + 24 * 60 * 60 * 1000);
 
 	let query = client
 		.from("bookings")
-		.select("id, scheduled_at, duration_minutes, created_at")
+		.select("id, scheduled_at, duration_minutes, status, created_at")
 		.eq("tutor_id", tutorId)
 		.in("status", ["pending", "confirmed"])
 		.is("deleted_at", null)
@@ -1510,6 +1510,7 @@ export async function getTutorProfileBookingSettings(
 	timezone: string | null;
 	tier: string | null;
 	plan: string | null;
+	buffer_time_minutes: number | null;
 	advance_booking_days_min: number | null;
 	advance_booking_days_max: number | null;
 	max_lessons_per_day: number | null;
@@ -1519,6 +1520,7 @@ export async function getTutorProfileBookingSettings(
 		.from("profiles")
 		.select(`
 			timezone, tier, plan,
+			buffer_time_minutes,
 			advance_booking_days_min, advance_booking_days_max,
 			max_lessons_per_day, max_lessons_per_week
 		`)

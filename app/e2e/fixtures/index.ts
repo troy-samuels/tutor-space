@@ -150,5 +150,5 @@ export const test = base.extend<E2EFixtures>({
 // Re-export expect from Playwright
 export { expect } from "@playwright/test";
 
-// Export test data constants
-export { E2E_TUTOR, E2E_STUDENT, getTestState } from "./test-fixtures";
+// Export test data constants and utilities
+export { E2E_TUTOR, E2E_STUDENT, getTestState, createE2EAdminClient } from "./test-fixtures";

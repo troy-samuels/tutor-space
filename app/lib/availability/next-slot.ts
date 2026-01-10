@@ -1,10 +1,11 @@
 "use server";
 
-import { addMinutes } from "date-fns";
+import { addDays, addMinutes } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { createClient } from "@/lib/supabase/server";
 import type { AvailabilitySlotInput } from "@/lib/validators/availability";
 import { generateBookingSlots } from "@/lib/utils/scheduling";
+import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
 
 type BusyWindow = { start: string; end: string };
 
@@ -37,10 +38,13 @@ export async function getNextAvailableSlot(tutorId: string, viewerTimezone?: str
   // Tutor timezone fallback
   const { data: profile } = await supabase
     .from("profiles")
-    .select("timezone")
+    .select("timezone, buffer_time_minutes")
     .eq("id", tutorId)
     .maybeSingle();
   const timezone = viewerTimezone || profile?.timezone || "UTC";
+  const bufferMinutes = profile?.buffer_time_minutes ?? 0;
+  const startRange = addDays(new Date(), -1);
+  const endRange = addDays(new Date(), 8);
 
   // Availability (recurring rules)
   const { data: availabilityRows } = await supabase
@@ -66,7 +70,8 @@ export async function getNextAvailableSlot(tutorId: string, viewerTimezone?: str
     .select("scheduled_at, duration_minutes, status")
     .eq("tutor_id", tutorId)
     .in("status", ["pending", "confirmed"])
-    .gte("scheduled_at", new Date().toISOString());
+    .gte("scheduled_at", startRange.toISOString())
+    .lte("scheduled_at", endRange.toISOString());
 
   const busyFromBookings: BusyWindow[] =
     bookings?.map((b) => {
@@ -81,17 +86,25 @@ export async function getNextAvailableSlot(tutorId: string, viewerTimezone?: str
     .from("blocked_times")
     .select("start_time, end_time")
     .eq("tutor_id", tutorId)
-    .gte("end_time", new Date().toISOString());
+    .lt("start_time", endRange.toISOString())
+    .gt("end_time", startRange.toISOString());
 
   const busyFromBlocks: BusyWindow[] =
     blocked?.map((b) => (b.start_time && b.end_time ? { start: b.start_time as string, end: b.end_time as string } : null))
       .filter(Boolean) as BusyWindow[] ?? [];
 
+  const externalBusy = await getCalendarBusyWindows({
+    tutorId,
+    start: startRange,
+    days: 8,
+  });
+
   const slots = generateBookingSlots({
     availability,
     timezone,
     days: 7,
-    busyWindows: [...busyFromBookings, ...busyFromBlocks],
+    busyWindows: [...busyFromBookings, ...busyFromBlocks, ...externalBusy],
+    bufferMinutes,
   });
 
   const next = slots.find((slot) => new Date(slot.start).getTime() > Date.now());

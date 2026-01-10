@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addDays } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { checkStudentAccess } from "@/lib/actions/student-auth";
 import { getStudentLessonHistory } from "@/lib/actions/student-lessons";
 import { generateBookableSlots, filterFutureSlots, groupSlotsByDate } from "@/lib/utils/slots";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
 
 type RouteParams = {
   params: Promise<{ username: string }>;
@@ -107,23 +109,55 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     ? await getStudentLessonHistory(studentRecord.id, profile.id)
     : { data: null };
 
+  const adminClient = createServiceRoleClient();
   const { data: availability } = await supabase
     .from("availability")
     .select("day_of_week, start_time, end_time, is_available")
     .eq("tutor_id", profile.id)
     .eq("is_available", true);
 
-  const { data: existingBookings } = await supabase
-    .from("bookings")
-    .select("scheduled_at, duration_minutes, status")
-    .eq("tutor_id", profile.id)
-    .in("status", ["pending", "confirmed"])
-    .gte("scheduled_at", new Date().toISOString());
+  const startRange = addDays(new Date(), -1);
+  const endRange = addDays(new Date(), 15);
+
+  const [existingBookingsResult, blockedTimesResult, tutorProfileResult, externalBusyWindows] = await Promise.all([
+    (adminClient ?? supabase)
+      .from("bookings")
+      .select("scheduled_at, duration_minutes, status")
+      .eq("tutor_id", profile.id)
+      .in("status", ["pending", "confirmed"])
+      .gte("scheduled_at", startRange.toISOString())
+      .lte("scheduled_at", endRange.toISOString()),
+    adminClient
+      ? adminClient
+          .from("blocked_times")
+          .select("start_time, end_time")
+          .eq("tutor_id", profile.id)
+          .lt("start_time", endRange.toISOString())
+          .gt("end_time", startRange.toISOString())
+      : Promise.resolve({ data: [] as Array<{ start_time: string; end_time: string }> }),
+    adminClient
+      ? adminClient.from("profiles").select("buffer_time_minutes").eq("id", profile.id).single()
+      : Promise.resolve({ data: null as { buffer_time_minutes: number | null } | null }),
+    getCalendarBusyWindows({
+      tutorId: profile.id,
+      start: startRange,
+      days: 16,
+    }),
+  ]);
 
   const selectedService = services.find((svc) => svc.id === requestedService) || services[0];
   const timezone = tutor.timezone || "UTC";
   const startDate = new Date();
   const endDate = addDays(startDate, 14);
+
+  const bufferMinutes = tutorProfileResult.data?.buffer_time_minutes ?? 0;
+  const blockedTimes = blockedTimesResult.data ?? [];
+  const busyWindows = [
+    ...(externalBusyWindows ?? []),
+    ...blockedTimes
+      .filter((block) => block.start_time && block.end_time)
+      .map((block) => ({ start: block.start_time, end: block.end_time })),
+  ];
 
   const allSlots = generateBookableSlots({
     availability: availability || [],
@@ -131,7 +165,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     endDate,
     slotDuration: selectedService?.duration_minutes || 60,
     timezone,
-    existingBookings: existingBookings || [],
+    existingBookings: existingBookingsResult.data || [],
+    busyWindows,
+    bufferMinutes,
   });
 
   const groupedSlots = groupSlotsByDate(filterFutureSlots(allSlots), timezone);

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
+import { addMinutes } from "date-fns";
 import {
   getCalendarBusyWindowsWithStatus,
   updateCalendarEventForBooking,
@@ -95,6 +96,10 @@ export async function updateBookingDuration(params: {
 
   const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
   const tutorTimezone = tutorProfile?.timezone || booking.timezone || "UTC";
+  const bookingStart = new Date(booking.scheduled_at);
+  const bookingEnd = addMinutes(bookingStart, params.durationMinutes);
+  const bufferedStart = addMinutes(bookingStart, -bufferMinutes);
+  const bufferedEnd = addMinutes(bookingEnd, bufferMinutes);
 
   const { data: availability } = await supabase
     .from("availability")
@@ -109,6 +114,13 @@ export async function updateBookingDuration(params: {
     .in("status", ["pending", "confirmed"])
     .neq("id", params.bookingId)
     .gte("scheduled_at", new Date().toISOString());
+
+  const { data: blockedTimes } = await supabase
+    .from("blocked_times")
+    .select("start_time, end_time")
+    .eq("tutor_id", booking.tutor_id)
+    .lt("start_time", bufferedEnd.toISOString())
+    .gt("end_time", bufferedStart.toISOString());
 
   const busyResult = await getCalendarBusyWindowsWithStatus({
     tutorId: booking.tutor_id,
@@ -130,13 +142,20 @@ export async function updateBookingDuration(params: {
     };
   }
 
+  const busyWindows = [
+    ...busyResult.windows,
+    ...(blockedTimes ?? [])
+      .filter((block) => block.start_time && block.end_time)
+      .map((block) => ({ start: block.start_time as string, end: block.end_time as string })),
+  ];
+
   const validation = validateBooking({
     scheduledAt: booking.scheduled_at,
     durationMinutes: params.durationMinutes,
     availability: availability || [],
     existingBookings: existingBookings || [],
     bufferMinutes,
-    busyWindows: busyResult.windows,
+    busyWindows,
     timezone: tutorTimezone,
   });
 

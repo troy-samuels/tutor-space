@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { generateBookableSlots, filterFutureSlots, groupSlotsByDate } from "@/lib/utils/slots";
 import { addDays } from "date-fns";
 import BookingInterface from "@/components/booking/BookingInterface";
@@ -10,6 +11,7 @@ import { checkStudentAccess } from "@/lib/actions/student-auth";
 import { getStudentLessonHistory } from "@/lib/actions/student-lessons";
 import { generateTutorPersonSchema, generateBreadcrumbSchema } from "@/lib/utils/structured-data";
 import { normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
 
 interface BookPageProps {
   params: Promise<{ username: string }>;
@@ -263,7 +265,8 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
   const selectedService = services.find((s) => s.id === serviceId) || services[0];
 
   // Fetch student record + availability + existing bookings in parallel
-  const [studentRecordResult, availabilityResult, existingBookingsResult] = await Promise.all([
+  const adminClient = createServiceRoleClient();
+  const [studentRecordResult, availabilityResult, existingBookingsResult, blockedTimesResult, tutorProfileResult, externalBusyWindows] = await Promise.all([
     supabase
       .from("students")
       .select("id")
@@ -275,17 +278,42 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
       .select("day_of_week, start_time, end_time, is_available")
       .eq("tutor_id", profile.id)
       .eq("is_available", true),
-    supabase
+    (adminClient ?? supabase)
       .from("bookings")
       .select("scheduled_at, duration_minutes, status")
       .eq("tutor_id", profile.id)
       .in("status", ["pending", "confirmed"])
-      .gte("scheduled_at", new Date().toISOString()),
+      .gte("scheduled_at", addDays(new Date(), -1).toISOString())
+      .lte("scheduled_at", addDays(new Date(), 15).toISOString()),
+    adminClient
+      ? adminClient
+          .from("blocked_times")
+          .select("start_time, end_time")
+          .eq("tutor_id", profile.id)
+          .lt("start_time", addDays(new Date(), 15).toISOString())
+          .gt("end_time", addDays(new Date(), -1).toISOString())
+      : Promise.resolve({ data: [] as Array<{ start_time: string; end_time: string }> }),
+    adminClient
+      ? adminClient.from("profiles").select("buffer_time_minutes").eq("id", profile.id).single()
+      : Promise.resolve({ data: null as { buffer_time_minutes: number | null } | null }),
+    getCalendarBusyWindows({
+      tutorId: profile.id,
+      start: addDays(new Date(), -1),
+      days: 16,
+    }),
   ]);
 
   const studentRecord = studentRecordResult.data;
   const availability = availabilityResult.data;
   const existingBookings = existingBookingsResult.data;
+  const blockedTimes = blockedTimesResult.data ?? [];
+  const bufferMinutes = tutorProfileResult.data?.buffer_time_minutes ?? 0;
+  const busyWindows = [
+    ...(externalBusyWindows ?? []),
+    ...blockedTimes
+      .filter((block) => block.start_time && block.end_time)
+      .map((block) => ({ start: block.start_time, end: block.end_time })),
+  ];
 
   // Fetch student's lesson history
   const lessonHistoryResult = studentRecord
@@ -305,6 +333,8 @@ export default async function BookPage({ params, searchParams }: BookPageProps) 
     slotDuration: selectedService.duration_minutes,
     timezone,
     existingBookings: existingBookings || [],
+    busyWindows,
+    bufferMinutes,
   });
 
   // Filter to only future slots

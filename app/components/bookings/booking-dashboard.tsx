@@ -45,6 +45,7 @@ type BookingDashboardProps = {
   timezone: string;
   availability: AvailabilitySlotInput[];
   busyWindows: TimeWindow[];
+  bufferMinutes: number;
   tutorId: string;
 };
 
@@ -93,6 +94,7 @@ export function BookingDashboard({
   timezone,
   availability,
   busyWindows,
+  bufferMinutes,
   tutorId,
 }: BookingDashboardProps) {
   const router = useRouter();
@@ -150,6 +152,7 @@ export function BookingDashboard({
       availability,
       timezone,
       busyWindows,
+      bufferMinutes,
     });
     return baseSlots.filter((slot) =>
       bookingList.every((booking) => {

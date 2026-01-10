@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { rescheduleBooking as rescheduleBookingAction } from "@/lib/actions/bookings";
 import { getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
+import { addMinutes } from "date-fns";
 import { z } from "zod";
 import type { RescheduleHistoryItem } from "@/lib/actions/types";
 
@@ -205,6 +206,15 @@ export async function getAvailableRescheduleTimes(
 
   const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
   const tutorTimezone = tutorProfile?.timezone || booking.timezone || "UTC";
+  const blockedStart = addMinutes(startOfDay, -bufferMinutes);
+  const blockedEnd = addMinutes(endOfDay, bufferMinutes);
+
+  const { data: blockedTimes } = await serviceClient
+    .from("blocked_times")
+    .select("start_time, end_time")
+    .eq("tutor_id", booking.tutor_id)
+    .lt("start_time", blockedEnd.toISOString())
+    .gt("end_time", blockedStart.toISOString());
 
   if (busyResult.unverifiedProviders.length) {
     return {
@@ -226,6 +236,12 @@ export async function getAvailableRescheduleTimes(
   const availableTimes: string[] = [];
   const bookingDuration = booking.duration_minutes || 60;
   const durationMs = bookingDuration * 60 * 1000;
+  const busyWindows = [
+    ...busyResult.windows,
+    ...(blockedTimes ?? [])
+      .filter((block) => block.start_time && block.end_time)
+      .map((block) => ({ start: block.start_time as string, end: block.end_time as string })),
+  ];
 
   for (const slot of availability) {
     const [startHour, startMin] = slot.start_time.split(":").map(Number);
@@ -246,7 +262,7 @@ export async function getAvailableRescheduleTimes(
         availability: availability || [],
         existingBookings: existingBookings || [],
         bufferMinutes,
-        busyWindows: busyResult.windows,
+        busyWindows,
         timezone: tutorTimezone,
       });
 

@@ -20,6 +20,7 @@ type GenerateSlotParams = {
   days?: number;
   startDate?: Date;
   busyWindows?: TimeWindow[];
+  bufferMinutes?: number;
 };
 
 export function generateBookingSlots({
@@ -28,8 +29,10 @@ export function generateBookingSlots({
   days = 14,
   startDate = new Date(),
   busyWindows = [],
+  bufferMinutes = 0,
 }: GenerateSlotParams): GeneratedSlot[] {
   const results: GeneratedSlot[] = [];
+  const effectiveBufferMs = Math.max(bufferMinutes, 0) * 60 * 1000;
   const normalizedBusy = busyWindows
     .map((window) => {
       const startMs = Date.parse(window.start);
@@ -37,7 +40,10 @@ export function generateBookingSlots({
       if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
         return null;
       }
-      return { start: startMs, end: endMs };
+      return {
+        start: startMs - effectiveBufferMs,
+        end: endMs + effectiveBufferMs,
+      };
     })
     .filter((window): window is { start: number; end: number } => Boolean(window));
 

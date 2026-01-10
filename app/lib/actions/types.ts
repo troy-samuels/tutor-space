@@ -565,6 +565,7 @@ export type TutorWithDetails = {
   avatar_url: string | null;
   tagline: string | null;
   timezone: string;
+  buffer_time_minutes?: number | null;
   services: {
     id: string;
     name: string;
@@ -887,6 +888,7 @@ export type TutorBookingDetails = {
     currentPeriodEnd: string | null;
   } | null;
   existingBookings: { scheduled_at: string; duration_minutes: number; status: string }[];
+  busyWindows?: { start: string; end: string }[];
 };
 
 export type GroupedSlots = {

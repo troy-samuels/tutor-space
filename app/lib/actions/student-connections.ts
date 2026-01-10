@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { addDays } from "date-fns";
+import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
 import {
   createThread,
   getThreadByTutorStudent,
@@ -800,7 +802,7 @@ export async function getTutorForBooking(tutorId: string): Promise<{
   // Get tutor profile
   const { data: tutor, error: tutorError } = await adminClient
     .from("profiles")
-    .select("id, username, full_name, avatar_url, tagline, timezone")
+    .select("id, username, full_name, avatar_url, tagline, timezone, buffer_time_minutes")
     .eq("id", tutorId)
     .single();
 
@@ -829,6 +831,7 @@ export async function getTutorForBooking(tutorId: string): Promise<{
     tutor: {
       ...tutor,
       timezone: tutor.timezone || "UTC",
+      buffer_time_minutes: tutor.buffer_time_minutes ?? 0,
       services: services || [],
       availability: availability || [],
     },
@@ -840,6 +843,7 @@ export async function getTutorForBooking(tutorId: string): Promise<{
  */
 export async function getTutorBookings(tutorId: string): Promise<{
   bookings?: { scheduled_at: string; duration_minutes: number; status: string }[];
+  busyWindows?: { start: string; end: string }[];
   error?: string;
 }> {
   const supabase = await createClient();
@@ -859,16 +863,38 @@ export async function getTutorBookings(tutorId: string): Promise<{
 
   // Get bookings for the next 30 days
   const startDate = new Date();
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 30);
+  const endDate = addDays(startDate, 30);
+  const startRange = addDays(startDate, -1);
+  const endRange = addDays(endDate, 1);
 
-  const { data: bookings } = await adminClient
-    .from("bookings")
-    .select("scheduled_at, duration_minutes, status")
-    .eq("tutor_id", tutorId)
-    .gte("scheduled_at", startDate.toISOString())
-    .lte("scheduled_at", endDate.toISOString())
-    .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")');
+  const [bookingsResult, blockedTimesResult, externalBusyWindows] = await Promise.all([
+    adminClient
+      .from("bookings")
+      .select("scheduled_at, duration_minutes, status")
+      .eq("tutor_id", tutorId)
+      .gte("scheduled_at", startRange.toISOString())
+      .lte("scheduled_at", endRange.toISOString())
+      .not("status", "in", '("cancelled","cancelled_by_tutor","cancelled_by_student")'),
+    adminClient
+      .from("blocked_times")
+      .select("start_time, end_time")
+      .eq("tutor_id", tutorId)
+      .lt("start_time", endRange.toISOString())
+      .gt("end_time", startRange.toISOString()),
+    getCalendarBusyWindows({
+      tutorId,
+      start: startRange,
+      days: 32,
+    }),
+  ]);
 
-  return { bookings: bookings || [] };
+  const blockedTimes = blockedTimesResult.data ?? [];
+  const busyWindows = [
+    ...(externalBusyWindows ?? []),
+    ...blockedTimes
+      .filter((block) => block.start_time && block.end_time)
+      .map((block) => ({ start: block.start_time, end: block.end_time })),
+  ];
+
+  return { bookings: bookingsResult.data || [], busyWindows };
 }

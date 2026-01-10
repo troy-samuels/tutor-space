@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { addDays } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
@@ -110,7 +111,8 @@ export async function rescheduleBooking(params: {
 		tutorProfile,
 		availability,
 		existingBookings,
-		busyResult
+		busyResult,
+		blockedTimes
 	] = await Promise.all([
 		getFullTutorProfileForBooking(adminClient, booking.tutor_id),
 		getTutorAvailability(adminClient, booking.tutor_id),
@@ -120,6 +122,12 @@ export async function rescheduleBooking(params: {
 			start: new Date(params.newStart),
 			days: 60,
 		}),
+		adminClient
+			.from("blocked_times")
+			.select("start_time, end_time")
+			.eq("tutor_id", booking.tutor_id)
+			.lt("start_time", addDays(new Date(params.newStart), 2).toISOString())
+			.gt("end_time", addDays(new Date(params.newStart), -1).toISOString()),
 	]);
 
 	const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
@@ -141,7 +149,12 @@ export async function rescheduleBooking(params: {
 		};
 	}
 
-	const busyWindows = busyResult.windows;
+	const busyWindows = [
+		...busyResult.windows,
+		...(blockedTimes.data ?? [])
+			.filter((block) => block.start_time && block.end_time)
+			.map((block) => ({ start: block.start_time as string, end: block.end_time as string })),
+	];
 
 	const servicesData = bookingRecord.services as
 		| { duration_minutes?: number }

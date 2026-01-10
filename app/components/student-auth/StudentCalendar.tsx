@@ -78,7 +78,8 @@ export function StudentCalendar() {
           generateSlots(
             detailsResult.tutor,
             firstService.duration_minutes,
-            bookingsResult.bookings || []
+            bookingsResult.bookings || [],
+            bookingsResult.busyWindows || []
           );
         }
       }
@@ -106,13 +107,19 @@ export function StudentCalendar() {
     if (!service) return;
 
     const bookingsResult = await getTutorBookings(tutorDetails.id);
-    generateSlots(tutorDetails, service.duration_minutes, bookingsResult.bookings || []);
+    generateSlots(
+      tutorDetails,
+      service.duration_minutes,
+      bookingsResult.bookings || [],
+      bookingsResult.busyWindows || []
+    );
   };
 
   const generateSlots = (
     tutor: TutorWithDetails,
     durationMinutes: number,
-    existingBookings: { scheduled_at: string; duration_minutes: number; status: string }[]
+    existingBookings: { scheduled_at: string; duration_minutes: number; status: string }[],
+    busyWindows: { start: string; end: string }[]
   ) => {
     const startDate = new Date();
     const endDate = addDays(startDate, 14); // Show 2 weeks
@@ -124,6 +131,8 @@ export function StudentCalendar() {
       slotDuration: durationMinutes,
       timezone: tutor.timezone,
       existingBookings,
+      busyWindows,
+      bufferMinutes: tutor.buffer_time_minutes ?? 0,
     });
 
     const futureSlots = filterFutureSlots(slots);

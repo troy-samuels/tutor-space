@@ -164,16 +164,14 @@ export function checkBufferTime(
   bufferMinutes: number,
   existingBookings: Partial<Booking>[]
 ): { hasBufferConflict: boolean; message?: string } {
-  if (bufferMinutes === 0) {
+  const effectiveBuffer = Math.max(bufferMinutes, 0);
+
+  if (effectiveBuffer === 0) {
     return { hasBufferConflict: false };
   }
 
   const proposedStart = parseISO(scheduledAt);
   const proposedEnd = addMinutes(proposedStart, durationMinutes);
-
-  // Add buffer time to the proposed booking
-  const bufferedStart = addMinutes(proposedStart, -bufferMinutes);
-  const bufferedEnd = addMinutes(proposedEnd, bufferMinutes);
 
   for (const booking of existingBookings) {
     // Skip cancelled bookings
@@ -187,12 +185,14 @@ export function checkBufferTime(
 
     const bookingStart = parseISO(booking.scheduled_at);
     const bookingEnd = addMinutes(bookingStart, booking.duration_minutes);
+    const bufferedBookingStart = addMinutes(bookingStart, -effectiveBuffer);
+    const bufferedBookingEnd = addMinutes(bookingEnd, effectiveBuffer);
 
-    // Check if buffered intervals overlap
+    // Check if the proposed booking overlaps the buffered window
     const overlaps = areIntervalsOverlapping(
-      { start: bufferedStart, end: bufferedEnd },
-      { start: bookingStart, end: bookingEnd },
-      { inclusive: true }
+      { start: proposedStart, end: proposedEnd },
+      { start: bufferedBookingStart, end: bufferedBookingEnd },
+      { inclusive: false }
     );
 
     if (overlaps) {
@@ -214,7 +214,8 @@ type BusyWindow = { start: string; end: string };
 export function checkExternalBusy(
   scheduledAt: string,
   durationMinutes: number,
-  busyWindows: BusyWindow[]
+  busyWindows: BusyWindow[],
+  bufferMinutes: number = 0
 ): { hasConflict: boolean; message?: string } {
   if (!busyWindows.length) {
     return { hasConflict: false };
@@ -222,6 +223,7 @@ export function checkExternalBusy(
 
   const proposedStart = parseISO(scheduledAt);
   const proposedEnd = addMinutes(proposedStart, durationMinutes);
+  const effectiveBuffer = Math.max(bufferMinutes, 0);
 
   for (const window of busyWindows) {
     const windowStart = parseISO(window.start);
@@ -231,9 +233,16 @@ export function checkExternalBusy(
       continue;
     }
 
+    const bufferedWindowStart = effectiveBuffer
+      ? addMinutes(windowStart, -effectiveBuffer)
+      : windowStart;
+    const bufferedWindowEnd = effectiveBuffer
+      ? addMinutes(windowEnd, effectiveBuffer)
+      : windowEnd;
+
     const overlaps = areIntervalsOverlapping(
       { start: proposedStart, end: proposedEnd },
-      { start: windowStart, end: windowEnd },
+      { start: bufferedWindowStart, end: bufferedWindowEnd },
       { inclusive: false }
     );
 
@@ -321,7 +330,12 @@ export function validateBooking(params: {
     errors.push(bufferCheck.message);
   }
 
-  const externalConflict = checkExternalBusy(scheduledAt, durationMinutes, busyWindows);
+  const externalConflict = checkExternalBusy(
+    scheduledAt,
+    durationMinutes,
+    busyWindows,
+    bufferMinutes
+  );
   if (externalConflict.hasConflict && externalConflict.message) {
     errors.push(externalConflict.message);
   }

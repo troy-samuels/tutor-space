@@ -23,6 +23,11 @@ export interface ExistingBooking {
   status: string;
 }
 
+export interface BusyWindow {
+  start: string;
+  end: string;
+}
+
 /**
  * Generate bookable time slots from weekly availability
  *
@@ -41,6 +46,8 @@ export function generateBookableSlots(params: {
   slotDuration?: number;
   timezone?: string;
   existingBookings?: ExistingBooking[];
+  busyWindows?: BusyWindow[];
+  bufferMinutes?: number;
 }): BookableSlot[] {
   const {
     availability,
@@ -49,6 +56,8 @@ export function generateBookableSlots(params: {
     slotDuration = 60,
     timezone = "UTC",
     existingBookings = [],
+    busyWindows = [],
+    bufferMinutes = 0,
   } = params;
 
   const slots: BookableSlot[] = [];
@@ -95,7 +104,9 @@ export function generateBookableSlots(params: {
         const hasConflict = checkSlotConflict(
           startUTC,
           endUTC,
-          existingBookings
+          existingBookings,
+          busyWindows,
+          bufferMinutes
         );
 
         if (!hasConflict) {
@@ -127,9 +138,13 @@ export function generateBookableSlots(params: {
 export function checkSlotConflict(
   slotStart: Date,
   slotEnd: Date,
-  existingBookings: ExistingBooking[]
+  existingBookings: ExistingBooking[],
+  busyWindows: BusyWindow[] = [],
+  bufferMinutes: number = 0
 ): boolean {
-  return existingBookings.some((booking) => {
+  const effectiveBuffer = Math.max(bufferMinutes, 0);
+
+  const bookingConflict = existingBookings.some((booking) => {
     // Skip cancelled bookings
     if (booking.status?.startsWith("cancelled")) {
       return false;
@@ -137,12 +152,48 @@ export function checkSlotConflict(
 
     const bookingStart = parseISO(booking.scheduled_at);
     const bookingEnd = addMinutes(bookingStart, booking.duration_minutes);
+    const bufferedBookingStart = effectiveBuffer
+      ? addMinutes(bookingStart, -effectiveBuffer)
+      : bookingStart;
+    const bufferedBookingEnd = effectiveBuffer
+      ? addMinutes(bookingEnd, effectiveBuffer)
+      : bookingEnd;
 
     // Check if intervals overlap
     return areIntervalsOverlapping(
       { start: slotStart, end: slotEnd },
-      { start: bookingStart, end: bookingEnd },
+      { start: bufferedBookingStart, end: bufferedBookingEnd },
       { inclusive: false } // Don't consider touching intervals as overlapping
+    );
+  });
+
+  if (bookingConflict) {
+    return true;
+  }
+
+  if (!busyWindows.length) {
+    return false;
+  }
+
+  return busyWindows.some((window) => {
+    const windowStart = parseISO(window.start);
+    const windowEnd = parseISO(window.end);
+
+    if (Number.isNaN(windowStart.getTime()) || Number.isNaN(windowEnd.getTime())) {
+      return false;
+    }
+
+    const bufferedWindowStart = effectiveBuffer
+      ? addMinutes(windowStart, -effectiveBuffer)
+      : windowStart;
+    const bufferedWindowEnd = effectiveBuffer
+      ? addMinutes(windowEnd, effectiveBuffer)
+      : windowEnd;
+
+    return areIntervalsOverlapping(
+      { start: slotStart, end: slotEnd },
+      { start: bufferedWindowStart, end: bufferedWindowEnd },
+      { inclusive: false }
     );
   });
 }

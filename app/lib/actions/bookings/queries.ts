@@ -6,6 +6,9 @@ import { getActivePackages } from "@/lib/actions/packages";
 import { requireTutor, checkBookingLimits } from "./helpers";
 import type { BookingRecord } from "./types";
 import { checkAdvanceBookingWindow } from "./types";
+import { addMinutes } from "date-fns";
+import { getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
+import { validateBooking } from "@/lib/utils/booking-conflicts";
 import {
 	listBookingsForTutor,
 	getTutorProfileBookingSettings,
@@ -15,6 +18,7 @@ import {
 	getStudentProfileByUserId,
 	getStudentIdByEmailAndTutor,
 	getNextBookingForStudent,
+	getTutorAvailability,
 } from "@/lib/repositories/bookings";
 
 // ============================================================================
@@ -81,6 +85,7 @@ export async function checkSlotAvailabilityForTutor(params: {
 	}
 
 	const tutorTimezone = tutorProfile?.timezone ?? "UTC";
+	const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
 
 	const bookingWindow = checkAdvanceBookingWindow({
 		tutorProfile: tutorProfile ?? {},
@@ -105,34 +110,52 @@ export async function checkSlotAvailabilityForTutor(params: {
 	}
 
 	// Fetch bookings using repository
-	let bookings: Awaited<ReturnType<typeof findBookingsInTimeRange>>;
-	try {
-		bookings = await findBookingsInTimeRange(adminClient, params.tutorId, start);
-	} catch (error) {
-		console.error("Failed to fetch bookings:", error);
-		return { error: "Could not check availability. Please try again." };
+	const bufferedStart = addMinutes(start, -bufferMinutes);
+	const bufferedEnd = addMinutes(end, bufferMinutes);
+
+	const [availability, bookings, blockedTimes, busyResult] = await Promise.all([
+		getTutorAvailability(adminClient, params.tutorId),
+		findBookingsInTimeRange(adminClient, params.tutorId, start),
+		getBlockedTimesInRange(adminClient, params.tutorId, bufferedStart, bufferedEnd),
+		getCalendarBusyWindowsWithStatus({
+			tutorId: params.tutorId,
+			start,
+			days: 2,
+		}),
+	]);
+
+	if (busyResult.unverifiedProviders.length) {
+		return {
+			error:
+				"We couldn't verify your external calendar. Please refresh the page or reconnect your calendar and try again.",
+		};
 	}
 
-	const hasBookingConflict = bookings.some((booking) => {
-		const bookingStart = new Date(booking.scheduled_at);
-		const bookingEnd = new Date(
-			bookingStart.getTime() + (booking.duration_minutes || params.durationMinutes) * 60000
-		);
-		return bookingStart < end && bookingEnd > start;
+	if (busyResult.staleProviders.length) {
+		return {
+			error:
+				"External calendar sync looks stale. Please refresh your calendar connection before booking.",
+		};
+	}
+
+	const busyWindows = [
+		...busyResult.windows,
+		...(blockedTimes ?? [])
+			.filter((block) => block.start_time && block.end_time)
+			.map((block) => ({ start: block.start_time, end: block.end_time })),
+	];
+
+	const validation = validateBooking({
+		scheduledAt: params.startISO,
+		durationMinutes: params.durationMinutes,
+		availability: availability || [],
+		existingBookings: bookings || [],
+		bufferMinutes,
+		busyWindows,
+		timezone: tutorTimezone,
 	});
 
-	// Fetch blocked times using repository
-	let blockedTimes: Awaited<ReturnType<typeof getBlockedTimesInRange>>;
-	try {
-		blockedTimes = await getBlockedTimesInRange(adminClient, params.tutorId, start, end);
-	} catch (error) {
-		console.error("Failed to fetch blocked times:", error);
-		return { error: "Could not check blocked times. Please try again." };
-	}
-
-	const blockedConflict = blockedTimes.length > 0;
-
-	return { available: !(hasBookingConflict || blockedConflict) };
+	return { available: validation.isValid };
 }
 
 // ============================================================================

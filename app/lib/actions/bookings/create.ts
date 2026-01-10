@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { addMinutes } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { validateBooking } from "@/lib/utils/booking-conflicts";
@@ -53,7 +54,6 @@ import {
 	getServiceWithTutorProfile,
 	getBookingPrerequisites,
 	createStudentWithConnection,
-	checkConflictsInWindow,
 	checkPostInsertConflict,
 	getStudentStripeInfo,
 	updateStudentStripeCustomerId,
@@ -170,6 +170,62 @@ export async function createBooking(input: CreateBookingInput) {
 
 	if ("error" in bookingLimits) {
 		return { error: bookingLimits.error };
+	}
+
+	const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
+	const bookingStart = new Date(input.scheduled_at);
+	const bookingEnd = addMinutes(bookingStart, input.duration_minutes);
+	const blockedStart = addMinutes(bookingStart, -bufferMinutes);
+	const blockedEnd = addMinutes(bookingEnd, bufferMinutes);
+
+	const [availability, busyResult, blockedTimesResult] = await Promise.all([
+		getTutorAvailability(adminClient, user.id),
+		getCalendarBusyWindowsWithStatus({
+			tutorId: user.id,
+			start: bookingStart,
+			days: 60,
+		}),
+		adminClient
+			.from("blocked_times")
+			.select("start_time, end_time")
+			.eq("tutor_id", user.id)
+			.lt("start_time", blockedEnd.toISOString())
+			.gt("end_time", blockedStart.toISOString()),
+	]);
+
+	if (busyResult.unverifiedProviders.length) {
+		return {
+			error:
+				"We couldn't verify your external calendar. Please refresh the page or reconnect your calendar and try again.",
+		};
+	}
+
+	if (busyResult.staleProviders.length) {
+		return {
+			error:
+				"External calendar sync looks stale. Please open Calendar settings to refresh the connection before booking.",
+		};
+	}
+
+	const busyWindows = [
+		...busyResult.windows,
+		...(blockedTimesResult.data ?? [])
+			.filter((block) => block.start_time && block.end_time)
+			.map((block) => ({ start: block.start_time as string, end: block.end_time as string })),
+	];
+
+	const validation = validateBooking({
+		scheduledAt: input.scheduled_at,
+		durationMinutes: input.duration_minutes,
+		availability: availability || [],
+		existingBookings: existingBookings || [],
+		bufferMinutes,
+		busyWindows,
+		timezone: tutorTimezone,
+	});
+
+	if (!validation.isValid) {
+		return { error: validation.errors.join(" ") };
 	}
 
 	// Create the booking atomically to avoid race conditions (repository)
@@ -447,6 +503,10 @@ export async function createBookingAndCheckout(params: {
 
 		const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
 		const tutorTimezone = tutorProfile?.timezone || params.timezone;
+		const bookingStart = new Date(params.scheduledAt);
+		const bookingEnd = addMinutes(bookingStart, serviceDurationMinutes);
+		const blockedStart = addMinutes(bookingStart, -bufferMinutes);
+		const blockedEnd = addMinutes(bookingEnd, bufferMinutes);
 
 		const bookingWindow = checkAdvanceBookingWindow({
 			tutorProfile: tutorProfile ?? {},
@@ -471,13 +531,19 @@ export async function createBookingAndCheckout(params: {
 		}
 
 		// Group 2: Parallelize prerequisites and calendar busy windows (repository)
-		const [prerequisites, busyResult] = await Promise.all([
+		const [prerequisites, busyResult, blockedTimesResult] = await Promise.all([
 			getBookingPrerequisites(adminClient, params.tutorId, params.student.email),
 			getCalendarBusyWindowsWithStatus({
 				tutorId: params.tutorId,
 				start: new Date(params.scheduledAt),
 				days: 60,
 			}),
+			adminClient
+				.from("blocked_times")
+				.select("start_time, end_time")
+				.eq("tutor_id", params.tutorId)
+				.lt("start_time", blockedEnd.toISOString())
+				.gt("end_time", blockedStart.toISOString()),
 		]);
 
 		const { availability, existingBookings, existingStudent } = prerequisites;
@@ -496,7 +562,12 @@ export async function createBookingAndCheckout(params: {
 			};
 		}
 
-		const busyWindows = busyResult.windows;
+		const busyWindows = [
+			...busyResult.windows,
+			...(blockedTimesResult.data ?? [])
+				.filter((block) => block.start_time && block.end_time)
+				.map((block) => ({ start: block.start_time as string, end: block.end_time as string })),
+		];
 
 		// 3. Validate the booking
 		const validation = validateBooking({
@@ -1059,16 +1130,61 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		return { error: bookingLimits.error };
 	}
 
-	// Check for conflicts (repository)
-	const conflictResult = await checkConflictsInWindow(
-		adminClient,
-		user.id,
-		input.scheduled_at,
-		input.duration_minutes
-	);
+	const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
+	const bookingStart = new Date(input.scheduled_at);
+	const bookingEnd = addMinutes(bookingStart, input.duration_minutes);
+	const blockedStart = addMinutes(bookingStart, -bufferMinutes);
+	const blockedEnd = addMinutes(bookingEnd, bufferMinutes);
 
-	if (conflictResult.hasConflict) {
-		return { error: "This time slot conflicts with an existing booking. Please select a different time." };
+	const [availability, existingBookings, busyResult, blockedTimesResult] = await Promise.all([
+		getTutorAvailability(adminClient, user.id),
+		findBookingsInTimeRange(adminClient, user.id, bookingStart),
+		getCalendarBusyWindowsWithStatus({
+			tutorId: user.id,
+			start: bookingStart,
+			days: 60,
+		}),
+		adminClient
+			.from("blocked_times")
+			.select("start_time, end_time")
+			.eq("tutor_id", user.id)
+			.lt("start_time", blockedEnd.toISOString())
+			.gt("end_time", blockedStart.toISOString()),
+	]);
+
+	if (busyResult.unverifiedProviders.length) {
+		return {
+			error:
+				"We couldn't verify your external calendar. Please refresh the page or reconnect your calendar and try again.",
+		};
+	}
+
+	if (busyResult.staleProviders.length) {
+		return {
+			error:
+				"External calendar sync looks stale. Please open Calendar settings to refresh the connection before booking.",
+		};
+	}
+
+	const busyWindows = [
+		...busyResult.windows,
+		...(blockedTimesResult.data ?? [])
+			.filter((block) => block.start_time && block.end_time)
+			.map((block) => ({ start: block.start_time as string, end: block.end_time as string })),
+	];
+
+	const validation = validateBooking({
+		scheduledAt: input.scheduled_at,
+		durationMinutes: input.duration_minutes,
+		availability: availability || [],
+		existingBookings: existingBookings || [],
+		bufferMinutes,
+		busyWindows,
+		timezone: tutorTimezone,
+	});
+
+	if (!validation.isValid) {
+		return { error: validation.errors.join(" ") };
 	}
 
 	// Get or create student (repository)

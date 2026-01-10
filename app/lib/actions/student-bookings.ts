@@ -8,6 +8,7 @@ import { isTableMissing } from "@/lib/utils/supabase-errors";
 import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 import { getTutorForBooking, getTutorBookings } from "./student-connections";
 import { getStudentSubscription } from "./subscriptions";
+import { generateBookableSlots, filterFutureSlots } from "@/lib/utils/slots";
 import type { SubscriptionWithDetails } from "@/lib/subscription";
 import type {
   StudentPackage,
@@ -475,6 +476,7 @@ export async function getTutorBookingDetails(tutorId: string): Promise<{
   // Get existing bookings for conflict checking
   const bookingsResult = await getTutorBookings(tutorId);
   const existingBookings = bookingsResult.bookings || [];
+  const busyWindows = bookingsResult.busyWindows || [];
 
   return {
     data: {
@@ -482,6 +484,7 @@ export async function getTutorBookingDetails(tutorId: string): Promise<{
       packages,
       subscription,
       existingBookings,
+      busyWindows,
     },
   };
 }
@@ -508,92 +511,71 @@ export async function getAvailableSlots(
   }
 
   const { tutor, existingBookings } = result.data;
+  const busyWindows = result.data.busyWindows || [];
   const timezone = tutor.timezone || "UTC";
   const availability = tutor.availability || [];
 
-  // Generate slots for the next N days
-  const slots: GroupedSlots = [];
-  const now = new Date();
+  const startDate = new Date();
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + daysAhead);
 
-  for (let dayOffset = 0; dayOffset < daysAhead; dayOffset++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + dayOffset);
-    const dayOfWeek = date.getDay(); // 0 = Sunday
+  const bookableSlots = filterFutureSlots(
+    generateBookableSlots({
+      availability,
+      startDate,
+      endDate,
+      slotDuration: serviceDurationMinutes,
+      timezone,
+      existingBookings,
+      busyWindows,
+      bufferMinutes: tutor.buffer_time_minutes ?? 0,
+    })
+  );
 
-    // Find availability slots for this day
-    const dayAvailability = availability.filter(
-      (a) => a.day_of_week === dayOfWeek && a.is_available
-    );
+  const groupedMap = new Map<string, GroupedSlots[number]>();
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: timezone,
+  });
+  const timeFormatter = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: timezone,
+  });
 
-    if (dayAvailability.length === 0) continue;
+  for (const slot of bookableSlots) {
+    const slotDate = new Date(slot.startISO);
+    const dateKey = slotDate.toLocaleDateString("en-CA", { timeZone: timezone });
+    let entry = groupedMap.get(dateKey);
 
-    const dateStr = date.toISOString().split("T")[0];
-    const displayDate = date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
+    if (!entry) {
+      entry = {
+        date: dateKey,
+        displayDate: dateFormatter.format(slotDate),
+        slots: [],
+      };
+      groupedMap.set(dateKey, entry);
+    }
+
+    entry.slots.push({
+      start: slot.startISO,
+      end: slot.endISO,
+      displayTime: timeFormatter.format(slotDate),
     });
-
-    const daySlots: GroupedSlots[number]["slots"] = [];
-
-    for (const avail of dayAvailability) {
-      // Parse availability times
-      const [startHour, startMin] = avail.start_time.split(":").map(Number);
-      const [endHour, endMin] = avail.end_time.split(":").map(Number);
-
-      // Generate slots within this availability window
-      let slotStart = new Date(date);
-      slotStart.setHours(startHour, startMin, 0, 0);
-
-      const windowEnd = new Date(date);
-      windowEnd.setHours(endHour, endMin, 0, 0);
-
-      while (slotStart.getTime() + serviceDurationMinutes * 60 * 1000 <= windowEnd.getTime()) {
-        const slotEnd = new Date(slotStart.getTime() + serviceDurationMinutes * 60 * 1000);
-
-        // Check if slot conflicts with existing bookings
-        const hasConflict = existingBookings.some((booking) => {
-          if (booking.status?.startsWith("cancelled")) {
-            return false;
-          }
-          const bookingStart = new Date(booking.scheduled_at);
-          const bookingEnd = new Date(bookingStart.getTime() + booking.duration_minutes * 60 * 1000);
-
-          return (
-            (slotStart >= bookingStart && slotStart < bookingEnd) ||
-            (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
-            (slotStart <= bookingStart && slotEnd >= bookingEnd)
-          );
-        });
-
-        // Only add future slots without conflicts
-        if (!hasConflict && slotStart > now) {
-          daySlots.push({
-            start: slotStart.toISOString(),
-            end: slotEnd.toISOString(),
-            displayTime: slotStart.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            }),
-          });
-        }
-
-        // Move to next slot (30-minute intervals)
-        slotStart = new Date(slotStart.getTime() + 30 * 60 * 1000);
-      }
-    }
-
-    if (daySlots.length > 0) {
-      slots.push({
-        date: dateStr,
-        displayDate,
-        slots: daySlots,
-      });
-    }
   }
 
-  return { data: slots, timezone };
+  const groupedSlots = Array.from(groupedMap.values()).sort(
+    (a, b) => Date.parse(a.date) - Date.parse(b.date)
+  );
+
+  for (const group of groupedSlots) {
+    group.slots.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  }
+
+  return { data: groupedSlots, timezone };
 }
 
 /**

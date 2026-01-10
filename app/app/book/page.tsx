@@ -1,13 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { generateBookingSlots } from "@/lib/utils/scheduling";
 import type { AvailabilitySlotInput } from "@/lib/validators/availability";
 import { getCalendarBusyWindows } from "@/lib/calendar/busy-windows";
+import { addDays, addMinutes } from "date-fns";
 
 export default async function BookPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const params = await searchParams;
   const supabase = await createClient();
+  const adminClient = createServiceRoleClient();
 
   const { data: services } = await supabase
     .from("services")
@@ -34,15 +37,64 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
     .eq("tutor_id", service.tutor_id);
 
   const timezone = profile?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const busyWindows = await getCalendarBusyWindows({
-    tutorId: service.tutor_id,
-    days: 14,
-  });
+  const startRange = addDays(new Date(), -1);
+  const endRange = addDays(new Date(), 15);
+
+  const [bookingsResult, blockedTimesResult, tutorProfileResult, externalBusyWindows] = await Promise.all([
+    adminClient
+      ? adminClient
+          .from("bookings")
+          .select("scheduled_at, duration_minutes, status")
+          .eq("tutor_id", service.tutor_id)
+          .in("status", ["pending", "confirmed"])
+          .gte("scheduled_at", startRange.toISOString())
+          .lte("scheduled_at", endRange.toISOString())
+      : Promise.resolve({ data: [] as Array<{ scheduled_at: string; duration_minutes: number; status: string }> }),
+    adminClient
+      ? adminClient
+          .from("blocked_times")
+          .select("start_time, end_time")
+          .eq("tutor_id", service.tutor_id)
+          .lt("start_time", endRange.toISOString())
+          .gt("end_time", startRange.toISOString())
+      : Promise.resolve({ data: [] as Array<{ start_time: string; end_time: string }> }),
+    adminClient
+      ? adminClient
+          .from("profiles")
+          .select("buffer_time_minutes")
+          .eq("id", service.tutor_id)
+          .single()
+      : Promise.resolve({ data: null as { buffer_time_minutes: number | null } | null }),
+    getCalendarBusyWindows({
+      tutorId: service.tutor_id,
+      start: startRange,
+      days: 16,
+    }),
+  ]);
+
+  const bufferMinutes = tutorProfileResult.data?.buffer_time_minutes ?? 0;
+  const bookingWindows =
+    bookingsResult.data?.map((booking) => {
+      if (!booking.scheduled_at) return null;
+      const bookingStart = new Date(booking.scheduled_at);
+      const bookingEnd = addMinutes(bookingStart, booking.duration_minutes ?? service.duration_minutes ?? 60);
+      return { start: bookingStart.toISOString(), end: bookingEnd.toISOString() };
+    }).filter(Boolean) ?? [];
+  const blockedWindows =
+    blockedTimesResult.data?.map((block) =>
+      block.start_time && block.end_time ? { start: block.start_time, end: block.end_time } : null
+    ).filter(Boolean) ?? [];
+  const busyWindows = [
+    ...(externalBusyWindows ?? []),
+    ...(bookingWindows as { start: string; end: string }[]),
+    ...(blockedWindows as { start: string; end: string }[]),
+  ];
   const slots = generateBookingSlots({
     availability: (availability as AvailabilitySlotInput[] | null) ?? [],
     timezone,
     days: 14,
     busyWindows,
+    bufferMinutes,
   }).slice(0, 12);
 
   return (
