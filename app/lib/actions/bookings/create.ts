@@ -13,6 +13,7 @@ import {
 } from "@/lib/emails/booking-emails";
 import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
 import { createCalendarEventForBooking, getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
+import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
 import { isTableMissing } from "@/lib/utils/supabase-errors";
 import { recordAudit } from "@/lib/repositories/audit";
 import {
@@ -60,6 +61,7 @@ import {
 	type FullTutorProfile,
 } from "@/lib/repositories/bookings";
 import { generateUniqueShortCode } from "@/lib/utils/short-code";
+import { buildClassroomUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 
 // ============================================================================
 // Internal Input Type for createBooking
@@ -213,13 +215,32 @@ export async function createBooking(input: CreateBookingInput) {
 	logStep(log, "createBooking:booking_created", { bookingId: booking.id });
 
 	// Generate and save memorable short code for classroom URL
+	let bookingShortCode: string | null = null;
 	try {
 		const shortCode = await generateUniqueShortCode(adminClient);
 		await updateBookingShortCode(adminClient, booking.id, shortCode);
+		bookingShortCode = shortCode;
 		logStep(log, "createBooking:short_code_created", { bookingId: booking.id, shortCode });
 	} catch (shortCodeError) {
 		// Non-blocking - booking still works with full ID
 		logStepError(log, "createBooking:short_code_failed", shortCodeError, { bookingId: booking.id });
+	}
+
+	// Set LiveKit classroom URL for Studio tier tutors
+	const tutorHasStudio = tutorHasStudioAccess({
+		tier: tutorProfile?.tier ?? null,
+		plan: tutorProfile?.plan ?? null,
+	});
+	if (tutorHasStudio) {
+		try {
+			const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+			const meetingUrl = buildClassroomUrl(booking.id, bookingShortCode, appUrl);
+			await updateBookingMeetingUrl(adminClient, booking.id, user.id, meetingUrl, "livekit");
+			logStep(log, "createBooking:meeting_url_set", { bookingId: booking.id, meetingUrl });
+		} catch (meetingUrlError) {
+			// Non-blocking - booking still works without pre-set meeting URL
+			logStepError(log, "createBooking:meeting_url_failed", meetingUrlError, { bookingId: booking.id });
+		}
 	}
 
 	// Post-insert conflict check (first-come-first-serve) in case of concurrent inserts
@@ -266,29 +287,25 @@ export async function createBooking(input: CreateBookingInput) {
 	}
 
 	try {
-		const student = Array.isArray(data.students) ? data.students[0] : data.students;
-		const service = Array.isArray(data.services) ? data.services[0] : data.services;
-		const studentName = student?.full_name ?? "Student";
-		const serviceName = service?.name ?? "Lesson";
-		const startDate = new Date(data.scheduled_at);
-		const endDate = new Date(startDate.getTime() + data.duration_minutes * 60000);
-
-		const descriptionLines = [
-			`TutorLingua booking - ${serviceName}`,
-			`Student: ${studentName}`,
-			`Booking ID: ${data.id}`,
-		];
-
-		await createCalendarEventForBooking({
-			tutorId: user.id,
+		const calendarDetails = await buildBookingCalendarDetails({
+			client: adminClient,
 			bookingId: data.id,
-			title: `${serviceName} with ${studentName}`,
-			start: startDate.toISOString(),
-			end: endDate.toISOString(),
-			description: descriptionLines.join("\n"),
-			studentEmail: student?.email ?? undefined,
-			timezone: tutorTimezone,
+			baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 		});
+
+		if (calendarDetails) {
+			await createCalendarEventForBooking({
+				tutorId: calendarDetails.tutorId,
+				bookingId: calendarDetails.bookingId,
+				title: calendarDetails.title,
+				start: calendarDetails.start,
+				end: calendarDetails.end,
+				description: calendarDetails.description,
+				location: calendarDetails.location ?? undefined,
+				studentEmail: calendarDetails.studentEmail ?? undefined,
+				timezone: calendarDetails.timezone,
+			});
+		}
 		logStep(log, "createBooking:calendar_event_created", { bookingId: data.id });
 	} catch (calendarError) {
 		logStepError(log, "createBooking:calendar_event_failed", calendarError, { bookingId: data.id });
@@ -427,12 +444,6 @@ export async function createBookingAndCheckout(params: {
 		const serviceDurationMinutes =
 			serviceRecord.duration_minutes || params.durationMinutes || 60;
 		const serviceName = serviceRecord.name ?? "Lesson";
-		let packageCalendarContext: {
-			remainingMinutes: number | null;
-			totalMinutes: number | null;
-			sessionCount: number | null;
-			packageName: string | null;
-		} | null = null;
 
 		const bufferMinutes = tutorProfile?.buffer_time_minutes ?? 0;
 		const tutorTimezone = tutorProfile?.timezone || params.timezone;
@@ -594,10 +605,12 @@ export async function createBookingAndCheckout(params: {
 
 		logStep(log, "createBookingAndCheckout:booking_created", { bookingId: booking.id });
 
+		let bookingShortCode: string | null = null;
 		// Generate and save memorable short code for classroom URL
 		try {
 			const shortCode = await generateUniqueShortCode(adminClient);
 			await updateBookingShortCode(adminClient, booking.id, shortCode);
+			bookingShortCode = shortCode;
 			logStep(log, "createBookingAndCheckout:short_code_created", { bookingId: booking.id, shortCode });
 		} catch (shortCodeError) {
 			// Non-blocking - booking still works with full ID
@@ -672,12 +685,6 @@ export async function createBookingAndCheckout(params: {
 				};
 			}
 
-			packageCalendarContext = {
-				remainingMinutes: redemptionResult.remainingMinutes ?? null,
-				totalMinutes: redemptionResult.packageTotalMinutes ?? null,
-				sessionCount: redemptionResult.packageSessionCount ?? null,
-				packageName: redemptionResult.packageName ?? null,
-			};
 		}
 
 		// 5b. If subscription redemption requested, process it
@@ -698,6 +705,7 @@ export async function createBookingAndCheckout(params: {
 			}
 		}
 
+		const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 		// 6. tutorProfile already fetched at start of function (dependency injection)
 		// 7. Get meeting URL based on tutor's video provider
 		let meetingUrl: string | null = null;
@@ -734,12 +742,21 @@ export async function createBookingAndCheckout(params: {
 			if (meetingUrl && meetingProvider) {
 				await updateBookingMeetingUrl(adminClient, booking.id, params.tutorId, meetingUrl, meetingProvider);
 			}
+
+			const tutorHasStudio = tutorHasStudioAccess({
+				tier: tutorProfile.tier ?? null,
+				plan: tutorProfile.plan ?? null,
+			});
+			if (!meetingUrl && tutorHasStudio) {
+				meetingUrl = buildClassroomUrl(booking.id, bookingShortCode, appUrl);
+				meetingProvider = "livekit";
+				// Persist LiveKit classroom URL to database
+				await updateBookingMeetingUrl(adminClient, booking.id, params.tutorId, meetingUrl, meetingProvider);
+			}
 		}
 
 		// 8. Send confirmation emails (don't block on email sending)
 		if (tutorProfile) {
-			const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
 			// Send to student
 			sendBookingConfirmationEmail({
 				studentName: params.student.fullName,
@@ -809,59 +826,28 @@ export async function createBookingAndCheckout(params: {
 			);
 
 			if (!Number.isNaN(startDate.getTime())) {
-				const lessonsTotal =
-					packageCalendarContext?.sessionCount ??
-					(serviceDurationMinutes > 0 && packageCalendarContext?.totalMinutes
-						? Math.floor(packageCalendarContext.totalMinutes / serviceDurationMinutes)
-						: null);
-				const lessonsRemaining =
-					serviceDurationMinutes > 0 && packageCalendarContext?.remainingMinutes != null
-						? Math.max(
-								0,
-								Math.floor(packageCalendarContext.remainingMinutes / serviceDurationMinutes)
-							)
-						: null;
-
-				const descriptionLines = [
-					`TutorLingua booking - ${serviceName}`,
-					`Student: ${params.student.fullName}`,
-					`Booking ID: ${booking.id}`,
-				];
-
-				if (packageCalendarContext) {
-					descriptionLines.push(
-						`Package: ${packageCalendarContext.packageName || "Lesson package"}`
-					);
-
-					if (lessonsRemaining !== null) {
-						const totalLabel = lessonsTotal !== null ? `/${lessonsTotal}` : "";
-						descriptionLines.push(`Remaining lessons: ${lessonsRemaining}${totalLabel}`);
-					} else if (packageCalendarContext.remainingMinutes !== null) {
-						descriptionLines.push(
-							`Remaining minutes: ${packageCalendarContext.remainingMinutes}`
-						);
-					}
-				}
-
-				const eventTitle =
-					lessonsRemaining !== null
-						? `${serviceName} with ${params.student.fullName} (${lessonsRemaining}${
-								lessonsTotal !== null ? `/${lessonsTotal}` : ""
-							} left)`
-						: `${serviceName} with ${params.student.fullName}`;
-
-				createCalendarEventForBooking({
-					tutorId: params.tutorId,
+				buildBookingCalendarDetails({
+					client: adminClient,
 					bookingId: booking.id,
-					title: eventTitle,
-					start: startDate.toISOString(),
-					end: endDate.toISOString(),
-					description: descriptionLines.join("\n"),
-					studentEmail: params.student.email,
-					timezone: tutorTimezone,
-				}).catch((error) => {
-					logStepError(log, "createBookingAndCheckout:calendar_event_failed", error, { bookingId: booking.id });
-				});
+					baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+				})
+					.then((calendarDetails) => {
+						if (!calendarDetails) return;
+						return createCalendarEventForBooking({
+							tutorId: calendarDetails.tutorId,
+							bookingId: calendarDetails.bookingId,
+							title: calendarDetails.title,
+							start: calendarDetails.start,
+							end: calendarDetails.end,
+							description: calendarDetails.description,
+							location: calendarDetails.location ?? undefined,
+							studentEmail: calendarDetails.studentEmail ?? undefined,
+							timezone: calendarDetails.timezone,
+						});
+					})
+					.catch((error) => {
+						logStepError(log, "createBookingAndCheckout:calendar_event_failed", error, { bookingId: booking.id });
+					});
 			}
 		}
 
@@ -1140,6 +1126,7 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 	const paymentStatus = isFree ? "complimentary" : (isPendingPayment ? "unpaid" : "paid");
 	const paymentAmount = isFree ? 0 : (service.price_amount ?? 0);
 
+	const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 	// Get meeting URL from tutor's video settings
 	let meetingUrl: string | null = null;
 	let meetingProvider: string | null = null;
@@ -1199,10 +1186,12 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 
 	logStep(log, "createManualBooking:booking_created", { bookingId: booking.id });
 
+	let bookingShortCode: string | null = null;
 	// Generate and save memorable short code for classroom URL
 	try {
 		const shortCode = await generateUniqueShortCode(adminClient);
 		await updateBookingShortCode(adminClient, booking.id, shortCode);
+		bookingShortCode = shortCode;
 		logStep(log, "createManualBooking:short_code_created", { bookingId: booking.id, shortCode });
 	} catch (shortCodeError) {
 		// Non-blocking - booking still works with full ID
@@ -1211,6 +1200,17 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 
 	// Update booking with meeting URL (repository)
 	if (meetingUrl && meetingProvider) {
+		await updateBookingMeetingUrl(adminClient, booking.id, user.id, meetingUrl, meetingProvider);
+	}
+
+	const tutorHasStudio = tutorHasStudioAccess({
+		tier: tutorProfile.tier ?? null,
+		plan: tutorProfile.plan ?? null,
+	});
+	if (!meetingUrl && tutorHasStudio) {
+		meetingUrl = buildClassroomUrl(booking.id, bookingShortCode, appUrl);
+		meetingProvider = "livekit";
+		// Persist LiveKit classroom URL to database
 		await updateBookingMeetingUrl(adminClient, booking.id, user.id, meetingUrl, meetingProvider);
 	}
 
@@ -1238,7 +1238,7 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 					name: studentData.full_name,
 				});
 
-				const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+				const baseUrl = appUrl;
 				const stripeCurrency = (service.price_currency ?? "USD").toLowerCase();
 
 				const session = await createCheckoutSession({
@@ -1352,19 +1352,25 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 
 	// Create calendar event
 	try {
-		const startDate = new Date(input.scheduled_at);
-		const endDate = new Date(startDate.getTime() + input.duration_minutes * 60000);
-
-		await createCalendarEventForBooking({
-			tutorId: user.id,
+		const calendarDetails = await buildBookingCalendarDetails({
+			client: adminClient,
 			bookingId: booking.id,
-			title: `${service.name} with ${studentData.full_name}`,
-			start: startDate.toISOString(),
-			end: endDate.toISOString(),
-			description: `TutorLingua booking - ${service.name}\nStudent: ${studentData.full_name}\nBooking ID: ${booking.id}`,
-			studentEmail: studentData.email,
-			timezone: tutorTimezone,
+			baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 		});
+
+		if (calendarDetails) {
+			await createCalendarEventForBooking({
+				tutorId: calendarDetails.tutorId,
+				bookingId: calendarDetails.bookingId,
+				title: calendarDetails.title,
+				start: calendarDetails.start,
+				end: calendarDetails.end,
+				description: calendarDetails.description,
+				location: calendarDetails.location ?? undefined,
+				studentEmail: calendarDetails.studentEmail ?? undefined,
+				timezone: calendarDetails.timezone,
+			});
+		}
 	} catch (calendarError) {
 		logStepError(log, "createManualBooking:calendar_event_failed", calendarError, { bookingId: booking.id });
 	}

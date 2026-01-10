@@ -9,6 +9,8 @@ export interface FullTutorProfile {
 	full_name: string | null;
 	email: string | null;
 	timezone: string | null;
+	tier?: string | null;
+	plan?: string | null;
 	buffer_time_minutes: number | null;
 	advance_booking_days_min: number | null;
 	advance_booking_days_max: number | null;
@@ -68,6 +70,7 @@ export interface BookingWithRelations {
 	currency: string | null;
 	meeting_url: string | null;
 	meeting_provider: string | null;
+	short_code?: string | null;
 	reschedule_count: number | null;
 	students: StudentRecord | StudentRecord[] | null;
 	services: ServiceRecord | ServiceRecord[] | null;
@@ -1107,7 +1110,7 @@ export async function getFullTutorProfileForBooking(
 	const { data, error } = await client
 		.from("profiles")
 		.select(`
-			full_name, email, timezone,
+			full_name, email, timezone, tier, plan,
 			buffer_time_minutes,
 			advance_booking_days_min, advance_booking_days_max,
 			max_lessons_per_day, max_lessons_per_week,
@@ -1152,6 +1155,7 @@ export async function getBookingForCancel(
 			currency,
 			meeting_url,
 			meeting_provider,
+			short_code,
 			reschedule_count,
 			services (
 				id,
@@ -1167,7 +1171,9 @@ export async function getBookingForCancel(
 			),
 			tutor:profiles!bookings_tutor_id_fkey (
 				full_name,
-				email
+				email,
+				tier,
+				plan
 			)
 		`)
 		.eq("id", bookingId)
@@ -1207,6 +1213,7 @@ export async function getBookingForReschedule(
 			currency,
 			meeting_url,
 			meeting_provider,
+			short_code,
 			students (
 				id,
 				user_id,
@@ -1256,6 +1263,7 @@ export async function getBookingForPayment(
 			currency,
 			meeting_url,
 			meeting_provider,
+			short_code,
 			reschedule_count,
 			services (
 				id,
@@ -1500,6 +1508,8 @@ export async function getTutorProfileBookingSettings(
 	tutorId: string
 ): Promise<{
 	timezone: string | null;
+	tier: string | null;
+	plan: string | null;
 	advance_booking_days_min: number | null;
 	advance_booking_days_max: number | null;
 	max_lessons_per_day: number | null;
@@ -1508,7 +1518,7 @@ export async function getTutorProfileBookingSettings(
 	const { data, error } = await client
 		.from("profiles")
 		.select(`
-			timezone,
+			timezone, tier, plan,
 			advance_booking_days_min, advance_booking_days_max,
 			max_lessons_per_day, max_lessons_per_week
 		`)
@@ -1676,7 +1686,7 @@ export async function getServiceWithTutorProfile(
 		client
 			.from("profiles")
 			.select(`
-				full_name, email, timezone,
+				full_name, email, timezone, tier, plan,
 				buffer_time_minutes,
 				advance_booking_days_min, advance_booking_days_max,
 				max_lessons_per_day, max_lessons_per_week,
