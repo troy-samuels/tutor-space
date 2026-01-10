@@ -468,17 +468,39 @@ export function SignupForm({
         </p>
       )}
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        By joining, you agree to our{" "}
-        <Link href="/terms" className="underline underline-offset-4">
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="underline underline-offset-4">
-          Privacy Policy
-        </Link>
-        , including AI processing of your data and learning content.
-      </p>
+      <div className="space-y-3 rounded-2xl border border-border/60 bg-secondary/30 p-4 text-xs text-muted-foreground">
+        <label className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            name="terms_accepted"
+            required
+            className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+          />
+          <span>
+            I agree to the{" "}
+            <Link href="/terms" className="underline underline-offset-4">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline underline-offset-4">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+        <label className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            name="tutor_recording_consent"
+            required
+            className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+          />
+          <span>
+            I am 18+ and consent to TutorLingua using lesson recordings with adult students only
+            for internal training to improve accuracy and for marketing clips.
+          </span>
+        </label>
+      </div>
 
       <button
         type="submit"

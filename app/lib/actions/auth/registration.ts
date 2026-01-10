@@ -152,6 +152,15 @@ export async function signUp(
 	const rawUsername = (formData.get("username") as string) ?? "";
 	const username = normalizeSignupUsername(rawUsername);
 	const role = (formData.get("role") as string) || "tutor";
+	const termsAccepted = (() => {
+		const value = (formData.get("terms_accepted") as string | null) ?? "";
+		return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+	})();
+	const tutorRecordingConsent = (() => {
+		const value = (formData.get("tutor_recording_consent") as string | null) ?? "";
+		return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+	})();
+	const isTutorRole = role === "tutor";
 	const planFromForm = (formData.get("plan") as string) || "";
 	const lifetimeIntentRaw = (formData.get("lifetime") as string) || "";
 	const lifetimeIntent = ["1", "true", "yes"].includes(lifetimeIntentRaw.trim().toLowerCase());
@@ -251,6 +260,16 @@ export async function signUp(
 		return {
 			error: "Please choose a stronger password with a mix of letters, numbers, and symbols.",
 		};
+	}
+
+	if (isTutorRole && !termsAccepted) {
+		logStep(log, "signUp:missing_terms_consent", { role });
+		return { error: "Please accept the Terms of Service and Privacy Policy to continue." };
+	}
+
+	if (isTutorRole && !tutorRecordingConsent) {
+		logStep(log, "signUp:missing_recording_consent", { role });
+		return { error: "Please confirm the lesson recording consent to continue." };
 	}
 
 	const supabase = await createClient();
@@ -388,6 +407,20 @@ export async function signUp(
 
 	logStep(log, "signUp:plan_resolved", { desiredPlan, finalPlan, hasPendingLifetimePurchase });
 
+	const consentTimestamp = new Date().toISOString();
+	const tutorRecordingConsentFinal = isTutorRole && tutorRecordingConsent;
+	const termsAcceptedAt = isTutorRole && termsAccepted ? consentTimestamp : null;
+	const tutorRecordingConsentAt = tutorRecordingConsentFinal ? consentTimestamp : null;
+	const userMetadata = {
+		full_name: fullName,
+		username,
+		role,
+		plan: finalPlan,
+		terms_accepted_at: termsAcceptedAt,
+		tutor_recording_consent: tutorRecordingConsentFinal,
+		tutor_recording_consent_at: tutorRecordingConsentAt,
+	};
+
 	let createdUser: User | null = null;
 	let hasSession = false;
 
@@ -397,12 +430,7 @@ export async function signUp(
 			email,
 			password,
 			email_confirm: true,
-			user_metadata: {
-				full_name: fullName,
-				username,
-				role,
-				plan: finalPlan,
-			},
+			user_metadata: userMetadata,
 		});
 
 		if (adminCreateError) {
@@ -425,12 +453,7 @@ export async function signUp(
 			email,
 			password,
 			options: {
-				data: {
-					full_name: fullName,
-					username,
-					role,
-					plan: finalPlan,
-				},
+				data: userMetadata,
 			},
 		});
 
@@ -533,6 +556,9 @@ export async function signUp(
 				role,
 				plan: finalPlan,
 				hasLifetimePurchase: hasPendingLifetimePurchase,
+				termsAcceptedAt,
+				tutorRecordingConsent: tutorRecordingConsentFinal,
+				tutorRecordingConsentAt,
 			},
 			metadata: {
 				ip: clientIp,

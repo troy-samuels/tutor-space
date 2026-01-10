@@ -202,6 +202,18 @@ export default function PrivacyPolicyPage() {
               <li><strong>Auto-Generated Practice Content:</strong> AI generates vocabulary drills, grammar exercises, and practice scenarios based on your identified areas for improvement</li>
               <li><strong>Conversational AI Practice:</strong> Our AI Practice Companion engages in conversational practice sessions, adapting to your proficiency level and providing contextual feedback</li>
             </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">3.6 Optional Lesson Recording Use (Tutor Opt-In)</h3>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              If a tutor opts in, we may use eligible lesson recordings (adults only) for the following purposes:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><strong>Internal Training:</strong> Improve accuracy and reliability of our learning features. Training use is internal only.</li>
+              <li><strong>Marketing Clips:</strong> Create promotional clips, subject to tutor opt-in and clip approval.</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
+              Recordings involving minors are excluded from training and marketing use.
+            </p>
           </section>
 
           {/* Marketing & Advertising */}
@@ -318,7 +330,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>AI Practice Session Messages:</strong> Retained for 2 years to enable progress tracking, learning analytics, and tutor review of student development</li>
               <li><strong>Grammar and Pronunciation Analytics:</strong> Aggregated learning patterns retained for 3 years; individual error records retained for 1 year</li>
               <li><strong>Pronunciation Audio Recordings:</strong> Original audio files retained for 30 days; pronunciation scores and analytics retained for the duration of your account</li>
-              <li><strong>Lesson Recordings (Studio Tier):</strong> Retained for 90 days by default; tutors and students may configure longer retention up to 1 year</li>
+              <li><strong>Lesson Recordings (Studio Tier):</strong> Retained for up to 1 year unless deleted sooner</li>
               <li><strong>Lesson Transcripts and AI Summaries:</strong> Retained for the same period as the associated lesson recording</li>
               <li><strong>Homework Submissions:</strong> Retained for the duration of your account; audio and file attachments retained for 1 year after submission</li>
               <li><strong>AI Practice Usage and Billing Data:</strong> Retained for 7 years for tax compliance and billing dispute resolution</li>

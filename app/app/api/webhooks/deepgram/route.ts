@@ -237,16 +237,32 @@ export async function POST(request: NextRequest) {
     const transcriptText = (extractPlainText(body.results) || transcript || "").trim();
 
     if (recording && transcriptText) {
-      const clip = await generateMarketingClip(transcriptText);
-      if (clip) {
-        await insertMarketingClip({
-          client: supabase,
-          recording,
-          clip,
-          transcriptFallback: transcriptText,
-        });
+      const { data: tutorProfile, error: tutorProfileError } = await supabase
+        .from("profiles")
+        .select("tutor_recording_consent")
+        .eq("id", recording.tutor_id)
+        .maybeSingle();
+
+      if (tutorProfileError) {
+        console.error("[Deepgram Webhook] Failed to check tutor recording consent:", tutorProfileError);
+      }
+
+      const hasMarketingConsent = Boolean(tutorProfile?.tutor_recording_consent);
+
+      if (!hasMarketingConsent) {
+        console.log("[Deepgram Webhook] Skipping marketing clip generation (tutor not opted in)");
       } else {
-        console.warn("[Deepgram Webhook] OpenAI did not return marketing clip data");
+        const clip = await generateMarketingClip(transcriptText);
+        if (clip) {
+          await insertMarketingClip({
+            client: supabase,
+            recording,
+            clip,
+            transcriptFallback: transcriptText,
+          });
+        } else {
+          console.warn("[Deepgram Webhook] OpenAI did not return marketing clip data");
+        }
       }
     } else {
       console.warn("[Deepgram Webhook] Skipping marketing clip generation (missing recording or transcript)");

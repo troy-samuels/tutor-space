@@ -160,16 +160,11 @@ async function completeReservation<T>(
 }
 
 /**
- * Check if a reservation is stale (processing for too long).
+ * Check if a reservation is stale (processing for too long) and release it.
  *
- * HARDENED: Does NOT delete the reservation. Instead, logs a CRITICAL warning
- * and returns false. This prevents race conditions where a slow-but-alive
- * request could have its reservation stolen by a concurrent request.
- *
- * The original request should eventually complete or fail on its own.
- * If reservations are truly stuck, they should be cleaned up via:
- * - Manual intervention
- * - A separate cleanup job with longer thresholds
+ * This prevents a failed or crashed request from blocking retries forever.
+ * Releasing a stale lock can allow a duplicate operation to run if the
+ * original request is still alive, so the timeout should be conservative.
  *
  * @param requestingOwnerId - The traceId of the request attempting to claim
  */
@@ -180,24 +175,27 @@ async function releaseStaleReservation(
 ): Promise<boolean> {
 	const staleThreshold = new Date(Date.now() - PROCESSING_TIMEOUT_MS).toISOString();
 
-	// Check if the reservation is stale
-	const { data: staleRow } = await client
+	const { data: releasedRows, error } = await client
 		.from("processed_requests")
-		.select("idempotency_key, created_at, updated_at, owner_id")
+		.delete()
 		.eq("idempotency_key", key)
 		.eq("status", "processing")
 		.lt("updated_at", staleThreshold)
-		.single();
+		.select("idempotency_key, created_at, updated_at, owner_id");
 
+	if (error) {
+		console.error("[Idempotency] Failed to release stale reservation:", error.message);
+		return false;
+	}
+
+	const staleRow = releasedRows?.[0];
 	if (!staleRow) {
-		return false; // Not stale
+		return false; // Not stale or already released
 	}
 
 	const ageMs = Date.now() - new Date(staleRow.updated_at).getTime();
 
-	// CRITICAL: Log but DO NOT delete - let the original request complete or timeout
-	// This prevents the race condition where a slow request has its lock stolen
-	console.error("[Idempotency] CRITICAL: Stale reservation detected", {
+	console.warn("[Idempotency] Released stale reservation", {
 		key,
 		originalOwner: staleRow.owner_id,
 		requestingOwner: requestingOwnerId,
@@ -206,12 +204,10 @@ async function releaseStaleReservation(
 		ageMs,
 		ageMinutes: Math.round(ageMs / 60000),
 		thresholdMinutes: PROCESSING_TIMEOUT_MS / 60000,
-		action: "BLOCKED - not deleting active reservation",
+		action: "released",
 	});
 
-	// Return false to indicate we did NOT release it
-	// The requesting client should retry later or fail gracefully
-	return false;
+	return true;
 }
 
 /**
@@ -343,13 +339,9 @@ export async function withIdempotency<T>(
 		}
 
 		// Poll timed out - check if the reservation is stale
-		// NOTE: releaseStaleReservation now only LOGS, it does NOT delete
 		const released = await releaseStaleReservation(client, idempotencyKey, ownerId);
 
 		if (released) {
-			// This branch is now effectively dead code since releaseStaleReservation
-			// always returns false. Kept for future flexibility if we add
-			// owner-based reclaim logic.
 			return withIdempotency(client, idempotencyKey, fn, ownerId);
 		}
 

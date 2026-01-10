@@ -387,9 +387,10 @@ export default function TermsOfServicePage() {
               Studio tier subscribers have access to lesson recording and AI-powered transcription and analysis features.
             </p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
-              <li><strong>Recording:</strong> Lessons conducted through our native video platform may be recorded with participant consent. Recordings are stored securely and retained for 90 days by default.</li>
+              <li><strong>Recording:</strong> Lessons conducted through our native video platform may be recorded with participant consent. Recordings are stored securely and retained for up to 1 year unless deleted sooner.</li>
               <li><strong>Transcription:</strong> Lesson recordings are automatically transcribed using AI speech recognition technology.</li>
               <li><strong>AI Analysis:</strong> Transcripts may be analyzed by AI to generate lesson summaries, identify key learning moments, and create personalized practice materials.</li>
+              <li><strong>Optional Training & Marketing:</strong> If a tutor opts in, TutorLingua may use eligible lesson recordings (adults only) for internal training to improve accuracy and to create marketing clips. Recordings involving minors are excluded.</li>
               <li><strong>Data Handling:</strong> See our Privacy Policy for details on how recording and transcription data is processed and retained.</li>
             </ul>
 
@@ -430,12 +431,19 @@ export default function TermsOfServicePage() {
               <li>Generation of practice content based on lesson content</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mb-4">
+              <strong>Optional Uses (Tutor Opt-In):</strong>
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li>Internal training to improve accuracy and reliability, only for recordings that do not involve minors</li>
+              <li>Marketing clips and promotional materials, subject to tutor opt-in and clip approval</li>
+            </ul>
+            <p className="text-gray-700 leading-relaxed mb-4">
               <strong>Prohibited Uses:</strong>
             </p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
               <li>Public distribution or sharing without consent of all participants</li>
-              <li>Use for marketing purposes without explicit written consent</li>
-              <li>Use to train general-purpose AI models outside of TutorLingua</li>
+              <li>Use for marketing purposes without tutor opt-in</li>
+              <li>Use to train external or third-party AI models outside of TutorLingua</li>
               <li>Sharing with third parties not involved in providing the Services</li>
             </ul>
 
@@ -571,4 +579,3 @@ export default function TermsOfServicePage() {
     </div>
   );
 }
-
