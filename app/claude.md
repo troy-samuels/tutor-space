@@ -145,7 +145,8 @@ app/
 │   ├── middleware/              # Custom middleware
 │   ├── utils/                   # Utility functions
 │   ├── blog.ts                  # Blog content utilities
-│   └── telemetry/               # Analytics tracking
+│   ├── telemetry/               # Analytics tracking
+│   └── ai/                      # AI compliance & policy enforcement
 ├── supabase/migrations/         # Database migrations
 ├── middleware.ts                # Route protection & auth
 └── package.json                 # Dependencies
@@ -1626,6 +1627,37 @@ English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese,
 
 ---
 
+### Feature: Google Calendar Data Compliance
+
+**What it does**: Enforces data isolation between Google Calendar data and AI/LLM services to comply with Google's API verification requirements.
+
+**Where the code lives**:
+- Module: `/lib/ai/google-compliance.ts`
+- Consumers: `/lib/copilot/activity-suggester.ts`, `/lib/analysis/lesson-insights.ts`, `/lib/copilot/briefing-generator.ts`
+
+**Policy Constants** (`GOOGLE_DATA_POLICY`):
+- `PERMITTED_USES`: `['availability_calculation', 'calendar_view_rendering']`
+- `FORBIDDEN_USES`: `['ai_training', 'llm_context', 'transcription_metadata']`
+- `RESTRICTED_TABLES`: `['calendar_events', 'calendar_connections']`
+
+**Key Functions**:
+- `assertNoGoogleCalendarData(data, context)` - Runtime guard that throws if Google Calendar fields detected in AI input
+- `sanitizeForAI(data, context)` - Strips calendar fields before AI processing
+- `logComplianceCheck(context, passed)` - Audit logging for compliance checks
+- `isGoogleRestrictedTable(tableName)` - Type guard for restricted tables
+
+**Data Isolation Architecture**:
+- `calendar_events` table: External calendar data (Google/Outlook) - NEVER sent to AI
+- `bookings` table: Internal TutorLingua data - safe for AI processing
+- All AI modules tagged with `@google-compliance` JSDoc annotation
+
+**Compliance Documentation** (`COMPLIANCE_DOCUMENTATION` constant):
+- Structured summary of data handling practices for Google verification audit
+- Documents isolated tables vs AI-accessible tables
+- Lists all AI services and confirms none receive Google data
+
+---
+
 ## 5. API ROUTES
 
 **Authentication**:
@@ -2479,6 +2511,24 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 ---
 
 ## IMPLEMENTATION LOG
+
+### 12 January 2026: Google Calendar Data Compliance Safety Layer
+
+**New Module** (`lib/ai/google-compliance.ts`):
+- Created compliance module with `GOOGLE_DATA_POLICY` constants
+- Added `assertNoGoogleCalendarData()` runtime guard that throws if forbidden fields detected
+- Added `sanitizeForAI()` data sanitization function
+- Added `logComplianceCheck()` audit logging function
+- Added `COMPLIANCE_DOCUMENTATION` constant for Google verification audit
+
+**Updated AI Modules**:
+- `lib/copilot/activity-suggester.ts` - Added compliance check before OpenAI call
+- `lib/analysis/lesson-insights.ts` - Added compliance logging before OpenAI call
+- `lib/copilot/briefing-generator.ts` - Added @google-compliance JSDoc header
+
+**Purpose**: Provides explicit proof for Google API verification that calendar data is never sent to AI services.
+
+---
 
 ### 12 January 2026: SEO Fixes for Google Search Console Issues
 
