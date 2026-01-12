@@ -58,6 +58,32 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // Legacy URL patterns - redirect old URLs to new canonical paths
+      {
+        source: "/tutor/:username",
+        destination: "/profile/:username",
+        permanent: true,
+      },
+      {
+        source: "/tutors/:username",
+        destination: "/profile/:username",
+        permanent: true,
+      },
+      {
+        source: "/teacher/:username",
+        destination: "/profile/:username",
+        permanent: true,
+      },
+      // Redirect trailing slashes to non-trailing (SEO best practice)
+      {
+        source: "/:path+/",
+        destination: "/:path+",
+        permanent: true,
+      },
+    ];
+  },
   // Security headers for CASA compliance
   async headers() {
     return [

@@ -14,15 +14,55 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const englishPosts = getAllBlogPosts("en");
   const spanishPosts = getAllBlogPosts("es");
 
-  // Get all active tutor profiles for dynamic routes
-  const { data: profiles } = await supabase
+  // Get only ACTIVE tutor profiles for dynamic routes
+  const { data: activeProfiles } = await supabase
     .from("profiles")
-    .select("username, updated_at")
+    .select("id, username, updated_at")
     .eq("role", "tutor")
+    .eq("account_status", "active")
     .not("username", "is", null);
 
   // Get tutors with published mini-sites for root-level username routes
   const { data: publishedSites } = await listPublishedSitesWithProfiles(supabase);
+
+  // Get tutors with at least one active service (for /book URLs)
+  const { data: tutorsWithServices } = await supabase
+    .from("services")
+    .select("tutor_id, profiles!inner(username, updated_at, account_status)")
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    .eq("profiles.account_status", "active");
+
+  // Get unique tutors with services
+  const tutorServiceMap = new Map<string, { username: string; updated_at: string }>();
+  tutorsWithServices?.forEach((service) => {
+    const profile = service.profiles as any;
+    if (profile?.username && !tutorServiceMap.has(profile.username)) {
+      tutorServiceMap.set(profile.username, {
+        username: profile.username,
+        updated_at: profile.updated_at,
+      });
+    }
+  });
+
+  // Get tutors with published digital products (for /products URLs)
+  const { data: tutorsWithProducts } = await supabase
+    .from("digital_products")
+    .select("tutor_id, profiles!inner(username, updated_at, account_status)")
+    .eq("published", true)
+    .eq("profiles.account_status", "active");
+
+  // Get unique tutors with products
+  const tutorProductMap = new Map<string, { username: string; updated_at: string }>();
+  tutorsWithProducts?.forEach((product) => {
+    const profile = product.profiles as any;
+    if (profile?.username && !tutorProductMap.has(profile.username)) {
+      tutorProductMap.set(profile.username, {
+        username: profile.username,
+        updated_at: profile.updated_at,
+      });
+    }
+  });
 
   const miniSiteUrls =
     publishedSites?.map((site) => ({
@@ -32,16 +72,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     })) || [];
 
-  const tutorUrls =
-    profiles?.map((profile) => ({
-      url: `${baseUrl}/book/${profile.username}`,
-      lastModified: profile.updated_at ? new Date(profile.updated_at) : new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })) || [];
+  // Only include /book URLs for tutors with active services
+  const tutorUrls = Array.from(tutorServiceMap.values()).map((tutor) => ({
+    url: `${baseUrl}/book/${tutor.username}`,
+    lastModified: tutor.updated_at ? new Date(tutor.updated_at) : new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
 
+  // Bio and profile URLs only for active tutors
   const bioUrls =
-    profiles?.map((profile) => ({
+    activeProfiles?.map((profile) => ({
       url: `${baseUrl}/bio/${profile.username}`,
       lastModified: profile.updated_at ? new Date(profile.updated_at) : new Date(),
       changeFrequency: "weekly" as const,
@@ -49,21 +90,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })) || [];
 
   const profileUrls =
-    profiles?.map((profile) => ({
+    activeProfiles?.map((profile) => ({
       url: `${baseUrl}/profile/${profile.username}`,
       lastModified: profile.updated_at ? new Date(profile.updated_at) : new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })) || [];
 
-  // Products page URLs (for tutors with published digital products)
-  const productsUrls =
-    profiles?.map((profile) => ({
-      url: `${baseUrl}/products/${profile.username}`,
-      lastModified: profile.updated_at ? new Date(profile.updated_at) : new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    })) || [];
+  // Products page URLs only for tutors with published digital products
+  const productsUrls = Array.from(tutorProductMap.values()).map((tutor) => ({
+    url: `${baseUrl}/products/${tutor.username}`,
+    lastModified: tutor.updated_at ? new Date(tutor.updated_at) : new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
 
   // Reviews page URLs (for tutors with published sites)
   const reviewsUrls =
