@@ -13,9 +13,11 @@ import type { LessonBriefing } from "@/lib/actions/types";
 interface LessonBriefingCardProps {
   briefing: LessonBriefing;
   onDismiss?: () => void;
+  /** Demo mode disables server actions and shows demo-appropriate UI */
+  isDemo?: boolean;
 }
 
-export function LessonBriefingCard({ briefing, onDismiss }: LessonBriefingCardProps) {
+export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: LessonBriefingCardProps) {
   const [isPending, startTransition] = useTransition();
   const [isDismissing, setIsDismissing] = useState(false);
 
@@ -41,6 +43,9 @@ export function LessonBriefingCard({ briefing, onDismiss }: LessonBriefingCardPr
   const srItemsDue = briefing.srItemsDue || 0;
 
   const handleView = () => {
+    // Skip server action in demo mode
+    if (isDemo) return;
+
     // Mark as viewed when card is clicked
     if (!briefing.viewedAt) {
       startTransition(async () => {
@@ -54,6 +59,12 @@ export function LessonBriefingCard({ briefing, onDismiss }: LessonBriefingCardPr
   };
 
   const handleDismiss = () => {
+    // In demo mode, just call onDismiss callback
+    if (isDemo) {
+      onDismiss?.();
+      return;
+    }
+
     setIsDismissing(true);
     startTransition(async () => {
       try {
@@ -150,14 +161,20 @@ export function LessonBriefingCard({ briefing, onDismiss }: LessonBriefingCardPr
 
       {/* Footer Action */}
       <div className="mt-5 flex items-center justify-between border-t border-stone-100 pt-4">
-        <Link
-          href={`/copilot/briefing/${briefing.bookingId}`}
-          onClick={handleView}
-          className="group inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
-        >
-          View full briefing
-          <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-        </Link>
+        {isDemo ? (
+          <span className="text-xs text-muted-foreground">
+            Full briefings available with real lesson data
+          </span>
+        ) : (
+          <Link
+            href={`/copilot/briefing/${briefing.bookingId}`}
+            onClick={handleView}
+            className="group inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            View full briefing
+            <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -165,7 +182,7 @@ export function LessonBriefingCard({ briefing, onDismiss }: LessonBriefingCardPr
           disabled={isPending}
           className="text-xs text-muted-foreground"
         >
-          Dismiss
+          {isDemo ? "Close Demo" : "Dismiss"}
         </Button>
       </div>
     </div>

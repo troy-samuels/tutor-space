@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { CopilotWidget, type PendingBriefingsResult, type LessonBriefing } from "./copilot-widget";
+import { CopilotDemoWidget } from "./copilot-demo-widget";
 
 /**
  * Map database row to LessonBriefing type
@@ -137,6 +138,7 @@ async function fetchPendingBriefings(): Promise<PendingBriefingsResult> {
 
 /**
  * Server component wrapper that pre-fetches data
+ * Shows demo widget when no real briefings exist
  */
 export async function CopilotWidgetServer() {
   let data: PendingBriefingsResult | null = null;
@@ -145,11 +147,13 @@ export async function CopilotWidgetServer() {
     data = await fetchPendingBriefings();
   } catch (error) {
     console.error("Failed to fetch initial briefings:", error);
-    return null;
+    // Show demo widget on error
+    return <CopilotDemoWidget hasStudioAccess={true} />;
   }
 
+  // If no real briefings, show demo widget for Studio users
   if (!data || data.briefings.length === 0) {
-    return null;
+    return <CopilotDemoWidget hasStudioAccess={true} />;
   }
 
   return <CopilotWidget initialData={data} />;

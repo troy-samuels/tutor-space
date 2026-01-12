@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import { TrialExpiredBanner } from "@/components/billing/TrialExpiredBanner";
 import { CopilotWidgetServer } from "@/components/copilot/copilot-widget-server";
+import { CopilotDemoWidget } from "@/components/copilot/copilot-demo-widget";
 import { isClassroomUrl, resolveBookingMeetingUrl } from "@/lib/utils/classroom-links";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
 
@@ -198,12 +199,14 @@ export default async function DashboardPage() {
         revenueThisMonthCents={revenueThisMonth}
       />
 
-      {/* AI Copilot Widget - Studio only */}
-      {!showStudioDiscovery && (
-        <Suspense fallback={null}>
+      {/* AI Copilot Widget - Shows for all users */}
+      <Suspense fallback={null}>
+        {!showStudioDiscovery ? (
           <CopilotWidgetServer />
-        </Suspense>
-      )}
+        ) : (
+          <CopilotDemoWidget hasStudioAccess={false} />
+        )}
+      </Suspense>
 
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         {/* Row 1, Col 1: UP NEXT */}
