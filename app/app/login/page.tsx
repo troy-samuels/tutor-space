@@ -17,7 +17,7 @@ export default async function TutorLoginPage() {
       <div className="w-full max-w-md space-y-6 rounded-3xl bg-white/90 p-8 shadow-lg backdrop-blur">
         <header className="space-y-3 text-center">
           <div className="flex justify-center">
-            <Logo variant="wordmark" className="h-10 sm:h-12" />
+            <Logo href="/dashboard" variant="wordmark" className="h-10 sm:h-12" />
           </div>
           <p className="text-sm text-muted-foreground">{t("dashboardSubtitle")}</p>
         </header>
