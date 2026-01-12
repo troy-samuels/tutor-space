@@ -2480,6 +2480,39 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ## IMPLEMENTATION LOG
 
+### 12 January 2026: SEO Fixes for Google Search Console Issues
+
+**Sitemap Optimization** (`app/app/sitemap.ts`):
+- Fixed sitemap to only include valid, existing URLs
+- Filter profiles by `account_status = 'active'`
+- Only include `/book` URLs for tutors with active services
+- Only include `/products` URLs for tutors with published digital products
+- Addresses 31 of the 404 errors reported in Google Search Console
+
+**404 Page Improvements**:
+- Added global `not-found.tsx` at app root for SEO-friendly 404s
+- Added route-specific 404 pages:
+  - `app/book/not-found.tsx` - Booking-specific 404
+  - `app/(public)/bio/[username]/not-found.tsx` - Bio page 404
+  - `app/(public)/profile/[username]/not-found.tsx` - Profile 404
+  - `app/(public)/products/[username]/not-found.tsx` - Products 404
+  - `app/(public)/blog/not-found.tsx` - Blog article 404
+
+**Canonical URL Fixes**:
+- Created `lib/utils/canonical.ts` utility for consistent canonical URLs
+- Functions: `getCanonicalUrl()`, `getTutorCanonicalUrl()`, `getBlogCanonicalUrl()`
+- Fixed reviews page (`app/(public)/[username]/reviews/page.tsx`) to have unique canonical URL
+- Addresses 5 duplicate canonical issues from Google Search Console
+
+**Redirect Configuration** (`next.config.ts`):
+- Added permanent redirects for legacy URL patterns:
+  - `/tutor/:username` → `/profile/:username`
+  - `/tutors/:username` → `/profile/:username`
+  - `/teacher/:username` → `/profile/:username`
+- Added trailing slash removal redirect for SEO consistency
+
+---
+
 ### 24 December 2025: Tutor Copilot, Audio-Only Recording & Onboarding Improvements
 
 **Audio-Only Recording (Cost Optimization)**:
@@ -2713,4 +2746,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 4 January 2026*
+*Last updated: 12 January 2026*

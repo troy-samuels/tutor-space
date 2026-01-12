@@ -30,7 +30,7 @@ TutorLingua is the operating system for independent language tutors: direct book
 - **Marketing & sales:** Tutor sites with cultural archetypes and page builder, link-in-bio, digital products marketplace with tiered commissions, email campaigns, SEO blog content.
 - **AI & Studio:** AI Practice companion with scenario builder, grammar/pronunciation tracking, freemium billing model; AI drills (match, gap-fill, scramble); LiveKit classroom with recording and Deepgram transcription; Enterprise lesson analysis with L1 interference detection, code switching detection for multilingual lessons, and adaptive drills for Studio tier.
 - **Tutor Copilot:** AI-powered lesson briefings with student context, engagement indicators, activity suggestions, and conversation starters generated before each lesson.
-- **SEO & Discovery:** Dynamic OG images for social sharing, llms.txt for AI assistant discovery, SEO generators for optimized metadata, structured data (JSON-LD) for rich search results.
+- **SEO & Discovery:** Dynamic OG images for social sharing, llms.txt for AI assistant discovery, SEO generators for optimized metadata, structured data (JSON-LD) for rich search results, canonical URL utilities, optimized sitemap with active-only filtering, route-specific 404 pages, legacy URL redirects.
 - **Analytics & admin:** Revenue/booking/student analytics, demand heatmap, calendar smart management, onboarding wizard and upgrade gates, admin health dashboard, moderation queue, support tickets.
 
 ---
@@ -564,8 +564,8 @@ Strict CSP headers with whitelisted third-party domains for Stripe, LiveKit, Sup
 
 ### Install & Run
 ```bash
-git clone https://github.com/your-org/language-tutor-platform.git
-cd language-tutor-platform/app
+git clone https://github.com/your-org/tutor-space.git
+cd tutor-space/app
 npm install
 cp .env.example .env.local   # fill in your credentials
 # supabase db push           # apply migrations to local Supabase (optional)
@@ -844,4 +844,4 @@ Proprietary - All rights reserved
 
 ---
 
-*Last updated: January 4, 2026* (Studio pricing updated to $79/mo, $499/yr)
+*Last updated: January 12, 2026* (SEO fixes: sitemap optimization, canonical URLs, 404 pages)
