@@ -7,9 +7,16 @@
  * - Proficiency level
  * - L1 interference patterns
  * - Lesson duration
+ *
+ * @google-compliance
+ * This module sends data to OpenAI. Per GOOGLE_DATA_POLICY:
+ * - Only internal TutorLingua data is used (error patterns, proficiency, focus areas)
+ * - External calendar data (calendar_events) is NEVER included
+ * - See: lib/ai/google-compliance.ts
  */
 
 import OpenAI from "openai";
+import { assertNoGoogleCalendarData, logComplianceCheck } from "@/lib/ai/google-compliance";
 import type { SuggestedActivity, FocusArea, ErrorPattern } from "./briefing-generator";
 
 // =============================================================================
@@ -159,6 +166,13 @@ async function generateAISuggestions(
   }
 
   try {
+    // Google Compliance: Verify no external calendar data in AI input
+    assertNoGoogleCalendarData(
+      input as unknown as Record<string, unknown>,
+      "activity-suggester.generateAISuggestions"
+    );
+    logComplianceCheck("activity-suggester.generateAISuggestions", true);
+
     const openai = new OpenAI({ apiKey });
 
     const prompt = buildPrompt(input);

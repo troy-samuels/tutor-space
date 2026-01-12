@@ -7,6 +7,13 @@
  * - spaced_repetition_items (items due for review)
  * - learning_goals (goals and progress)
  * - bookings (lesson history, student info)
+ *
+ * @google-compliance
+ * This module aggregates internal TutorLingua data only. Per GOOGLE_DATA_POLICY:
+ * - Data sources: bookings, lesson_recordings, students, learning_goals, spaced_repetition_items
+ * - External calendar data (calendar_events, calendar_connections) is NEVER queried or included
+ * - AI-powered activity suggestions use only internal error patterns and proficiency data
+ * - See: lib/ai/google-compliance.ts
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/admin";

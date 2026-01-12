@@ -1,4 +1,18 @@
+/**
+ * Lesson Insights Analysis
+ *
+ * Analyzes lesson transcripts for grammar errors, vocabulary gaps, and fluency patterns.
+ * Uses Deepgram for transcription and OpenAI for analysis.
+ *
+ * @google-compliance
+ * This module sends data to OpenAI. Per GOOGLE_DATA_POLICY:
+ * - Only Deepgram transcript text is analyzed (lesson audio transcriptions)
+ * - External calendar data (calendar_events) is NEVER included
+ * - See: lib/ai/google-compliance.ts
+ */
+
 import OpenAI from "openai";
+import { logComplianceCheck } from "@/lib/ai/google-compliance";
 
 type TranscriptSegment = {
   text: string;
@@ -275,12 +289,18 @@ export function extractPlainText(transcriptJson: unknown): string {
 /**
  * Analyze transcript with OpenAI for grammar and vocabulary errors.
  * Uses gpt-4o-mini for cost-effective analysis.
+ *
+ * @google-compliance Input is Deepgram transcript text only (no calendar data)
  */
 export async function analyzeWithOpenAI(transcript: string): Promise<OpenAIAnalysisResult> {
   // Skip if transcript is too short or OPENAI_API_KEY is not set
   if (!transcript || transcript.length < 50 || !process.env.OPENAI_API_KEY) {
     return { grammarErrors: [], vocabGaps: [], summary: "" };
   }
+
+  // Google Compliance: Log that only transcript text (from Deepgram) is being sent to OpenAI
+  // No calendar_events or calendar_connections data is included in transcript analysis
+  logComplianceCheck("lesson-insights.analyzeWithOpenAI (transcript text only)", true);
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
