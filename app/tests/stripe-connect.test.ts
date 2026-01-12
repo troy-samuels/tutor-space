@@ -74,7 +74,8 @@ test("buildExpressAccountParams: sets metadata and capabilities", () => {
   });
 
   assert.equal(params.type, "express");
-  assert.equal(params.metadata?.tutor_id, "tutor_123");
+  assert.ok(typeof params.metadata === "object" && params.metadata !== null);
+  assert.equal(params.metadata.tutor_id, "tutor_123");
   assert.equal(params.capabilities?.card_payments?.requested, true);
   assert.equal(params.capabilities?.transfers?.requested, true);
   assert.equal(params.individual?.first_name, "Ada");
