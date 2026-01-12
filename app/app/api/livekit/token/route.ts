@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createAccessToken, isLiveKitConfigured } from "@/lib/livekit";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
@@ -189,7 +190,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch tutor's profile to check tier/plan
-    const { data: tutorProfile, error: profileError } = await supabase
+    // Use service role client to bypass RLS (students need to read tutor's tier)
+    const adminClient = createServiceRoleClient();
+    const profileClient = adminClient ?? supabase;
+    const { data: tutorProfile, error: profileError } = await profileClient
       .from("profiles")
       .select("id, tier, plan, full_name")
       .eq("id", booking.tutor_id)

@@ -116,9 +116,13 @@ function buildLocaleCookie(locale: Locale, requestUrl: string) {
   return `NEXT_LOCALE=${encoded}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
-function nextResponse(headers?: HeadersInit) {
+function nextResponse(headers?: HeadersInit, pathname?: string) {
   const nextHeaders = new Headers(headers);
   nextHeaders.set("x-middleware-next", "1");
+  // Set pathname header so layouts can access the current path
+  if (pathname) {
+    nextHeaders.set("x-pathname", pathname);
+  }
   return new Response(null, { headers: nextHeaders });
 }
 
@@ -167,7 +171,7 @@ export function proxy(request: NextRequest) {
       // Keep "/" canonical; let next-intl use cookie/header to pick the locale.
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
-      return nextResponse(headers);
+      return nextResponse(headers, normalizedPathname);
     }
 
     // Locale-prefixed landing page: redirect to "/" and persist locale in cookie.
@@ -227,7 +231,7 @@ export function proxy(request: NextRequest) {
     if (normalizedPathname.startsWith("/student")) {
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
-      return nextResponse(headers);
+      return nextResponse(headers, normalizedPathname);
     }
 
     // TUTOR-ONLY ROUTES - Protected by dashboard layout
@@ -263,15 +267,15 @@ export function proxy(request: NextRequest) {
       // Tutor routes proceed to layout.tsx for full auth/role verification
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
-      return nextResponse(headers);
+      return nextResponse(headers, normalizedPathname);
     }
 
     const headers = new Headers();
     appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
-    return nextResponse(headers);
+    return nextResponse(headers, normalizedPathname);
   } catch (error) {
     console.error("[proxy] Invocation failed", error);
-    return nextResponse();
+    return nextResponse(undefined, "");
   }
 }
 
