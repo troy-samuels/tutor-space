@@ -5,7 +5,8 @@ type Booking = {
   id?: string;
   scheduled_at?: string;
   duration_minutes?: number;
-  status?: string;
+  status?: string | null;
+  created_at?: string;
 };
 
 export interface ConflictCheck {
