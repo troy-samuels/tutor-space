@@ -24,6 +24,14 @@ export function DashboardQuickLinks() {
         asChild
         className="shrink-0 whitespace-nowrap"
       >
+        <Link href="/bookings">Bookings</Link>
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        asChild
+        className="shrink-0 whitespace-nowrap"
+      >
         <Link href="/services">Services</Link>
       </Button>
       <Button

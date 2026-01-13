@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -9,7 +8,6 @@ import {
   RotateCcw,
   Lightbulb,
   Clock,
-  User,
   Globe,
   TrendingUp,
   AlertCircle,
@@ -21,6 +19,7 @@ import { EngagementBadge } from "@/components/copilot/engagement-indicator";
 import { getLessonBriefing, markBriefingViewed } from "@/lib/actions/copilot";
 import { createClient } from "@/lib/supabase/server";
 import { isClassroomUrl, resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
+import { isValidShortCode, getBookingByShortCode } from "@/lib/utils/short-code";
 
 interface PageProps {
   params: Promise<{ bookingId: string }>;
@@ -28,13 +27,23 @@ interface PageProps {
 
 export default async function BriefingPage({ params }: PageProps) {
   const { bookingId } = await params;
-  const briefing = await getLessonBriefing(bookingId);
+  const supabase = await createClient();
+
+  // Resolve short code to booking ID if needed (e.g., "fluent-parrot-42" → UUID)
+  let resolvedBookingId = bookingId;
+  if (isValidShortCode(bookingId)) {
+    const booking = await getBookingByShortCode(supabase, bookingId);
+    if (!booking) {
+      notFound();
+    }
+    resolvedBookingId = booking.id;
+  }
+
+  const briefing = await getLessonBriefing(resolvedBookingId);
 
   if (!briefing) {
     notFound();
   }
-
-  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -52,7 +61,7 @@ export default async function BriefingPage({ params }: PageProps) {
     supabase
       .from("bookings")
       .select("meeting_url, short_code")
-      .eq("id", bookingId)
+      .eq("id", resolvedBookingId)
       .maybeSingle(),
   ]);
 
@@ -62,7 +71,7 @@ export default async function BriefingPage({ params }: PageProps) {
   });
   const startLessonUrl = resolveBookingMeetingUrl({
     meetingUrl: bookingJoin?.meeting_url,
-    bookingId,
+    bookingId: resolvedBookingId,
     shortCode: bookingJoin?.short_code ?? null,
     tutorHasStudio,
     allowClassroomFallback: true,
