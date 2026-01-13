@@ -3,17 +3,17 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
-import { Sparkles, ArrowRight, X, Target, RotateCcw, Loader2 } from "lucide-react";
+import { X, Loader2, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { EngagementIndicator } from "./engagement-indicator";
+import { Badge } from "@/components/ui/badge";
+import { getEngagementLabel } from "./engagement-indicator";
 import { dismissBriefing, markBriefingViewed } from "@/lib/actions/copilot";
 import type { LessonBriefing } from "@/lib/actions/types";
 
 interface LessonBriefingCardProps {
   briefing: LessonBriefing;
   onDismiss?: () => void;
-  /** Demo mode disables server actions and shows demo-appropriate UI */
   isDemo?: boolean;
 }
 
@@ -21,7 +21,6 @@ export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: Less
   const [isPending, startTransition] = useTransition();
   const [isDismissing, setIsDismissing] = useState(false);
 
-  // Get student initials
   const studentName = briefing.student?.fullName || "Student";
   const initials = studentName
     .split(" ")
@@ -30,23 +29,25 @@ export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: Less
     .toUpperCase()
     .slice(0, 2);
 
-  // Format lesson time
   const scheduledAt = briefing.booking?.scheduledAt
     ? new Date(briefing.booking.scheduledAt)
     : null;
-  const lessonTime = scheduledAt
-    ? `${format(scheduledAt, "h:mm a")} · ${formatDistanceToNow(scheduledAt, { addSuffix: true })}`
-    : "Upcoming lesson";
 
-  // Count focus areas and SR items
+  const lessonTime = scheduledAt
+    ? format(scheduledAt, "h:mm a")
+    : "Upcoming";
+
+  const duration = briefing.booking?.service?.durationMinutes
+    ? `${briefing.booking.service.durationMinutes} min`
+    : "";
+
   const focusCount = briefing.focusAreas?.length || 0;
   const srItemsDue = briefing.srItemsDue || 0;
+  const engagementLabel = getEngagementLabel(briefing.engagementTrend);
+  const topFocus = briefing.focusAreas?.[0];
 
   const handleView = () => {
-    // Skip server action in demo mode
     if (isDemo) return;
-
-    // Mark as viewed when card is clicked
     if (!briefing.viewedAt) {
       startTransition(async () => {
         try {
@@ -59,12 +60,10 @@ export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: Less
   };
 
   const handleDismiss = () => {
-    // In demo mode, just call onDismiss callback
     if (isDemo) {
       onDismiss?.();
       return;
     }
-
     setIsDismissing(true);
     startTransition(async () => {
       try {
@@ -82,19 +81,29 @@ export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: Less
   }
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl">
-      {/* Header with AI icon */}
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <Sparkles className="h-5 w-5 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70">
-            AI Copilot
-          </p>
-          <h3 className="text-sm font-semibold text-foreground">
-            Lesson Briefing Ready
-          </h3>
+    <div className="rounded-2xl bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+      {/* Header: Avatar + Name + Dismiss */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 rounded-xl">
+            <AvatarImage src={undefined} alt={studentName} />
+            <AvatarFallback className="rounded-xl bg-muted text-sm font-semibold text-primary">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold text-foreground">{studentName}</p>
+              {isDemo && (
+                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                  Demo
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {lessonTime}{duration && ` · ${duration}`}
+            </p>
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -112,78 +121,34 @@ export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: Less
         </Button>
       </div>
 
-      {/* Student Info */}
-      <div className="flex items-center gap-4 rounded-xl border border-stone-200 bg-stone-50/50 p-4">
-        <Avatar className="h-12 w-12 rounded-xl border border-stone-200">
-          <AvatarImage src={undefined} alt={studentName} />
-          <AvatarFallback className="rounded-xl text-sm font-semibold text-primary">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{studentName}</p>
-          <p className="text-xs text-muted-foreground">{lessonTime}</p>
-        </div>
-      </div>
+      {/* Inline Stats */}
+      <p className="mt-3 text-sm text-muted-foreground">
+        {focusCount} focus area{focusCount !== 1 ? "s" : ""} · {srItemsDue} to review · {engagementLabel}
+      </p>
 
-      {/* Quick Stats */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <div className="rounded-lg bg-stone-50 p-3 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <Target className="h-3.5 w-3.5 text-amber-600" />
-            <p className="text-lg font-semibold text-foreground">{focusCount}</p>
-          </div>
-          <p className="text-[10px] text-muted-foreground">Focus Areas</p>
-        </div>
-        <div className="rounded-lg bg-stone-50 p-3 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <RotateCcw className="h-3.5 w-3.5 text-blue-600" />
-            <p className="text-lg font-semibold text-foreground">{srItemsDue}</p>
-          </div>
-          <p className="text-[10px] text-muted-foreground">Review Items</p>
-        </div>
-        <div className="rounded-lg bg-stone-50 p-3 text-center">
-          <EngagementIndicator trend={briefing.engagementTrend} size="sm" />
-        </div>
-      </div>
-
-      {/* Top focus area preview (if any) */}
-      {briefing.focusAreas && briefing.focusAreas.length > 0 && (
-        <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/50 p-3">
-          <p className="text-xs font-medium text-amber-800">
-            Top focus: {briefing.focusAreas[0].topic}
-          </p>
-          <p className="mt-0.5 text-[11px] text-amber-700/80">
-            {briefing.focusAreas[0].reason}
-          </p>
+      {/* Focus Area (simple, no card) */}
+      {topFocus && (
+        <div className="mt-4 border-t border-border/50 pt-4">
+          <p className="text-sm font-medium text-foreground">{topFocus.topic}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{topFocus.reason}</p>
         </div>
       )}
 
-      {/* Footer Action */}
-      <div className="mt-5 flex items-center justify-between border-t border-stone-100 pt-4">
+      {/* Footer */}
+      <div className="mt-4 flex items-center justify-between">
         {isDemo ? (
-          <span className="text-xs text-muted-foreground">
-            Full briefings available with real lesson data
-          </span>
+          <span className="text-xs text-muted-foreground">Using sample data</span>
         ) : (
-          <Link
-            href={`/copilot/briefing/${briefing.bookingId}`}
-            onClick={handleView}
-            className="group inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
-          >
-            View full briefing
-            <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          <div />
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDismiss}
-          disabled={isPending}
-          className="text-xs text-muted-foreground"
+        <Link
+          href={isDemo ? "#" : `/copilot/briefing/${briefing.bookingId}`}
+          onClick={handleView}
+          className="group inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
         >
-          {isDemo ? "Close Demo" : "Dismiss"}
-        </Button>
+          View full briefing
+          <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </div>
     </div>
   );
@@ -194,18 +159,10 @@ export function LessonBriefingCard({ briefing, onDismiss, isDemo = false }: Less
  */
 export function NoBriefingsCard() {
   return (
-    <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50/50 p-6 sm:rounded-3xl">
-      <div className="flex flex-col items-center justify-center text-center">
-        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100">
-          <Sparkles className="h-5 w-5 text-stone-400" />
-        </div>
-        <p className="text-sm font-medium text-muted-foreground">
-          No briefings available
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground/70">
-          Briefings are generated 24 hours before lessons
-        </p>
-      </div>
+    <div className="rounded-2xl border border-dashed border-border/50 bg-muted/30 p-5">
+      <p className="text-sm text-muted-foreground">
+        No briefings available yet. Briefings are generated 24 hours before lessons.
+      </p>
     </div>
   );
 }
@@ -215,25 +172,18 @@ export function NoBriefingsCard() {
  */
 export function BriefingCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:rounded-3xl">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="h-10 w-10 animate-pulse rounded-xl bg-stone-100" />
+    <div className="rounded-2xl bg-card p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 animate-pulse rounded-xl bg-muted" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 w-16 animate-pulse rounded bg-stone-100" />
-          <div className="h-4 w-32 animate-pulse rounded bg-stone-100" />
+          <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+          <div className="h-3 w-20 animate-pulse rounded bg-muted" />
         </div>
       </div>
-      <div className="flex items-center gap-4 rounded-xl border border-stone-200 bg-stone-50/50 p-4">
-        <div className="h-12 w-12 animate-pulse rounded-xl bg-stone-200" />
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-24 animate-pulse rounded bg-stone-200" />
-          <div className="h-3 w-32 animate-pulse rounded bg-stone-100" />
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 animate-pulse rounded-lg bg-stone-50" />
-        ))}
+      <div className="mt-3 h-3 w-48 animate-pulse rounded bg-muted" />
+      <div className="mt-4 border-t border-border/50 pt-4">
+        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+        <div className="mt-1 h-3 w-44 animate-pulse rounded bg-muted" />
       </div>
     </div>
   );

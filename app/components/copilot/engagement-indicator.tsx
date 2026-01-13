@@ -5,6 +5,25 @@ import { cn } from "@/lib/utils";
 
 export type EngagementTrend = "improving" | "stable" | "declining" | "new_student";
 
+/**
+ * Get the display label for an engagement trend (for inline text use)
+ */
+export function getEngagementLabel(trend: EngagementTrend | undefined | null): string {
+  if (!trend) return "New";
+  switch (trend) {
+    case "improving":
+      return "Improving";
+    case "stable":
+      return "Stable";
+    case "declining":
+      return "Needs attention";
+    case "new_student":
+      return "New";
+    default:
+      return "New";
+  }
+}
+
 interface EngagementIndicatorProps {
   trend: EngagementTrend;
   size?: "sm" | "md" | "lg";

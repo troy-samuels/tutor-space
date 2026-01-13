@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sparkles, Play, X } from "lucide-react";
+import { Sparkles, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LessonBriefingCard } from "./lesson-briefing-card";
@@ -13,88 +14,53 @@ interface CopilotDemoWidgetProps {
 }
 
 /**
- * Demo widget showing AI Copilot capabilities with sample data
- * Used when no real briefings exist or for non-Studio users to preview
+ * Demo widget showing AI Copilot capabilities with sample data.
+ * Simplified design with click-anywhere expansion.
  */
 export function CopilotDemoWidget({ hasStudioAccess }: CopilotDemoWidgetProps) {
   const [showDemo, setShowDemo] = useState(false);
 
+  // Get demo data for preview
+  const studentName = DEMO_BRIEFING.student?.fullName || "Student";
+  const scheduledAt = DEMO_BRIEFING.booking?.scheduledAt
+    ? new Date(DEMO_BRIEFING.booking.scheduledAt)
+    : null;
+  const lessonTime = scheduledAt ? format(scheduledAt, "h:mm a") : "";
+
   return (
-    <div className="space-y-4">
-      {/* Section Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+    <div className="space-y-3">
+      {/* Collapsed Preview - Click anywhere to expand */}
+      {!showDemo && (
+        <button
+          onClick={() => setShowDemo(true)}
+          className="group flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              AI Copilot
-            </h2>
-            <p className="text-xs text-muted-foreground/70">
-              {hasStudioAccess ? "No briefings available" : "Studio feature"}
-            </p>
-          </div>
-        </div>
-        {!hasStudioAccess && (
-          <Badge
-            variant="outline"
-            className="border-purple-200 bg-purple-50 text-purple-700"
-          >
-            Studio
-          </Badge>
-        )}
-      </div>
-
-      {/* Demo Preview Card or Expanded Demo */}
-      {!showDemo ? (
-        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:rounded-3xl">
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <Play className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">
-              Preview AI Lesson Briefings
-            </h3>
-            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-              {hasStudioAccess
-                ? "See what AI-generated briefings look like. Briefings are created 24 hours before scheduled lessons."
-                : "AI Copilot analyzes student data to generate personalized lesson briefings before each class."}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4 gap-2"
-              onClick={() => setShowDemo(true)}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              View Demo Briefing
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Demo Banner */}
-          <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <Badge className="border-0 bg-amber-100 text-[10px] text-amber-700">
-                DEMO
-              </Badge>
-              <span className="text-xs text-amber-700">
-                Sample data showing AI Copilot capabilities
-              </span>
+              <p className="text-sm font-medium text-foreground">
+                Preview lesson briefings
+              </p>
+              {!hasStudioAccess && (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px] border-purple-200 text-purple-600">
+                  Studio
+                </Badge>
+              )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-amber-600 hover:bg-amber-100"
-              onClick={() => setShowDemo(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              See what AI-generated briefings look like
+            </p>
           </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </button>
+      )}
 
-          {/* Demo Briefing Card */}
+      {/* Expanded Demo */}
+      {showDemo && (
+        <div className="space-y-3">
+          {/* Demo Briefing Card (badge built into card) */}
           <LessonBriefingCard
             briefing={DEMO_BRIEFING}
             onDismiss={() => setShowDemo(false)}
@@ -103,21 +69,18 @@ export function CopilotDemoWidget({ hasStudioAccess }: CopilotDemoWidgetProps) {
 
           {/* Upgrade CTA for non-Studio users */}
           {!hasStudioAccess && (
-            <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-center">
-              <p className="text-sm text-purple-800">
-                Upgrade to{" "}
-                <span className="font-semibold">Studio</span> to unlock
-                AI-powered lesson briefings
+            <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Unlock AI briefings with <span className="font-medium text-foreground">Studio</span>
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-2 border-purple-300 text-purple-700 hover:bg-purple-100"
+                className="shrink-0"
                 asChild
               >
                 <Link href="/settings/billing?upgrade=studio">
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                  Unlock Studio Features
+                  Upgrade
                 </Link>
               </Button>
             </div>
