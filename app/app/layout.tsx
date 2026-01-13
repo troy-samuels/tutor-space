@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "TutorLingua – The operating system for language tutors",
+    title: "TutorLingua – Built for language tutors",
     description:
       "Launch your tutor site, automate bookings and payments, manage students, and leverage AI tools with TutorLingua.",
     siteName: "TutorLingua",
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TutorLingua – The operating system for language tutors",
+    title: "TutorLingua – Built for language tutors",
     description:
       "Run your tutoring business from one tab with TutorLingua: branded site, bookings, payments, CRM, and AI assistance.",
     images: ["/og-image.png?v=2"],
