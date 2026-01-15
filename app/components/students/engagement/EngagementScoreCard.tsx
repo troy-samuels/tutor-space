@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -10,36 +10,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
   Calendar,
   MessageSquare,
   BookOpen,
   Mic,
   RefreshCw,
-  Edit2,
   Loader2,
-  X,
 } from "lucide-react";
 import { EngagementScoreMeter } from "./EngagementScoreMeter";
-import { RiskStatusBadge } from "./RiskStatusBadge";
-import { refreshEngagementScore, overrideRiskStatus, clearRiskStatusOverride } from "@/lib/actions/student-engagement";
-import type { EngagementScore, RiskStatus } from "@/lib/actions/types";
+import { refreshEngagementScore } from "@/lib/actions/student-engagement";
+import type { EngagementScore } from "@/lib/actions/types";
 
 type EngagementScoreCardProps = {
   studentId: string;
@@ -53,9 +33,6 @@ export function EngagementScoreCard({
   onUpdate,
 }: EngagementScoreCardProps) {
   const [isPending, startTransition] = useTransition();
-  const [isOverrideOpen, setIsOverrideOpen] = useState(false);
-  const [overrideStatus, setOverrideStatus] = useState<RiskStatus>("healthy");
-  const [overrideReason, setOverrideReason] = useState("");
 
   const handleRefresh = () => {
     startTransition(async () => {
@@ -66,44 +43,7 @@ export function EngagementScoreCard({
     });
   };
 
-  const handleOverride = () => {
-    if (!overrideReason.trim()) return;
-
-    startTransition(async () => {
-      const result = await overrideRiskStatus({
-        studentId,
-        riskStatus: overrideStatus,
-        reason: overrideReason,
-      });
-      if (result.success) {
-        setIsOverrideOpen(false);
-        setOverrideReason("");
-        // Refresh to get updated data
-        const updated = await refreshEngagementScore(studentId);
-        if (updated && onUpdate) {
-          onUpdate(updated);
-        }
-      }
-    });
-  };
-
-  const handleClearOverride = () => {
-    startTransition(async () => {
-      const result = await clearRiskStatusOverride(studentId);
-      if (result.success) {
-        const updated = await refreshEngagementScore(studentId);
-        if (updated && onUpdate) {
-          onUpdate(updated);
-        }
-      }
-    });
-  };
-
   const currentScore = score?.score ?? 100;
-  const effectiveRiskStatus = (score?.risk_status_override ??
-    score?.risk_status ??
-    "healthy") as RiskStatus;
-  const hasOverride = !!score?.risk_status_override;
 
   const componentScores = [
     {
@@ -163,88 +103,10 @@ export function EngagementScoreCard({
         <div className="flex items-center gap-4">
           <EngagementScoreMeter score={currentScore} size="lg" />
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <RiskStatusBadge status={effectiveRiskStatus} />
-              {hasOverride && (
-                <span className="text-xs text-muted-foreground">(Override)</span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setIsOverrideOpen(true)}
-              >
-                <Edit2 className="h-3 w-3 mr-1" />
-                Override
-              </Button>
-              <Dialog open={isOverrideOpen} onOpenChange={setIsOverrideOpen}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Override Risk Status</DialogTitle>
-                    <DialogDescription>
-                      Manually set the risk status for this student. The computed
-                      score will remain unchanged.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Risk Status</Label>
-                      <Select
-                        value={overrideStatus}
-                        onValueChange={(v) => setOverrideStatus(v as RiskStatus)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="healthy">Healthy</SelectItem>
-                          <SelectItem value="at_risk">At Risk</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
-                          <SelectItem value="churned">Churned</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Reason</Label>
-                      <Textarea
-                        placeholder="Why are you overriding the status?"
-                        value={overrideReason}
-                        onChange={(e) => setOverrideReason(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsOverrideOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleOverride}
-                      disabled={isPending || !overrideReason.trim()}
-                    >
-                      {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                      Apply Override
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              {hasOverride && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={handleClearOverride}
-                  disabled={isPending}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Clear
-                </Button>
-              )}
-            </div>
+            <p className="text-sm font-medium text-foreground">Engagement health</p>
+            <p className="text-xs text-muted-foreground">
+              Based on lesson frequency, response rate, homework, and practice activity.
+            </p>
           </div>
         </div>
 
@@ -271,18 +133,6 @@ export function EngagementScoreCard({
           })}
         </div>
 
-        {/* Override info */}
-        {hasOverride && score?.override_reason && (
-          <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-            <p className="text-xs font-medium">Override Reason</p>
-            <p className="text-sm text-muted-foreground">{score.override_reason}</p>
-            {score.override_at && (
-              <p className="text-xs text-muted-foreground">
-                Set on {new Date(score.override_at).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

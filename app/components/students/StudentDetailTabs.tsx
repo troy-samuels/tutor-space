@@ -2,10 +2,11 @@
 
 import { ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, MessageCircle, CreditCard, User, ClipboardList, Clock } from "lucide-react";
+import { BookOpen, MessageCircle, CreditCard, User, ClipboardList, Clock, FileText } from "lucide-react";
 
 type StudentDetailTabsProps = {
   overviewTab: ReactNode;
+  profileTab?: ReactNode;
   lessonsTab: ReactNode;
   messagesTab: ReactNode;
   paymentsTab: ReactNode;
@@ -18,6 +19,7 @@ type StudentDetailTabsProps = {
 
 export function StudentDetailTabs({
   overviewTab,
+  profileTab,
   lessonsTab,
   messagesTab,
   paymentsTab,
@@ -42,6 +44,15 @@ export function StudentDetailTabs({
           <User className="h-4 w-4" />
           Overview
         </TabsTrigger>
+        {profileTab && (
+          <TabsTrigger
+            value="profile"
+            className="inline-flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none bg-transparent"
+          >
+            <FileText className="h-4 w-4" />
+            Profile
+          </TabsTrigger>
+        )}
         {onboardingTab && (
           <TabsTrigger
             value="onboarding"
@@ -87,6 +98,11 @@ export function StudentDetailTabs({
         <TabsContent value="overview" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
           {overviewTab}
         </TabsContent>
+        {profileTab && (
+          <TabsContent value="profile" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+            {profileTab}
+          </TabsContent>
+        )}
         {onboardingTab && (
           <TabsContent value="onboarding" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
             {onboardingTab}

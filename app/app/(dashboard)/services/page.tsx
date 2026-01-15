@@ -7,7 +7,6 @@ import type { DigitalProductRecord } from "@/lib/types/digital-product";
 
 type ProfileDefaults = {
   currency: string | null;
-  username: string | null;
 };
 
 type SubscriptionTemplateRow = {
@@ -50,7 +49,7 @@ export default async function ServicesPage() {
 
   const profileResponse = await supabase
     .from("profiles")
-    .select("currency, username")
+    .select("currency")
     .eq("id", user.id)
     .single<ProfileDefaults>();
 
@@ -83,7 +82,6 @@ export default async function ServicesPage() {
       services={servicesWithPackages}
       defaultCurrency={profileResponse.data?.currency ?? "USD"}
       digitalProducts={digitalProducts}
-      profileUsername={profileResponse.data?.username ?? null}
     />
   );
 }

@@ -19,12 +19,6 @@ export default async function DigitalProductsPage() {
     );
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
   const products = await listDigitalProductsForTutor();
 
   return (
@@ -38,7 +32,7 @@ export default async function DigitalProductsPage() {
 
       <DigitalProductForm />
 
-      <DigitalProductList products={products} profileUsername={profile?.username} />
+      <DigitalProductList products={products} />
     </div>
   );
 }

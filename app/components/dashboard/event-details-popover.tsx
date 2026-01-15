@@ -29,7 +29,6 @@ type EventDetailsPopoverProps = {
   position: { x: number; y: number };
   onReschedule?: (event: CalendarEvent) => void;
   onRefresh?: () => void;
-  isConflict?: boolean;
 };
 
 const DURATION_OPTIONS = [30, 45, 60, 90, 120];
@@ -41,7 +40,6 @@ export function EventDetailsPopover({
   position,
   onReschedule,
   onRefresh,
-  isConflict = false,
 }: EventDetailsPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isChangingDuration, setIsChangingDuration] = useState(false);
@@ -55,14 +53,7 @@ export function EventDetailsPopover({
     message: string;
   } | null>(null);
 
-  const colors = isConflict
-    ? {
-        bg: "bg-rose-50",
-        border: "border-rose-300",
-        text: "text-rose-900",
-        dot: "bg-rose-500",
-      }
-    : CALENDAR_COLORS[event.type];
+  const colors = CALENDAR_COLORS[event.type];
 
   const startTime = new Date(event.start);
   const endTime = new Date(event.end);
@@ -228,11 +219,6 @@ export function EventDetailsPopover({
             >
               {event.source}
             </span>
-            {isConflict && (
-              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
-                Conflict
-              </span>
-            )}
           </div>
           <h3 className="mt-1 text-base font-semibold text-foreground">
             {event.title}

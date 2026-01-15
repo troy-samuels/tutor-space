@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getDeepgramClient, isDeepgramConfigured } from "@/lib/deepgram";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
+import { updateRecordingStatus } from "@/lib/repositories/recordings";
+import { getSignedUrl } from "@/lib/storage/signed-urls";
 
 function parseSupabaseStoragePath(
   value: string,
@@ -95,17 +97,17 @@ export async function POST(request: NextRequest) {
 
     let publicUrl: string | null = parsed.fallbackUrl;
     if (parsed.objectPath) {
-      const signed = await supabase.storage
-        .from(parsed.bucket)
-        .createSignedUrl(parsed.objectPath, 60 * 60);
-      publicUrl = signed.data?.signedUrl ?? null;
+      publicUrl = await getSignedUrl(supabase, parsed.bucket, parsed.objectPath, 60 * 60);
     }
 
     if (!publicUrl) {
-      await supabase
-        .from("lesson_recordings")
-        .update({ status: "failed" })
-        .eq("egress_id", recording.egress_id);
+      const updateResult = await updateRecordingStatus(supabase, {
+        egressId: recording.egress_id,
+        status: "failed",
+      });
+      if (updateResult.error) {
+        console.error("[Retry Transcriptions] Failed to mark recording failed:", updateResult.error);
+      }
 
       results.push({
         egress_id: recording.egress_id,
@@ -142,26 +144,31 @@ export async function POST(request: NextRequest) {
       if (dgError) {
         console.error(`[Retry Transcriptions] Deepgram error for ${recording.egress_id}:`, dgError);
 
-        await supabase
-          .from("lesson_recordings")
-          .update({ status: "failed" })
-          .eq("egress_id", recording.egress_id);
+        const updateResult = await updateRecordingStatus(supabase, {
+          egressId: recording.egress_id,
+          status: "failed",
+        });
+        if (updateResult.error) {
+          console.error("[Retry Transcriptions] Failed to mark recording failed:", updateResult.error);
+        }
 
         results.push({ egress_id: recording.egress_id, success: false, error: String(dgError) });
       } else if (result) {
         console.log(`[Retry Transcriptions] Transcription complete for ${recording.egress_id}`);
 
-        const { error: updateError } = await supabase
-          .from("lesson_recordings")
-          .update({
-            transcript_json: result.results,
-            status: "completed",
-          })
-          .eq("egress_id", recording.egress_id);
+        const updateResult = await updateRecordingStatus(supabase, {
+          egressId: recording.egress_id,
+          status: "completed",
+          transcriptJson: result.results,
+        });
 
-        if (updateError) {
-          console.error(`[Retry Transcriptions] DB update error for ${recording.egress_id}:`, updateError);
-          results.push({ egress_id: recording.egress_id, success: false, error: String(updateError) });
+        if (updateResult.error) {
+          console.error(`[Retry Transcriptions] DB update error for ${recording.egress_id}:`, updateResult.error);
+          results.push({
+            egress_id: recording.egress_id,
+            success: false,
+            error: updateResult.error,
+          });
         } else {
           results.push({ egress_id: recording.egress_id, success: true });
         }
@@ -169,10 +176,13 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error(`[Retry Transcriptions] Error for ${recording.egress_id}:`, err);
 
-      await supabase
-        .from("lesson_recordings")
-        .update({ status: "failed" })
-        .eq("egress_id", recording.egress_id);
+      const updateResult = await updateRecordingStatus(supabase, {
+        egressId: recording.egress_id,
+        status: "failed",
+      });
+      if (updateResult.error) {
+        console.error("[Retry Transcriptions] Failed to mark recording failed:", updateResult.error);
+      }
 
       results.push({ egress_id: recording.egress_id, success: false, error: String(err) });
     }

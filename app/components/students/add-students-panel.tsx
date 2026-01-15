@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Upload, Plus, FileText, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, PlayCircle } from "lucide-react";
+import { Upload, Plus, FileText, ChevronDown, ChevronUp, CheckCircle2, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ import {
   type StudentImportPayload,
   type StudentImportResult,
 } from "@/lib/actions/students";
-import { cn } from "@/lib/utils";
 
 // Maximum CSV file size: 5MB
 const MAX_CSV_SIZE_BYTES = 5 * 1024 * 1024;
@@ -31,7 +30,6 @@ type Student = {
   status?: string;
   onboardingStatus?: string;
   engagementScore?: number;
-  riskStatus?: string;
 };
 
 type Props = {
@@ -137,13 +135,6 @@ export function AddStudentsPanel({ students, onStudentAdded }: Props) {
     trial: "bg-amber-100 text-amber-700",
     paused: "bg-gray-100 text-gray-600",
     alumni: "bg-sky-100 text-sky-700",
-  };
-
-  const riskStyles: Record<string, { color: string; icon: React.ReactNode }> = {
-    healthy: { color: "text-emerald-500", icon: null },
-    at_risk: { color: "text-amber-500", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-    critical: { color: "text-orange-500", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-    churned: { color: "text-red-500", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
   };
 
   const onboardingIcons: Record<string, React.ReactNode> = {
@@ -297,15 +288,6 @@ export function AddStudentsPanel({ students, onStudentAdded }: Props) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* CRM Status Indicators */}
-                  {student.riskStatus && student.riskStatus !== "healthy" && (
-                    <span
-                      className={cn("flex items-center", riskStyles[student.riskStatus]?.color)}
-                      title={`Risk: ${student.riskStatus.replace("_", " ")}`}
-                    >
-                      {riskStyles[student.riskStatus]?.icon}
-                    </span>
-                  )}
                   {student.onboardingStatus && onboardingIcons[student.onboardingStatus] && (
                     <span title={`Onboarding: ${student.onboardingStatus.replace("_", " ")}`}>
                       {onboardingIcons[student.onboardingStatus]}

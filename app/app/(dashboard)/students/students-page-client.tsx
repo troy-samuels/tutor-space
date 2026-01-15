@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AddStudentsPanel } from "@/components/students/add-students-panel";
 import { InviteLinkManager } from "@/components/students/InviteLinkManager";
-import { Users, Link as LinkIcon, Filter, X, AlertTriangle } from "lucide-react";
+import { Users, Link as LinkIcon, Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,7 +22,6 @@ type Student = {
   status?: string;
   onboardingStatus?: string;
   engagementScore?: number;
-  riskStatus?: string;
 };
 
 type InviteLink = {
@@ -54,13 +53,6 @@ const ONBOARDING_OPTIONS = [
   { value: "completed", label: "Completed" },
 ];
 
-const RISK_OPTIONS = [
-  { value: "healthy", label: "Healthy" },
-  { value: "at_risk", label: "At Risk" },
-  { value: "critical", label: "Critical" },
-  { value: "churned", label: "Churned" },
-];
-
 export function StudentsPageClient({
   initialStudents,
   initialInviteLinks = [],
@@ -71,10 +63,8 @@ export function StudentsPageClient({
   const [activeTab, setActiveTab] = useState<"students" | "invites">("students");
 
   // Initialize filters from URL params
-  const initialRiskFilter = searchParams.get("risk")?.split(",").filter(Boolean) ?? [];
   const initialOnboardingFilter = searchParams.get("onboarding")?.split(",").filter(Boolean) ?? [];
 
-  const [riskFilters, setRiskFilters] = useState<string[]>(initialRiskFilter);
   const [onboardingFilters, setOnboardingFilters] = useState<string[]>(initialOnboardingFilter);
 
   const handleStudentAdded = () => {
@@ -85,12 +75,6 @@ export function StudentsPageClient({
     router.refresh();
   };
 
-  const toggleRiskFilter = (value: string) => {
-    setRiskFilters((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    );
-  };
-
   const toggleOnboardingFilter = (value: string) => {
     setOnboardingFilters((prev) =>
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
@@ -98,26 +82,20 @@ export function StudentsPageClient({
   };
 
   const clearFilters = () => {
-    setRiskFilters([]);
     setOnboardingFilters([]);
   };
 
   // Filter students based on selected filters
   const filteredStudents = useMemo(() => {
     return initialStudents.filter((student) => {
-      const riskMatch =
-        riskFilters.length === 0 || riskFilters.includes(student.riskStatus ?? "healthy");
       const onboardingMatch =
         onboardingFilters.length === 0 ||
         onboardingFilters.includes(student.onboardingStatus ?? "not_started");
-      return riskMatch && onboardingMatch;
+      return onboardingMatch;
     });
-  }, [initialStudents, riskFilters, onboardingFilters]);
+  }, [initialStudents, onboardingFilters]);
 
-  const hasActiveFilters = riskFilters.length > 0 || onboardingFilters.length > 0;
-  const atRiskCount = initialStudents.filter(
-    (s) => s.riskStatus === "at_risk" || s.riskStatus === "critical"
-  ).length;
+  const hasActiveFilters = onboardingFilters.length > 0;
 
   return (
     <div className="space-y-6">
@@ -128,17 +106,6 @@ export function StudentsPageClient({
             Manage your students and create invite links.
           </p>
         </div>
-        {atRiskCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-orange-600 border-orange-200 hover:bg-orange-50"
-            onClick={() => setRiskFilters(["at_risk", "critical"])}
-          >
-            <AlertTriangle className="h-4 w-4 mr-1.5" />
-            {atRiskCount} at-risk
-          </Button>
-        )}
       </header>
 
       {/* Tabs and Filters */}
@@ -177,38 +144,6 @@ export function StudentsPageClient({
 
           {activeTab === "students" && (
             <div className="flex items-center gap-2 pb-3">
-              {/* Risk Status Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={riskFilters.length > 0 ? "border-primary text-primary" : ""}
-                  >
-                    <Filter className="h-3.5 w-3.5 mr-1.5" />
-                    Risk
-                    {riskFilters.length > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary text-primary-foreground">
-                        {riskFilters.length}
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuLabel>Risk Status</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {RISK_OPTIONS.map((option) => (
-                    <DropdownMenuCheckboxItem
-                      key={option.value}
-                      checked={riskFilters.includes(option.value)}
-                      onCheckedChange={() => toggleRiskFilter(option.value)}
-                    >
-                      {option.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
               {/* Onboarding Status Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

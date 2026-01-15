@@ -12,6 +12,7 @@ type StudentOverviewProps = {
     email: string;
     status: string | null;
   };
+  onEditProfile?: () => void;
   nextBooking?: {
     id: string;
     scheduled_at: string;
@@ -40,6 +41,7 @@ type StudentOverviewProps = {
 
 export function StudentOverview({
   student,
+  onEditProfile,
   nextBooking,
   stats,
   recentHomework,
@@ -63,9 +65,15 @@ export function StudentOverview({
               {student.status ? formatLabel(student.status) : "Active"}
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/students/${student.id}/edit`}>Edit profile</Link>
-          </Button>
+          {onEditProfile ? (
+            <Button variant="outline" size="sm" onClick={onEditProfile}>
+              Edit profile
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/students/${student.id}?tab=profile`}>Edit profile</Link>
+            </Button>
+          )}
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
           <Stat label="Total" value={stats.total_lessons} />

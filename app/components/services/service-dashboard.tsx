@@ -45,7 +45,6 @@ type ServiceDashboardProps = {
   services: ServiceWithPackages[];
   defaultCurrency: string;
   digitalProducts: DigitalProductRecord[];
-  profileUsername?: string | null;
 };
 
 const OFFER_TYPE_STYLES: Record<ServiceOfferType, { label: string; className: string }> = {
@@ -59,7 +58,6 @@ export function ServiceDashboard({
   services,
   defaultCurrency,
   digitalProducts,
-  profileUsername,
 }: ServiceDashboardProps) {
   const router = useRouter();
   const [serviceList, setServiceList] = useState<ServiceWithPackages[]>(services);
@@ -602,7 +600,6 @@ export function ServiceDashboard({
               <div className="mt-4">
                 <DigitalProductList
                   products={digitalProducts}
-                  profileUsername={profileUsername}
                   onStatus={handleStatus}
                   onCreateProduct={() => setProductSheetOpen(true)}
                 />

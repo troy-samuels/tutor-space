@@ -43,7 +43,7 @@ const EVENT_CATEGORIES: Record<string, EventType[]> = {
   Practice: ["practice_session_completed", "drill_completed"],
   Progress: ["goal_created", "goal_completed", "assessment_recorded"],
   Payments: ["payment_received", "package_purchased", "subscription_started"],
-  Status: ["status_changed", "risk_status_changed", "note_added", "label_added", "label_removed"],
+  Status: ["status_changed", "note_added", "label_added", "label_removed"],
 };
 
 function groupEventsByDate(events: TimelineEventType[]): Record<string, TimelineEventType[]> {
@@ -143,10 +143,11 @@ export function StudentTimeline({
     loadEvents(false);
   }, [selectedCategories]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const groupedEvents = groupEventsByDate(events);
+  const visibleEvents = events.filter((event) => event.event_type !== "risk_status_changed");
+  const groupedEvents = groupEventsByDate(visibleEvents);
   const groupKeys = Object.keys(groupedEvents);
 
-  if (isPending && events.length === 0) {
+  if (isPending && visibleEvents.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 flex items-center justify-center">
@@ -188,7 +189,7 @@ export function StudentTimeline({
         </div>
       </CardHeader>
       <CardContent>
-        {events.length === 0 ? (
+        {visibleEvents.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             No activity recorded yet
           </div>

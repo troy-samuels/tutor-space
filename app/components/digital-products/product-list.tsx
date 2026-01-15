@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
   toggleDigitalProductPublish,
   deleteDigitalProduct,
@@ -12,17 +13,16 @@ type StatusMessage = { type: "success" | "error"; message: string };
 
 type ProductListProps = {
   products: DigitalProductRecord[];
-  profileUsername?: string | null;
   onStatus?: (status: StatusMessage) => void;
   onCreateProduct?: () => void;
 };
 
 export function DigitalProductList({
   products,
-  profileUsername,
   onStatus,
   onCreateProduct,
 }: ProductListProps) {
+  const { profile } = useAuth();
   const [productList, setProductList] = useState<DigitalProductRecord[]>(products);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -98,8 +98,8 @@ export function DigitalProductList({
     <div className="grid gap-3">
       {productList.map((product) => {
         const shareUrl =
-          profileUsername && product.published
-            ? `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/products/${profileUsername}#${product.slug}`
+          profile?.username && product.published
+            ? `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/products/${profile.username}#${product.slug}`
             : null;
 
         return (

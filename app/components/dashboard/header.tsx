@@ -70,47 +70,48 @@ export function DashboardHeader() {
 
   const tierBadge = getTierBadge();
 
-  const displayName = useMemo(() => {
+  const derivedProfile = useMemo(() => {
     const profileName = profile?.full_name?.trim();
     const onboardingName = (metadataFullName || `${metadataFirstName} ${metadataLastName}`.trim()).trim();
     const handle = profile?.username || metadataUsername;
-    return profileName || onboardingName || handle || null;
+    const displayName = profileName || onboardingName || handle || null;
+    const emailForDisplay = profile?.email || user?.email || null;
+    const sourceName = displayName?.trim();
+
+    let initials = "TL";
+    if (sourceName) {
+      const nameParts = sourceName.split(" ").filter(Boolean);
+      if (nameParts.length >= 2) {
+        initials = (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+      } else if (nameParts.length === 1 && nameParts[0].length > 0) {
+        initials = nameParts[0].slice(0, 2).toUpperCase();
+      }
+    } else if (emailForDisplay) {
+      initials = emailForDisplay.slice(0, 2).toUpperCase();
+    }
+
+    const profileUrl = profile?.avatar_url?.trim();
+    const avatarUrl = profileUrl || metadataAvatarUrl || undefined;
+
+    return {
+      displayName,
+      emailForDisplay,
+      initials,
+      avatarUrl,
+    };
   }, [
     metadataFirstName,
     metadataFullName,
     metadataLastName,
     metadataUsername,
+    metadataAvatarUrl,
+    profile?.avatar_url,
+    profile?.email,
     profile?.full_name,
     profile?.username,
+    user?.email,
   ]);
-
-  const emailForDisplay = profile?.email || user?.email || null;
-
-  const initials = useMemo(() => {
-    const sourceName = displayName?.trim();
-    if (sourceName) {
-      const nameParts = sourceName.split(" ").filter(Boolean);
-      if (nameParts.length >= 2) {
-        return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
-      }
-      if (nameParts.length === 1 && nameParts[0].length > 0) {
-        return nameParts[0].slice(0, 2).toUpperCase();
-      }
-    }
-
-    if (emailForDisplay) {
-      return emailForDisplay.slice(0, 2).toUpperCase();
-    }
-
-    return "TL";
-  }, [displayName, emailForDisplay]);
-
-  const avatarUrl = useMemo(() => {
-    const profileUrl = profile?.avatar_url?.trim();
-    if (profileUrl) return profileUrl;
-    if (metadataAvatarUrl) return metadataAvatarUrl;
-    return undefined;
-  }, [metadataAvatarUrl, profile?.avatar_url]);
+  const { displayName, emailForDisplay, initials, avatarUrl } = derivedProfile;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 bg-background/95 px-4 shadow-sm backdrop-blur sm:gap-4 sm:px-6 lg:px-10">

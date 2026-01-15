@@ -9,6 +9,8 @@ import {
   shouldEnableCodeSwitching,
 } from "@/lib/deepgram";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
+import { updateRecordingStatus } from "@/lib/repositories/recordings";
+import { getSignedUrl } from "@/lib/storage/signed-urls";
 
 export const runtime = "nodejs";
 
@@ -232,16 +234,13 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-    let publicUrl: string | null = null;
+      let publicUrl: string | null = null;
       const locationIsSupabase =
         fileResult.location.includes(".supabase.co") ||
         fileResult.location.includes("/storage/v1/");
 
       if (objectPath && locationIsSupabase) {
-        const signed = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(objectPath, 6 * 60 * 60);
-        publicUrl = signed.data?.signedUrl ?? null;
+        publicUrl = await getSignedUrl(supabase, bucket, objectPath, 6 * 60 * 60);
       }
 
       if (!publicUrl && objectPath) {
@@ -301,26 +300,27 @@ export async function POST(request: NextRequest) {
 
         if (dgError) {
           console.error("[LiveKit Webhook] Deepgram error:", dgError);
-          await supabase
-            .from("lesson_recordings")
-            .update({ status: "failed" })
-            .eq("egress_id", egress.egressId);
+          const updateResult = await updateRecordingStatus(supabase, {
+            egressId: egress.egressId,
+            status: "failed",
+          });
+          if (updateResult.error) {
+            console.error("[LiveKit Webhook] Failed to update recording status:", updateResult.error);
+          }
         } else if (result) {
           if (useCallback) {
             console.log("[LiveKit Webhook] Deepgram async transcription started:", result);
           } else {
             console.log("[LiveKit Webhook] Transcription complete, updating DB...");
 
-            const { error: updateError } = await supabase
-              .from("lesson_recordings")
-              .update({
-                transcript_json: (result as { results?: unknown })?.results,
-                status: "completed",
-              })
-              .eq("egress_id", egress.egressId);
+            const updateResult = await updateRecordingStatus(supabase, {
+              egressId: egress.egressId,
+              status: "completed",
+              transcriptJson: (result as { results?: unknown })?.results,
+            });
 
-            if (updateError) {
-              console.error("[LiveKit Webhook] Failed to update transcript:", updateError);
+            if (updateResult.error) {
+              console.error("[LiveKit Webhook] Failed to update transcript:", updateResult.error);
             } else {
               console.log("[LiveKit Webhook] Transcript saved successfully for egress:", egress.egressId);
             }
@@ -328,17 +328,23 @@ export async function POST(request: NextRequest) {
         }
       } catch (err) {
         console.error("[LiveKit Webhook] Deepgram transcription error:", err);
-        await supabase
-          .from("lesson_recordings")
-          .update({ status: "failed" })
-          .eq("egress_id", egress.egressId);
+        const updateResult = await updateRecordingStatus(supabase, {
+          egressId: egress.egressId,
+          status: "failed",
+        });
+        if (updateResult.error) {
+          console.error("[LiveKit Webhook] Failed to update recording status:", updateResult.error);
+        }
       }
     } else {
       console.warn("[LiveKit Webhook] Deepgram not configured, skipping transcription");
-      await supabase
-        .from("lesson_recordings")
-        .update({ status: "completed" })
-        .eq("egress_id", egress.egressId);
+      const updateResult = await updateRecordingStatus(supabase, {
+        egressId: egress.egressId,
+        status: "completed",
+      });
+      if (updateResult.error) {
+        console.error("[LiveKit Webhook] Failed to update recording status:", updateResult.error);
+      }
     }
 
     // 7. Return 200 to LiveKit

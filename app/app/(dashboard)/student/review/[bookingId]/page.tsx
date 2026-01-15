@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { hasStudioAccess } from "@/lib/payments/subscriptions";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
+import { getSignedUrl } from "@/lib/storage/signed-urls";
 import { remark } from "remark";
 import remarkHtml from "remark-html";
 import sanitizeHtml from "sanitize-html";
@@ -413,15 +414,8 @@ async function toSignedRecordingUrl(storagePath: string | null): Promise<string 
     return parsed.fallbackUrl;
   }
 
-  const { data, error } = await admin.storage
-    .from(parsed.bucket)
-    .createSignedUrl(parsed.objectPath, 60 * 60);
-
-  if (error || !data?.signedUrl) {
-    return parsed.fallbackUrl;
-  }
-
-  return data.signedUrl;
+  const signedUrl = await getSignedUrl(admin, parsed.bucket, parsed.objectPath, 60 * 60);
+  return signedUrl ?? parsed.fallbackUrl;
 }
 
 function extractSummary(recording: LessonRecording): string | null {

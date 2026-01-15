@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, CalendarPlus, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarPlus, CalendarDays, Loader2, MessageSquare, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudentProfileCard } from "./StudentProfileCard";
 import { StudentUpcomingLessons } from "./StudentUpcomingLessons";
 import { StudentDetailTabs } from "./StudentDetailTabs";
+import { StudentDetailsTab } from "./StudentDetailsTab";
 import { StudentLessonsCalendar } from "./StudentLessonsCalendar";
 import { StudentPaymentsTab } from "./StudentPaymentsTab";
 import { StudentMessagesTab } from "./StudentMessagesTab";
@@ -76,12 +77,28 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
 
   const initialTab = useMemo(() => {
     const tabParam = searchParams.get("tab");
-    const validTabs = ["overview", "onboarding", "lessons", "messages", "payments", "timeline"];
+    const validTabs = ["overview", "profile", "onboarding", "lessons", "messages", "payments", "timeline"];
     return tabParam && validTabs.includes(tabParam) ? tabParam : "overview";
   }, [searchParams]);
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [threadId, setThreadId] = useState<string | null>(detail?.threadId ?? null);
+
+  const handleStudentUpdated = (updates: Partial<StudentDetailData["student"]>) => {
+    setState((prev) => {
+      if (!prev.data) return prev;
+      return {
+        ...prev,
+        data: {
+          ...prev.data,
+          student: {
+            ...prev.data.student,
+            ...updates,
+          },
+        },
+      };
+    });
+  };
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -114,9 +131,17 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
         stats={detail.stats}
         recentHomework={detail.homework}
         practiceScenarios={detail.practiceScenarios}
+        onEditProfile={() => setActiveTab("profile")}
       />
     );
-  }, [detail]);
+  }, [detail, setActiveTab]);
+
+  const profileTab = detail ? (
+    <StudentDetailsTab
+      student={detail.student}
+      onStudentUpdated={handleStudentUpdated}
+    />
+  ) : null;
 
   const lessonsTab = detail ? (
     <StudentLessonsCalendar studentId={detail.student.id} bookings={detail.bookings} />
@@ -274,6 +299,26 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
               <CalendarPlus className="h-4 w-4" />
             </Link>
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 rounded-full"
+            onClick={() => setActiveTab("lessons")}
+            aria-label="View calendar"
+            title="View calendar"
+          >
+            <CalendarDays className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 rounded-full"
+            onClick={() => setActiveTab("timeline")}
+            aria-label="View recent activity"
+            title="View recent activity"
+          >
+            <Activity className="h-4 w-4" />
+          </Button>
           <Button asChild>
             <Link href={`/lesson-notes/new?student=${detail.student.id}`}>Add lesson note</Link>
           </Button>
@@ -287,6 +332,7 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
 
       <StudentDetailTabs
         overviewTab={overviewTab}
+        profileTab={profileTab}
         onboardingTab={onboardingTab}
         lessonsTab={lessonsTab}
         messagesTab={messagesTab}

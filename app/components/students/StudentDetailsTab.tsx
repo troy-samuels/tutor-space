@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, type KeyboardEvent } from "react";
-import { Mail, Phone, Globe2, Target, FileText, Calendar, Clock, Plus, X, Tag } from "lucide-react";
+import { useEffect, useState, useTransition, type KeyboardEvent } from "react";
+import { Mail, Phone, Globe2, Target, FileText, Calendar, Clock, Plus, X, Tag, User } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { updateStudentLabels, updateStudent } from "@/lib/actions/students";
+import { updateStudentLabels, updateStudent, type StudentUpdateFields } from "@/lib/actions/students";
 import { EditableSection } from "@/components/students/EditableSection";
 
 type StudentData = {
@@ -24,6 +24,7 @@ type StudentData = {
 
 type StudentDetailsTabProps = {
   student: StudentData;
+  onStudentUpdated?: (updates: Partial<StudentData>) => void;
 };
 
 const PROFICIENCY_LEVELS = [
@@ -42,7 +43,7 @@ const STATUS_OPTIONS = [
   { value: "alumni", label: "Alumni" },
 ];
 
-export function StudentDetailsTab({ student }: StudentDetailsTabProps) {
+export function StudentDetailsTab({ student, onStudentUpdated }: StudentDetailsTabProps) {
   const [labels, setLabels] = useState<string[]>(student.labels ?? []);
   const [isAddingLabel, setIsAddingLabel] = useState(false);
   const [newLabel, setNewLabel] = useState("");
@@ -62,17 +63,48 @@ export function StudentDetailsTab({ student }: StudentDetailsTabProps) {
   });
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (editingSection) return;
+    setLabels(student.labels ?? []);
+    setFormData({
+      full_name: student.full_name,
+      email: student.email,
+      phone: student.phone,
+      native_language: student.native_language,
+      proficiency_level: student.proficiency_level,
+      learning_goals: student.learning_goals,
+      notes: student.notes,
+      status: student.status,
+    });
+  }, [student, editingSection]);
+
+  const normalizeStudentField = (
+    field: keyof StudentData,
+    value: StudentData[keyof StudentData]
+  ) => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (field === "email") return trimmed.toLowerCase();
+      if (field === "full_name") return trimmed;
+      return trimmed.length > 0 ? trimmed : null;
+    }
+    return value ?? null;
+  };
+
   const handleSave = (section: string, fields: (keyof StudentData)[]) => {
     setSaveError(null);
     startTransition(async () => {
-      const updates: Record<string, unknown> = {};
+      const updates: StudentUpdateFields = {};
       for (const field of fields) {
-        updates[field] = formData[field];
+        const normalized = normalizeStudentField(field, formData[field] ?? null);
+        (updates as Record<string, unknown>)[field] = normalized === null ? undefined : normalized;
       }
       const result = await updateStudent(student.id, updates);
       if (result.error) {
         setSaveError(result.error);
       } else {
+        setFormData((prev) => ({ ...prev, ...updates }));
+        onStudentUpdated?.(updates);
         setEditingSection(null);
       }
     });
@@ -113,7 +145,10 @@ export function StudentDetailsTab({ student }: StudentDetailsTabProps) {
     setIsAddingLabel(false);
 
     startTransition(async () => {
-      await updateStudentLabels(student.id, updated);
+      const result = await updateStudentLabels(student.id, updated);
+      if (!result.error) {
+        onStudentUpdated?.({ labels: updated });
+      }
     });
   };
 
@@ -122,7 +157,10 @@ export function StudentDetailsTab({ student }: StudentDetailsTabProps) {
     setLabels(updated);
 
     startTransition(async () => {
-      await updateStudentLabels(student.id, updated);
+      const result = await updateStudentLabels(student.id, updated);
+      if (!result.error) {
+        onStudentUpdated?.({ labels: updated });
+      }
     });
   };
 
@@ -237,9 +275,21 @@ export function StudentDetailsTab({ student }: StudentDetailsTabProps) {
         error={editingSection === "contact" ? saveError : null}
         onEdit={() => handleEdit("contact")}
         onCancel={handleCancel}
-        onSave={() => handleSave("contact", ["email", "phone", "native_language"])}
+        onSave={() => handleSave("contact", ["full_name", "email", "phone", "native_language"])}
         viewContent={
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                <User className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Full name</p>
+                <p className="text-sm font-medium text-foreground">
+                  {student.full_name || "Not provided"}
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
                 <Mail className="h-4 w-4 text-muted-foreground" />
@@ -289,6 +339,15 @@ export function StudentDetailsTab({ student }: StudentDetailsTabProps) {
         }
         editContent={
           <div className="space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wide block mb-1">Full name</label>
+              <input
+                type="text"
+                value={formData.full_name ?? ""}
+                onChange={(e) => setFormData((prev) => ({ ...prev, full_name: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
             <div>
               <label className="text-xs text-muted-foreground uppercase tracking-wide block mb-1">Email</label>
               <input

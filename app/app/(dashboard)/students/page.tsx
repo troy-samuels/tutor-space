@@ -15,7 +15,7 @@ export default async function StudentsPage() {
   // Fetch students with CRM data for the list view
   const { data: students } = await supabase
     .from("students")
-    .select("id, full_name, email, status, onboarding_status, engagement_score, risk_status")
+    .select("id, full_name, email, status, onboarding_status, engagement_score")
     .eq("tutor_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -26,7 +26,6 @@ export default async function StudentsPage() {
     status: s.status ?? "active",
     onboardingStatus: s.onboarding_status ?? "not_started",
     engagementScore: s.engagement_score ?? 100,
-    riskStatus: s.risk_status ?? "healthy",
   }));
 
   // Fetch invite links

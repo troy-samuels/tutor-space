@@ -14,105 +14,9 @@
 4) As a tutor, my dashboard focuses on action items (no embedded calendar) and recent activity links me to CRM or bookings.
 5) As a tutor, I can manage bookings with less friction, avoid conflicts, and scroll within upcoming/past lists.
 6) As a tutor, I can create a one-to-one service in a single step without a progress bar or max-students field.
-7) As a tutor, I can edit a student profile directly in the CRM side panel, and risk indicators are removed.
-8) As a tutor, I can set my location and years of experience for my public page and preview, without a signature block.
-9) As a tutor, I see a Studio/Pro badge color that matches the product theme.
-10) As a tutor, I can contact support via chat or a simple message flow that admins can respond to.
+7) As a tutor, I can set my location and years of experience for my public page and preview, without a signature block.
 
 ## Tasks (with file/area mappings + acceptance criteria)
-
-### 5) Student CRM: editable side panel, remove risk indicators
-Files/Areas:
-- `app/components/students/add-students-panel.tsx`
-- `app/components/students/StudentDetailView.tsx`
-- `app/components/students/StudentDetailsTab.tsx`
-- `app/lib/actions/students/update.ts`
-- `app/lib/repositories/students.ts`
-- `app/app/(dashboard)/students/[studentId]/page.tsx`
-
-Work:
-- Add an editable student profile section in the side panel (contact info, goals, notes, status).
-- Implement update action for student fields (use repository update).
-- Remove risk indicator UI (risk status badge, risk icons in list).
-
-Acceptance criteria:
-- Tutor can view and edit full student details from the CRM side panel.
-- Risk badges/icons are not displayed anywhere in CRM UI.
-
-Edge cases:
-- Partial student data; validation for required email/full name.
-- Concurrent edits (optimistic update or refresh).
-
-Tests:
-- Unit: update action validates and persists student fields.
-- E2E: edit student details in side panel and see updates.
-
-### 6) Pages: add location + years of experience, remove signature text
-Files/Areas:
-- `app/app/(dashboard)/pages/editor/studio-editor-client.tsx`
-- `app/lib/types/site.ts`
-- `app/lib/site/site-config.ts`
-- `app/lib/actions/tutor-sites/site-config.ts`
-- `app/lib/actions/tutor-sites/public.ts`
-- `app/app/(public)/[username]/page.tsx`
-- `app/app/(public)/[username]/public-profile-client.tsx`
-
-Work:
-- Extend site config to include `location` and `years_experience` (or similar).
-- Add editable inputs in the /pages editor and surface in preview chips.
-- Render location and years of experience on public profile.
-- Remove signature-name block from preview and public profile footer.
-
-Acceptance criteria:
-- Location and years of experience are editable in /pages and visible in preview.
-- Public profile displays location and years of experience when provided.
-- Signature text block with name is removed from preview and public profile.
-
-Edge cases:
-- Empty values hide chips gracefully.
-- Existing site configs remain valid without migration errors.
-
-Tests:
-- Unit: normalizeSiteConfig handles new fields.
-- E2E: update location/experience, publish, verify public page.
-
-### 7) Top-right Studio/Pro badge color
-Files/Areas:
-- `app/components/dashboard/header.tsx`
-
-Work:
-- Update badge colors to align with theme (use primary/secondary tokens rather than purple/blue).
-
-Acceptance criteria:
-- Studio/Pro badge colors match product theme across light backgrounds.
-
-Tests:
-- Visual: check dropdown badge contrast and consistency.
-
-### 8) Help/Support: operational chat or message flow
-Files/Areas:
-- `app/app/(public)/help/page.tsx`
-- `app/app/(public)/contact/page.tsx`
-- `app/app/api/support/route.ts`
-- `supabase/migrations/20251128100000_create_support_tickets.sql`
-- (New) `app/app/(dashboard)/support/page.tsx` and admin view `app/app/admin/support/page.tsx` if needed
-
-Work:
-- Add a tutor-facing support UI (chat or ticket form) that posts to `/api/support`.
-- Allow follow-up messages or status visibility (may require new support message table).
-- Provide an admin-facing support inbox view to respond and update status.
-
-Acceptance criteria:
-- Tutor can submit support requests in-app (not just mailto).
-- Support requests are visible to admins and can be responded to.
-
-Edge cases:
-- Unauthorized users cannot submit tickets.
-- Support form handles offline or error states gracefully.
-
-Tests:
-- Unit: support API rejects invalid payloads.
-- E2E: submit ticket and verify it appears in admin view.
 
 ## Comprehensive acceptance tests (Gherkin-style)
 1) Auth login with username
@@ -150,22 +54,12 @@ Tests:
    - When they fill in required fields
    - Then the service saves without step navigation or max-students input
 
-8) CRM editing
-   - Given a tutor opens a student detail side panel
-   - When they edit contact info and notes
-   - Then the updates persist and are visible on reload
-
-9) Pages location/experience
+8) Pages location/experience
    - Given a tutor adds location and years in /pages
    - When they publish the site
    - Then the public page shows those values and no signature block
 
-10) Support request
-   - Given a tutor submits a support message
-   - When an admin opens the support inbox
-   - Then the ticket is visible with the submitted details
-
-### 9) Refactoring: Split large components and extract hooks
+### 7) Refactoring: Split large components and extract hooks
 Files/Areas:
 - `app/components/dashboard/calendar-page-client.tsx`
 - `app/components/bookings/booking-dashboard.tsx`
@@ -207,7 +101,7 @@ Tests:
 - Type checking passes: `npm run typecheck`
 - Build succeeds: `npm run build`
 
-### 10) Refactoring: Extract shared UI components and hooks
+### 8) Refactoring: Extract shared UI components and hooks
 Files/Areas:
 - `app/components/dashboard/event-details-popover.tsx`
 - `app/components/dashboard/slot-quick-actions.tsx`
@@ -250,38 +144,3 @@ Tests:
 - Unit tests for time calculation utilities
 - Existing component tests continue to pass
 - Visual regression check for feedback/status components
-
-### 11) Refactoring: Quick wins and cleanup
-Files/Areas:
-- `app/components/dashboard/event-details-popover.tsx`
-- `app/components/dashboard/header.tsx`
-- `app/components/services/service-dashboard.tsx`
-- `app/app/api/admin/retry-transcriptions/route.ts`
-- `app/app/api/webhooks/livekit/route.ts`
-- `app/lib/repositories/recordings.ts`
-- `app/lib/storage/signed-urls.ts` (new)
-
-Work:
-- Remove unused `isConflict` prop from `event-details-popover.tsx` (declared but never passed)
-- Reduce over-memoization in `header.tsx`: consolidate 9 useMemo declarations into single memoized object
-- Review and clean unused `profileUsername` prop usage in `service-dashboard.tsx`
-- Extract `updateRecordingStatus()` helper in `/lib/repositories/recordings.ts`:
-  - Consolidates 6 repeated update patterns across retry-transcriptions and livekit webhooks
-- Create `/lib/storage/signed-urls.ts` with `getSignedUrl()` helper:
-  - Consolidates identical signed URL creation logic from 2 files
-
-Acceptance criteria:
-- No unused props in popover components
-- Header component has cleaner memoization (1-2 useMemo vs 9)
-- Recording status updates use single repository function
-- Signed URL creation uses shared utility
-- ~50 lines of duplication eliminated
-
-Edge cases:
-- Ensure memoization consolidation doesn't break render performance
-- Recording status updates handle all existing status values
-
-Tests:
-- Type checking confirms no unused variables
-- Existing tests pass
-- Build succeeds
