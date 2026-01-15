@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getDeepgramClient, isDeepgramConfigured } from "@/lib/deepgram";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 
 function parseSupabaseStoragePath(
   value: string,
@@ -38,6 +39,9 @@ function parseSupabaseStoragePath(
 /**
  * Admin endpoint to retry transcription for stuck recordings.
  * Fetches all recordings with status='transcribing' and re-processes them.
+ *
+ * @google-compliance
+ * Deepgram receives lesson audio only; external calendar data is never used.
  *
  * Usage: POST /api/admin/retry-transcriptions
  */
@@ -114,6 +118,13 @@ export async function POST(request: NextRequest) {
     console.log(`[Retry Transcriptions] Processing ${recording.egress_id}: ${publicUrl}`);
 
     try {
+      assertGoogleDataIsolation({
+        provider: "deepgram",
+        context: "retry-transcriptions.transcribe",
+        data: { recordingId: recording.id, egressId: recording.egress_id },
+        sources: ["lesson_recordings.audio"],
+      });
+
       const { result, error: dgError } = await deepgram.listen.prerecorded.transcribeUrl(
         { url: publicUrl },
         {

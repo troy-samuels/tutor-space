@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { badRequest } from "@/lib/api/error-responses";
 import { checkSlotAvailabilityForTutor } from "@/lib/actions/bookings";
 
 export async function POST(request: Request) {
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
   };
 
   if (!tutorId || !startISO || !durationMinutes) {
-    return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    return badRequest("Missing parameters");
   }
 
   const result = await checkSlotAvailabilityForTutor({
@@ -19,9 +20,8 @@ export async function POST(request: Request) {
   });
 
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    return badRequest(result.error);
   }
 
   return NextResponse.json({ available: result.available });
 }
-

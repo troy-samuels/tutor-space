@@ -39,4 +39,5 @@ export type RecentActivityItem = {
   timestamp: string;
   amount?: number;
   currency?: string;
+  targetUrl?: string;
 };

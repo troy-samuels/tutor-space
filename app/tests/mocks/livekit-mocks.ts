@@ -709,3 +709,140 @@ export function createMockLiveKitClient(options: MockLiveKitClientOptions = {}) 
     },
   };
 }
+
+// ============================================
+// VIDEO QUALITY MOCK TYPES
+// ============================================
+
+export interface MockVideoQualitySettings {
+  resolution: { width: number; height: number };
+  frameRate: number;
+  bitrate: number;
+  simulcastLayers?: Array<{
+    rid: string;
+    maxBitrate: number;
+    scaleDownBy: number;
+  }>;
+  codec: "h264" | "vp8" | "vp9";
+}
+
+export interface MockConnectionMetrics {
+  quality: "excellent" | "good" | "poor" | "lost" | "unknown";
+  bitrate: number;
+  packetLoss: number;
+  rtt: number;
+  currentLayer: "high" | "medium" | "low" | "unknown";
+}
+
+export interface MockBrowserCapabilities {
+  supportsH264HW: boolean;
+  supportsVP9: boolean;
+  supportsSimulcast: boolean;
+  maxResolution: { width: number; height: number };
+  isMobile: boolean;
+  isLowPowerDevice: boolean;
+  estimatedBandwidth: "high" | "medium" | "low" | "unknown";
+}
+
+// ============================================
+// VIDEO QUALITY FACTORIES
+// ============================================
+
+export function createMockVideoQualitySettings(
+  options: Partial<MockVideoQualitySettings> = {}
+): MockVideoQualitySettings {
+  return {
+    resolution: { width: 1280, height: 720 },
+    frameRate: 30,
+    bitrate: 1_500_000,
+    codec: "h264",
+    ...options,
+  };
+}
+
+export function createMockConnectionMetrics(
+  options: Partial<MockConnectionMetrics> = {}
+): MockConnectionMetrics {
+  return {
+    quality: "good",
+    bitrate: 1_200_000,
+    packetLoss: 0.02,
+    rtt: 45,
+    currentLayer: "medium",
+    ...options,
+  };
+}
+
+export function createMockBrowserCapabilities(
+  options: Partial<MockBrowserCapabilities> = {}
+): MockBrowserCapabilities {
+  return {
+    supportsH264HW: true,
+    supportsVP9: true,
+    supportsSimulcast: true,
+    maxResolution: { width: 1920, height: 1080 },
+    isMobile: false,
+    isLowPowerDevice: false,
+    estimatedBandwidth: "high",
+    ...options,
+  };
+}
+
+// ============================================
+// QUALITY SCENARIO FACTORIES
+// ============================================
+
+export const MockQualityScenarios = {
+  excellentConnection: () =>
+    createMockConnectionMetrics({
+      quality: "excellent",
+      bitrate: 2_500_000,
+      packetLoss: 0,
+      currentLayer: "high",
+    }),
+
+  degradedConnection: () =>
+    createMockConnectionMetrics({
+      quality: "poor",
+      bitrate: 300_000,
+      packetLoss: 0.15,
+      currentLayer: "low",
+    }),
+
+  mobileConnection: () =>
+    createMockConnectionMetrics({
+      quality: "good",
+      bitrate: 800_000,
+      packetLoss: 0.03,
+      currentLayer: "medium",
+    }),
+
+  lostConnection: () =>
+    createMockConnectionMetrics({
+      quality: "lost",
+      bitrate: 0,
+      packetLoss: 1.0,
+      rtt: 0,
+      currentLayer: "unknown",
+    }),
+
+  safariCapabilities: () =>
+    createMockBrowserCapabilities({
+      supportsH264HW: true,
+      supportsVP9: false, // Safari doesn't support VP9
+    }),
+
+  mobileCapabilities: () =>
+    createMockBrowserCapabilities({
+      isMobile: true,
+      maxResolution: { width: 1280, height: 720 },
+      estimatedBandwidth: "medium",
+    }),
+
+  lowPowerCapabilities: () =>
+    createMockBrowserCapabilities({
+      isLowPowerDevice: true,
+      maxResolution: { width: 640, height: 360 },
+      estimatedBandwidth: "low",
+    }),
+};

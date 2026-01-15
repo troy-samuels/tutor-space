@@ -8,6 +8,7 @@ import {
   buildTranscriptionOptions,
   shouldEnableCodeSwitching,
 } from "@/lib/deepgram";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 
 export const runtime = "nodejs";
 
@@ -60,6 +61,9 @@ function redactUrl(value: string): string {
  *
  * Receives egress events from LiveKit Cloud.
  * On egress_ended: updates DB and fires Deepgram transcription (fire-and-forget).
+ *
+ * @google-compliance
+ * Deepgram receives lesson audio only; external calendar data is never used.
  *
  * Configure webhook URL in LiveKit Cloud dashboard:
  * https://your-app.com/api/webhooks/livekit
@@ -191,7 +195,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    const { error: dbError } = await supabase
+    const { data: recording, error: dbError } = await supabase
       .from("lesson_recordings")
       .upsert({
         booking_id: egress.roomName,  // roomName is the booking ID
@@ -261,6 +265,13 @@ export async function POST(request: NextRequest) {
       );
 
       try {
+        assertGoogleDataIsolation({
+          provider: "deepgram",
+          context: "livekit-webhook.transcribe",
+          data: { recordingId: recording?.id, egressId: egress.egressId },
+          sources: ["lesson_recordings.audio"],
+        });
+
         // Build transcription options with code-switching support
         const transcriptionOptions = buildTranscriptionOptions({
           nativeLanguage: languageProfile?.native_language,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { badRequest, internalError, unauthorized } from "@/lib/api/error-responses";
 import { createClient } from "@/lib/supabase/server";
 import { createRefundRequest } from "@/lib/repositories/refunds";
 
@@ -9,13 +10,13 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorized("Unauthorized");
     }
 
     const body = await req.json();
     const { tutorId, bookingId, paymentsAuditId, amountCents, currency, reason, actorRequested } = body ?? {};
     if (!tutorId || !amountCents || !currency) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return badRequest("Missing required fields");
     }
 
     const id = await createRefundRequest(supabase, {
@@ -32,8 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, refundRequestId: id });
   } catch (error) {
     console.error("Refund request failed", error);
-    return NextResponse.json({ error: "Failed to create refund request" }, { status: 500 });
+    return internalError("Failed to create refund request");
   }
 }
-
 

@@ -340,7 +340,7 @@ export function CalendarWeekView({
                       key={`${slot.hour}-${slot.minute}`}
                       className={`${getRowBg(slotIndex)} cursor-pointer transition-colors hover:bg-muted/40`}
                       style={{ height: `${pixelsPerHour}px` }}
-                      onClick={() => onTimeSlotClick?.(day, slot.hour)}
+                      onClick={(event) => onTimeSlotClick?.(day, slot.hour, event)}
                     >
                       {/* Quick add button on hover */}
                       <div className="group h-full w-full">

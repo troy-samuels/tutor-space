@@ -70,3 +70,14 @@ export const DASHBOARD_ROUTE = "/calendar";
 export const ONBOARDING_ROUTE = "/onboarding";
 export const STUDENT_HOME_ROUTE = "/student/search";
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Username pattern: 3-32 chars, lowercase letters, numbers, hyphens
+export const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
+
+/**
+ * Check if an identifier is an email address.
+ * Used to determine whether to resolve username to email during sign-in.
+ */
+export function isEmailIdentifier(identifier: string): boolean {
+	return EMAIL_PATTERN.test(identifier);
+}

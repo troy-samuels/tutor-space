@@ -12,6 +12,7 @@ import {
 	markBookingPaid,
 	getFullTutorProfileForBooking,
 	updateBookingCheckoutSession,
+	updateBookingMeetingUrl,
 } from "@/lib/repositories/bookings";
 import { requireTutor } from "./helpers";
 import {
@@ -86,6 +87,24 @@ export async function markBookingAsPaid(bookingId: string) {
 			currency: service?.price_currency ?? booking.currency ?? "USD",
 		},
 	});
+
+	if (!booking.meeting_url) {
+		try {
+			const fullTutorProfile = await getFullTutorProfileForBooking(adminClient, user.id);
+			const tutorHasStudio = tutorHasStudioAccess({
+				tier: fullTutorProfile?.tier ?? null,
+				plan: fullTutorProfile?.plan ?? null,
+			});
+
+			if (tutorHasStudio) {
+				const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+				const meetingUrl = buildClassroomUrl(booking.id, booking.short_code, appUrl);
+				await updateBookingMeetingUrl(adminClient, booking.id, user.id, meetingUrl, "livekit");
+			}
+		} catch (meetingUrlError) {
+			logStepError(log, "markBookingAsPaid:meeting_url_failed", meetingUrlError, { bookingId });
+		}
+	}
 
 	const studentEmail = student?.email;
 	const amountCents = booking.payment_amount ?? (service?.price_amount ?? 0);

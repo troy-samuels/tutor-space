@@ -10,6 +10,8 @@ export type FAQItem = {
 export interface SiteConfig {
   themeId: SiteTheme;
   bio?: string;
+  location?: string; // e.g., "Barcelona, Spain"
+  yearsExperience?: number; // e.g., 5
   faq?: FAQItem[];
   hero: {
     videoUrl?: string; // Optional "Living Portrait"

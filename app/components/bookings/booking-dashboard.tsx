@@ -120,6 +120,12 @@ export function BookingDashboard({
   const [isPending, startTransition] = useTransition();
   const [paymentPending, startPaymentTransition] = useTransition();
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const [isValidatingSlot, setIsValidatingSlot] = useState(false);
+  const isSubmitting = isPending || isValidatingSlot;
+
+  useEffect(() => {
+    setBookingList(bookings);
+  }, [bookings]);
 
   const today = useMemo(() => new Date(), []);
   const selectedService = services.find((item) => item.id === formState.serviceId) ?? null;
@@ -161,7 +167,7 @@ export function BookingDashboard({
         return bookingStart !== slotStart;
       })
     );
-  }, [availability, formState.serviceId, timezone, bookingList, busyWindows]);
+  }, [availability, formState.serviceId, timezone, bookingList, busyWindows, bufferMinutes]);
 
   const dayOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -251,54 +257,103 @@ export function BookingDashboard({
       return;
     }
 
+    // Validate slot availability and submit booking
+    setIsValidatingSlot(true);
     startTransition(() => {
       (async () => {
-        // Build the input for the new action
-        const input: ManualBookingInput = {
-          service_id: service.id,
-          scheduled_at: slot.start,
-          duration_minutes: service.duration_minutes,
-          timezone,
-          notes: formState.notes || undefined,
-          payment_option: formState.paymentOption,
-        };
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        // Either existing student or new student
-        if (formState.studentId) {
-          input.student_id = formState.studentId;
-        } else {
-          if (!formState.name || !formState.email) {
-            setStatus({ type: "error", message: "Add student name and email." });
+          let checkResponse: Response;
+          try {
+            checkResponse = await fetch("/api/booking/check-slot", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                tutorId,
+                startISO: slot.start,
+                durationMinutes: service.duration_minutes,
+              }),
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+
+          let checkResult: { available?: boolean; error?: string } = {};
+          try {
+            checkResult = await checkResponse.json();
+          } catch {
+            checkResult = {};
+          }
+
+          if (!checkResponse.ok || !checkResult.available) {
+            setStatus({
+              type: "error",
+              message: checkResult.error || "This time slot is no longer available. Please choose another time.",
+            });
             return;
           }
-          input.new_student = {
-            name: formState.name,
-            email: formState.email,
-            timezone: formState.studentTimezone,
+
+          // Build the input for the new action
+          const input: ManualBookingInput = {
+            service_id: service.id,
+            scheduled_at: slot.start,
+            duration_minutes: service.duration_minutes,
+            timezone,
+            notes: formState.notes || undefined,
+            payment_option: formState.paymentOption,
           };
+
+          // Either existing student or new student
+          if (formState.studentId) {
+            input.student_id = formState.studentId;
+          } else {
+            if (!formState.name || !formState.email) {
+              setStatus({ type: "error", message: "Add student name and email." });
+              return;
+            }
+            input.new_student = {
+              name: formState.name,
+              email: formState.email,
+              timezone: formState.studentTimezone,
+            };
+          }
+
+          const result = await createManualBookingWithPaymentLink(input);
+
+          if (result.error || !result.data) {
+            setStatus({ type: "error", message: result.error ?? "Could not create booking." });
+            return;
+          }
+
+          // Build success message based on payment option
+          let successMessage = "Lesson scheduled!";
+          if (formState.paymentOption === "send_link" && result.data.paymentUrl) {
+            successMessage = "Lesson scheduled! Payment link sent to student.";
+          } else if (formState.paymentOption === "already_paid") {
+            successMessage = "Lesson scheduled and marked as paid.";
+          } else if (formState.paymentOption === "free") {
+            successMessage = "Free lesson scheduled!";
+          }
+
+          setStatus({ type: "success", message: successMessage });
+          resetForm();
+          setIsModalOpen(false);
+          router.refresh();
+        } catch (error) {
+          const isAbort =
+            error instanceof Error && error.name === "AbortError";
+          setStatus({
+            type: "error",
+            message: isAbort
+              ? "Availability check timed out. Please try again."
+              : "Could not verify slot availability. Please try again.",
+          });
+        } finally {
+          setIsValidatingSlot(false);
         }
-
-        const result = await createManualBookingWithPaymentLink(input);
-
-        if (result.error || !result.data) {
-          setStatus({ type: "error", message: result.error ?? "Could not create booking." });
-          return;
-        }
-
-        // Build success message based on payment option
-        let successMessage = "Lesson scheduled!";
-        if (formState.paymentOption === "send_link" && result.data.paymentUrl) {
-          successMessage = "Lesson scheduled! Payment link sent to student.";
-        } else if (formState.paymentOption === "already_paid") {
-          successMessage = "Lesson scheduled and marked as paid.";
-        } else if (formState.paymentOption === "free") {
-          successMessage = "Free lesson scheduled!";
-        }
-
-        setStatus({ type: "success", message: successMessage });
-        resetForm();
-        setIsModalOpen(false);
-        router.refresh();
       })();
     });
   }
@@ -327,6 +382,9 @@ export function BookingDashboard({
   }
 
   function handleModalChange(open: boolean) {
+    if (!open && isSubmitting) {
+      return;
+    }
     setIsModalOpen(open);
     if (open) {
       setStatus(null);
@@ -378,7 +436,7 @@ export function BookingDashboard({
           <div className="text-center py-8">
             <CalendarDays className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
             <p className="text-sm font-medium text-foreground mb-1">No lessons scheduled for today</p>
-            <p className="text-xs text-muted-foreground">Click &quot;Add Booking&quot; to schedule a lesson.</p>
+            <p className="text-xs text-muted-foreground">Click &quot;New Lesson&quot; to schedule a lesson.</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -782,6 +840,7 @@ export function BookingDashboard({
               variant="ghost"
               onClick={() => handleModalChange(false)}
               className="flex-1 sm:flex-none"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
@@ -791,7 +850,7 @@ export function BookingDashboard({
                 variant="outline"
                 onClick={() => setBookingStepIndex((prev) => Math.max(prev - 1, 0))}
                 className="flex-1 sm:flex-none"
-                disabled={isPending}
+                disabled={isSubmitting}
               >
                 Back
               </Button>
@@ -799,14 +858,16 @@ export function BookingDashboard({
             <Button
               type="submit"
               form="booking-form"
-              disabled={isPending}
+              disabled={isSubmitting}
               className="w-full h-12 rounded-full shadow-lg shadow-primary/20"
             >
-              {isPending
-                ? "Scheduling..."
-                : bookingStepIndex === 2
-                  ? "Schedule Lesson"
-                  : "Continue"}
+              {isValidatingSlot
+                ? "Checking availability..."
+                : isPending
+                  ? "Scheduling..."
+                  : bookingStepIndex === 2
+                    ? "Schedule Lesson"
+                    : "Continue"}
             </Button>
           </div>
         </DialogContent>
@@ -843,19 +904,20 @@ function BookingList({
     );
   }
 
-  const items = collapsed ? bookings.slice(0, 5) : bookings;
+  // With scrollable containers, show all items
+  const items = bookings;
 
   return (
-    <section className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur">
-      <div className="flex items-center justify-between">
+    <section className="rounded-3xl border border-border bg-white/90 p-6 shadow-sm backdrop-blur flex flex-col">
+      <div className="flex items-center justify-between shrink-0">
         <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {collapsed && bookings.length > 5 ? (
+        {bookings.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            Showing {items.length} of {bookings.length}
+            {bookings.length} {bookings.length === 1 ? "booking" : "bookings"}
           </span>
-        ) : null}
+        )}
       </div>
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-3 space-y-3 max-h-[400px] overflow-y-auto pr-1">
         {items.map((booking) => (
           <BookingListItem
             key={booking.id}

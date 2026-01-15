@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   CalendarCheck,
   CreditCard,
@@ -7,6 +8,7 @@ import {
   Repeat,
   Package,
   Activity,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RecentActivityItem } from "@/lib/types/analytics-premium";
@@ -116,11 +118,8 @@ export function RecentActivityList({
           {displayedItems.map((item) => {
             const Icon = activityConfig[item.type] ?? Activity;
 
-            return (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/30"
-              >
+            const content = (
+              <>
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="h-4 w-4" />
                 </div>
@@ -142,6 +141,30 @@ export function RecentActivityList({
                     {formatTime(item.timestamp)}
                   </p>
                 </div>
+                {item.targetUrl && (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                )}
+              </>
+            );
+
+            if (item.targetUrl) {
+              return (
+                <Link
+                  key={item.id}
+                  href={item.targetUrl}
+                  className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/30"
+                >
+                  {content}
+                </Link>
+              );
+            }
+
+            return (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/30"
+              >
+                {content}
               </div>
             );
           })}

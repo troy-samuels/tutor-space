@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import {
   AI_PRACTICE_BLOCK_PRICE_CENTS,
   FREE_AUDIO_SECONDS,
@@ -591,6 +592,9 @@ async function incrementAudioWithBillingFreemium(params: {
 /**
  * Call Azure Pronunciation Assessment API
  * https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-pronunciation-assessment
+ *
+ * @google-compliance
+ * Azure Speech receives only user-provided practice audio.
  */
 async function assessPronunciation(
   audioData: Uint8Array,
@@ -645,6 +649,13 @@ async function assessPronunciation(
   ).toString("base64");
 
   try {
+    assertGoogleDataIsolation({
+      provider: "azure_speech",
+      context: "practice.audio.assessPronunciation",
+      data: { language, mimeType },
+      sources: ["user_provided_audio"],
+    });
+
     const response = await fetch(
       `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${azureLang}`,
       {

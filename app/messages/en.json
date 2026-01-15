@@ -45,6 +45,8 @@
     "studentAccessQuestion": "Need student access?",
     "studentLoginLink": "Student login",
     "emailLabel": "Email address",
+    "identifierLabel": "Email or username",
+    "identifierPlaceholder": "Enter your email or @username",
     "passwordLabel": "Password",
     "hidePassword": "Hide password",
     "showPassword": "Show password",

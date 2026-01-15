@@ -28,6 +28,7 @@ type CalendarBookingModalProps = {
   initialHour?: number;
   services: ServiceSummary[];
   students: StudentSummary[];
+  recentStudentIds?: string[];
   tutorTimezone: string;
   tutorId: string;
 };
@@ -40,6 +41,7 @@ export function CalendarBookingModal({
   initialHour,
   services,
   students,
+  recentStudentIds = [],
   tutorTimezone,
   tutorId,
 }: CalendarBookingModalProps) {
@@ -217,6 +219,7 @@ export function CalendarBookingModal({
               onChange={(e) => setServiceId(e.target.value)}
               className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
+              autoFocus
             >
               <option value="">Select a service...</option>
               {services.map((service) => (
@@ -276,17 +279,58 @@ export function CalendarBookingModal({
             </label>
             {!showNewStudent ? (
               <div className="space-y-2">
+                {/* Recent Students Quick Pick */}
+                {recentStudentIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    <span className="text-xs text-muted-foreground mr-1">Recent:</span>
+                    {recentStudentIds.slice(0, 4).map((id) => {
+                      const student = students.find((s) => s.id === id);
+                      if (!student) return null;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setStudentId(id)}
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                            studentId === id
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted hover:bg-muted/80"
+                          }`}
+                        >
+                          {student.full_name.split(" ")[0]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <select
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="">Select a student...</option>
-                  {students.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.full_name} ({student.email})
-                    </option>
-                  ))}
+                  {recentStudentIds.length > 0 && (
+                    <optgroup label="Recent">
+                      {recentStudentIds.map((id) => {
+                        const student = students.find((s) => s.id === id);
+                        if (!student) return null;
+                        return (
+                          <option key={`recent-${id}`} value={id}>
+                            {student.full_name} ({student.email})
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  )}
+                  <optgroup label={recentStudentIds.length > 0 ? "All Students" : "Students"}>
+                    {students
+                      .filter((s) => !recentStudentIds.includes(s.id))
+                      .map((student) => (
+                        <option key={student.id} value={student.id}>
+                          {student.full_name} ({student.email})
+                        </option>
+                      ))}
+                  </optgroup>
                 </select>
                 <button
                   type="button"

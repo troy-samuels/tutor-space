@@ -6,9 +6,16 @@
  * - Hesitation patterns (potential struggle indicators)
  * - Strengths (correctly used structures)
  * - L1 interference markers
+ *
+ * @google-compliance
+ * This module sends transcript-derived data to OpenAI. Per GOOGLE_DATA_POLICY:
+ * - Only lesson recordings and student profiles are used
+ * - External calendar data (calendar_events, calendar_connections) is NEVER included
+ * - See: lib/ai/google-compliance.ts
  */
 
 import OpenAI from "openai";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import type { SpeakerSegment } from "./speaker-diarization";
 
 // =============================================================================
@@ -329,9 +336,16 @@ export async function analyzeStudentSpeech(
     return analyzeWithHeuristics(studentSegments, languageProfile, l1Patterns, fluencyMetrics);
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
   try {
+    assertGoogleDataIsolation({
+      provider: "openai",
+      context: "student-speech-analyzer.analyzeStudentSpeech",
+      data: { segments: studentSegments, languageProfile },
+      sources: ["lesson_recordings.transcript_json", "student_language_profiles", "students"],
+    });
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [

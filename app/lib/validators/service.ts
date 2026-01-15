@@ -29,7 +29,12 @@ export const serviceSchema = z.object({
     ),
   is_active: z.boolean(),
   requires_approval: z.boolean(),
-  max_students_per_session: z.number().int().min(1),
+  max_students_per_session: z
+    .number()
+    .int()
+    .min(1)
+    .max(1)
+    .default(1),
   offer_type: offerTypeEnum.default("one_off"),
 });
 
@@ -59,7 +64,9 @@ export const serviceFormSchema = z.object({
   max_students_per_session: z
     .coerce.number()
     .int()
-    .min(1, "At least one student"),
+    .min(1, "At least one student")
+    .max(1, "Only 1:1 services are supported")
+    .default(1),
   offer_type: offerTypeEnum.default("one_off"),
 });
 

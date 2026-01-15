@@ -799,6 +799,7 @@ export async function getRecentActivity(
       timestamp: bookingTimestamp,
       amount: booking.payment_amount ? booking.payment_amount / 100 : undefined,
       currency: booking.currency ?? "usd",
+      targetUrl: "/bookings",
     });
   }
 
@@ -813,6 +814,7 @@ export async function getRecentActivity(
       timestamp: payment.created_at,
       amount: payment.amount_cents / 100,
       currency: payment.currency ?? "usd",
+      targetUrl: "/bookings",
     });
   }
 
@@ -824,6 +826,7 @@ export async function getRecentActivity(
       title: "New student",
       subtitle: student.full_name ?? student.email ?? "Unknown",
       timestamp: student.created_at,
+      targetUrl: `/students/${student.id}`,
     });
   }
 

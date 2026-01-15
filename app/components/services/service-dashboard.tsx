@@ -383,13 +383,9 @@ export function ServiceDashboard({
                               <span className="text-muted-foreground">
                                 {service.duration_minutes} min
                               </span>
-                              <span className="h-4 w-px bg-stone-200" aria-hidden />
-                              <span className="text-muted-foreground">
-                                {service.max_students_per_session} student{service.max_students_per_session === 1 ? "" : "s"}
-                              </span>
                             </div>
                             <span>{offerMeta.label}</span>
-                            {service.requires_approval ? <span>Manual approval</span> : <span>Auto-confirm</span>}
+                            {service.requires_approval ? <span>Manual approval</span> : <span>Auto-book</span>}
                             <span>Updated {format(new Date(service.updated_at), "MMM d, yyyy")}</span>
                             <Link
                               href={`/book?service=${service.id}`}

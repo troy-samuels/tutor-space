@@ -72,6 +72,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<Pa
         facebook_handle: (profile as any).facebook_handle || null,
         x_handle: (profile as any).x_handle || null,
         website_url: (profile as any).website_url || null,
+        location: site.config.location || null,
+        yearsExperience: site.config.yearsExperience ?? null,
       }}
       coverImage={site.config.hero?.coverImage || null}
       themeId={site.config.themeId}

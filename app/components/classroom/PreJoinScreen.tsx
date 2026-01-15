@@ -13,12 +13,15 @@ import {
 import { Mic, MicOff, Video, VideoOff, Settings, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import type { VideoQualityLevel } from "@/lib/livekit-video-config";
+
 interface PreJoinScreenProps {
   onJoin: (settings: {
     audioEnabled: boolean;
     audioDeviceId?: string;
     videoEnabled: boolean;
     videoDeviceId?: string;
+    videoQuality: VideoQualityLevel;
   }) => void;
   participantName?: string;
   serviceName?: string;
@@ -40,6 +43,7 @@ export function PreJoinScreen({
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>("");
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>("");
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState<VideoQualityLevel>("auto");
   const [deviceNotice, setDeviceNotice] = useState<{
     tone: "warning" | "error";
     message: string;
@@ -101,9 +105,12 @@ export function PreJoinScreen({
           : true
         : false,
       video: videoOn
-        ? selectedVideoDevice
-          ? { deviceId: { exact: selectedVideoDevice } }
-          : true
+        ? {
+            deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 30, max: 30 },
+          }
         : false,
     }),
     [selectedAudioDevice, selectedVideoDevice]
@@ -264,6 +271,7 @@ export function PreJoinScreen({
       audioDeviceId: selectedAudioDevice || undefined,
       videoEnabled,
       videoDeviceId: selectedVideoDevice || undefined,
+      videoQuality: selectedQuality,
     });
   };
 
@@ -533,6 +541,28 @@ export function PreJoinScreen({
               {videoDevices.length === 0 && (
                 <p className="text-xs text-muted-foreground">No camera detected.</p>
               )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Video Quality
+              </label>
+              <Select
+                value={selectedQuality}
+                onValueChange={(value) => setSelectedQuality(value as VideoQualityLevel)}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Select quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto (Recommended)</SelectItem>
+                  <SelectItem value="high">High (1080p)</SelectItem>
+                  <SelectItem value="medium">Medium (720p)</SelectItem>
+                  <SelectItem value="low">Low (360p)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Auto adjusts based on your connection speed.
+              </p>
             </div>
           </div>
         )}

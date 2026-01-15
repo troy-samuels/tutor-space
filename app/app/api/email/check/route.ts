@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { badRequest, internalError, rateLimited } from "@/lib/api/error-responses";
+import { requireServiceRoleClient } from "@/lib/api/require-service-role-client";
 import { RateLimiters } from "@/lib/middleware/rate-limit";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -8,54 +9,52 @@ export async function GET(request: NextRequest) {
   // SECURITY: Rate limit email checks to prevent enumeration attacks
   const rateLimitResult = await RateLimiters.api(request);
   if (!rateLimitResult.success) {
-    return NextResponse.json(
-      {
+    return rateLimited(rateLimitResult.error || "Too many requests", {
+      extra: {
         exists: false,
         status: "rate_limited",
         message: rateLimitResult.error,
       },
-      { status: 429 }
-    );
+    });
   }
 
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email")?.trim().toLowerCase() ?? "";
 
   if (!email) {
-    return NextResponse.json(
-      {
+    return badRequest("Please enter an email address.", {
+      extra: {
         exists: false,
         status: "invalid",
         message: "Please enter an email address.",
       },
-      { status: 400 }
-    );
+    });
   }
 
   if (!EMAIL_PATTERN.test(email)) {
-    return NextResponse.json(
-      {
+    return badRequest("Please enter a valid email address.", {
+      extra: {
         exists: false,
         status: "invalid",
         message: "Please enter a valid email address.",
       },
-      { status: 400 }
-    );
+    });
   }
 
-  const adminClient = createServiceRoleClient();
-
-  if (!adminClient) {
-    console.error("[Email] Missing service role client while checking email");
-    return NextResponse.json(
-      {
-        exists: false,
-        status: "error",
-        message: "Unable to verify email right now. Please try again.",
-      },
-      { status: 500 }
-    );
+  const unavailableMessage = "Unable to verify email right now. Please try again.";
+  const serviceRoleResult = requireServiceRoleClient("Email check", {
+    message: unavailableMessage,
+    extra: {
+      exists: false,
+      status: "error",
+      message: unavailableMessage,
+    },
+  });
+  if ("error" in serviceRoleResult) {
+    return serviceRoleResult.error;
   }
+
+  const adminClient = serviceRoleResult.client;
 
   try {
     // Check if email exists in profiles (which links to auth.users)
@@ -67,14 +66,13 @@ export async function GET(request: NextRequest) {
 
     if (error && error.code !== "PGRST116") {
       console.error("[Email] Failed to check email", error);
-      return NextResponse.json(
-        {
+      return internalError(unavailableMessage, {
+        extra: {
           exists: false,
           status: "error",
-          message: "Unable to verify email right now. Please try again.",
+          message: unavailableMessage,
         },
-        { status: 500 }
-      );
+      });
     }
 
     if (profile) {
@@ -92,13 +90,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Email] Unexpected error while checking email", error);
-    return NextResponse.json(
-      {
+    return internalError(unavailableMessage, {
+      extra: {
         exists: false,
         status: "error",
-        message: "Unable to verify email right now. Please try again.",
+        message: unavailableMessage,
       },
-      { status: 500 }
-    );
+    });
   }
 }

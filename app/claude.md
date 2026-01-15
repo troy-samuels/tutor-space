@@ -1255,17 +1255,99 @@ low, normal, high, urgent
 
 ### Feature: Support Tickets
 
-**What it does**: Platform support ticket system for tutors and students.
+**What it does**: Platform support ticket system for tutors and students with admin management dashboard.
 
 **Where the code lives**:
+- Tutor support page: `/app/(dashboard)/support/page.tsx`
+- Admin support dashboard: `/app/admin/support/`
+- Actions: `/lib/actions/support.ts`
 - Migration: `20251128100000_create_support_tickets.sql`
 
 **How it works**:
-1. User submits support ticket with subject, message, category
+
+**Ticket Submission**:
+1. User (tutor or student) submits ticket with subject, message, category
 2. Ticket created with status "open"
-3. Admin reviews and responds
-4. Status workflow: open → in_progress → closed
-5. Tracks user role (tutor/student) for context
+3. User role tracked for context (tutor/student)
+4. User can view their own tickets in `/support`
+
+**Admin Management**:
+1. Admin dashboard shows all tickets with filters
+2. Status workflow: open → in_progress → closed
+3. Statistics dashboard: open, in_progress, closed_today, total
+4. Paginated list with status filters
+
+**Server Actions** (`/lib/actions/support.ts`):
+- `getUserSupportTickets()` - Fetch authenticated user's tickets
+- `getAllSupportTickets(options)` - Admin: paginated list with status filters
+- `updateTicketStatus(ticketId, status)` - Admin: change ticket status
+- `getSupportStats()` - Admin: dashboard statistics (open, in_progress, closed_today, total)
+
+**Database Schema** (`support_tickets`):
+- `id`, `user_id`, `submitted_by_role` (tutor/student)
+- `subject`, `message`, `category`
+- `status` (open/in_progress/closed)
+- `tutor_id`, `student_id` (context references)
+- `created_at`, `updated_at`, `resolved_at`
+
+---
+
+### Feature: Webhook Observability & Health Monitoring
+
+**What it does**: Production-grade monitoring for Stripe webhook processing with request tracing, performance metrics, and health checks.
+
+**Where the code lives**:
+- Health endpoint: `/app/api/stripe/webhook/health/route.ts`
+- Config validation: `/lib/stripe/webhook-config.ts`
+- Migration: `supabase/migrations/20260114100000_webhook_observability.sql`
+
+**Database Schema** (`processed_stripe_events` additions):
+- `correlation_id` (UUID) - Request tracing across logs and responses
+- `livemode` (BOOLEAN) - True for production, false for test events
+- `processing_duration_ms` (INTEGER) - Processing time in milliseconds
+
+**Database View** (`webhook_health_stats`):
+```sql
+SELECT status, COUNT(*) as event_count, MAX(processed_at) as last_event_at,
+       AVG(processing_duration_ms) as avg_processing_ms
+FROM processed_stripe_events
+WHERE processed_at > NOW() - INTERVAL '24 hours'
+GROUP BY status;
+```
+
+**Health Check Response**:
+```typescript
+interface WebhookHealthResponse {
+  status: "healthy" | "degraded" | "unhealthy";
+  secretConfigured: boolean;
+  configIssues: string[];
+  lastEventAt: string | null;
+  lastEventType: string | null;
+  eventsLast24h: number;
+  failedEventsLast24h: number;
+  processingEventsCount: number;
+  avgProcessingTimeMs: number | null;
+  timestamp: string;
+}
+```
+
+**Health Status Logic**:
+- `healthy`: No issues, all events processing normally
+- `degraded`: Config warnings or some failures (< 10% failure rate)
+- `unhealthy`: High failure rate (> 10%) or > 5 stuck events
+
+**Config Validation** (`validateWebhookConfig()`):
+- Checks secret exists and starts with `whsec_`
+- Warns on test mode secret in production
+- Warns on live mode secret in development
+- Validates minimum length (32+ chars)
+- Logs configuration status at startup
+
+**Key Functions**:
+- `validateWebhookConfig()` - Returns config status and issues
+- `assertWebhookConfigured()` - Throws if misconfigured (fail-fast)
+- `getWebhookSecret()` - Safe getter with logging
+- `logWebhookConfigStatus()` - Startup logging utility
 
 ---
 
@@ -1666,6 +1748,7 @@ English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese,
 **Stripe**:
 - `POST /api/stripe/booking-checkout` - Create checkout session
 - `POST /api/stripe/webhook` - Stripe webhooks
+- `GET /api/stripe/webhook/health` - Webhook health monitoring
 - `POST /api/stripe/connect/accounts` - Create Connect account
 - `GET /api/stripe/connect/status` - Refresh account status
 - `POST /api/stripe/connect/login-link` - Connect dashboard link
@@ -2512,6 +2595,36 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ## IMPLEMENTATION LOG
 
+### 14 January 2026: Webhook Observability & Support System
+
+**Webhook Observability System**:
+- Added `correlation_id`, `livemode`, `processing_duration_ms` to `processed_stripe_events` table
+- Created `webhook_health_stats` view for 24-hour aggregated metrics
+- New health endpoint `/api/stripe/webhook/health` for external monitoring (Datadog, PagerDuty, etc.)
+- Config validation module `/lib/stripe/webhook-config.ts` with startup checks
+- Health status: healthy/degraded/unhealthy based on failure rates and stuck events
+- Migration: `supabase/migrations/20260114100000_webhook_observability.sql`
+
+**Support System Expansion**:
+- New tutor support page: `/app/(dashboard)/support/`
+- New admin support dashboard: `/app/admin/support/`
+- Server actions in `/lib/actions/support.ts`:
+  - `getUserSupportTickets()` - User's ticket list
+  - `getAllSupportTickets()` - Admin paginated list with status filters
+  - `updateTicketStatus()` - Admin status changes
+  - `getSupportStats()` - Dashboard statistics (open, in_progress, closed_today, total)
+
+**Other Updates**:
+- Enhanced Student Details Tab with expanded CRM features (439 new lines in `StudentDetailsTab.tsx`)
+- Improved authentication and session handling (`session.ts` refactored with 165 line changes)
+- Calendar component improvements (popover display, quick blocking, week view enhancements)
+- AI Copilot widget redesign with premium minimalist UI
+- Google Calendar compliance module expanded (205 line changes)
+- Booking infrastructure improvements (conflict detection, meeting URL persistence)
+- Updated i18n translations across all 10 languages
+
+---
+
 ### 12 January 2026: Google Calendar Data Compliance Safety Layer
 
 **New Module** (`lib/ai/google-compliance.ts`):
@@ -2796,4 +2909,4 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 
 ---
 
-*Last updated: 12 January 2026*
+*Last updated: 14 January 2026*

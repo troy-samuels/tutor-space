@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { badRequest, internalError, rateLimited } from "@/lib/api/error-responses";
+import { requireServiceRoleClient } from "@/lib/api/require-service-role-client";
 import { isReservedUsername } from "@/lib/constants/reserved-usernames";
 import { RateLimiters } from "@/lib/middleware/rate-limit";
 
@@ -9,69 +10,64 @@ export async function GET(request: NextRequest) {
   // SECURITY: Rate limit username checks to prevent enumeration attacks
   const rateLimitResult = await RateLimiters.api(request);
   if (!rateLimitResult.success) {
-    return NextResponse.json(
-      {
+    return rateLimited(rateLimitResult.error || "Too many requests", {
+      extra: {
         available: false,
         status: "rate_limited",
         message: rateLimitResult.error,
       },
-      { status: 429 }
-    );
+    });
   }
 
   const { searchParams } = new URL(request.url);
   const username = searchParams.get("username")?.trim().toLowerCase() ?? "";
 
   if (!username) {
-    return NextResponse.json(
-      {
+    return badRequest("Please enter a username.", {
+      extra: {
         available: false,
         status: "invalid",
         message: "Please enter a username.",
       },
-      { status: 400 }
-    );
+    });
   }
 
   if (!USERNAME_PATTERN.test(username)) {
-    return NextResponse.json(
-      {
+    return badRequest("Usernames must be 3-32 characters using lowercase letters, numbers, or dashes.", {
+      extra: {
         available: false,
         status: "invalid",
         message: "Usernames must be 3-32 characters using lowercase letters, numbers, or dashes.",
       },
-      { status: 400 }
-    );
+    });
   }
 
   // Check if username is reserved
   if (isReservedUsername(username)) {
-    return NextResponse.json(
-      {
+    return badRequest("This username is reserved and cannot be used.", {
+      extra: {
         available: false,
         status: "reserved",
         message: "This username is reserved and cannot be used.",
       },
-      { status: 400 }
-    );
+    });
   }
 
-  const adminClient = createServiceRoleClient();
-
-  if (!adminClient) {
-    console.error("[Username] Missing service role client while checking availability");
-    return NextResponse.json(
-      {
-        available: false,
-        status: "error",
-        message: "Unable to verify username availability right now. Please try again.",
-      },
-      { status: 500 }
-    );
+  const unavailableMessage = "Unable to verify username availability right now. Please try again.";
+  const serviceRoleResult = requireServiceRoleClient("Username check", {
+    message: unavailableMessage,
+    extra: {
+      available: false,
+      status: "error",
+      message: unavailableMessage,
+    },
+  });
+  if ("error" in serviceRoleResult) {
+    return serviceRoleResult.error;
   }
 
   try {
-    const { data, error } = await adminClient
+    const { data, error } = await serviceRoleResult.client
       .from("profiles")
       .select("id")
       .eq("username", username)
@@ -79,14 +75,13 @@ export async function GET(request: NextRequest) {
 
     if (error && error.code !== "PGRST116") {
       console.error("[Username] Failed to check availability", error);
-      return NextResponse.json(
-        {
+      return internalError(unavailableMessage, {
+        extra: {
           available: false,
           status: "error",
-          message: "Unable to verify username availability right now. Please try again.",
+          message: unavailableMessage,
         },
-        { status: 500 }
-      );
+      });
     }
 
     return NextResponse.json({
@@ -96,13 +91,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Username] Unexpected error while checking availability", error);
-    return NextResponse.json(
-      {
+    return internalError(unavailableMessage, {
+      extra: {
         available: false,
         status: "error",
-        message: "Unable to verify username availability right now. Please try again.",
+        message: unavailableMessage,
       },
-      { status: 500 }
-    );
+    });
   }
 }

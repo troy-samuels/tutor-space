@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { badRequest, forbidden, internalError, unauthorized } from "@/lib/api/error-responses";
+import { requireServiceRoleClient } from "@/lib/api/require-service-role-client";
 import { issueRefundForPaymentIntent } from "@/lib/services/refunds";
 import { getAdminSessionFromCookies } from "@/lib/admin/session";
 
@@ -16,10 +17,7 @@ export async function POST(req: NextRequest) {
 
     if (!adminSession) {
       console.warn("[Refund Approve] Unauthorized attempt - no admin session");
-      return NextResponse.json(
-        { error: "Unauthorized - admin authentication required" },
-        { status: 401 }
-      );
+      return unauthorized("Unauthorized - admin authentication required");
     }
 
     // Verify admin has appropriate role (super_admin or admin can approve refunds)
@@ -27,15 +25,14 @@ export async function POST(req: NextRequest) {
       console.warn(
         `[Refund Approve] Forbidden - user ${adminSession.email} has role ${adminSession.role}`
       );
-      return NextResponse.json(
-        { error: "Forbidden - insufficient permissions" },
-        { status: 403 }
-      );
+      return forbidden("Forbidden - insufficient permissions");
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json({ error: "Admin client unavailable" }, { status: 500 });
+    const serviceRoleResult = requireServiceRoleClient("Refund Approve", {
+      message: "Admin client unavailable",
+    });
+    if ("error" in serviceRoleResult) {
+      return serviceRoleResult.error;
     }
 
     const body = await req.json();
@@ -51,7 +48,7 @@ export async function POST(req: NextRequest) {
     } = body ?? {};
 
     if (!refundRequestId || !tutorId || !paymentIntentId || !currency) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return badRequest("Missing required fields");
     }
 
     // Use the verified admin's ID from session, NOT from request body
@@ -63,7 +60,7 @@ export async function POST(req: NextRequest) {
     );
 
     const refundId = await issueRefundForPaymentIntent({
-      client: supabase,
+      client: serviceRoleResult.client,
       tutorId,
       studentId: studentId ?? null,
       bookingId: bookingId ?? null,
@@ -78,8 +75,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, refundId });
   } catch (error) {
     console.error("Approve refund failed", error);
-    return NextResponse.json({ error: "Failed to approve refund" }, { status: 500 });
+    return internalError("Failed to approve refund");
   }
 }
-
 

@@ -45,6 +45,8 @@
     "studentAccessQuestion": "Benötigen Sie Schülerzugang?",
     "studentLoginLink": "Schüler-Anmeldung",
     "emailLabel": "E-Mail-Adresse",
+    "identifierLabel": "E-Mail oder Benutzername",
+    "identifierPlaceholder": "E-Mail oder @Benutzername eingeben",
     "passwordLabel": "Passwort",
     "hidePassword": "Passwort verbergen",
     "showPassword": "Passwort anzeigen",

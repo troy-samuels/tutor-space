@@ -46,6 +46,8 @@ export function normalizeSiteConfig(raw: SiteConfig | null | undefined): SiteCon
     servicesEnabled: base.servicesEnabled,
     productsEnabled: base.productsEnabled,
     bio: base.bio,
+    location: base.location,
+    yearsExperience: base.yearsExperience,
     faq: base.faq ?? [],
     blocks: merged.sort((a, b) => a.order - b.order),
   };

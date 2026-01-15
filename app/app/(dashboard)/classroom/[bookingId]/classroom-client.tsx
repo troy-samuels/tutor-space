@@ -2,12 +2,14 @@
 
 import "@livekit/components-styles";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
 } from "@livekit/components-react";
+import { buildRoomOptions, type VideoQualityLevel } from "@/lib/livekit-video-config";
+import { detectCapabilities, getOptimalQuality, type BrowserCapabilities } from "@/lib/livekit-capabilities";
 import { Loader2, ShieldAlert, ArrowLeft, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
@@ -52,8 +54,32 @@ export default function ClassroomClient() {
     audioDeviceId?: string;
     videoEnabled: boolean;
     videoDeviceId?: string;
+    videoQuality: VideoQualityLevel;
   } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [capabilities, setCapabilities] = useState<BrowserCapabilities | null>(null);
+
+  // Detect browser capabilities on mount
+  useEffect(() => {
+    detectCapabilities().then(setCapabilities);
+  }, []);
+
+  // Build RoomOptions based on quality settings and capabilities
+  const roomOptions = useMemo(() => {
+    if (!joinSettings) return undefined;
+
+    const quality =
+      joinSettings.videoQuality === "auto" && capabilities
+        ? getOptimalQuality(capabilities)
+        : joinSettings.videoQuality;
+
+    return buildRoomOptions({
+      quality,
+      enableSimulcast: quality !== "low",
+      preferH264: capabilities?.supportsH264HW ?? true,
+      adaptiveStream: true,
+    });
+  }, [joinSettings, capabilities]);
 
   useEffect(() => {
     async function fetchToken() {
@@ -275,6 +301,7 @@ export default function ClassroomClient() {
           connect={true}
           audio={audio}
           video={video}
+          options={roomOptions}
           className="flex h-full flex-col gap-3 min-h-0 relative lg:flex-row lg:gap-6"
         >
           <LiveKitConnectionWatcher

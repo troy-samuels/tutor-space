@@ -1,20 +1,100 @@
 "use client";
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
-import { signUp, type AuthActionState } from "@/lib/actions/auth";
+import { signUp } from "@/lib/actions/auth";
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
+import { PasswordInput } from "@/components/forms/password-input";
+import { useAuthForm } from "@/components/forms/use-auth-form";
+import { useAvailabilityCheck, type AvailabilityStatus } from "@/lib/hooks/useAvailabilityCheck";
 import { normalizeSignupUsername } from "@/lib/utils/username-slug";
-
-const initialState: AuthActionState = {
-  error: undefined,
-  success: undefined,
-  redirectTo: undefined,
-};
 const USERNAME_PATTERN = /^[a-z0-9-]{3,32}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
-type EmailStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "error";
+
+const prepareEmailValue = (value: string) => value.trim().toLowerCase();
+const prepareUsernameValue = (value: string) => value.trim();
+const shouldCheckEmail = (value: string) => value.length > 0;
+const shouldCheckUsername = (value: string) => value.length >= 3;
+
+const validateEmailValue = (value: string) =>
+  EMAIL_PATTERN.test(value)
+    ? null
+    : { status: "invalid" as const, message: "Please enter a valid email address." };
+
+const validateUsernameValue = (value: string) =>
+  USERNAME_PATTERN.test(value)
+    ? null
+    : {
+        status: "invalid" as const,
+        message:
+          "Usernames must be 3-32 characters and can only include lowercase letters, numbers, or dashes.",
+      };
+
+async function checkEmailAvailability(email: string) {
+  const response = await fetch(`/api/email/check?email=${encodeURIComponent(email)}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  const payload: {
+    exists?: boolean;
+    status?: string;
+    username?: string;
+    message?: string;
+  } | null = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    return {
+      status: (payload?.status === "invalid" ? "invalid" : "error") as AvailabilityStatus,
+      message: payload?.message ?? "Unable to verify email.",
+      data: null,
+    };
+  }
+
+  if (payload?.exists) {
+    return {
+      status: "taken" as const,
+      message: payload.message ?? "This email is already registered.",
+      data: payload.username ?? null,
+    };
+  }
+
+  return { status: "available" as const, message: "", data: null };
+}
+
+async function checkUsernameAvailability(value: string) {
+  const response = await fetch(`/api/username/check?username=${encodeURIComponent(value)}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  const payload: {
+    available?: boolean;
+    status?: AvailabilityStatus | "invalid" | "error";
+    message?: string;
+  } | null = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const status = (payload?.status === "invalid" ? "invalid" : "error") as AvailabilityStatus;
+    return {
+      status,
+      message:
+        payload?.message ??
+        (status === "invalid"
+          ? "Usernames must be 3-32 characters using lowercase letters, numbers, or dashes."
+          : "We couldn't verify that username. Please try again."),
+      data: null,
+    };
+  }
+
+  return {
+    status: (payload?.available ? "available" : "taken") as AvailabilityStatus,
+    message: payload?.available
+      ? `Great choice! @${value} is available.`
+      : "That username is already taken. Try another.",
+    data: null,
+  };
+}
 
 type PlanTier = "pro" | "studio";
 type BillingCycle = "monthly" | "annual";
@@ -34,11 +114,7 @@ export function SignupForm({
   lifetimeIntent,
   lifetimeSource,
 }: SignupFormProps) {
-  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
-    signUp,
-    initialState
-  );
-  const [showPassword, setShowPassword] = useState(false);
+  const [state, formAction, isPending] = useAuthForm(signUp);
   const [isShaking, setIsShaking] = useState(false);
   const router = useRouter();
 
@@ -57,67 +133,26 @@ export function SignupForm({
       return () => clearTimeout(timer);
     }
   }, [state?.error]);
-  const [emailValue, setEmailValue] = useState("");
-  const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
-  const [emailMessage, setEmailMessage] = useState("");
-  const [existingUsername, setExistingUsername] = useState<string | null>(null);
-  const [usernameValue, setUsernameValue] = useState("");
   const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
-  const [usernameMessage, setUsernameMessage] = useState("");
-  const lastRequestId = useRef(0);
-  const lastEmailRequestId = useRef(0);
-  const debounceRef = useRef<number | null>(null);
+  const emailCheck = useAvailabilityCheck<string | null>({
+    prepareValue: prepareEmailValue,
+    shouldCheck: shouldCheckEmail,
+    validate: validateEmailValue,
+    checkingMessage: "Checking...",
+    errorMessage: "Unable to verify email. Please try again.",
+    check: checkEmailAvailability,
+  });
 
-  const resetUsernameFeedback = useCallback(() => {
-    setUsernameStatus("idle");
-    setUsernameMessage("");
-  }, []);
-
-  const resetEmailFeedback = useCallback(() => {
-    setEmailStatus("idle");
-    setEmailMessage("");
-    setExistingUsername(null);
-  }, []);
-
-  // Check if email is already registered
-  const checkEmailAvailability = useCallback(async (email: string, requestId: number) => {
-    try {
-      const response = await fetch(
-        `/api/email/check?email=${encodeURIComponent(email)}`,
-        { method: "GET", cache: "no-store" }
-      );
-
-      const payload: {
-        exists?: boolean;
-        status?: string;
-        username?: string;
-        message?: string;
-      } | null = await response.json().catch(() => null);
-
-      if (lastEmailRequestId.current !== requestId) return;
-
-      if (!response.ok) {
-        setEmailStatus(payload?.status === "invalid" ? "invalid" : "error");
-        setEmailMessage(payload?.message ?? "Unable to verify email.");
-        return;
-      }
-
-      if (payload?.exists) {
-        setEmailStatus("taken");
-        setExistingUsername(payload.username ?? null);
-        setEmailMessage(payload.message ?? "This email is already registered.");
-      } else {
-        setEmailStatus("available");
-        setEmailMessage("");
-        setExistingUsername(null);
-      }
-    } catch {
-      if (lastEmailRequestId.current !== requestId) return;
-      setEmailStatus("error");
-      setEmailMessage("Unable to verify email. Please try again.");
-    }
-  }, []);
+  const usernameCheck = useAvailabilityCheck({
+    debounceMs: 350,
+    normalize: normalizeSignupUsername,
+    prepareValue: prepareUsernameValue,
+    shouldCheck: shouldCheckUsername,
+    validate: validateUsernameValue,
+    checkingMessage: "Checking availability...",
+    errorMessage: "We couldn't verify that username. Please try again.",
+    check: checkUsernameAvailability,
+  });
 
   // Derive a username-friendly string from an email address
   const deriveUsernameFromEmail = useCallback((email: string): string => {
@@ -128,196 +163,51 @@ export function SignupForm({
   // Handle email changes and auto-populate username if not manually edited
   const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const email = event.target.value;
-    setEmailValue(email);
-
-    // Reset email feedback when typing
-    if (emailStatus !== "idle") {
-      resetEmailFeedback();
-    }
+    emailCheck.setValue(email);
 
     // Only auto-populate username if user hasn't manually edited it
     if (!usernameManuallyEdited) {
       const derivedUsername = deriveUsernameFromEmail(email);
-      setUsernameValue(derivedUsername);
-      if (usernameStatus !== "idle") {
-        resetUsernameFeedback();
-      }
+      usernameCheck.setValue(derivedUsername);
     }
   };
 
   // Check email availability on blur
   const handleEmailBlur = () => {
-    const email = emailValue.trim().toLowerCase();
-
-    if (!email) {
-      resetEmailFeedback();
-      return;
-    }
-
-    if (!EMAIL_PATTERN.test(email)) {
-      setEmailStatus("invalid");
-      setEmailMessage("Please enter a valid email address.");
-      return;
-    }
-
-    const requestId = Date.now();
-    lastEmailRequestId.current = requestId;
-    setEmailStatus("checking");
-    setEmailMessage("Checking...");
-    void checkEmailAvailability(email, requestId);
+    void emailCheck.runCheck();
   };
-
-  const performAvailabilityRequest = useCallback(
-    async (value: string, requestId: number) => {
-      try {
-        const response = await fetch(
-          `/api/username/check?username=${encodeURIComponent(value)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-
-        const payload: {
-          available?: boolean;
-          status?: UsernameStatus | "invalid" | "error";
-          message?: string;
-        } | null = await response.json().catch(() => null);
-
-        if (lastRequestId.current !== requestId) {
-          return;
-        }
-
-        if (!response.ok) {
-          const status = payload?.status === "invalid" ? "invalid" : "error";
-          setUsernameStatus(status);
-          setUsernameMessage(
-            payload?.message ??
-              (status === "invalid"
-                ? "Usernames must be 3-32 characters using lowercase letters, numbers, or dashes."
-                : "We couldn't verify that username. Please try again.")
-          );
-          return;
-        }
-
-        setUsernameStatus(payload?.available ? "available" : "taken");
-        setUsernameMessage(
-          payload?.available
-            ? `Great choice! @${value} is available.`
-            : "That username is already taken. Try another."
-        );
-      } catch {
-        if (lastRequestId.current !== requestId) {
-          return;
-        }
-        setUsernameStatus("error");
-        setUsernameMessage("We couldn't verify that username. Please try again.");
-      }
-    },
-    []
-  );
 
   const handleUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
-    const sanitizedValue = normalizeSignupUsername(rawValue);
-    setUsernameValue(sanitizedValue);
+    usernameCheck.setValue(rawValue);
     // Mark as manually edited so email changes don't overwrite it
     setUsernameManuallyEdited(true);
-    if (usernameStatus !== "idle") {
-      resetUsernameFeedback();
-    }
   };
 
   const handleUsernameBlur = async () => {
-    const value = usernameValue.trim();
-
-    if (!value) {
-      resetUsernameFeedback();
-      return;
-    }
-
-    if (value.length < 3) {
-      setUsernameStatus("idle");
-      setUsernameMessage("");
-      return;
-    }
-
-    if (!USERNAME_PATTERN.test(value)) {
-      setUsernameStatus("invalid");
-      setUsernameMessage(
-        "Usernames must be 3-32 characters and can only include lowercase letters, numbers, or dashes."
-      );
-      return;
-    }
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-
-    const requestId = Date.now();
-    lastRequestId.current = requestId;
-    setUsernameStatus("checking");
-    setUsernameMessage("Checking availability...");
-    void performAvailabilityRequest(value, requestId);
+    void usernameCheck.runCheck();
   };
 
-  useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-
-    if (!usernameValue) {
-      resetUsernameFeedback();
-      return;
-    }
-
-    if (usernameValue.length < 3) {
-      setUsernameStatus("idle");
-      setUsernameMessage("");
-      return;
-    }
-
-    if (!USERNAME_PATTERN.test(usernameValue)) {
-      setUsernameStatus("invalid");
-      setUsernameMessage(
-        "Usernames must be 3-32 characters and can only include lowercase letters, numbers, or dashes."
-      );
-      return;
-    }
-
-    const requestId = Date.now();
-    lastRequestId.current = requestId;
-    setUsernameStatus("checking");
-    setUsernameMessage("Checking availability...");
-
-    debounceRef.current = window.setTimeout(() => {
-      void performAvailabilityRequest(usernameValue, requestId);
-    }, 350);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-    };
-  }, [usernameValue, performAvailabilityRequest, resetUsernameFeedback]);
-
   const emailStatusClass =
-    emailStatus === "available"
+    emailCheck.status === "available"
       ? "text-emerald-600"
-      : emailStatus === "taken" || emailStatus === "invalid" || emailStatus === "error"
+      : emailCheck.status === "taken" ||
+          emailCheck.status === "invalid" ||
+          emailCheck.status === "error"
         ? "text-destructive"
         : "text-muted-foreground";
+
+  const existingUsername = emailCheck.data;
 
   const usernameStatusClass =
-    usernameStatus === "available"
+    usernameCheck.status === "available"
       ? "text-emerald-600"
-      : usernameStatus === "taken" || usernameStatus === "invalid" || usernameStatus === "error"
+      : usernameCheck.status === "taken" ||
+          usernameCheck.status === "invalid" ||
+          usernameCheck.status === "error"
         ? "text-destructive"
         : "text-muted-foreground";
-  const usernameDescriptionIds = usernameMessage
+  const usernameDescriptionIds = usernameCheck.message
     ? "signup-username-helper signup-username-status"
     : "signup-username-helper";
 
@@ -352,6 +242,7 @@ export function SignupForm({
             name="full_name"
             type="text"
             required
+            autoComplete="name"
             className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="Jane Doe"
           />
@@ -369,14 +260,15 @@ export function SignupForm({
           name="email"
           type="email"
           required
-          value={emailValue}
+          autoComplete="email"
+          value={emailCheck.value}
           onChange={handleEmailChange}
           onBlur={handleEmailBlur}
           className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
           placeholder="you@example.com"
-          aria-describedby={emailMessage ? "signup-email-status" : undefined}
+          aria-describedby={emailCheck.message ? "signup-email-status" : undefined}
         />
-        {emailStatus === "taken" && existingUsername ? (
+        {emailCheck.status === "taken" && existingUsername ? (
           <p className={`text-xs ${emailStatusClass}`} id="signup-email-status" aria-live="polite">
             This email is already registered as{" "}
             <span className="font-semibold">@{existingUsername}</span>.{" "}
@@ -384,9 +276,9 @@ export function SignupForm({
               Log in instead
             </Link>
           </p>
-        ) : emailMessage ? (
+        ) : emailCheck.message ? (
           <p className={`text-xs ${emailStatusClass}`} id="signup-email-status" aria-live="polite">
-            {emailMessage}
+            {emailCheck.message}
           </p>
         ) : null}
       </div>
@@ -405,7 +297,7 @@ export function SignupForm({
           <input
             id="username"
             name="username"
-            value={usernameValue}
+            value={usernameCheck.value}
             onChange={handleUsernameChange}
             onBlur={handleUsernameBlur}
             type="text"
@@ -423,50 +315,37 @@ export function SignupForm({
         <p className="text-xs text-muted-foreground" id="signup-username-helper">
           This becomes your public profile link: <span className="font-semibold">tutorlingua.co/@username</span>
         </p>
-        {usernameMessage && (
+        {usernameCheck.message && (
           <p
             className={`text-xs ${usernameStatusClass}`}
             id="signup-username-status"
             aria-live="polite"
           >
-            {usernameMessage}
+            {usernameCheck.message}
           </p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
-        >
-          Password
-        </label>
-        <div className="relative">
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            required
-            minLength={8}
-            autoComplete={showPassword ? "off" : "new-password"}
-            className="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 pr-12 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
-          <button
-            type="button"
-            className="absolute inset-y-0 right-3 inline-flex items-center text-muted-foreground hover:text-foreground"
-            onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
+      <PasswordInput
+        id="password"
+        name="password"
+        label="Password"
+        required
+        minLength={8}
+        autoComplete="new-password"
+        fieldClassName="space-y-2"
+        labelClassName="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+        containerClassName="relative"
+        inputClassName="block h-12 w-full rounded-xl border-0 bg-secondary/50 px-4 pr-12 text-base text-foreground placeholder:text-muted-foreground shadow-none focus:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        buttonClassName="absolute inset-y-0 right-3 inline-flex items-center text-muted-foreground hover:text-foreground"
+      />
 
-      {state?.error && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive animate-in fade-in slide-in-from-top-2 duration-200">
-          {state.error}
-        </p>
-      )}
+      <FormStatusAlert
+        tone="error"
+        message={state?.error}
+        as="p"
+        className="animate-in fade-in slide-in-from-top-2 duration-200"
+      />
 
       <div className="space-y-3 rounded-2xl border border-border/60 bg-secondary/30 p-4 text-xs text-muted-foreground">
         <label className="flex items-start gap-3">

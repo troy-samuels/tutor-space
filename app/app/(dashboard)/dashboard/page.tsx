@@ -6,7 +6,6 @@ import { cn, formatDate } from "@/lib/utils";
 import { getDashboardSummary, getDashboardSummaryFallback } from "@/lib/data/dashboard-summary";
 import { getRecentActivity } from "@/lib/data/analytics-metrics";
 import { DashboardAnalytics } from "@/components/dashboard/dashboard-analytics";
-import { DashboardBookingCalendarSlot } from "@/components/dashboard/DashboardBookingCalendarSlot";
 import { UpcomingSessions, type UpcomingSession } from "@/components/dashboard/upcoming-sessions";
 import { RecentActivityList } from "@/components/analytics/premium/RecentActivityList";
 import { InviteStudentsCard } from "@/components/dashboard/InviteStudentsCard";
@@ -37,11 +36,10 @@ export default async function DashboardPage() {
 
   const servicesPromise = supabase
     .from("services")
-    .select("name, price_amount, price_currency, duration_minutes")
+    .select("id, name, price_amount, price_currency, duration_minutes")
     .eq("tutor_id", user.id)
     .eq("is_active", true)
-    .order("created_at", { ascending: true })
-    .limit(3);
+    .order("created_at", { ascending: true });
 
   const [summary, recentActivity, servicesResult] = await Promise.all([
     summaryPromise,
@@ -337,7 +335,6 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <DashboardBookingCalendarSlot signupDate={profile?.created_at ?? null} />
     </div>
   );
 }

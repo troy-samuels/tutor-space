@@ -46,6 +46,8 @@ type ProfileData = {
   x_handle?: string | null;
   website_url?: string | null;
   created_at?: string | null;
+  location?: string | null;
+  yearsExperience?: number | null;
 };
 
 interface PublicProfileClientProps {
@@ -176,6 +178,8 @@ export default function PublicProfileClient({
           hasAvailability={!!nextSlot}
           showAbout={visibility.about}
           socialLinks={socialLinks}
+          location={profile.location}
+          yearsExperience={profile.yearsExperience}
         />
 
         {/* iOS Segmented Control Tabs */}
@@ -236,9 +240,6 @@ export default function PublicProfileClient({
           )}
         </main>
 
-        {/* Page Footer - Certified Badge */}
-        {visibility.about && <SignatureBlock memberSince={profile.created_at} />}
-
         {/* Desktop CTA */}
         <DesktopCTA
           nextSlot={nextSlot}
@@ -277,6 +278,8 @@ function CreatorProfileHeader({
   hasAvailability,
   showAbout,
   socialLinks,
+  location,
+  yearsExperience,
 }: {
   name: string;
   tagline: string;
@@ -289,6 +292,8 @@ function CreatorProfileHeader({
   hasAvailability: boolean;
   showAbout: boolean;
   socialLinks: Array<{ label: string; url: string; icon: React.ReactNode }>;
+  location?: string | null;
+  yearsExperience?: number | null;
 }) {
   return (
     <div className="relative">
@@ -371,9 +376,17 @@ function CreatorProfileHeader({
       )}
 
       {/* 5. Info Chip Row (Metadata Scroll) */}
-      {languages.length > 0 && (
+      {(languages.length > 0 || location || yearsExperience) && (
         <div className="mt-4 flex justify-center overflow-x-auto px-4 py-2 no-scrollbar">
           <div className="flex gap-3">
+            {location && (
+              <InfoChip icon="location">{location}</InfoChip>
+            )}
+            {yearsExperience != null && yearsExperience > 0 && (
+              <InfoChip icon="experience">
+                {yearsExperience} {yearsExperience === 1 ? "year" : "years"} teaching
+              </InfoChip>
+            )}
             {languages.map((lang) => (
               <InfoChip key={lang} icon="flag">{lang}</InfoChip>
             ))}
@@ -741,18 +754,3 @@ function LiveStatusIndicator() {
 // Signature Block - Graceful end to the scrolling experience
 // ============================================================
 
-function SignatureBlock({ memberSince }: { memberSince?: string | null }) {
-  const year = memberSince ? new Date(memberSince).getFullYear() : new Date().getFullYear();
-
-  return (
-    <div className="mt-12 text-center">
-      {/* Divider */}
-      <div className="mx-auto h-px w-12 bg-stone-300" />
-
-      {/* Certified Badge */}
-      <p className="mt-6 text-[10px] font-medium uppercase tracking-widest text-stone-400">
-        TutorLingua Certified • Member since {year}
-      </p>
-    </div>
-  );
-}

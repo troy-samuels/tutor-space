@@ -212,7 +212,8 @@ components/
 | `/classroom/[bookingId]` | LiveKit video classroom (Studio) |
 | `/student/review/[bookingId]` | Post-lesson review with AI insights |
 | `/copilot/briefing/[bookingId]` | AI lesson briefing |
-| `/admin/*` | Admin dashboard (health, moderation, analytics) |
+| `/support` | Support ticket submission |
+| `/admin/*` | Admin dashboard (health, moderation, analytics, support) |
 
 ### Public Pages
 | Route | Purpose |
@@ -267,7 +268,7 @@ components/
 | POST | `/api/admin/auth/login` | Admin login |
 | POST | `/api/admin/auth/logout` | Admin logout |
 
-### Stripe & Payments (15 routes)
+### Stripe & Payments (16 routes)
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | POST | `/api/stripe/booking-checkout` | Create booking checkout |
@@ -279,6 +280,7 @@ components/
 | POST | `/api/stripe/lifetime` | Lifetime deal checkout |
 | POST | `/api/stripe/sync-customer` | Sync customer data |
 | POST | `/api/stripe/webhook` | Process Stripe webhooks (idempotent) |
+| GET | `/api/stripe/webhook/health` | Webhook health monitoring |
 | POST | `/api/stripe/connect/accounts` | Create Connect account |
 | GET | `/api/stripe/connect/status` | Check Connect status |
 | POST | `/api/stripe/connect/account-link` | Onboarding link |
@@ -378,7 +380,12 @@ Health monitoring, tutor management, moderation queue, analytics dashboards, ema
 | `lesson_subscriptions` | Active subscriptions |
 | `lesson_allowance_periods` | Monthly credit tracking |
 | `lesson_subscription_redemptions` | Usage tracking |
-| `processed_stripe_events` | Webhook deduplication |
+| `processed_stripe_events` | Webhook deduplication + observability (correlation_id, livemode, processing_duration_ms) |
+
+### Webhook Monitoring (1 view)
+| View | Purpose |
+|------|---------|
+| `webhook_health_stats` | 24-hour aggregated webhook metrics |
 
 ### Digital Products (2 tables)
 | Table | Purpose |
@@ -844,4 +851,4 @@ Proprietary - All rights reserved
 
 ---
 
-*Last updated: January 12, 2026* (SEO fixes: sitemap optimization, canonical URLs, 404 pages)
+*Last updated: January 14, 2026* (Webhook observability, support system expansion)

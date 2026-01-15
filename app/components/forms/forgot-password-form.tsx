@@ -1,15 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
-import { resetPassword, type AuthActionState } from "@/lib/actions/auth";
-
-const initialState: AuthActionState = { error: undefined, success: undefined };
+import { resetPassword } from "@/lib/actions/auth";
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
+import { useAuthForm } from "@/components/forms/use-auth-form";
 
 export function ForgotPasswordForm() {
-  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
-    resetPassword,
-    initialState
-  );
+  const [state, formAction, isPending] = useAuthForm(resetPassword);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -22,22 +18,15 @@ export function ForgotPasswordForm() {
           name="email"
           type="email"
           required
+          autoComplete="email"
           className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           placeholder="you@example.com"
         />
       </div>
 
-      {state?.error && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      <FormStatusAlert tone="error" message={state?.error} as="p" />
 
-      {state?.success && (
-        <p className="rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
-          {state.success}
-        </p>
-      )}
+      <FormStatusAlert tone="success" message={state?.success} as="p" />
 
       <button
         type="submit"

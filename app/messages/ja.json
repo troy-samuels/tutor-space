@@ -45,6 +45,8 @@
     "studentAccessQuestion": "生徒としてアクセスが必要ですか？",
     "studentLoginLink": "生徒ログイン",
     "emailLabel": "メールアドレス",
+    "identifierLabel": "メールアドレスまたはユーザー名",
+    "identifierPlaceholder": "メールアドレスまたは@ユーザー名を入力",
     "passwordLabel": "パスワード",
     "hidePassword": "パスワードを隠す",
     "showPassword": "パスワードを表示",

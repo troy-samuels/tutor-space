@@ -45,6 +45,8 @@
     "studentAccessQuestion": "Heb je leerlingtoegang nodig?",
     "studentLoginLink": "Leerling inloggen",
     "emailLabel": "E-mailadres",
+    "identifierLabel": "E-mail of gebruikersnaam",
+    "identifierPlaceholder": "Voer je e-mail of @gebruikersnaam in",
     "passwordLabel": "Wachtwoord",
     "hidePassword": "Wachtwoord verbergen",
     "showPassword": "Wachtwoord tonen",

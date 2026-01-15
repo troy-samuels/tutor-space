@@ -128,6 +128,32 @@ export async function getProfileByEmail(
 }
 
 /**
+ * Get email address by username.
+ * Used during sign-in to resolve username to email for Supabase Auth.
+ *
+ * @param client - Supabase client
+ * @param username - Username to look up (case-insensitive)
+ * @returns Email address or null if not found
+ */
+export async function getEmailByUsername(
+	client: SupabaseClient,
+	username: string
+): Promise<string | null> {
+	const normalized = username.trim().toLowerCase();
+	const { data, error } = await client
+		.from("profiles")
+		.select("email")
+		.eq("username", normalized)
+		.maybeSingle();
+
+	if (error && error.code !== "PGRST116") {
+		throw error;
+	}
+
+	return (data?.email as string | null) ?? null;
+}
+
+/**
  * Get profile by user ID.
  *
  * @param client - Supabase client
@@ -322,4 +348,3 @@ export async function getTutorStripeStatus(
 		detailsSubmitted: Boolean(data?.stripe_details_submitted),
 	};
 }
-

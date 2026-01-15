@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import OpenAI from "openai";
 import { extractPlainText } from "@/lib/analysis/lesson-insights";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { slugifyKebab } from "@/lib/utils/slug";
 
@@ -12,6 +13,11 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 const DEEPGRAM_WEBHOOK_SECRET = process.env.DEEPGRAM_WEBHOOK_SECRET?.trim();
 
+/**
+ * @google-compliance
+ * OpenAI is used only for transcript-derived marketing clip summaries.
+ * External calendar data (calendar_events, calendar_connections) is NEVER included.
+ */
 const MARKETING_CLIP_SYSTEM_PROMPT = [
   "You are a language-learning content strategist analyzing lesson transcripts.",
   "Identify ONE high-value teaching moment (30-60s) where a specific concept is explained clearly.",
@@ -72,6 +78,13 @@ async function generateMarketingClip(transcript: string) {
   if (!openai || !transcript || transcript.length < 50) return null;
 
   try {
+    assertGoogleDataIsolation({
+      provider: "openai",
+      context: "deepgram-webhook.generateMarketingClip",
+      data: { transcript },
+      sources: ["lesson_recordings.transcript_json"],
+    });
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },

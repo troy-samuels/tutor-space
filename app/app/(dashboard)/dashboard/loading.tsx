@@ -54,8 +54,6 @@ export default function DashboardPageLoading() {
         </div>
       </div>
 
-      {/* Calendar skeleton */}
-      <div className="h-80 animate-pulse rounded-3xl bg-muted" />
     </div>
   );
 }

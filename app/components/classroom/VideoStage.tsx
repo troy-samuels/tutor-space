@@ -14,6 +14,7 @@ import { Track, ConnectionQuality } from "livekit-client";
 import { ControlBar } from "./ControlBar";
 import { cn } from "@/lib/utils";
 import { User, Mic, MicOff, SignalLow, SignalMedium, SignalHigh } from "lucide-react";
+import { useLiveKitQualityMonitor, type QualityMetrics } from "@/lib/hooks/useLiveKitQualityMonitor";
 
 export interface VideoStageProps {
   roomName: string;
@@ -23,6 +24,11 @@ export interface VideoStageProps {
 }
 
 export function VideoStage({ roomName, isTutor, recordingEnabled, onLeave }: VideoStageProps) {
+  // Quality monitoring
+  const { metrics, isDegraded } = useLiveKitQualityMonitor({
+    enableLogging: process.env.NODE_ENV === "development",
+  });
+
   // Subscribe to camera, microphone, and screen share tracks
   const tracks = useTracks(
     [
@@ -51,6 +57,9 @@ export function VideoStage({ roomName, isTutor, recordingEnabled, onLeave }: Vid
 
   return (
     <div className="h-full relative bg-slate-950 overflow-hidden">
+      {/* Quality overlay */}
+      <QualityOverlay metrics={metrics} isDegraded={isDegraded} />
+
       <div className="flex h-full flex-col p-2 sm:p-4 pb-20 sm:pb-24">
         {/* Screen share takes priority - shown large */}
         {hasScreenShare && (
@@ -196,4 +205,34 @@ function ConnectionQualityIcon({ quality }: { quality: ConnectionQuality }) {
         : "text-emerald-400";
 
   return <Icon className={cn("w-4 h-4", color)} />;
+}
+
+function QualityOverlay({
+  metrics,
+  isDegraded,
+}: {
+  metrics: QualityMetrics | null;
+  isDegraded: boolean;
+}) {
+  if (!metrics && !isDegraded) return null;
+
+  const layerLabel =
+    metrics?.currentLayer && metrics.currentLayer !== "unknown"
+      ? metrics.currentLayer.toUpperCase()
+      : null;
+
+  return (
+    <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+      {isDegraded && (
+        <div className="bg-amber-500/90 text-white text-xs font-medium px-2.5 py-1 rounded-full shadow-md">
+          Low bandwidth
+        </div>
+      )}
+      {layerLabel && (
+        <div className="bg-black/50 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
+          {layerLabel}
+        </div>
+      )}
+    </div>
+  );
 }

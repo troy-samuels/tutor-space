@@ -12,7 +12,7 @@
  */
 
 import OpenAI from "openai";
-import { logComplianceCheck } from "@/lib/ai/google-compliance";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 
 type TranscriptSegment = {
   text: string;
@@ -298,13 +298,17 @@ export async function analyzeWithOpenAI(transcript: string): Promise<OpenAIAnaly
     return { grammarErrors: [], vocabGaps: [], summary: "" };
   }
 
-  // Google Compliance: Log that only transcript text (from Deepgram) is being sent to OpenAI
-  // No calendar_events or calendar_connections data is included in transcript analysis
-  logComplianceCheck("lesson-insights.analyzeWithOpenAI (transcript text only)", true);
-
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
   try {
+    // Google Compliance: Only transcript text (from lesson recordings) is sent to OpenAI
+    assertGoogleDataIsolation({
+      provider: "openai",
+      context: "lesson-insights.analyzeWithOpenAI",
+      data: { transcript },
+      sources: ["lesson_recordings.transcript_json"],
+    });
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [

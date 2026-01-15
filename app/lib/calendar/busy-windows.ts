@@ -4,6 +4,7 @@ import { fromZonedTime } from "date-fns-tz";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { decrypt, encrypt } from "@/lib/utils/crypto";
+import { markGoogleCalendarData } from "@/lib/ai/google-compliance";
 import { getProviderConfig, type CalendarProvider } from "@/lib/calendar/config";
 import type { TimeWindow } from "@/lib/utils/scheduling";
 import type { CalendarEvent } from "@/lib/types/calendar";
@@ -1620,7 +1621,7 @@ async function fetchGoogleEvents(
       const endIso = googleDateToIso(item.end);
       if (!startIso || !endIso) continue;
 
-      events.push({
+      events.push(markGoogleCalendarData({
         id: `google-${item.id}`,
         title: item.summary || "Busy",
         start: startIso,
@@ -1628,7 +1629,7 @@ async function fetchGoogleEvents(
         type: "google" as const,
         source: "Google Calendar",
         packageType: "external" as const,
-      });
+      }));
     }
 
     pageToken = typeof data?.nextPageToken === "string" ? data.nextPageToken : undefined;
@@ -1674,7 +1675,7 @@ async function fetchOutlookEvents(
 
       if (!startIso || !endIso) return null;
 
-      return {
+      return markGoogleCalendarData({
         id: `outlook-${event.id}`,
         title: event.subject || "Busy",
         start: startIso,
@@ -1682,7 +1683,7 @@ async function fetchOutlookEvents(
         type: "outlook" as const,
         source: "Outlook Calendar",
         packageType: "external" as const,
-      };
+      });
     })
     .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
 }
@@ -1729,7 +1730,7 @@ async function fetchCachedEvents({
         source: provider === "google" ? "Google Calendar" : "Outlook Calendar",
         packageType: "external",
       };
-      return event;
+      return markGoogleCalendarData(event);
     })
     .filter((event): event is CalendarEvent => event !== null);
 }

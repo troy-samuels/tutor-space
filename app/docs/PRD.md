@@ -782,6 +782,52 @@ This is the single most important metric because it:
 
 ---
 
+#### 6.4.3 Webhook Observability & Health Monitoring (Should Have)
+
+**User Stories:**
+- As an admin, I want to monitor webhook health so that I catch processing failures early
+- As an admin, I want request tracing so that I can debug specific webhook events
+- As an admin, I want processing metrics so that I can identify performance issues
+
+**Acceptance Criteria:**
+- [ ] Correlation ID tracking (UUID) for request tracing across logs
+- [ ] Processing duration tracking (milliseconds) for performance monitoring
+- [ ] Livemode flag to distinguish test vs. production events
+- [ ] Health check endpoint at `/api/stripe/webhook/health`
+- [ ] `webhook_health_stats` view for aggregated 24-hour metrics
+- [ ] Health status: healthy/degraded/unhealthy based on failure rates
+- [ ] Configuration validation on startup (secret format, test/live mode warnings)
+
+**Key Files:**
+- `/app/api/stripe/webhook/health/route.ts`
+- `/lib/stripe/webhook-config.ts`
+- `supabase/migrations/20260114100000_webhook_observability.sql`
+
+---
+
+#### 6.4.4 Support Ticket System (Should Have)
+
+**User Stories:**
+- As a tutor, I want to submit support tickets so that I can get help with platform issues
+- As an admin, I want to manage support tickets so that I can resolve user issues
+- As an admin, I want to view support statistics so that I can track support performance
+
+**Acceptance Criteria:**
+- [ ] Support ticket submission form for tutors and students
+- [ ] Admin dashboard with ticket queue and filters
+- [ ] Status workflow: open → in_progress → closed
+- [ ] Category-based ticket routing
+- [ ] Statistics dashboard: open, in_progress, closed_today, total counts
+- [ ] Role tracking (tutor/student) for context
+
+**Key Files:**
+- `/app/(dashboard)/support/page.tsx`
+- `/app/admin/support/`
+- `/lib/actions/support.ts`
+- Database: `support_tickets`
+
+---
+
 ## 7. Non-Functional Requirements
 
 ### 7.1 Performance
@@ -1243,6 +1289,7 @@ Full API documentation in `/app/CLAUDE.md`
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | Jan 2026 | Product Team | Initial comprehensive PRD |
+| 1.1 | Jan 14, 2026 | Product Team | Added webhook observability (6.4.3), support ticket system (6.4.4) |
 
 ---
 

@@ -16,7 +16,7 @@
  */
 
 import OpenAI from "openai";
-import { assertNoGoogleCalendarData, logComplianceCheck } from "@/lib/ai/google-compliance";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import type { SuggestedActivity, FocusArea, ErrorPattern } from "./briefing-generator";
 
 // =============================================================================
@@ -166,12 +166,19 @@ async function generateAISuggestions(
   }
 
   try {
-    // Google Compliance: Verify no external calendar data in AI input
-    assertNoGoogleCalendarData(
-      input as unknown as Record<string, unknown>,
-      "activity-suggester.generateAISuggestions"
-    );
-    logComplianceCheck("activity-suggester.generateAISuggestions", true);
+    // Google Compliance: Verify AI input excludes external calendar data
+    assertGoogleDataIsolation({
+      provider: "openai",
+      context: "activity-suggester.generateAISuggestions",
+      data: input,
+      sources: [
+        "lesson_recordings",
+        "student_language_profiles",
+        "students",
+        "services",
+        "bookings",
+      ],
+    });
 
     const openai = new OpenAI({ apiKey });
 

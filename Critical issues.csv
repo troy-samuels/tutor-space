@@ -1,0 +1,8 @@
+Reason,Source,Validation,Pages
+Not found (404),Website,Not Started,31
+Duplicate without user-selected canonical,Website,Not Started,5
+Page with redirect,Website,Not Started,5
+Soft 404,Website,Not Started,1
+Crawled - currently not indexed,Google systems,Not Started,5
+"Duplicate, Google chose different canonical than user",Google systems,Not Started,1
+Alternative page with proper canonical tag,Website,N/A,0

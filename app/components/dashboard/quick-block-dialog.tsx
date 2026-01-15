@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, setHours, setMinutes } from "date-fns";
 import { X, Loader2, Clock, Calendar } from "lucide-react";
 import { createBlockedTime } from "@/lib/actions/blocked-times";
@@ -33,6 +33,19 @@ export function QuickBlockDialog({
   const [label, setLabel] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const nextDate = initialDate || new Date();
+    const nextHour = initialHour ?? 9;
+
+    setDate(format(nextDate, "yyyy-MM-dd"));
+    setStartTime(`${String(nextHour).padStart(2, "0")}:00`);
+    setEndTime(`${String(nextHour + 1).padStart(2, "0")}:00`);
+    setLabel("");
+    setError(null);
+    setIsSubmitting(false);
+  }, [isOpen, initialDate, initialHour]);
 
   if (!isOpen) return null;
 
@@ -118,55 +131,68 @@ export function QuickBlockDialog({
               onChange={(e) => setDate(e.target.value)}
               className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
+              autoFocus
             />
           </div>
 
-          {/* Time Range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                <Clock className="inline h-4 w-4 mr-1" />
-                Start Time
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                End Time
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
+          {/* Start Time */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              <Clock className="inline h-4 w-4 mr-1" />
+              Start Time
+            </label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+            />
+          </div>
+
+          {/* Quick Duration Buttons - Elevated for faster selection */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              Duration
+            </label>
+            <div className="flex gap-2">
+              {[30, 60, 120, 180].map((mins) => {
+                // Calculate if this duration matches current selection
+                const [startHour, startMinute] = startTime.split(":").map(Number);
+                const [endHour, endMinute] = endTime.split(":").map(Number);
+                const currentDuration = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+                const isSelected = currentDuration === mins;
+
+                return (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setDuration(mins)}
+                    className={`flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    {mins < 60 ? `${mins}m` : `${mins / 60}h`}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Quick Duration Buttons */}
+          {/* End Time (auto-calculated from duration, but editable) */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-1">
-              Quick Duration
+              End Time
             </label>
-            <div className="flex gap-2">
-              {[30, 60, 120, 180].map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  onClick={() => setDuration(mins)}
-                  className="flex-1 rounded-lg border border-border px-2 py-1.5 text-xs font-medium hover:bg-muted"
-                >
-                  {mins < 60 ? `${mins}m` : `${mins / 60}h`}
-                </button>
-              ))}
-            </div>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+            />
           </div>
 
           {/* Label */}

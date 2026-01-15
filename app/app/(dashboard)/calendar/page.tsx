@@ -13,7 +13,7 @@ export default async function CalendarPage() {
   }
 
   // Fetch profile, services, and students in parallel
-  const [profileResult, servicesResult, studentsResult] = await Promise.all([
+  const [profileResult, servicesResult, studentsResult, recentBookingsResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("created_at, timezone")
@@ -30,17 +30,33 @@ export default async function CalendarPage() {
       .select("id, full_name, email, timezone")
       .eq("tutor_id", user.id)
       .order("full_name"),
+    supabase
+      .from("bookings")
+      .select("student_id, scheduled_at")
+      .eq("tutor_id", user.id)
+      .order("scheduled_at", { ascending: false })
+      .limit(12),
   ]);
 
   const profile = profileResult.data;
   const services = servicesResult.data ?? [];
   const students = studentsResult.data ?? [];
+  const recentStudentIds: string[] = [];
+  const seenStudentIds = new Set<string>();
+
+  for (const booking of recentBookingsResult.data ?? []) {
+    if (!booking.student_id || seenStudentIds.has(booking.student_id)) continue;
+    seenStudentIds.add(booking.student_id);
+    recentStudentIds.push(booking.student_id);
+    if (recentStudentIds.length >= 4) break;
+  }
 
   return (
     <CalendarPageClient
       signupDate={profile?.created_at ?? null}
       services={services}
       students={students}
+      recentStudentIds={recentStudentIds}
       tutorTimezone={profile?.timezone ?? "UTC"}
       tutorId={user.id}
     />

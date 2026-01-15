@@ -62,9 +62,9 @@ export function DashboardHeader() {
 
   const getTierBadge = () => {
     if (entitlements?.hasStudioAccess)
-      return { label: "Studio", color: "bg-purple-100 text-purple-700" };
+      return { label: "Studio", color: "bg-primary/10 text-primary" };
     if (entitlements?.hasProAccess)
-      return { label: "Pro", color: "bg-blue-100 text-blue-700" };
+      return { label: "Pro", color: "bg-emerald-100 text-emerald-700" };
     return { label: "Free", color: "bg-gray-100 text-gray-600" };
   };
 

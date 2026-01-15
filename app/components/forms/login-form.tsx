@@ -1,25 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { signIn, type AuthActionState } from "@/lib/actions/auth";
+import { signIn } from "@/lib/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-
-const initialState: AuthActionState = {
-  error: undefined,
-  success: undefined,
-  redirectTo: undefined,
-};
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
+import { PasswordInput } from "@/components/forms/password-input";
+import { useAuthForm } from "@/components/forms/use-auth-form";
 
 export function LoginForm() {
-  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
-    signIn,
-    initialState
-  );
-  const [showPassword, setShowPassword] = useState(false);
+  const [state, formAction, isPending] = useAuthForm(signIn);
   const t = useTranslations("auth");
   const common = useTranslations("common");
   const searchParams = useSearchParams();
@@ -39,42 +32,35 @@ export function LoginForm() {
       <input type="hidden" name="redirect" value={redirect} />
       <div className="space-y-2">
         <label htmlFor="email" className="block text-sm font-medium text-foreground">
-          {t("emailLabel")}
+          {t("identifierLabel")}
         </label>
         <input
           id="email"
           name="email"
-          type="email"
+          type="text"
           required
           className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          placeholder={t("emailPlaceholder")}
-          autoComplete="email"
+          placeholder={t("identifierPlaceholder")}
+          autoComplete="username"
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="password" className="block text-sm font-medium text-foreground">
-          {t("passwordLabel")}
-        </label>
-        <div className="relative">
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            required
-            minLength={6}
-            className="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            autoComplete={showPassword ? "off" : "current-password"}
-          />
-          <button
-            type="button"
-            className="absolute inset-y-0 right-2 inline-flex items-center text-muted-foreground hover:text-foreground"
-            onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          label={t("passwordLabel")}
+          required
+          minLength={6}
+          autoComplete="current-password"
+          fieldClassName="space-y-2"
+          labelClassName="block text-sm font-medium text-foreground"
+          containerClassName="relative"
+          inputClassName="block w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          buttonClassName="absolute inset-y-0 right-2 inline-flex items-center text-muted-foreground hover:text-foreground"
+          showLabel={t("showPassword")}
+          hideLabel={t("hidePassword")}
+        />
         <div className="text-right">
           <Link href="/forgot-password" className="text-sm text-primary hover:underline">
             {t("forgotPassword")}
@@ -82,17 +68,23 @@ export function LoginForm() {
         </div>
       </div>
 
-      {state?.error && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
+      <FormStatusAlert
+        tone="error"
+        variant="inline"
+        message={state?.error}
+        ariaLive="polite"
+        icon={<XCircle className="h-4 w-4 flex-shrink-0" />}
+      />
 
-      {state?.success && (
-        <p className="rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
-          {state.success}
-        </p>
-      )}
+      <FormStatusAlert
+        tone="success"
+        variant="inline"
+        message={state?.success}
+        ariaLive="polite"
+        className="text-xs"
+        icon={<CheckCircle2 className="h-4 w-4 flex-shrink-0" />}
+        visuallyHidden
+      />
 
       <button
         type="submit"

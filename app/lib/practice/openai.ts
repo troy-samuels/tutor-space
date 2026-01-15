@@ -3,7 +3,13 @@
 import type OpenAI from "openai";
 import type { ChatCompletion, ChatCompletionChunk } from "openai/resources/chat/completions";
 import type { Stream } from "openai/streaming";
+import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 
+/**
+ * @google-compliance
+ * AI Practice uses user-provided practice messages only.
+ * External calendar data (calendar_events, calendar_connections) is NEVER included.
+ */
 type RetryOptions = {
   maxRetries?: number;
   baseDelayMs?: number;
@@ -86,6 +92,12 @@ export async function createPracticeChatCompletion(
   params: ChatCompletionParams,
   retryOptions?: RetryOptions
 ) {
+  assertGoogleDataIsolation({
+    provider: "openai",
+    context: "practice.createChatCompletion",
+    data: params,
+    sources: ["student_practice_sessions", "student_practice_messages"],
+  });
   return await withOpenAIRetry<ChatCompletion>(
     (client) => client.chat.completions.create({ ...params, stream: false }),
     retryOptions
@@ -99,6 +111,12 @@ export async function createPracticeChatCompletion(
 export async function createPracticeChatStream(
   params: Omit<ChatCompletionStreamParams, "stream">
 ): Promise<Stream<ChatCompletionChunk>> {
+  assertGoogleDataIsolation({
+    provider: "openai",
+    context: "practice.createChatStream",
+    data: params,
+    sources: ["student_practice_sessions", "student_practice_messages"],
+  });
   const client = await getPracticeOpenAIClient();
   return client.chat.completions.create({
     ...params,

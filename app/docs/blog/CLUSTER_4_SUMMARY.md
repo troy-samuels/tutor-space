@@ -4,7 +4,7 @@
 Created 6 bilingual SEO-optimized blog articles (12 files total) focused on student retention, CRM, and relationship management for language tutors.
 
 ## English Articles (EN)
-Location: `/Users/troysamuels/language-tutor-platform/app/docs/blog/en/cluster-4-retention/`
+Location: `/Users/troysamuels/tutor-space/app/docs/blog/en/cluster-4-retention/`
 
 1. **01-student-retention-guide-tutors.md** (HUB)
    - Title: "The Complete Guide to Student Retention for Language Tutors"
@@ -44,7 +44,7 @@ Location: `/Users/troysamuels/language-tutor-platform/app/docs/blog/en/cluster-4
    - Focus: Onboarding systems, expectation setting, first 30 days
 
 ## Spanish Articles (ES)
-Location: `/Users/troysamuels/language-tutor-platform/app/docs/blog/es/cluster-4-retention/`
+Location: `/Users/troysamuels/tutor-space/app/docs/blog/es/cluster-4-retention/`
 
 1. **01-guia-retencion-estudiantes-tutores.md** (HUB)
    - Title: "Guía Completa de Retención de Estudiantes para Tutores de Idiomas"

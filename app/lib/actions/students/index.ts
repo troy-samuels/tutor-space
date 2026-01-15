@@ -35,7 +35,8 @@ export { ensureStudent } from "./create";
 export { listStudents, getPendingAccessRequestsCount } from "./queries";
 
 // Update Operations
-export { updateStudentLabels } from "./update";
+export { updateStudentLabels, updateStudent } from "./update";
+export type { StudentUpdateFields } from "./update";
 
 // Delete Operations
 export { deleteStudent } from "./delete";

@@ -9,11 +9,14 @@ import { sendPaymentReceiptEmail, sendTutorBookingNotificationEmail, sendPayment
 import { mapPriceIdToPlan, getPlanDbTier } from "@/lib/payments/subscriptions";
 import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
 import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
+import { buildClassroomUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
 // AI Practice constants removed - freemium model uses RPC for period creation
 import { recordSystemEvent, recordSystemMetric, shouldSample } from "@/lib/monitoring";
 import { sendLessonSubscriptionEmails } from "@/lib/emails/ops-emails";
 import { SIGNUP_CHECKOUT_FLOW } from "@/lib/services/signup-checkout";
 import { markPurchasePaid, recordMarketplaceSale } from "@/lib/repositories/marketplace";
+import { updateBookingMeetingUrl } from "@/lib/repositories/bookings";
+import { validateWebhookConfig } from "@/lib/stripe/webhook-config";
 
 type ServiceRoleClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 
@@ -21,10 +24,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type BookingDetails = {
+  id: string;
+  tutor_id: string | null;
   payment_amount: number | null;
   currency: string | null;
   scheduled_at: string | null;
   timezone: string | null;
+  meeting_url: string | null;
+  short_code: string | null;
   services: {
     name: string | null;
     price_amount: number | null;
@@ -38,6 +45,8 @@ type BookingDetails = {
   tutor: {
     full_name: string | null;
     email: string | null;
+    tier?: string | null;
+    plan?: string | null;
   } | null;
 };
 
@@ -96,7 +105,8 @@ type ProcessedStripeEventRow = {
 
 async function claimStripeEvent(
   event: Stripe.Event,
-  supabase: ServiceRoleClient
+  supabase: ServiceRoleClient,
+  correlationId: string
 ) {
   const now = new Date();
   const nowIso = now.toISOString();
@@ -113,6 +123,8 @@ async function claimStripeEvent(
       status: "processing",
       processing_started_at: nowIso,
       updated_at: nowIso,
+      correlation_id: correlationId,
+      livemode: event.livemode,
     });
 
   if (!insertError) {
@@ -176,7 +188,8 @@ async function claimStripeEvent(
 
 async function markStripeEventProcessed(
   event: Stripe.Event,
-  supabase: ServiceRoleClient
+  supabase: ServiceRoleClient,
+  processingDurationMs?: number
 ) {
   const nowIso = new Date().toISOString();
   const { error } = await supabase
@@ -187,11 +200,12 @@ async function markStripeEventProcessed(
       updated_at: nowIso,
       last_error: null,
       last_error_at: null,
+      processing_duration_ms: processingDurationMs ?? null,
     })
     .eq("event_id", event.id);
 
   if (error) {
-    console.error("Failed to mark Stripe event as processed:", error);
+    console.error("[Stripe Webhook] Failed to mark event as processed:", error);
   }
 }
 
@@ -246,68 +260,61 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  const connectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+  // Validate webhook configuration
+  const config = validateWebhookConfig();
 
-  if (!webhookSecret && !connectWebhookSecret) {
-    console.error("Stripe webhook secrets are not set");
+  if (!config.isConfigured || !config.platformSecret) {
+    const errorMessages = config.issues
+      .filter((i) => i.severity === "error")
+      .map((i) => i.message)
+      .join("; ");
+    console.error(`[Stripe Webhook] Configuration error: ${errorMessages}`);
     void recordSystemEvent({
       source: "stripe_webhook",
-      message: "Stripe webhook secrets are not set",
-      meta: { correlationId },
+      message: "Webhook not configured",
+      meta: { correlationId, issues: config.issues },
     });
+    // 503 tells Stripe to retry (configuration issue, not permanent failure)
     return NextResponse.json(
-      { error: "Webhook secret not configured" },
-      { status: 500 }
+      {
+        error: "webhook_not_configured",
+        correlationId,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
     );
   }
 
   let event: Stripe.Event;
 
-  // Try main webhook secret first, then Connect webhook secret
-  // This handles both Account events (payments) and Connect events (tutor onboarding)
+  // Verify webhook signature with the configured secret
+  // Note: Each Stripe webhook endpoint has its own signing secret.
+  // If you need to handle Connect events separately, create a dedicated
+  // endpoint at /api/stripe/webhook/connect with STRIPE_CONNECT_WEBHOOK_SECRET
   try {
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } else if (connectWebhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature, connectWebhookSecret);
-      console.log("Event verified with Connect webhook secret");
-    } else {
-      throw new Error("Stripe webhook secrets are not configured");
-    }
+    event = stripe.webhooks.constructEvent(body, signature, config.platformSecret);
+    console.log(`[Stripe Webhook] Received: ${event.type} (${event.id}), livemode=${event.livemode}`);
   } catch (err) {
-    // If main secret fails and we have a Connect secret, try that
-    if (webhookSecret && connectWebhookSecret) {
-      try {
-        event = stripe.webhooks.constructEvent(body, signature, connectWebhookSecret);
-        console.log("Event verified with Connect webhook secret");
-      } catch (connectErr) {
-        console.error("Webhook signature verification failed with both secrets:", {
-          primaryError: err,
-          connectError: connectErr,
-        });
-        void recordSystemEvent({
-          source: "stripe_webhook",
-          message: "Signature verification failed",
-          meta: { correlationId, primaryError: String(err), connectError: String(connectErr) },
-        });
-        return NextResponse.json(
-          { error: "Invalid signature" },
-          { status: 400 }
-        );
-      }
-    } else {
-      console.error("Webhook signature verification failed:", err);
-      void recordSystemEvent({
-        source: "stripe_webhook",
-        message: "Signature verification failed",
-        meta: { correlationId, error: String(err) },
-      });
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 400 }
-      );
-    }
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`[Stripe Webhook] Signature verification failed (${correlationId}):`, errorMessage);
+    void recordSystemEvent({
+      source: "stripe_webhook",
+      message: "Signature verification failed",
+      meta: {
+        correlationId,
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    // 400 tells Stripe NOT to retry (signature mismatch is permanent for this event)
+    return NextResponse.json(
+      {
+        error: "signature_verification_failed",
+        correlationId,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 400 }
+    );
   }
 
   const supabase = createServiceRoleClient();
@@ -333,25 +340,38 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Track processing start time for duration metrics
+  const processingStartTime = Date.now();
+
   try {
-    const { duplicate } = await claimStripeEvent(event, supabase);
+    const { duplicate } = await claimStripeEvent(event, supabase, correlationId);
 
     if (duplicate) {
-      console.log(`⚠️ Event ${event.id} already processed, skipping (idempotency)`);
-      return NextResponse.json({ received: true, duplicate: true });
+      console.log(`[Stripe Webhook] Duplicate event ${event.id}, skipping`);
+      return NextResponse.json({
+        received: true,
+        duplicate: true,
+        correlationId,
+      });
     }
   } catch (idempotencyError) {
-    console.error("Failed to claim Stripe event for processing:", idempotencyError);
+    console.error(`[Stripe Webhook] Failed to claim event (${correlationId}):`, idempotencyError);
     void recordSystemEvent({
       source: "stripe_webhook",
       message: "Failed to claim event for processing",
       meta: { correlationId, eventId: event.id, error: String(idempotencyError) },
     });
     return NextResponse.json(
-      { error: "Could not claim event" },
+      {
+        error: "claim_failed",
+        correlationId,
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
+
+  console.log(`[Stripe Webhook] Processing: ${event.type} (${correlationId})`);
 
   // Handle different event types
   try {
@@ -416,10 +436,13 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
     }
 
-    await markStripeEventProcessed(event, supabase);
+    const processingDurationMs = Date.now() - processingStartTime;
+    await markStripeEventProcessed(event, supabase, processingDurationMs);
+
+    console.log(`[Stripe Webhook] Completed: ${event.type} in ${processingDurationMs}ms (${correlationId})`);
 
     void recordSystemMetric({
       metric: `stripe_webhook:${event.type}`,
@@ -427,17 +450,29 @@ export async function POST(req: NextRequest) {
       sampleRate: 0.1,
     });
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({
+      received: true,
+      correlationId,
+      eventType: event.type,
+      processingTimeMs: processingDurationMs,
+    });
   } catch (error) {
-    console.error(`Error handling webhook event ${event.type}:`, error);
+    const processingDurationMs = Date.now() - processingStartTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[Stripe Webhook] Failed: ${event.type} - ${errorMessage} (${correlationId})`);
     await markStripeEventFailed(event, supabase, error);
     void recordSystemEvent({
       source: "stripe_webhook",
       message: `Error handling event ${event.type}`,
-      meta: { correlationId, eventId: event.id, error: String(error) },
+      meta: { correlationId, eventId: event.id, error: errorMessage, durationMs: processingDurationMs },
     });
     return NextResponse.json(
-      { error: "Webhook handler failed" },
+      {
+        error: "handler_failed",
+        correlationId,
+        eventType: event.type,
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
@@ -764,10 +799,13 @@ async function handleCheckoutSessionCompleted(
     .select(
       `
         id,
+        tutor_id,
         scheduled_at,
         timezone,
         payment_amount,
         currency,
+        meeting_url,
+        short_code,
         services (
           name,
           price_amount,
@@ -780,12 +818,36 @@ async function handleCheckoutSessionCompleted(
         ),
         tutor:profiles!bookings_tutor_id_fkey (
           full_name,
-          email
+          email,
+          tier,
+          plan
         )
       `
     )
     .eq("id", bookingId)
     .single<BookingDetails>();
+
+  if (bookingDetails && !bookingDetails.meeting_url) {
+    const tutorHasStudio = tutorHasStudioAccess({
+      tier: bookingDetails.tutor?.tier ?? null,
+      plan: bookingDetails.tutor?.plan ?? null,
+    });
+    const resolvedTutorId = bookingDetails.tutor_id ?? session.metadata?.tutorId ?? null;
+
+    if (tutorHasStudio && resolvedTutorId) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const meetingUrl = buildClassroomUrl(
+          bookingDetails.id,
+          bookingDetails.short_code,
+          appUrl
+        );
+        await updateBookingMeetingUrl(supabase, bookingDetails.id, resolvedTutorId, meetingUrl, "livekit");
+      } catch (meetingUrlError) {
+        console.error("[Webhook] Failed to set LiveKit meeting URL:", meetingUrlError);
+      }
+    }
+  }
 
   const studentEmail = bookingDetails?.students?.email;
   const amountCents =

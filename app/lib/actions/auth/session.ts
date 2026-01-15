@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { rateLimitServerAction } from "@/lib/middleware/rate-limit";
 import { recordAudit } from "@/lib/repositories/audit";
-import { getProfileRole, updateLastLogin } from "@/lib/repositories/profiles";
+import { getProfileRole, updateLastLogin, getEmailByUsername } from "@/lib/repositories/profiles";
 import {
 	getTraceId,
 	createRequestLogger,
@@ -19,7 +19,48 @@ import type { User } from "@supabase/supabase-js";
 import { withTimeout, getClientIp, getUserAgent } from "./helpers";
 import { resolveStudentRedirect, resolveTutorRedirect } from "./utils";
 import type { AuthActionState } from "./types";
-import { EMAIL_PATTERN } from "./types";
+import { USERNAME_PATTERN, isEmailIdentifier } from "./types";
+
+type AdminClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
+
+const LIST_USERS_PER_PAGE = 200;
+const MAX_LIST_USERS_PAGES = 10;
+
+async function findUserByEmail(
+	adminClient: AdminClient,
+	email: string,
+	log: ReturnType<typeof createRequestLogger>
+): Promise<User | null> {
+	for (let page = 1; page <= MAX_LIST_USERS_PAGES; page += 1) {
+		const { data, error } = await withTimeout(
+			adminClient.auth.admin.listUsers({ page, perPage: LIST_USERS_PER_PAGE }),
+			2000,
+			`Supabase admin listUsers page ${page}`
+		);
+
+		if (error) {
+			const supabaseError = error as { message?: string; status?: number };
+			const isNotFound = /not\s+found/i.test(supabaseError?.message ?? "");
+			if (!isNotFound && supabaseError?.status !== 404) {
+				logStepError(log, "signIn:admin_lookup_failed", error, { email, page });
+			}
+			break;
+		}
+
+		const existingUser = data?.users?.find(
+			(user) => user.email?.toLowerCase() === email
+		);
+		if (existingUser) {
+			return existingUser;
+		}
+
+		if (!data?.users || data.users.length < LIST_USERS_PER_PAGE) {
+			break;
+		}
+	}
+
+	return null;
+}
 
 // ============================================================================
 // Sign In
@@ -45,18 +86,16 @@ export async function signIn(
 	const clientIp = await getClientIp();
 	const userAgent = await getUserAgent();
 
-	const email = (formData.get("email") as string)?.trim().toLowerCase() ?? "";
+	// Support both "identifier" (new) and "email" (legacy) field names
+	const identifier = (
+		(formData.get("identifier") as string) ??
+		(formData.get("email") as string)
+	)?.trim().toLowerCase() ?? "";
 	const password = (formData.get("password") as string) ?? "";
 	const redirectTarget = sanitizeRedirectPath(formData.get("redirect"));
 
-	const log = createRequestLogger(traceId, email);
-	logStep(log, "signIn:start", { email, ip: clientIp, hasRedirect: !!redirectTarget });
-
-	// Validate email format
-	if (!email || !EMAIL_PATTERN.test(email)) {
-		logStep(log, "signIn:invalid_email", { email });
-		return { error: "Please enter a valid email address." };
-	}
+	const log = createRequestLogger(traceId, identifier);
+	logStep(log, "signIn:start", { identifier, ip: clientIp, hasRedirect: !!redirectTarget });
 
 	// Rate limiting: 5 requests per 15 minutes
 	const headersList = await headers();
@@ -66,53 +105,89 @@ export async function signIn(
 		prefix: "auth:signin",
 	});
 
-	if (!rateLimitResult.success) {
-		logStep(log, "signIn:rate_limited", { email, ip: clientIp });
+	const adminClient = createServiceRoleClient();
+	const auditActorId = identifier || "unknown";
+	const recordLoginFailure = async (
+		reason: string,
+		metadata?: Record<string, unknown>
+	) => {
+		if (!adminClient) return;
+		await recordAudit(adminClient, {
+			actorId: auditActorId,
+			targetId: null,
+			entityType: "account",
+			actionType: "login_failed",
+			metadata: {
+				ip: clientIp,
+				userAgent,
+				traceId,
+				reason,
+				...(metadata ?? {}),
+			},
+		});
+	};
 
-		// Audit: Record rate-limited login attempt
-		const adminClient = createServiceRoleClient();
-		if (adminClient) {
-			await recordAudit(adminClient, {
-				actorId: email,
-				targetId: null,
-				entityType: "account",
-				actionType: "login_failed",
-				metadata: {
-					ip: clientIp,
-					userAgent,
-					traceId,
-					reason: "rate_limited",
-				},
-			});
-		}
+	if (!rateLimitResult.success) {
+		logStep(log, "signIn:rate_limited", { identifier: auditActorId, ip: clientIp });
+		await recordLoginFailure("rate_limited");
 
 		return {
 			error: rateLimitResult.error || "Too many login attempts. Please try again later.",
 		};
 	}
 
+	// Validate identifier is not empty
+	if (!identifier) {
+		logStep(log, "signIn:empty_identifier", {});
+		await recordLoginFailure("empty_identifier");
+		return { error: "Please enter your email or username." };
+	}
+
+	// Resolve identifier to email
+	let email: string;
+
+	if (isEmailIdentifier(identifier)) {
+		// Identifier is an email address
+		email = identifier;
+	} else if (USERNAME_PATTERN.test(identifier)) {
+		// Identifier is a username - resolve to email
+		logStep(log, "signIn:resolving_username", { username: identifier });
+
+		if (!adminClient) {
+			logStep(log, "signIn:admin_client_unavailable", {});
+			await recordLoginFailure("admin_client_unavailable", { username: identifier });
+			return { error: "Unable to verify credentials. Please try again." };
+		}
+
+		try {
+			const resolvedEmail = await getEmailByUsername(adminClient, identifier);
+			if (!resolvedEmail) {
+				// Don't reveal whether username exists - use generic error
+				logStep(log, "signIn:username_not_found", { username: identifier });
+				await recordLoginFailure("username_not_found", { username: identifier });
+				return { error: "Invalid credentials." };
+			}
+			email = resolvedEmail;
+			logStep(log, "signIn:username_resolved", { username: identifier });
+		} catch (resolveError) {
+			logStepError(log, "signIn:username_resolve_error", resolveError, { username: identifier });
+			await recordLoginFailure("username_resolve_error", { username: identifier });
+			return { error: "Unable to verify credentials. Please try again." };
+		}
+	} else {
+		// Invalid identifier format
+		logStep(log, "signIn:invalid_identifier", { identifier });
+		await recordLoginFailure("invalid_identifier", { identifier });
+		return { error: "Please enter a valid email or username." };
+	}
+
 	const supabase = await createClient();
-	const adminClient = createServiceRoleClient();
 	let existingUser: User | null = null;
 
 	// Check if user exists (for better error messages)
 	if (adminClient && email) {
 		try {
-			const { data, error: adminError } = await withTimeout(
-				adminClient.auth.admin.listUsers(),
-				2000,
-				"Supabase admin listUsers"
-			);
-
-			if (adminError) {
-				const supabaseError = adminError as { message?: string; status?: number };
-				const isNotFound = /not\s+found/i.test(supabaseError?.message ?? "");
-				if (!isNotFound && supabaseError?.status !== 404) {
-					logStepError(log, "signIn:admin_lookup_failed", adminError, { email });
-				}
-			}
-
-			existingUser = data?.users?.find((user) => user.email === email) ?? null;
+			existingUser = await findUserByEmail(adminClient, email, log);
 		} catch (lookupError) {
 			logStepError(log, "signIn:admin_lookup_error", lookupError, { email });
 		}

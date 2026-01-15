@@ -1019,6 +1019,39 @@ function HeroBuilder({
                   className="min-h-[80px] rounded-xl border-stone-200 bg-stone-50/50 text-sm resize-none focus:ring-2 focus:ring-stone-200"
                 />
               </div>
+
+              {/* Location & Experience */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-stone-500">Location</Label>
+                  <Input
+                    placeholder="e.g., Barcelona, Spain"
+                    value={config.location || ""}
+                    onChange={(e) => onConfigChange({ ...config, location: e.target.value || undefined })}
+                    className="rounded-xl border-stone-200 bg-stone-50/50 text-sm focus:ring-2 focus:ring-stone-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-stone-500">Years Teaching</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={50}
+                    step={1}
+                    placeholder="e.g., 5"
+                    value={config.yearsExperience ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const parsed = raw === "" ? undefined : Number(raw);
+                      const normalized = Number.isFinite(parsed)
+                        ? Math.min(Math.max(Math.trunc(parsed!), 0), 50)
+                        : undefined;
+                      onConfigChange({ ...config, yearsExperience: normalized });
+                    }}
+                    className="rounded-xl border-stone-200 bg-stone-50/50 text-sm focus:ring-2 focus:ring-stone-200"
+                  />
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -1426,6 +1459,8 @@ type LayoutProps = {
   contentBlocks: Array<{ id: string; type: SiteBlockType; order: number; isVisible?: boolean }>;
   showHero: boolean;
   faqs: FAQItem[];
+  location?: string | null;
+  yearsExperience?: number | null;
 };
 
 function StudioPreview({
@@ -1506,6 +1541,8 @@ function StudioPreview({
     contentBlocks,
     showHero: Boolean(heroBlock),
     faqs: config.faq ?? [],
+    location: config.location,
+    yearsExperience: config.yearsExperience,
   };
 
   // Single Creator Layout
@@ -1656,6 +1693,8 @@ function MinimalistLayout({
   contentBlocks,
   showHero,
   faqs,
+  location,
+  yearsExperience,
 }: LayoutProps) {
   const hasAboutBlock = contentBlocks.some((b) => b.type === "about");
   const hasServicesBlock = contentBlocks.some((b) => b.type === "services");
@@ -1708,6 +1747,8 @@ function MinimalistLayout({
             heroPoster={heroPoster}
             headline={headline}
             aboutCopy={aboutCopy}
+            location={location ?? undefined}
+            yearsExperience={yearsExperience ?? undefined}
             fonts={fonts}
             accentColor={accentColor}
             bgColor={bgColor}
@@ -2541,6 +2582,8 @@ function MinimalistHero({
   heroPoster,
   headline,
   aboutCopy,
+  location,
+  yearsExperience,
   fonts,
   accentColor,
   bgColor,
@@ -2552,11 +2595,16 @@ function MinimalistHero({
   heroPoster?: string | null;
   headline: string;
   aboutCopy: string;
+  location?: string;
+  yearsExperience?: number;
   fonts: { heading: string; body: string };
   accentColor: string;
   bgColor: string;
 }) {
   const avatarUrl = profile.avatar_url || heroMedia;
+  const trimmedLocation = location?.trim();
+  const experience = Number.isFinite(yearsExperience ?? NaN) ? yearsExperience : undefined;
+  const showExperience = experience != null && experience > 0;
 
   return (
     <div className="relative">
@@ -2667,8 +2715,14 @@ function MinimalistHero({
         <div className="flex gap-3">
           <InfoChip icon="flag">English</InfoChip>
           <InfoChip icon="flag">Spanish</InfoChip>
-          <InfoChip icon="location">London</InfoChip>
-          <InfoChip icon="experience">5 Years</InfoChip>
+          {trimmedLocation && (
+            <InfoChip icon="location">{trimmedLocation}</InfoChip>
+          )}
+          {showExperience && (
+            <InfoChip icon="experience">
+              {experience} {experience === 1 ? "year" : "years"} teaching
+            </InfoChip>
+          )}
         </div>
       </div>
 
@@ -2684,8 +2738,6 @@ function MinimalistHero({
         </div>
       )}
 
-      {/* 7. Signature Block */}
-      <SignatureBlock firstName={profile.full_name?.split(" ")[0] || "Tutor"} />
     </div>
   );
 }
@@ -2736,30 +2788,6 @@ function LiveStatusIndicator() {
   );
 }
 
-// Signature Block - Graceful end to the scrolling experience
-function SignatureBlock({ firstName }: { firstName: string }) {
-  const currentYear = new Date().getFullYear();
-
-  return (
-    <div className="mt-12 text-center">
-      {/* Divider */}
-      <div className="mx-auto h-px w-12 bg-stone-300" />
-
-      {/* Signature */}
-      <p
-        className="mt-6 text-2xl text-stone-700"
-        style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }}
-      >
-        {firstName}
-      </p>
-
-      {/* Subtext */}
-      <p className="mt-2 text-[10px] font-medium uppercase tracking-widest text-stone-400">
-        TutorLingua Certified • Member since {currentYear}
-      </p>
-    </div>
-  );
-}
 
 // Card Hero: Full-width header with text below (Flat Luxury - no gradients, no shadows)
 function CardHero({

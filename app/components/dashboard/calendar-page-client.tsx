@@ -20,6 +20,7 @@ import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
 import { getDailyLessons } from "@/lib/actions/calendar-sidebar";
 import type { DailyLesson } from "@/lib/actions/types";
 import { getDayEvents } from "@/lib/actions/calendar-events";
+import { createBlockedTime } from "@/lib/actions/blocked-times";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { detectUserTimezone } from "@/lib/utils/timezones";
 import {
@@ -48,6 +49,7 @@ type CalendarPageClientProps = {
   signupDate: string | null;
   services?: ServiceSummary[];
   students?: StudentSummary[];
+  recentStudentIds?: string[];
   tutorTimezone?: string;
   tutorId: string;
 };
@@ -56,6 +58,7 @@ export function CalendarPageClient({
   signupDate,
   services = [],
   students = [],
+  recentStudentIds = [],
   tutorTimezone = "UTC",
   tutorId,
 }: CalendarPageClientProps) {
@@ -78,13 +81,13 @@ export function CalendarPageClient({
 
   // Quick actions popover state
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const [quickActionsPosition] = useState({ x: 0, y: 0 });
+  const [quickActionsPosition, setQuickActionsPosition] = useState({ x: 0, y: 0 });
   const [pendingSlotDate, setPendingSlotDate] = useState<Date | undefined>();
   const [pendingSlotHour, setPendingSlotHour] = useState<number | undefined>();
 
   // Event details popover state
   const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
-  const [eventPopoverPosition] = useState({ x: 0, y: 0 });
+  const [eventPopoverPosition, setEventPopoverPosition] = useState({ x: 0, y: 0 });
   const [popoverEvent, setPopoverEvent] = useState<CalendarEvent | null>(null);
 
   // Sidebar state
@@ -160,16 +163,28 @@ export function CalendarPageClient({
     }
   }, [refreshKey, selectedDate, sidebarOpen, loadDayData]);
 
-  const handleEventClick = (event: CalendarEvent) => {
+  const handleEventClick = (event: CalendarEvent, clickEvent?: React.MouseEvent) => {
     const eventDate = new Date(event.start);
     setSelectedDate(eventDate);
     setActiveDate(eventDate);
     setSelectedEvent(event);
-    setSidebarOpen(true);
-    setEventPopoverOpen(false);
-    setPopoverEvent(null);
     setQuickActionsOpen(false);
-    loadDayData(eventDate);
+
+    if (clickEvent) {
+      setEventPopoverPosition({ x: clickEvent.clientX, y: clickEvent.clientY });
+      setPopoverEvent(event);
+      setEventPopoverOpen(true);
+    } else {
+      setEventPopoverOpen(false);
+      setPopoverEvent(null);
+    }
+
+    if (view === "month") {
+      setSidebarOpen(true);
+      loadDayData(eventDate);
+    } else {
+      setSidebarOpen(false);
+    }
   };
 
   const handlePopoverReschedule = (event: CalendarEvent) => {
@@ -181,17 +196,28 @@ export function CalendarPageClient({
     setRefreshKey((key) => key + 1);
   };
 
-  const handleTimeSlotClick = (date: Date, hour: number) => {
+  const handleTimeSlotClick = (date: Date, hour: number, clickEvent?: React.MouseEvent) => {
     setPendingSlotDate(date);
     setPendingSlotHour(hour);
     setSelectedEvent(null);
     setSelectedDate(date);
     setActiveDate(date);
-    setSidebarOpen(true);
-    setQuickActionsOpen(false);
     setEventPopoverOpen(false);
     setPopoverEvent(null);
-    loadDayData(date);
+
+    if (clickEvent) {
+      setQuickActionsPosition({ x: clickEvent.clientX, y: clickEvent.clientY });
+      setQuickActionsOpen(true);
+    } else {
+      setQuickActionsOpen(false);
+    }
+
+    if (view === "month") {
+      setSidebarOpen(true);
+      loadDayData(date);
+    } else {
+      setSidebarOpen(false);
+    }
   };
 
   const handleQuickActionsBlockTime = () => {
@@ -216,6 +242,29 @@ export function CalendarPageClient({
     setRefreshKey((key) => key + 1);
     setFeedback({ type: "success", message: "Time blocked successfully." });
   };
+
+  // Instant block handler for quick action buttons (1hr, 2hr)
+  const handleInstantBlock = useCallback(async (durationMinutes: number) => {
+    if (!pendingSlotDate || pendingSlotHour === undefined) return;
+
+    const startDateTime = new Date(pendingSlotDate);
+    startDateTime.setHours(pendingSlotHour, 0, 0, 0);
+
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
+
+    const result = await createBlockedTime({
+      startTime: startDateTime.toISOString(),
+      endTime: endDateTime.toISOString(),
+    });
+
+    if (result.success) {
+      setRefreshKey((key) => key + 1);
+      setFeedback({ type: "success", message: `Blocked ${durationMinutes / 60}hr successfully.` });
+    } else {
+      setFeedback({ type: "error", message: result.error || "Failed to block time." });
+    }
+  }, [pendingSlotDate, pendingSlotHour]);
 
   const handleBookingSuccess = () => {
     // Refresh the calendar to show the new booking
@@ -513,6 +562,9 @@ export function CalendarPageClient({
         position={quickActionsPosition}
         onBlockTime={handleQuickActionsBlockTime}
         onCreateBooking={handleQuickActionsCreateBooking}
+        onQuickBlock={handleInstantBlock}
+        slotDate={pendingSlotDate}
+        slotHour={pendingSlotHour}
       />
 
       {/* Event Details Popover - Show different popover based on event type */}
@@ -559,6 +611,7 @@ export function CalendarPageClient({
         initialHour={bookingModalHour}
         services={services}
         students={students}
+        recentStudentIds={recentStudentIds}
         tutorTimezone={tutorTimezone}
         tutorId={tutorId}
       />

@@ -16,8 +16,8 @@ import {
 import Link from "next/link";
 import type { CalendarEvent } from "@/lib/types/calendar";
 import { CALENDAR_COLORS } from "@/lib/types/calendar";
-import { format } from "date-fns";
-import { markBookingAsPaid, cancelBooking } from "@/lib/actions/bookings";
+import { format, addMinutes } from "date-fns";
+import { markBookingAsPaid, cancelBooking, rescheduleBooking } from "@/lib/actions/bookings"
 import { updateBookingDuration } from "@/lib/actions/booking-duration";
 import { QuickMessageDialog } from "./quick-message-dialog";
 import { isClassroomUrl } from "@/lib/utils/classroom-links";
@@ -49,6 +49,7 @@ export function EventDetailsPopover({
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [isShifting, setIsShifting] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -178,6 +179,30 @@ export function EventDetailsPopover({
     }
   };
 
+  const handleQuickShift = async (minutes: number) => {
+    setIsShifting(minutes);
+    setFeedback(null);
+
+    const newStart = addMinutes(startTime, minutes);
+    const result = await rescheduleBooking({
+      bookingId: event.id,
+      newStart: newStart.toISOString(),
+      durationMinutes: durationMinutes,
+      requestedBy: "tutor",
+    });
+
+    if (result.error) {
+      setFeedback({ type: "error", message: result.error });
+    } else {
+      const direction = minutes > 0 ? "forward" : "back";
+      const amount = Math.abs(minutes);
+      setFeedback({ type: "success", message: `Shifted ${amount}min ${direction}` });
+      onRefresh?.();
+    }
+
+    setIsShifting(null);
+  };
+
   if (!isOpen) return null;
 
   // Only show full actions for TutorLingua bookings
@@ -254,6 +279,28 @@ export function EventDetailsPopover({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+        )}
+
+        {/* Quick shift buttons - only for TutorLingua bookings */}
+        {isTutorLinguaBooking && (
+          <div className="flex items-center gap-3 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1">
+              <span className="text-muted-foreground mr-2">Quick shift:</span>
+              <div className="inline-flex gap-1">
+                {[-30, -15, 15, 30].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => handleQuickShift(mins)}
+                    disabled={isShifting !== null}
+                    className="rounded border border-border px-1.5 py-0.5 text-xs font-medium hover:bg-muted disabled:opacity-50 transition-colors"
+                  >
+                    {isShifting === mins ? "..." : `${mins > 0 ? "+" : ""}${mins}m`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

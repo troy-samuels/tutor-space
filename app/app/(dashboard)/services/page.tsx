@@ -30,7 +30,7 @@ export default async function ServicesPage() {
   const servicesResponse = await supabase
     .from("services")
     .select(
-      "id, tutor_id, name, description, duration_minutes, price, currency, price_amount, price_currency, is_active, requires_approval, max_students_per_session, offer_type, created_at, updated_at"
+      "id, tutor_id, name, description, duration_minutes, price, currency, price_amount, price_currency, is_active, requires_approval, offer_type, created_at, updated_at"
     )
     .eq("tutor_id", user.id)
     .order("created_at", { ascending: true });

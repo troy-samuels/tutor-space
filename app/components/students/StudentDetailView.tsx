@@ -15,13 +15,11 @@ import { StudentOverview } from "./StudentOverview";
 import { OnboardingChecklist } from "./onboarding/OnboardingChecklist";
 import { OnboardingProgressBadge } from "./onboarding/OnboardingProgressBadge";
 import { EngagementScoreCard } from "./engagement/EngagementScoreCard";
-import { EngagementScoreMeter } from "./engagement/EngagementScoreMeter";
-import { RiskStatusBadge } from "./engagement/RiskStatusBadge";
 import { StudentTimeline } from "./timeline/StudentTimeline";
 import { getOrCreateThreadByStudentId } from "@/lib/actions/messaging";
 import { getStudentOnboardingProgress, initializeStudentOnboarding } from "@/lib/actions/student-onboarding";
 import { getStudentEngagementScore } from "@/lib/actions/student-engagement";
-import type { OnboardingProgress, EngagementScore, RiskStatus } from "@/lib/actions/types";
+import type { OnboardingProgress, EngagementScore } from "@/lib/actions/types";
 import type { StudentDetailData } from "@/lib/data/types";
 
 type StudentDetailViewProps = {
@@ -176,7 +174,6 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
 
   // Get effective status values
   const onboardingStatus = (detail?.student as { onboarding_status?: string })?.onboarding_status ?? "not_started";
-  const effectiveRiskStatus = (engagementScore?.risk_status_override ?? engagementScore?.risk_status ?? "healthy") as RiskStatus;
   const completedCount = onboardingProgress?.completed_items?.length ?? 0;
   const totalCount = (onboardingProgress?.template?.items as Array<unknown>)?.length ?? 0;
 
@@ -236,12 +233,6 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
                   completedCount={completedCount}
                   totalCount={totalCount}
                 />
-                {engagementScore && (
-                  <>
-                    <EngagementScoreMeter score={engagementScore.score} size="sm" />
-                    <RiskStatusBadge status={effectiveRiskStatus} size="sm" />
-                  </>
-                )}
               </div>
             )}
           </div>
