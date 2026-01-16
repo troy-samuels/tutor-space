@@ -26,6 +26,7 @@ import {
   LogOut,
   ExternalLink,
   Video,
+  AlertCircle,
 } from "lucide-react";
 
 export function DashboardHeader() {
@@ -187,18 +188,27 @@ export function DashboardHeader() {
               </Link>
             </DropdownMenuItem>
             {profile?.username && (
-              <DropdownMenuItem asChild>
-                <a
-                  href={`/${profile.username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <Globe className="mr-2 h-4 w-4" />
-                  View My Site
-                  <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground" />
-                </a>
-              </DropdownMenuItem>
+              profile?.site_status === "published" ? (
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`/${profile.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer"
+                  >
+                    <Globe className="mr-2 h-4 w-4" />
+                    View My Site
+                    <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground" />
+                  </a>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem asChild>
+                  <Link href="/pages" className="cursor-pointer text-amber-600 hover:text-amber-700">
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                    Site (Draft)
+                  </Link>
+                </DropdownMenuItem>
+              )
             )}
             {entitlements?.hasStudioAccess && (
               <DropdownMenuItem asChild>

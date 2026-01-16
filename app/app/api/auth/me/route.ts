@@ -29,6 +29,17 @@ export async function GET() {
     .eq("id", user.id)
     .single();
 
+  // Fetch tutor site status for the dropdown indicator
+  const { data: tutorSite } = await supabase
+    .from("tutor_sites")
+    .select("status")
+    .eq("tutor_id", user.id)
+    .maybeSingle();
+
+  const profileWithSiteStatus = profile
+    ? { ...profile, site_status: tutorSite?.status ?? null }
+    : null;
+
   const profilePlan = (profile?.plan as PlatformBillingPlan | null) ?? "professional";
   const resolvedPlan =
     profile?.subscription_status === "paused" ? ("professional" as const) : profilePlan;
@@ -40,5 +51,5 @@ export async function GET() {
     hasStudioAccess: hasStudioAccess(resolvedPlan),
   };
 
-  return NextResponse.json({ user, profile, entitlements });
+  return NextResponse.json({ user, profile: profileWithSiteStatus, entitlements });
 }

@@ -36,18 +36,6 @@ type InviteStudentsCardProps = {
   className?: string;
 };
 
-function formatPrice(amount: number | null, currency: string | null): string {
-  if (amount === null || amount === 0) return "Free";
-  const currencyCode = currency?.toUpperCase() ?? "USD";
-  const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-  return formatter.format(amount / 100);
-}
-
 export function InviteStudentsCard({
   username,
   tutorName,
@@ -61,7 +49,6 @@ export function InviteStudentsCard({
       : process.env.NEXT_PUBLIC_APP_URL ?? "https://tutorlingua.co";
   const bookingUrl = `${baseUrl}/book/${username}`;
   const siteUrl = `${baseUrl}/${username}`;
-  const displayUrl = bookingUrl.replace(/^https?:\/\//, "");
 
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "warning" } | null>(
@@ -141,7 +128,6 @@ export function InviteStudentsCard({
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Booking Link
             </p>
-            <p className="truncate text-sm text-foreground">{displayUrl}</p>
           </div>
         </div>
 
@@ -157,29 +143,6 @@ export function InviteStudentsCard({
             </p>
           )}
         </div>
-
-        {/* Services preview */}
-        {services.length > 0 && (
-          <div className="space-y-1.5">
-            {services.slice(0, 2).map((service) => (
-              <div
-                key={service.id ?? service.name}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-muted-foreground">{service.name}</span>
-                <span className="font-medium text-foreground">
-                  {formatPrice(service.price_amount, service.price_currency)}
-                </span>
-              </div>
-            ))}
-            {services.length > 2 && (
-              <p className="text-xs text-muted-foreground">
-                +{services.length - 2} more service
-                {services.length - 2 > 1 ? "s" : ""}
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Action buttons with dropdown */}
         <div className="flex gap-2 pt-1">

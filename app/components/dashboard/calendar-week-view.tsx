@@ -23,6 +23,14 @@ import {
 import { CalendarEventBlock, CalendarColorLegend } from "./calendar-event-block";
 import { createBlockedTime } from "@/lib/actions/blocked-times";
 
+type AvailabilitySlot = {
+  id?: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+};
+
 type CalendarWeekViewProps = {
   onEventClick?: (event: CalendarEvent, clickEvent?: React.MouseEvent) => void;
   onTimeSlotClick?: (date: Date, hour: number, event?: React.MouseEvent) => void;
@@ -33,6 +41,7 @@ type CalendarWeekViewProps = {
   showHeaderControls?: boolean;
   primaryTimezone?: string;
   secondaryTimezone?: string | null;
+  availabilitySlots?: AvailabilitySlot[];
 };
 
 export function CalendarWeekView({
@@ -45,6 +54,7 @@ export function CalendarWeekView({
   showHeaderControls = true,
   primaryTimezone,
   secondaryTimezone,
+  availabilitySlots = [],
 }: CalendarWeekViewProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(
     startOfWeek(initialDate || new Date(), { weekStartsOn: 0 })
@@ -57,9 +67,10 @@ export function CalendarWeekView({
   );
   const [isCopying, setIsCopying] = useState(false);
 
-  const timeSlots = generateTimeSlots(6, 22, 60);
-  const pixelsPerHour = 60;
   const startHour = 6;
+  const endHour = 22;
+  const timeSlots = generateTimeSlots(startHour, endHour, 60);
+  const pixelsPerHour = 60;
   const showSecondaryTimezone = Boolean(secondaryTimezone);
   const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-16 sm:w-20";
   const baseTimezone =
@@ -117,6 +128,32 @@ export function CalendarWeekView({
   // Get events for a specific day
   const getEventsForDay = (date: Date) => {
     return events.filter((event) => isSameDay(new Date(event.start), date));
+  };
+
+  // Get availability slots for a specific day of the week
+  const getAvailabilityForDay = (dayOfWeek: number) => {
+    return availabilitySlots.filter((slot) => slot.day_of_week === dayOfWeek && slot.is_available);
+  };
+
+  // Calculate availability zone position and height
+  const getAvailabilityZoneStyle = (slot: AvailabilitySlot) => {
+    const [startHours, startMinutes] = slot.start_time.split(":").map(Number);
+    const [endHours, endMinutes] = slot.end_time.split(":").map(Number);
+
+    const startTimeMinutes = startHours * 60 + startMinutes;
+    const endTimeMinutes = endHours * 60 + endMinutes;
+    const gridStartMinutes = startHour * 60;
+    const gridEndMinutes = endHour * 60;
+
+    const visibleStart = Math.max(startTimeMinutes, gridStartMinutes);
+    const visibleEnd = Math.min(endTimeMinutes, gridEndMinutes);
+
+    if (visibleEnd <= visibleStart) return null;
+
+    const top = ((visibleStart - gridStartMinutes) / 60) * pixelsPerHour;
+    const height = ((visibleEnd - visibleStart) / 60) * pixelsPerHour;
+
+    return { top, height };
   };
 
   // Current time indicator position
@@ -320,6 +357,7 @@ export function CalendarWeekView({
             {weekDays.map((day) => {
               const dayEvents = getEventsForDay(day);
               const eventGroups = groupOverlappingEvents(dayEvents);
+              const dayAvailability = getAvailabilityForDay(day.getDay());
 
               return (
                 <div
@@ -334,6 +372,23 @@ export function CalendarWeekView({
                   }}
                   onDrop={(e) => handleDrop(day, e)}
                 >
+                  {/* Availability zones - rendered as background */}
+                  {dayAvailability.map((slot) => {
+                    const zoneStyle = getAvailabilityZoneStyle(slot);
+                    if (!zoneStyle) return null;
+                    return (
+                      <div
+                        key={slot.id ?? `${slot.day_of_week}-${slot.start_time}-${slot.end_time}`}
+                        className="absolute inset-x-0 bg-emerald-500/10 border-l-2 border-emerald-500/40 pointer-events-none"
+                        style={{
+                          top: `${zoneStyle.top}px`,
+                          height: `${zoneStyle.height}px`,
+                        }}
+                        title="Available for bookings"
+                      />
+                    );
+                  })}
+
                   {/* Time slot backgrounds */}
                   {timeSlots.map((slot, slotIndex) => (
                     <div

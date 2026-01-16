@@ -58,6 +58,7 @@ type Profile = {
   avatar_url?: string | null;
   plan?: string | null;
   username?: string | null;
+  site_status?: "draft" | "published" | null;
 };
 
 export type AuthContextValue = {

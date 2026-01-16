@@ -12,8 +12,8 @@ export default async function CalendarPage() {
     redirect("/login");
   }
 
-  // Fetch profile, services, and students in parallel
-  const [profileResult, servicesResult, studentsResult, recentBookingsResult] = await Promise.all([
+  // Fetch profile, services, students, availability, and calendar connections in parallel
+  const [profileResult, servicesResult, studentsResult, recentBookingsResult, availabilityResult, calendarConnectionsResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("created_at, timezone")
@@ -36,11 +36,24 @@ export default async function CalendarPage() {
       .eq("tutor_id", user.id)
       .order("scheduled_at", { ascending: false })
       .limit(12),
+    supabase
+      .from("availability")
+      .select("id, day_of_week, start_time, end_time, is_available")
+      .eq("tutor_id", user.id)
+      .eq("is_available", true)
+      .order("day_of_week")
+      .order("start_time"),
+    supabase
+      .from("calendar_connections")
+      .select("provider")
+      .eq("tutor_id", user.id),
   ]);
 
   const profile = profileResult.data;
   const services = servicesResult.data ?? [];
   const students = studentsResult.data ?? [];
+  const availability = availabilityResult.data ?? [];
+  const calendarConnections = calendarConnectionsResult.data ?? [];
   const recentStudentIds: string[] = [];
   const seenStudentIds = new Set<string>();
 
@@ -51,6 +64,9 @@ export default async function CalendarPage() {
     if (recentStudentIds.length >= 4) break;
   }
 
+  // Check which calendar providers are connected
+  const connectedProviders = calendarConnections.map((c) => c.provider);
+
   return (
     <CalendarPageClient
       signupDate={profile?.created_at ?? null}
@@ -59,6 +75,8 @@ export default async function CalendarPage() {
       recentStudentIds={recentStudentIds}
       tutorTimezone={profile?.timezone ?? "UTC"}
       tutorId={user.id}
+      availability={availability}
+      connectedCalendars={connectedProviders}
     />
   );
 }

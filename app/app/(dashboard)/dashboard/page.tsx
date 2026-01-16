@@ -216,89 +216,101 @@ export default async function DashboardPage() {
               : "border-stone-200"
           )}
         >
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-5">
-            {nextBooking ? (
+          {nextBooking ? (
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-5">
               <Avatar className="h-14 w-14 shrink-0 rounded-xl border border-stone-100 bg-stone-50 sm:h-16 sm:w-16">
                 <AvatarFallback className="rounded-xl text-lg font-semibold text-primary">
                   {getInitials(nextBooking.student?.full_name)}
                 </AvatarFallback>
               </Avatar>
-            ) : (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-dashed border-stone-200 bg-stone-50 sm:h-16 sm:w-16">
-                <CalendarDays className="h-6 w-6 text-stone-300" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Up next
+                </p>
+                <p className="text-xl font-semibold text-foreground sm:text-2xl">
+                  {nextBooking.student?.full_name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {metadataLabel}
+                </p>
+                {nextLessonDate && getCountdownLabel(nextLessonDate) && (
+                  <p className="text-sm font-medium text-primary">
+                    {getCountdownLabel(nextLessonDate)}
+                  </p>
+                )}
               </div>
-            )}
-            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
+                {startLessonUrl ? (
+                  <Button
+                    asChild
+                    className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
+                  >
+                    {startLessonIsAbsolute ? (
+                      <a
+                        href={startLessonUrl}
+                        target={startLessonTarget}
+                        rel={startLessonTarget === "_blank" ? "noopener noreferrer" : undefined}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <span>Start Lesson</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                    ) : (
+                      <Link href={startLessonUrl} className="flex items-center justify-center gap-2">
+                        <span>Start Lesson</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
+                    disabled
+                  >
+                    <span className="flex items-center gap-2">
+                      Start Lesson
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </Button>
+                )}
+                {viewLessonPlanIsAbsolute ? (
+                  <a
+                    className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
+                    href={viewLessonPlanUrl}
+                    target="_self"
+                    rel="noopener noreferrer"
+                  >
+                    <span>View Lesson Plan</span>
+                    <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                  </a>
+                ) : (
+                  <Link
+                    className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
+                    href={viewLessonPlanUrl}
+                  >
+                    <span>View Lesson Plan</span>
+                    <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                  </Link>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-4 text-center">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Up next
               </p>
-              <p className="text-xl font-semibold text-foreground sm:text-2xl">
-                {nextBooking?.student?.full_name ?? "No upcoming lesson"}
+              <CalendarDays className="mt-3 h-8 w-8 text-stone-300" />
+              <p className="mt-2 text-lg font-medium text-muted-foreground">
+                No upcoming lessons
               </p>
-              <p className="text-sm text-muted-foreground">
-                {metadataLabel}
-              </p>
-              {nextLessonDate && getCountdownLabel(nextLessonDate) && (
-                <p className="text-sm font-medium text-primary">
-                  {getCountdownLabel(nextLessonDate)}
-                </p>
-              )}
+              <Link
+                href="/bookings"
+                className="mt-3 text-sm font-medium text-primary hover:underline"
+              >
+                + Schedule a lesson
+              </Link>
             </div>
-            <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
-              {startLessonUrl ? (
-                <Button
-                  asChild
-                  className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
-                >
-                  {startLessonIsAbsolute ? (
-                    <a
-                      href={startLessonUrl}
-                      target={startLessonTarget}
-                      rel={startLessonTarget === "_blank" ? "noopener noreferrer" : undefined}
-                      className="flex items-center justify-center gap-2"
-                    >
-                      <span>Start Lesson</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </a>
-                  ) : (
-                    <Link href={startLessonUrl} className="flex items-center justify-center gap-2">
-                      <span>Start Lesson</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  className="w-full whitespace-nowrap rounded-full bg-primary px-6 py-2.5 text-white hover:bg-primary/90 xl:w-auto"
-                  disabled
-                >
-                  <span className="flex items-center gap-2">
-                    Start Lesson
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
-                </Button>
-              )}
-              {viewLessonPlanIsAbsolute ? (
-                <a
-                  className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
-                  href={viewLessonPlanUrl}
-                  target="_self"
-                  rel="noopener noreferrer"
-                >
-                  <span>View Lesson Plan</span>
-                  <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
-                </a>
-              ) : (
-                <Link
-                  className="group inline-flex items-center gap-1 self-start text-xs font-medium text-stone-400 transition-colors hover:text-primary xl:self-auto"
-                  href={viewLessonPlanUrl}
-                >
-                  <span>View Lesson Plan</span>
-                  <span className="opacity-0 transition-opacity group-hover:opacity-100">→</span>
-                </Link>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Row 1, Col 2: Invite Students */}

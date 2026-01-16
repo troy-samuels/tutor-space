@@ -144,3 +144,192 @@ Tests:
 - Unit tests for time calculation utilities
 - Existing component tests continue to pass
 - Visual regression check for feedback/status components
+
+---
+
+## UX Overhaul: Calendar/Availability + Booking Friction (NEW)
+
+### Goal
+Consolidate the fragmented calendar/availability/booking experience into a unified, frictionless workflow for Pro tier tutors. **Core insight: experienced tutors want one place to see their schedule and make quick changes, not three separate pages.**
+
+### Priority Focus
+- **Primary**: Calendar/availability confusion + Booking workflow friction
+- **Tier**: Pro tier (broader audience)
+- **Approach**: Phased rollout (quick wins first)
+
+---
+
+### Phase 1: Quick Wins (Week 1-2)
+
+#### 1.1 Visualize Availability in Calendar Week View
+**Problem**: Tutors can't see their "bookable windows" when looking at their calendar.
+
+**Solution**: Show recurring availability as semi-transparent green background zones in the week view.
+
+**Files to modify**:
+- `/components/dashboard/calendar-week-view.tsx` - Add availability zone rendering
+- `/app/(dashboard)/calendar/page.tsx` - Fetch availability data
+- `/components/dashboard/calendar-page-client.tsx` - Pass availability to week view
+
+#### 1.2 Add "Edit Availability" Quick Link
+**Problem**: Tutors navigate away from calendar to edit availability.
+
+**Solution**: Add gear icon that opens a slide-over drawer with the availability editor.
+
+**Files to modify**:
+- `/components/dashboard/calendar-page-client.tsx` - Add gear button
+- **New**: `/components/dashboard/availability-drawer.tsx` - Compact availability editor in drawer
+
+#### 1.3 Enhance Quick Booking Modal
+**Problem**: 3-step wizard is slow for repeat bookings.
+
+**Solution**: Add "Quick mode" toggle that shows all fields in one scrollable form.
+
+**Files to modify**:
+- `/components/dashboard/calendar-booking-modal.tsx` - Add quick mode toggle
+  - Single form with Service, Student, Date/Time, Payment visible
+  - Recent students as quick-select chips
+  - Auto-select most-used service
+  - Preference saved in localStorage
+
+#### 1.4 Add Calendar Sync Status
+**Problem**: Tutors don't know if their Google/Outlook calendar is connected.
+
+**Solution**: Add connection status indicator with link to settings.
+
+**Files to modify**:
+- `/components/dashboard/calendar-page-client.tsx` - Add "Connect calendars" button with green dot status
+
+---
+
+### Phase 2: Availability Integration (Week 3-4)
+
+#### 2.1 Inline Availability Editing
+**Problem**: Editing availability requires navigating to a separate page.
+
+**Solution**: Click availability zones directly in week view to edit them.
+
+**Files to modify**:
+- `/components/dashboard/calendar-week-view.tsx` - Click handler for availability zones
+- **New**: `/components/dashboard/availability-inline-editor.tsx` - Popover for quick edits
+
+#### 2.2 Quick Availability Override
+**Problem**: Tutors want to mark specific times unavailable without changing their weekly pattern.
+
+**Solution**: Add "Set unavailable (one-time)" option in slot actions.
+
+**Files to modify**:
+- `/components/dashboard/slot-quick-actions.tsx` - Add one-time override options
+- `/lib/actions/availability.ts` - Add `createOneTimeException()` action
+
+#### 2.3 Merge Availability Tab into Calendar
+**Problem**: Availability and Calendar are separate nav items causing confusion.
+
+**Solution**: Add "Availability" as third view tab in calendar (alongside Month/Week).
+
+**Files to modify**:
+- `/components/dashboard/calendar-page-client.tsx` - Add Availability tab
+- `/components/dashboard/nav-config.ts` - Redirect `/availability` to `/calendar?tab=availability`
+
+---
+
+### Phase 3: Unified Booking Experience (Week 5-6)
+
+#### 3.1 Single-Page Booking Form
+**Problem**: Power users find the wizard slow.
+
+**Solution**: Optional single-page form with all fields visible.
+
+**Files to create**:
+- **New**: `/components/booking/quick-booking-form.tsx` - All-in-one booking form
+  - Progressive disclosure for new student section
+  - Remembers last-used student and service
+  - Keyboard shortcuts (Tab through, Enter to submit)
+
+#### 3.2 Calendar-First Booking Flow
+**Problem**: Most bookings should start from clicking a calendar slot.
+
+**Solution**: Clicking empty slot opens pre-filled booking modal.
+
+**Files to modify**:
+- `/components/dashboard/calendar-booking-modal.tsx`
+  - Pre-select time from clicked slot
+  - Default to most recent student (configurable)
+  - Default to most-used service
+  - Single "Book" button for repeat bookings
+
+#### 3.3 Simplify Bookings Page
+**Problem**: Bookings page duplicates calendar functionality.
+
+**Solution**: Bookings page becomes read-only list; creation happens from calendar.
+
+**Files to modify**:
+- `/app/(dashboard)/bookings/page.tsx` - Remove "New Lesson" button
+- `/components/bookings/booking-dashboard.tsx` - Simplify to list-only view
+  - Keep: Today's lessons, Upcoming/Past lists, Mark as paid
+  - Remove: Creation modal and form states
+
+---
+
+### Phase 4: Polish (Week 7-8)
+
+#### 4.1 Framer Motion Transitions
+- Smooth view switching animations
+- Drawer open/close animations
+- Subtle hover effects on calendar slots
+
+#### 4.2 Mobile Optimizations
+- Default to day view on mobile
+- Bottom sheet for quick actions (not popover)
+- Larger touch targets
+
+#### 4.3 Keyboard Shortcuts
+**New**: `/lib/hooks/useCalendarShortcuts.ts`
+- `N` = New booking
+- `B` = Block time
+- `A` = Edit availability
+- `T` = Jump to today
+
+---
+
+### Critical Files Summary
+
+| File | Changes |
+|------|---------|
+| `/components/dashboard/calendar-page-client.tsx` | Major - availability viz, tabs, quick links |
+| `/components/dashboard/calendar-week-view.tsx` | Major - availability zones, click handling |
+| `/components/dashboard/calendar-booking-modal.tsx` | Medium - quick mode, better defaults |
+| `/components/dashboard/slot-quick-actions.tsx` | Medium - more action options |
+| `/components/bookings/booking-dashboard.tsx` | Medium - simplify to list-only |
+| `/lib/actions/availability.ts` | Small - add partial update, exceptions |
+| `/components/dashboard/nav-config.ts` | Small - redirect availability |
+
+### New Components to Create
+
+1. `/components/dashboard/availability-drawer.tsx` - Slideover availability editor
+2. `/components/dashboard/availability-inline-editor.tsx` - Popover for inline edits
+3. `/components/booking/quick-booking-form.tsx` - Single-page booking form
+4. `/lib/hooks/useCalendarShortcuts.ts` - Keyboard shortcuts
+
+---
+
+### Verification Plan
+
+**After Each Phase**:
+1. Manual testing: Walk through tutor booking flow end-to-end
+2. Existing tests: Run `npm test` to ensure no regressions
+3. Browser testing: Test in Chrome, Safari, Firefox
+4. Mobile testing: Test on iOS Safari, Android Chrome
+
+**Key User Journeys to Test**:
+1. Click calendar slot → Quick book → Verify booking created
+2. Open availability drawer → Add slot → Verify visible in week view
+3. Create booking from calendar → Mark as paid from bookings page
+4. Block time from calendar → Verify conflict prevents booking
+
+---
+
+### Success Metrics
+- **Time to create booking**: 50% reduction (target: ~20s from ~45s)
+- **Page navigations for booking**: 60% reduction
+- **Support tickets about calendar/availability**: 40% reduction

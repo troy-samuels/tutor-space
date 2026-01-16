@@ -3,13 +3,14 @@
 import { useState, useTransition, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { addDays, addMonths, addWeeks, endOfWeek, format, startOfWeek, subDays, subMonths, subWeeks } from "date-fns";
-import { Calendar, CalendarRange, Plus, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, CalendarRange, Plus, Settings, ChevronLeft, ChevronRight, Clock, Link2 } from "lucide-react";
 import { DashboardBookingCalendar } from "./dashboard-booking-calendar";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarDayView } from "./calendar-day-view";
 import { CalendarDayPanel } from "./calendar-day-panel";
 import { QuickBlockDialog } from "./quick-block-dialog";
 import { CalendarBookingModal } from "./calendar-booking-modal";
+import { AvailabilityDrawer } from "./availability-drawer";
 import { SlotQuickActions } from "./slot-quick-actions";
 import { EventDetailsPopover } from "./event-details-popover";
 import { BlockedTimePopover } from "./blocked-time-popover";
@@ -45,6 +46,14 @@ type StudentSummary = {
   timezone: string | null;
 };
 
+type AvailabilitySlot = {
+  id?: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+};
+
 type CalendarPageClientProps = {
   signupDate: string | null;
   services?: ServiceSummary[];
@@ -52,6 +61,8 @@ type CalendarPageClientProps = {
   recentStudentIds?: string[];
   tutorTimezone?: string;
   tutorId: string;
+  availability?: AvailabilitySlot[];
+  connectedCalendars?: string[];
 };
 
 export function CalendarPageClient({
@@ -61,10 +72,13 @@ export function CalendarPageClient({
   recentStudentIds = [],
   tutorTimezone = "UTC",
   tutorId,
+  availability = [],
+  connectedCalendars = [],
 }: CalendarPageClientProps) {
   const [view, setView] = useState<CalendarViewType>("month");
   const [activeDate, setActiveDate] = useState<Date>(new Date());
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [availabilityDrawerOpen, setAvailabilityDrawerOpen] = useState(false);
   const [blockDialogDate, setBlockDialogDate] = useState<Date | undefined>();
   const [blockDialogHour, setBlockDialogHour] = useState<number | undefined>();
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
@@ -73,6 +87,7 @@ export function CalendarPageClient({
   const [refreshKey, setRefreshKey] = useState(0);
   const [, startMoveTransition] = useTransition();
   const [secondaryTimezone, setSecondaryTimezone] = useState<string>("");
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(availability);
 
   // Booking modal state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -95,6 +110,10 @@ export function CalendarPageClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dailyLessons, setDailyLessons] = useState<DailyLesson[]>([]);
   const [externalEvents, setExternalEvents] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    setAvailabilitySlots(availability);
+  }, [availability]);
 
   // Load lessons when date is selected
   const loadDayData = useCallback(async (date: Date) => {
@@ -434,6 +453,33 @@ export function CalendarPageClient({
               })}
             </div>
 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setAvailabilityDrawerOpen(true)}
+              title="Edit weekly hours"
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+
+            {/* Calendar sync status indicator */}
+            <Link href="/settings/calendar">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 relative"
+                title={connectedCalendars.length > 0 ? `${connectedCalendars.length} calendar(s) connected` : "Connect your calendar"}
+              >
+                <Link2 className="h-4 w-4" />
+                {connectedCalendars.length > 0 ? (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-background" />
+                ) : (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 border-2 border-background" />
+                )}
+              </Button>
+            </Link>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -524,6 +570,7 @@ export function CalendarPageClient({
               secondaryTimezone={secondaryTimezone || null}
               activeDate={activeDate}
               showHeaderControls={false}
+              availabilitySlots={availabilitySlots}
             />
           )}
 
@@ -629,6 +676,28 @@ export function CalendarPageClient({
         title={selectedEvent?.title}
         subtitle={selectedEvent?.serviceName ? `Service: ${selectedEvent.serviceName}` : undefined}
         onSuccess={handleRescheduleSuccess}
+      />
+
+      {/* Availability Drawer */}
+      <AvailabilityDrawer
+        isOpen={availabilityDrawerOpen}
+        onClose={() => setAvailabilityDrawerOpen(false)}
+        initialSlots={availabilitySlots.map((slot) => ({
+          id: slot.id,
+          day_of_week: slot.day_of_week,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          is_available: slot.is_available,
+        }))}
+        onSaveSuccess={(updatedSlots) => {
+          const normalized = [...updatedSlots].sort((a, b) => {
+            if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
+            return a.start_time.localeCompare(b.start_time);
+          });
+          setAvailabilitySlots(normalized);
+          setRefreshKey((key) => key + 1);
+          setFeedback({ type: "success", message: "Availability updated." });
+        }}
       />
     </div>
   );

@@ -973,10 +973,10 @@ function BookingListItem({
     <li
       className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm ${
         isPaid
-          ? "border-emerald-200 bg-emerald-50/50"
+          ? "border-accent/30 bg-accent/10"
           : isPendingPayment
-            ? "border-amber-200 bg-amber-50/50"
-            : "border-border/60 bg-primary/5"
+            ? "border-primary/30 bg-primary/10"
+            : "border-border/60 bg-muted/50"
       }`}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -992,8 +992,8 @@ function BookingListItem({
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${
               isConfirmed
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-amber-100 text-amber-700"
+                ? "bg-accent/20 text-accent"
+                : "bg-primary/20 text-primary"
             }`}
           >
             {booking.status}
@@ -1001,8 +1001,8 @@ function BookingListItem({
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${
               isPaid
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-amber-100 text-amber-700"
+                ? "bg-accent/20 text-accent"
+                : "bg-primary/20 text-primary"
             }`}
           >
             {booking.payment_status}

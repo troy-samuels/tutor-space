@@ -47,31 +47,13 @@ export async function saveAvailability(slots: AvailabilitySlotInput[]) {
     return { error: "You need to be signed in to update availability." };
   }
 
-  const { error: deleteError } = await supabase
-    .from("availability")
-    .delete()
-    .eq("tutor_id", user.id);
+  const { data, error } = await supabase.rpc("save_availability", {
+    p_user_id: user.id,
+    p_availability: parsed.data,
+  });
 
-  if (deleteError) {
-    return { error: "We couldn't update your schedule. Try again." };
-  }
-
-  if (parsed.data.length === 0) {
-    return { success: true };
-  }
-
-  const { error: insertError } = await supabase.from("availability").insert(
-    parsed.data.map((slot) => ({
-      tutor_id: user.id,
-      day_of_week: slot.day_of_week,
-      start_time: slot.start_time,
-      end_time: slot.end_time,
-      is_available: slot.is_available,
-    }))
-  );
-
-  if (insertError) {
-    return { error: "We couldn't save some slots. Please try again." };
+  if (error || !data?.success) {
+    return { error: data?.error || "We couldn't update your schedule. Try again." };
   }
 
   return { success: true };
