@@ -1041,7 +1041,7 @@ function BookingListItem({
         {hasStudioAccess ? (
           <Link
             href={classroomUrl}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 transition"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground hover:bg-accent/90 transition"
           >
             <Video className="h-3.5 w-3.5" />
             Join Classroom
@@ -1049,7 +1049,7 @@ function BookingListItem({
         ) : (
           <Link
             href="/settings/billing"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20 transition"
           >
             <Sparkles className="h-3.5 w-3.5" />
             Upgrade for Native Classroom
@@ -1171,7 +1171,7 @@ function BookingListItem({
                       setRefundBusy(false);
                     }
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/90 disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                 >
                   {refundBusy ? "Sending..." : "Submit"}
                 </button>
