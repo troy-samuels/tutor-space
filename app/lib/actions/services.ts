@@ -14,6 +14,7 @@ import {
   archiveStripeServiceProduct,
   canSyncStripeConnectProducts,
   syncServiceToStripeConnect,
+  syncPackageToStripeConnect,
 } from "@/lib/services/stripe-connect-products";
 import { softDeleteService } from "@/lib/repositories/services";
 import {
@@ -293,6 +294,70 @@ export async function updateService(id: string, payload: ServiceInput) {
         },
       },
     });
+
+    // Auto-update linked session packages when service price changes
+    const { data: linkedPackages, error: linkedPackagesError } = await supabase
+      .from("session_package_templates")
+      .select("id, name, session_count, price_cents, currency, stripe_product_id, stripe_price_id, is_active")
+      .eq("service_id", id)
+      .eq("tutor_id", user.id);
+
+    if (linkedPackagesError) {
+      console.error("[Services] Failed to load linked packages:", linkedPackagesError);
+      return { error: "We couldn't update linked packages. Please try again." };
+    }
+
+    if (linkedPackages && linkedPackages.length > 0) {
+      for (const pkg of linkedPackages) {
+        const newPackagePrice = (pkg.session_count ?? 1) * parsed.data.price_cents;
+
+        let newStripeProductId = pkg.stripe_product_id;
+        let newStripePriceId = pkg.stripe_price_id;
+
+        // Sync to Stripe Connect if tutor has connected account
+        if (canSyncStripeConnectProducts(stripeAccountId)) {
+          try {
+            const syncResult = await syncPackageToStripeConnect({
+              stripeAccountId,
+              packageId: pkg.id,
+              tutorId: user.id,
+              serviceId: id,
+              serviceName: parsed.data.name,
+              packageName: pkg.name || `${pkg.session_count ?? 1} Lesson Package`,
+              priceCents: newPackagePrice,
+              currency: parsed.data.currency,
+              sessionCount: pkg.session_count ?? 1,
+              isActive: pkg.is_active,
+              existingProductId: pkg.stripe_product_id,
+              existingPriceId: pkg.stripe_price_id,
+              existingPriceCents: pkg.price_cents,
+              existingCurrency: pkg.currency,
+            });
+            newStripeProductId = syncResult.stripeProductId;
+            newStripePriceId = syncResult.stripePriceId;
+          } catch (syncError) {
+            console.error(`[Services] Package ${pkg.id} Stripe sync failed:`, syncError);
+            return { error: "We couldn't sync linked packages to Stripe. Please try again." };
+          }
+        }
+
+        const { error: updateError } = await supabase
+          .from("session_package_templates")
+          .update({
+            price_cents: newPackagePrice,
+            currency: parsed.data.currency,
+            stripe_product_id: newStripeProductId,
+            stripe_price_id: newStripePriceId,
+          })
+          .eq("id", pkg.id)
+          .eq("tutor_id", user.id);
+
+        if (updateError) {
+          console.error(`[Services] Package ${pkg.id} DB update failed:`, updateError);
+          return { error: "We couldn't update linked packages. Please try again." };
+        }
+      }
+    }
   }
 
   if (data) {

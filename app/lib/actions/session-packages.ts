@@ -1,6 +1,5 @@
 "use server";
 
-import Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,6 +7,11 @@ import {
   type SessionPackageInput,
 } from "@/lib/validators/session-package";
 import type { SessionPackageRecord } from "@/lib/types/session-package";
+import {
+  canSyncStripeConnectProducts,
+  syncPackageToStripeConnect,
+  archiveStripePackageProduct,
+} from "@/lib/services/stripe-connect-products";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -23,24 +27,23 @@ async function requireUser() {
   return { supabase, user };
 }
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-let stripeClient: Stripe | null | undefined;
+async function getTutorStripeAccountId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tutorId: string
+): Promise<string | null> {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("stripe_account_id")
+    .eq("id", tutorId)
+    .single();
 
-function getStripe(): Stripe | null {
-  if (typeof stripeClient !== "undefined") {
-    return stripeClient;
+  if (error) {
+    console.warn("[SessionPackages] Failed to load Stripe account ID:", error.message);
+    return null;
   }
 
-  if (!stripeSecretKey) {
-    stripeClient = null;
-    return stripeClient;
-  }
-
-  stripeClient = new Stripe(stripeSecretKey, {
-    apiVersion: "2025-09-30.clover",
-  });
-
-  return stripeClient;
+  const accountId = profile?.stripe_account_id ?? null;
+  return accountId && accountId.trim().length > 0 ? accountId.trim() : null;
 }
 
 export async function createSessionPackage(
@@ -60,44 +63,8 @@ export async function createSessionPackage(
     return { error: message };
   }
 
-  let stripePriceId: string | null = null;
-  const stripe = getStripe();
-  if (stripe && parsed.data.price_cents > 0) {
-    try {
-      let serviceName = parsed.data.name;
-      if (serviceId) {
-        const { data: service } = await supabase
-          .from("services")
-          .select("name")
-          .eq("id", serviceId)
-          .eq("tutor_id", user.id)
-          .maybeSingle();
-        if (service?.name) {
-          serviceName = service.name;
-        }
-      }
-
-      const product = await stripe.products.create({
-        name: `${serviceName} package`,
-        metadata: {
-          tutor_id: user.id,
-          service_id: serviceId ?? "",
-        },
-      });
-
-      const price = await stripe.prices.create({
-        currency: parsed.data.currency.toLowerCase(),
-        unit_amount: parsed.data.price_cents,
-        product: product.id,
-      });
-
-      stripePriceId = price.id;
-    } catch (stripeError) {
-      console.error("[SessionPackages] Failed to create Stripe price", stripeError);
-    }
-  }
-
-  const { data, error } = await supabase
+  // Step 1: Insert package to DB first (without Stripe IDs)
+  const { data: newPackage, error: insertError } = await supabase
     .from("session_package_templates")
     .insert({
       tutor_id: user.id,
@@ -108,21 +75,108 @@ export async function createSessionPackage(
       total_minutes: parsed.data.total_minutes,
       price_cents: parsed.data.price_cents,
       currency: parsed.data.currency,
-      stripe_price_id: stripePriceId,
+      stripe_product_id: null,
+      stripe_price_id: null,
       is_active: parsed.data.is_active,
     })
     .select("*")
     .single<SessionPackageRecord>();
 
-  if (error) {
-    return { error: "We couldn’t save that package. Please try again." };
+  if (insertError || !newPackage) {
+    console.error("[SessionPackages] DB insert failed:", insertError);
+    return { error: "We couldn't save that package. Please try again." };
+  }
+
+  // Step 2: Sync to Stripe Connect using the real packageId
+  const stripeAccountId = await getTutorStripeAccountId(supabase, user.id);
+
+  if (canSyncStripeConnectProducts(stripeAccountId)) {
+    // Get service name for the product
+    let serviceName = parsed.data.name;
+    if (serviceId) {
+      const { data: service } = await supabase
+        .from("services")
+        .select("name")
+        .eq("id", serviceId)
+        .eq("tutor_id", user.id)
+        .maybeSingle();
+      if (service?.name) {
+        serviceName = service.name;
+      }
+    }
+
+    try {
+      const syncResult = await syncPackageToStripeConnect({
+        stripeAccountId,
+        packageId: newPackage.id, // Real packageId for Stripe metadata
+        tutorId: user.id,
+        serviceId,
+        serviceName,
+        packageName: parsed.data.name,
+        priceCents: parsed.data.price_cents,
+        currency: parsed.data.currency,
+        sessionCount: parsed.data.session_count ?? 1,
+        isActive: parsed.data.is_active,
+      });
+
+      // Step 3: Update DB with Stripe IDs
+      const { data: updated, error: updateError } = await supabase
+        .from("session_package_templates")
+        .update({
+          stripe_product_id: syncResult.stripeProductId,
+          stripe_price_id: syncResult.stripePriceId,
+        })
+        .eq("id", newPackage.id)
+        .eq("tutor_id", user.id)
+        .select("*")
+        .single<SessionPackageRecord>();
+
+      if (updateError || !updated) {
+        console.error(
+          `[SessionPackages] Failed to update package ${newPackage.id} with Stripe IDs:`,
+          updateError
+        );
+        try {
+          await archiveStripePackageProduct({
+            stripeAccountId,
+            stripeProductId: syncResult.stripeProductId,
+            stripePriceId: syncResult.stripePriceId,
+          });
+        } catch (cleanupError) {
+          console.error(
+            `[SessionPackages] Failed to archive Stripe items after DB update error for ${newPackage.id}:`,
+            cleanupError
+          );
+        }
+        await supabase
+          .from("session_package_templates")
+          .delete()
+          .eq("id", newPackage.id)
+          .eq("tutor_id", user.id);
+        return { error: "We couldn't sync this package to Stripe. Please try again." };
+      }
+
+      newPackage.stripe_product_id = updated.stripe_product_id;
+      newPackage.stripe_price_id = updated.stripe_price_id;
+    } catch (stripeError) {
+      console.error(
+        `[SessionPackages] Stripe sync failed for new package ${newPackage.id}:`,
+        stripeError
+      );
+      await supabase
+        .from("session_package_templates")
+        .delete()
+        .eq("id", newPackage.id)
+        .eq("tutor_id", user.id);
+      return { error: "We couldn't sync this package to Stripe. Please try again." };
+    }
   }
 
   revalidatePath("/services");
   revalidatePath("/dashboard");
   revalidatePath("/@");
 
-  return { data };
+  return { data: newPackage };
 }
 
 export async function updateSessionPackage(
@@ -153,45 +207,51 @@ export async function updateSessionPackage(
     return { error: "We couldn't find that package to update." };
   }
 
+  // Get tutor's Stripe Connect account ID
+  const stripeAccountId = await getTutorStripeAccountId(supabase, user.id);
+
+  let stripeProductId = existing.stripe_product_id;
   let stripePriceId = existing.stripe_price_id;
-  const stripe = getStripe();
-  if (
-    stripe &&
-    (parsed.data.price_cents !== existing.price_cents ||
-      parsed.data.currency.toLowerCase() !== existing.currency.toLowerCase()) &&
-    parsed.data.price_cents > 0
-  ) {
-    try {
-      let serviceName = parsed.data.name;
-      if (existing.service_id) {
-        const { data: service } = await supabase
-          .from("services")
-          .select("name")
-          .eq("id", existing.service_id)
-          .eq("tutor_id", user.id)
-          .maybeSingle();
-        if (service?.name) {
-          serviceName = service.name;
-        }
+
+  // Sync to Stripe Connect if tutor has connected account
+  if (canSyncStripeConnectProducts(stripeAccountId)) {
+    // Get service name for the product
+    let serviceName = parsed.data.name;
+    if (existing.service_id) {
+      const { data: service } = await supabase
+        .from("services")
+        .select("name")
+        .eq("id", existing.service_id)
+        .eq("tutor_id", user.id)
+        .maybeSingle();
+      if (service?.name) {
+        serviceName = service.name;
       }
+    }
 
-      const product = await stripe.products.create({
-        name: `${serviceName} package`,
-        metadata: {
-          tutor_id: user.id,
-          service_id: existing.service_id ?? "",
-        },
+    try {
+      const syncResult = await syncPackageToStripeConnect({
+        stripeAccountId,
+        packageId,
+        tutorId: user.id,
+        serviceId: existing.service_id,
+        serviceName,
+        packageName: parsed.data.name,
+        priceCents: parsed.data.price_cents,
+        currency: parsed.data.currency,
+        sessionCount: parsed.data.session_count ?? 1,
+        isActive: parsed.data.is_active,
+        existingProductId: existing.stripe_product_id,
+        existingPriceId: existing.stripe_price_id,
+        existingPriceCents: existing.price_cents,
+        existingCurrency: existing.currency,
       });
 
-      const price = await stripe.prices.create({
-        currency: parsed.data.currency.toLowerCase(),
-        unit_amount: parsed.data.price_cents,
-        product: product.id,
-      });
-
-      stripePriceId = price.id;
+      stripeProductId = syncResult.stripeProductId;
+      stripePriceId = syncResult.stripePriceId;
     } catch (stripeError) {
-      console.error("[SessionPackages] Failed to update Stripe price", stripeError);
+      console.error("[SessionPackages] Stripe sync failed:", stripeError);
+      return { error: "We couldn't sync this package to Stripe. Please try again." };
     }
   }
 
@@ -204,6 +264,7 @@ export async function updateSessionPackage(
       total_minutes: parsed.data.total_minutes,
       price_cents: parsed.data.price_cents,
       currency: parsed.data.currency,
+      stripe_product_id: stripeProductId,
       stripe_price_id: stripePriceId,
       is_active: parsed.data.is_active,
     })
@@ -213,7 +274,7 @@ export async function updateSessionPackage(
     .single<SessionPackageRecord>();
 
   if (error) {
-    return { error: "We couldn’t update that package. Please try again." };
+    return { error: "We couldn't update that package. Please try again." };
   }
 
   revalidatePath("/services");
@@ -281,6 +342,33 @@ export async function deleteSessionPackage(packageId: string) {
     return { error: "You need to be signed in to delete packages." };
   }
 
+  // Fetch existing package to get Stripe IDs
+  const { data: existing, error: fetchError } = await supabase
+    .from("session_package_templates")
+    .select("stripe_product_id, stripe_price_id")
+    .eq("id", packageId)
+    .eq("tutor_id", user.id)
+    .single();
+
+  if (fetchError || !existing) {
+    return { error: "We couldn't find that package to delete." };
+  }
+
+  // Archive Stripe items if they exist
+  const stripeAccountId = await getTutorStripeAccountId(supabase, user.id);
+  if (canSyncStripeConnectProducts(stripeAccountId) && existing.stripe_product_id) {
+    try {
+      await archiveStripePackageProduct({
+        stripeAccountId,
+        stripeProductId: existing.stripe_product_id,
+        stripePriceId: existing.stripe_price_id,
+      });
+    } catch (stripeError) {
+      console.error("[SessionPackages] Failed to archive Stripe items:", stripeError);
+      // Continue with deletion - Stripe items being orphaned is better than blocking delete
+    }
+  }
+
   const { error } = await supabase
     .from("session_package_templates")
     .delete()
@@ -288,7 +376,7 @@ export async function deleteSessionPackage(packageId: string) {
     .eq("tutor_id", user.id);
 
   if (error) {
-    return { error: "We couldn’t delete that package. Please try again." };
+    return { error: "We couldn't delete that package. Please try again." };
   }
 
   revalidatePath("/services");

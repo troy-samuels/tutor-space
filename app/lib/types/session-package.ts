@@ -8,6 +8,7 @@ export type SessionPackageRecord = {
   total_minutes: number;
   price_cents: number;
   currency: string;
+  stripe_product_id: string | null;
   stripe_price_id: string | null;
   is_active: boolean;
   created_at: string;
