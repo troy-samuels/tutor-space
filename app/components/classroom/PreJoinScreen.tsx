@@ -438,59 +438,62 @@ export function PreJoinScreen({
           </div>
         )}
 
-        <div className="rounded-3xl bg-zinc-900 p-6 shadow-xl relative text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-semibold">Camera & microphone check</h2>
-              <p className="text-xs text-zinc-400 mt-1">
-                Check your video and say a few words to test your setup.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className={cn(
-                "p-2 rounded-full transition-colors",
-                showSettings
-                  ? "bg-white text-zinc-900"
-                  : "bg-white/10 text-white hover:bg-white/20"
-              )}
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+          {/* Full-width video preview */}
+          <div className="relative aspect-video bg-zinc-900">
+            {videoEnabled && mediaStream ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{ transform: "scaleX(-1)" }}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 bg-zinc-900">
+                <VideoOff className="h-16 w-16 mb-3" />
+                <span className="text-base">Camera is off</span>
+              </div>
+            )}
 
-          {/* Video Preview */}
-          <div className="mt-6 flex items-center justify-center">
-            <div className="relative w-full max-w-sm aspect-video rounded-2xl overflow-hidden bg-zinc-800">
-              {videoEnabled && mediaStream ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover mirror"
-                  style={{ transform: "scaleX(-1)" }}
-                />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500">
-                  <VideoOff className="h-12 w-12 mb-2" />
-                  <span className="text-sm">Camera is off</span>
-                </div>
-              )}
-              {/* Mic indicator overlay */}
-              {audioEnabled && mediaStream && (
-                <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/50 rounded-full px-3 py-1.5">
-                  <Mic className="h-3.5 w-3.5 text-emerald-400" />
-                  <PreJoinMicIndicator stream={mediaStream} className="h-4" />
-                </div>
-              )}
-              {!audioEnabled && (
-                <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-red-500/80 rounded-full px-3 py-1.5">
-                  <MicOff className="h-3.5 w-3.5 text-white" />
-                  <span className="text-xs text-white">Muted</span>
-                </div>
-              )}
+            {/* Gradient overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/60 pointer-events-none" />
+
+            {/* Header text - floating on video */}
+            <div className="absolute top-0 inset-x-0 p-5 flex items-start justify-between">
+              <div className="text-white">
+                <h2 className="text-base font-semibold">Camera & microphone check</h2>
+                <p className="text-sm text-white/70 mt-1">
+                  Check your video and say a few words to test your setup.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={cn(
+                  "p-2.5 rounded-full transition-colors flex-shrink-0",
+                  showSettings
+                    ? "bg-white text-zinc-900"
+                    : "bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
+                )}
+              >
+                <Settings className="h-4 w-4" />
+              </button>
             </div>
+
+            {/* Mic indicator - bottom left */}
+            {audioEnabled && mediaStream && (
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md rounded-full px-3 py-2 ring-1 ring-white/20">
+                <Mic className="h-4 w-4 text-emerald-400" />
+                <PreJoinMicIndicator stream={mediaStream} className="h-4" />
+              </div>
+            )}
+            {!audioEnabled && (
+              <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-red-500/90 backdrop-blur-md rounded-full px-3 py-2">
+                <MicOff className="h-4 w-4 text-white" />
+                <span className="text-sm text-white font-medium">Muted</span>
+              </div>
+            )}
           </div>
         </div>
 
