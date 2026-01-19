@@ -18,7 +18,13 @@ export const serviceSchema = z.object({
   name: z.string().min(3),
   description: z.string().max(2000).optional().or(z.literal("")),
   duration_minutes: z.number().int().min(15),
-  price_cents: z.number().int().min(0),
+  price_cents: z
+    .number()
+    .int()
+    .min(0)
+    .refine((value) => value % 100 === 0, {
+      message: "Service price must be in whole dollars.",
+    }),
   currency: z
     .string()
     .length(3)
@@ -49,6 +55,7 @@ export const serviceFormSchema = z.object({
     .min(15, "Duration must be at least 15 minutes"),
   price: z
     .coerce.number()
+    .int("Use whole dollars (no cents) for lesson pricing.")
     .min(0, "Price cannot be negative"),
   currency: z
     .string()

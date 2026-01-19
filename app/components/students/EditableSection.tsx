@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CompactStatusAlert } from "@/components/ui/status-alert";
 
 type EditableSectionProps = {
   title?: string;
@@ -71,7 +72,9 @@ export function EditableSection({
           </Button>
         )}
       </div>
-      {error && isEditing ? <p className="text-xs text-destructive mb-3">{error}</p> : null}
+      {error && isEditing ? (
+        <CompactStatusAlert status="error" message={error} className="mb-3" />
+      ) : null}
       {isEditing ? editContent : viewContent}
     </div>
   );

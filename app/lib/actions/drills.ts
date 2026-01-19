@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { getNextBookingForStudent } from "@/lib/repositories/bookings";
 import type {
   DrillType,
   DrillStatus,
@@ -20,6 +22,11 @@ export async function getStudentDrills(studentId: string): Promise<{
   pending: DrillWithContext[];
   completed: DrillWithContext[];
 }> {
+  const hasUpcomingLesson = await hasUpcomingLessonForStudent(studentId);
+  if (!hasUpcomingLesson) {
+    return { pending: [], completed: [] };
+  }
+
   const supabase = await createClient();
 
   const { data: drills, error } = await supabase
@@ -75,6 +82,11 @@ export async function getDrillById(drillId: string): Promise<DrillWithContext | 
     return null;
   }
 
+  const hasUpcomingLesson = await hasUpcomingLessonForStudent(drill.student_id);
+  if (!hasUpcomingLesson) {
+    return null;
+  }
+
   return {
     ...drill,
     tutor_name: drill.profiles?.full_name,
@@ -90,6 +102,11 @@ export async function completeDrill(drillId: string, studentId: string): Promise
   success: boolean;
   error?: string;
 }> {
+  const hasUpcomingLesson = await hasUpcomingLessonForStudent(studentId);
+  if (!hasUpcomingLesson) {
+    return { success: false, error: "Practice is not available yet" };
+  }
+
   const supabase = await createClient();
 
   // First verify the drill belongs to this student and is visible
@@ -141,6 +158,11 @@ export async function getDrillCounts(studentId: string): Promise<{
   completed: number;
   total: number;
 }> {
+  const hasUpcomingLesson = await hasUpcomingLessonForStudent(studentId);
+  if (!hasUpcomingLesson) {
+    return { pending: 0, completed: 0, total: 0 };
+  }
+
   const supabase = await createClient();
 
   const { count: total } = await supabase
@@ -183,4 +205,24 @@ export async function getDrillsByHomework(homeworkId: string): Promise<LessonDri
   }
 
   return drills || [];
+}
+
+async function hasUpcomingLessonForStudent(studentId: string): Promise<boolean> {
+  const adminClient = createServiceRoleClient();
+  if (!adminClient) return false;
+
+  const { data: student } = await adminClient
+    .from("students")
+    .select("id, tutor_id")
+    .eq("id", studentId)
+    .maybeSingle();
+
+  if (!student) return false;
+
+  try {
+    const nextBooking = await getNextBookingForStudent(adminClient, student.tutor_id, student.id);
+    return !!nextBooking;
+  } catch {
+    return false;
+  }
 }

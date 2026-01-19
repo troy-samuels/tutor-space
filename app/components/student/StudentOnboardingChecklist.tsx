@@ -45,10 +45,10 @@ export function StudentOnboardingChecklist({
   }
 
   return (
-    <Card className={cn("border-blue-200 bg-blue-50/30", className)}>
+    <Card className={cn("border-primary/20 bg-primary/5", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-blue-600" />
+          <ClipboardList className="h-5 w-5 text-primary" />
           <CardTitle className="text-base font-medium">Getting Started</CardTitle>
         </div>
       </CardHeader>

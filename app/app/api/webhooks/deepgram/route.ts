@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import OpenAI from "openai";
 import { extractPlainText } from "@/lib/analysis/lesson-insights";
+import { processLessonRecording } from "@/lib/analysis/lesson-analysis-processor";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { slugifyKebab } from "@/lib/utils/slug";
@@ -12,6 +13,9 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 const DEEPGRAM_WEBHOOK_SECRET = process.env.DEEPGRAM_WEBHOOK_SECRET?.trim();
+
+export const runtime = "nodejs";
+export const maxDuration = 55;
 
 /**
  * @google-compliance
@@ -215,13 +219,14 @@ export async function POST(request: NextRequest) {
 
     // Extract transcript from Deepgram response
     const transcript = body?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+    const transcriptText = (extractPlainText(body.results) || transcript || "").trim();
+    const hasTranscript = transcriptText.length > 0;
 
-    if (!transcript) {
-      console.error("[Deepgram Webhook] No transcript in response");
-      return NextResponse.json({ received: true });
+    if (!hasTranscript) {
+      console.error("[Deepgram Webhook] Empty transcript in response");
+    } else {
+      console.log(`[Deepgram Webhook] Transcript received for egress: ${egressId}, length: ${transcriptText.length}`);
     }
-
-    console.log(`[Deepgram Webhook] Transcript received for egress: ${egressId}, length: ${transcript.length}`);
 
     // Update database
     const supabase = createServiceRoleClient();
@@ -234,10 +239,10 @@ export async function POST(request: NextRequest) {
       .from("lesson_recordings")
       .update({
         transcript_json: body.results, // Store full response for speaker diarization
-        status: "completed",
+        status: hasTranscript ? "completed" : "failed",
       })
       .eq("egress_id", egressId)
-      .select("id, tutor_id, storage_path")
+      .select("id, tutor_id, student_id, booking_id, transcript_json, created_at, status, tutor_notified_at, storage_path")
       .maybeSingle();
 
     if (dbError) {
@@ -247,7 +252,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Deepgram Webhook] Successfully updated recording for egress: ${egressId}`);
 
-    const transcriptText = (extractPlainText(body.results) || transcript || "").trim();
+    if (!hasTranscript) {
+      return NextResponse.json({ received: true });
+    }
+
+    if (recording && recording.status === "completed") {
+      try {
+        await processLessonRecording(supabase, recording);
+      } catch (analysisError) {
+        console.error("[Deepgram Webhook] Lesson analysis error:", analysisError);
+      }
+    } else {
+      console.warn("[Deepgram Webhook] Skipping lesson analysis (missing recording or incomplete status)");
+    }
 
     if (recording && transcriptText) {
       const { data: tutorProfile, error: tutorProfileError } = await supabase

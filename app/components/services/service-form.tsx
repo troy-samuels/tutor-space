@@ -94,11 +94,8 @@ export function ServiceForm({
   const selectedOfferType = form.watch("offer_type");
 
   const handleSubmit = form.handleSubmit((values) => {
-    // Convert price to cents using string manipulation to avoid floating-point precision issues
-    // E.g., 19.99 should become 1999 cents, not 1998 or 2000
-    const priceString = values.price.toFixed(2);
-    const [dollars, cents] = priceString.split(".");
-    const priceCents = parseInt(dollars, 10) * 100 + parseInt(cents || "0", 10);
+    // Lesson pricing is whole dollars only.
+    const priceCents = Math.round(values.price) * 100;
 
     const payload: ServiceInput = {
       name: values.name,
@@ -252,7 +249,7 @@ export function ServiceForm({
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Typical conversation lessons: $25–40/hr. Adjust for your experience and prep time.
+                  Whole dollars only. Typical conversation lessons: $25–40/hr.
                 </p>
               </Field>
 

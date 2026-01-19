@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Ban, CalendarPlus, Clock, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
+import { usePopoverClose } from "@/lib/hooks/usePopoverClose";
+import { usePopoverPosition } from "@/lib/hooks/usePopoverPosition";
 
 type SlotQuickActionsProps = {
   isOpen: boolean;
@@ -26,9 +28,17 @@ export function SlotQuickActions({
   slotDate,
   slotHour,
 }: SlotQuickActionsProps) {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [isBlocking, setIsBlocking] = useState<number | null>(null);
   const isMobile = useIsMobile();
+  const { popoverRef, close } = usePopoverClose({
+    isOpen,
+    onClose,
+    disableClickOutside: isMobile,
+  });
+  const { position: adjustedPosition, setClickPosition } = usePopoverPosition({
+    popoverRef,
+    offset: { x: 0, y: 8 },
+  });
+  const [isBlocking, setIsBlocking] = useState<number | null>(null);
 
   const handleQuickBlock = async (minutes: number) => {
     if (!onQuickBlock) return;
@@ -43,53 +53,10 @@ export function SlotQuickActions({
     }
   };
 
-  // Close on click outside (desktop only)
-  useEffect(() => {
-    if (!isOpen || isMobile) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onClose, isMobile]);
-
-  // Adjust position to keep popover in viewport (desktop only)
   useEffect(() => {
     if (!isOpen || !popoverRef.current || isMobile) return;
-
-    const popover = popoverRef.current;
-    const rect = popover.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Adjust if going off right edge
-    if (rect.right > viewportWidth - 16) {
-      popover.style.left = `${viewportWidth - rect.width - 16}px`;
-    }
-
-    // Adjust if going off bottom edge
-    if (rect.bottom > viewportHeight - 16) {
-      popover.style.top = `${position.y - rect.height - 8}px`;
-    }
-  }, [isOpen, position, isMobile]);
+    setClickPosition(position);
+  }, [isOpen, position, isMobile, setClickPosition]);
 
   const showQuickBlock = onQuickBlock && slotDate && slotHour !== undefined;
 
@@ -162,7 +129,7 @@ export function SlotQuickActions({
       <button
         onClick={() => {
           onCreateBooking();
-          onClose();
+          close();
         }}
         disabled={isBlocking !== null}
         className={`flex w-full items-center gap-3 font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 ${
@@ -175,7 +142,7 @@ export function SlotQuickActions({
       <button
         onClick={() => {
           onBlockTime();
-          onClose();
+          close();
         }}
         disabled={isBlocking !== null}
         className={`flex w-full items-center gap-3 font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 ${
@@ -191,8 +158,8 @@ export function SlotQuickActions({
   // Mobile: Bottom sheet
   if (isMobile) {
     return (
-      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()} side="bottom">
-        <SheetOverlay onClick={onClose} />
+      <Sheet open={isOpen} onOpenChange={(open) => !open && close()} side="bottom">
+        <SheetOverlay onClick={close} />
         <SheetContent
           side="bottom"
           className="inset-x-0 w-full rounded-t-2xl pb-safe"
@@ -215,8 +182,8 @@ export function SlotQuickActions({
       ref={popoverRef}
       className="fixed z-50 w-48 rounded-xl border border-border bg-white shadow-lg animate-in fade-in zoom-in-95 duration-150"
       style={{
-        left: position.x,
-        top: position.y + 8,
+        left: adjustedPosition.x,
+        top: adjustedPosition.y,
       }}
     >
       <ActionButtons />

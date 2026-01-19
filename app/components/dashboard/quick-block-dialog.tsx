@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { format, setHours, setMinutes } from "date-fns";
 import { X, Loader2, Clock, Calendar } from "lucide-react";
 import { createBlockedTime } from "@/lib/actions/blocked-times";
+import { calculateEndTime, parseTimeString } from "@/lib/utils/time-calculations";
 
 type QuickBlockDialogProps = {
   isOpen: boolean;
@@ -24,12 +25,9 @@ export function QuickBlockDialog({
   const defaultHour = initialHour ?? 9;
 
   const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
-  const [startTime, setStartTime] = useState(
-    `${String(defaultHour).padStart(2, "0")}:00`
-  );
-  const [endTime, setEndTime] = useState(
-    `${String(defaultHour + 1).padStart(2, "0")}:00`
-  );
+  const defaultStartTime = `${String(defaultHour).padStart(2, "0")}:00`;
+  const [startTime, setStartTime] = useState(defaultStartTime);
+  const [endTime, setEndTime] = useState(calculateEndTime(defaultStartTime, 60));
   const [label, setLabel] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +38,9 @@ export function QuickBlockDialog({
     const nextHour = initialHour ?? 9;
 
     setDate(format(nextDate, "yyyy-MM-dd"));
-    setStartTime(`${String(nextHour).padStart(2, "0")}:00`);
-    setEndTime(`${String(nextHour + 1).padStart(2, "0")}:00`);
+    const nextStart = `${String(nextHour).padStart(2, "0")}:00`;
+    setStartTime(nextStart);
+    setEndTime(calculateEndTime(nextStart, 60));
     setLabel("");
     setError(null);
     setIsSubmitting(false);
@@ -56,8 +55,8 @@ export function QuickBlockDialog({
 
     try {
       // Combine date and time
-      const [startHour, startMinute] = startTime.split(":").map(Number);
-      const [endHour, endMinute] = endTime.split(":").map(Number);
+      const { hour: startHour, minute: startMinute } = parseTimeString(startTime);
+      const { hour: endHour, minute: endMinute } = parseTimeString(endTime);
 
       const startDateTime = setMinutes(
         setHours(new Date(date), startHour),
@@ -98,10 +97,7 @@ export function QuickBlockDialog({
 
   // Quick duration buttons
   const setDuration = (minutes: number) => {
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const startDate = setMinutes(setHours(new Date(), startHour), startMinute);
-    const endDate = new Date(startDate.getTime() + minutes * 60000);
-    setEndTime(format(endDate, "HH:mm"));
+    setEndTime(calculateEndTime(startTime, minutes));
   };
 
   return (

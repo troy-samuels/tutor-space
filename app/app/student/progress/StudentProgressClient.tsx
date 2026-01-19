@@ -107,7 +107,9 @@ export function StudentProgressClient({
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
               <span className="text-2xl font-bold">
                 {stats?.total_lessons || 0}
               </span>
@@ -123,7 +125,9 @@ export function StudentProgressClient({
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
               <span className="text-2xl font-bold">
                 {stats ? formatMinutes(stats.total_minutes) : "0m"}
               </span>
@@ -139,7 +143,9 @@ export function StudentProgressClient({
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Flame className="h-5 w-5 text-orange-500" />
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Flame className="h-5 w-5 text-primary" />
+              </div>
               <span className="text-2xl font-bold">
                 {stats?.current_streak || 0} weeks
               </span>
@@ -155,7 +161,9 @@ export function StudentProgressClient({
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-yellow-500" />
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Award className="h-5 w-5 text-primary" />
+              </div>
               <span className="text-2xl font-bold">{completedGoals.length}</span>
             </div>
           </CardContent>

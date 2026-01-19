@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { runFullPageA11y, runFormA11y, assertNoViolations } from "./fixtures/a11y-helpers";
 
 // Create Supabase admin client for test setup
 function createAdminClient() {
@@ -178,6 +179,94 @@ test.describe("Manual Booking Flow", () => {
     } finally {
       // Cleanup: Delete test data
       await adminClient.from("availability").delete().eq("tutor_id", tutorId);
+      await adminClient.from("students").delete().eq("tutor_id", tutorId);
+      await adminClient.from("services").delete().eq("tutor_id", tutorId);
+      await adminClient.from("profiles").delete().eq("id", tutorId);
+      await adminClient.auth.admin.deleteUser(tutorId);
+    }
+  });
+
+  test("booking modal passes WCAG AA accessibility checks", async ({ browser, baseURL }) => {
+    const appUrl = baseURL ?? "http://localhost:3000";
+    const now = Date.now();
+
+    // Create test tutor
+    const tutor = {
+      fullName: "A11y Test Tutor " + now,
+      email: `a11y.test.${now}@example.com`,
+      username: `a11y-test-${now}`,
+      password: `A11yT3st!${now}`,
+    };
+
+    const adminClient = createAdminClient();
+
+    // Create tutor user
+    const { data: tutorUser, error: tutorError } = await adminClient.auth.admin.createUser({
+      email: tutor.email,
+      password: tutor.password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: tutor.fullName,
+        username: tutor.username,
+        role: "tutor",
+        plan: "professional",
+      },
+    });
+
+    if (tutorError || !tutorUser.user) {
+      throw new Error(`Failed to create tutor: ${tutorError?.message}`);
+    }
+
+    const tutorId = tutorUser.user.id;
+
+    try {
+      // Create tutor profile
+      await adminClient.from("profiles").upsert({
+        id: tutorId,
+        email: tutor.email,
+        full_name: tutor.fullName,
+        username: tutor.username,
+        role: "tutor",
+        plan: "professional",
+        onboarding_completed: true,
+        timezone: "America/New_York",
+      });
+
+      // Create test student
+      await adminClient.from("students").insert({
+        tutor_id: tutorId,
+        full_name: "Test Student",
+        email: `test.student.${now}@example.com`,
+        timezone: "America/New_York",
+        calendar_access_status: "approved",
+      });
+
+      // Login and navigate to calendar
+      const context = await browser.newContext();
+      const page = await context.newPage();
+
+      await page.goto(`${appUrl}/login`);
+      await page.fill('input[name="email"]', tutor.email);
+      await page.fill('input[name="password"]', tutor.password);
+      await page.click('button[type="submit"]');
+      await page.waitForURL(/\/(dashboard|calendar|bookings)/, { timeout: 15000 });
+
+      await page.goto(`${appUrl}/calendar?action=book`);
+      await page.waitForLoadState("networkidle");
+
+      // Wait for modal to be visible
+      const modalHeading = page.getByRole("heading", { name: "Create Booking" });
+      await expect(modalHeading).toBeVisible({ timeout: 10000 });
+
+      // Run accessibility scan on the modal
+      const results = await runFullPageA11y(page, {
+        include: '[role="dialog"]',
+      });
+      assertNoViolations(results, "Booking modal");
+
+      await context.close();
+    } finally {
+      // Cleanup
       await adminClient.from("students").delete().eq("tutor_id", tutorId);
       await adminClient.from("services").delete().eq("tutor_id", tutorId);
       await adminClient.from("profiles").delete().eq("id", tutorId);

@@ -1,11 +1,30 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback, useMemo, useRef } from "react";
+import { useReducer, useTransition, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { addDays, addMonths, addWeeks, endOfWeek, format, startOfWeek, subDays, subMonths, subWeeks } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfWeek,
+  format,
+  startOfWeek,
+  subDays,
+  subMonths,
+  subWeeks,
+} from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import { Calendar, CalendarRange, Plus, Settings, ChevronLeft, ChevronRight, Clock, Link2 } from "lucide-react";
+import {
+  Calendar,
+  CalendarRange,
+  Plus,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Link2,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { DashboardBookingCalendar } from "./dashboard-booking-calendar";
 import { CalendarWeekView } from "./calendar-week-view";
@@ -20,15 +39,15 @@ import { EventDetailsPopover } from "./event-details-popover";
 import { BlockedTimePopover } from "./blocked-time-popover";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { useCalendarShortcuts } from "@/lib/hooks/useCalendarShortcuts";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
+import { useCalendarEvent } from "@/lib/hooks/useCalendarEvent";
+import { useCalendarSlot } from "@/lib/hooks/useCalendarSlot";
+import { useSidebarData } from "@/lib/hooks/useSidebarData";
 import type { CalendarEvent, CalendarViewType } from "@/lib/types/calendar";
 import { rescheduleBooking } from "@/lib/actions/bookings";
 import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
-import { getDailyLessons } from "@/lib/actions/calendar-sidebar";
-import type { DailyLesson } from "@/lib/actions/types";
-import { getDayEvents } from "@/lib/actions/calendar-events";
-import { createBlockedTime } from "@/lib/actions/blocked-times";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { detectUserTimezone } from "@/lib/utils/timezones";
 import {
@@ -70,6 +89,98 @@ type AvailabilitySlot = {
   is_available: boolean;
 };
 
+type CalendarFeedback = { type: "success" | "error"; message: string } | null;
+
+type CalendarUIState = {
+  view: CalendarViewType;
+  activeDate: Date;
+  blockDialogOpen: boolean;
+  blockDialogDate?: Date;
+  blockDialogHour?: number;
+  availabilityDrawerOpen: boolean;
+  bookingModalOpen: boolean;
+  bookingModalDate?: Date;
+  bookingModalHour?: number;
+  feedback: CalendarFeedback;
+  refreshKey: number;
+  secondaryTimezone: string;
+  availabilitySlots: AvailabilitySlot[];
+};
+
+type CalendarUIAction =
+  | { type: "set_view"; view: CalendarViewType }
+  | { type: "set_active_date"; date: Date }
+  | { type: "open_block_dialog"; date?: Date; hour?: number }
+  | { type: "close_block_dialog" }
+  | { type: "open_booking_modal"; date?: Date; hour?: number }
+  | { type: "close_booking_modal" }
+  | { type: "open_availability_drawer" }
+  | { type: "close_availability_drawer" }
+  | { type: "set_feedback"; feedback: CalendarFeedback }
+  | { type: "refresh" }
+  | { type: "set_secondary_timezone"; timezone: string }
+  | { type: "set_availability_slots"; slots: AvailabilitySlot[] };
+
+function calendarUIReducer(
+  state: CalendarUIState,
+  action: CalendarUIAction
+): CalendarUIState {
+  switch (action.type) {
+    case "set_view":
+      if (state.view === action.view) return state;
+      return {
+        ...state,
+        view: action.view,
+        availabilityDrawerOpen:
+          action.view === "availability" ? false : state.availabilityDrawerOpen,
+      };
+    case "set_active_date":
+      return { ...state, activeDate: action.date };
+    case "open_block_dialog":
+      return {
+        ...state,
+        blockDialogOpen: true,
+        blockDialogDate: action.date,
+        blockDialogHour: action.hour,
+      };
+    case "close_block_dialog":
+      return {
+        ...state,
+        blockDialogOpen: false,
+        blockDialogDate: undefined,
+        blockDialogHour: undefined,
+      };
+    case "open_booking_modal":
+      return {
+        ...state,
+        bookingModalOpen: true,
+        bookingModalDate: action.date,
+        bookingModalHour: action.hour,
+      };
+    case "close_booking_modal":
+      return {
+        ...state,
+        bookingModalOpen: false,
+        bookingModalDate: undefined,
+        bookingModalHour: undefined,
+      };
+    case "open_availability_drawer":
+      return { ...state, availabilityDrawerOpen: true };
+    case "close_availability_drawer":
+      return { ...state, availabilityDrawerOpen: false };
+    case "set_feedback":
+      return { ...state, feedback: action.feedback };
+    case "refresh":
+      return { ...state, refreshKey: state.refreshKey + 1 };
+    case "set_secondary_timezone":
+      return { ...state, secondaryTimezone: action.timezone };
+    case "set_availability_slots":
+      return { ...state, availabilitySlots: action.slots };
+    default:
+      return state;
+  }
+}
+
 type CalendarPageClientProps = {
   signupDate: string | null;
   services?: ServiceSummary[];
@@ -95,88 +206,113 @@ export function CalendarPageClient({
 }: CalendarPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [view, setViewState] = useState<CalendarViewType>(initialView);
-  const isMobile = useIsMobile();
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
   const hasAutoViewRef = useRef(false);
 
-  const setView = useCallback((newView: CalendarViewType) => {
-    setViewState(newView);
-    const params = new URLSearchParams(searchParams.toString());
-    if (newView === "month") {
-      params.delete("view");
-    } else {
-      params.set("view", newView);
-    }
-    router.replace(`/calendar${params.toString() ? `?${params}` : ""}`, { scroll: false });
-  }, [router, searchParams]);
-  const [activeDate, setActiveDate] = useState<Date>(new Date());
-  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-  const [availabilityDrawerOpen, setAvailabilityDrawerOpen] = useState(false);
-  const [blockDialogDate, setBlockDialogDate] = useState<Date | undefined>();
-  const [blockDialogHour, setBlockDialogHour] = useState<number | undefined>();
-  const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [state, dispatch] = useReducer(calendarUIReducer, {
+    view: initialView,
+    activeDate: new Date(),
+    blockDialogOpen: false,
+    availabilityDrawerOpen: false,
+    bookingModalOpen: false,
+    feedback: null,
+    refreshKey: 0,
+    secondaryTimezone: tutorTimezone || "",
+    availabilitySlots: availability,
+  });
+
   const [, startMoveTransition] = useTransition();
-  const [secondaryTimezone, setSecondaryTimezone] = useState<string>(tutorTimezone || "");
-  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(availability);
 
-  // Booking modal state
-  const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  const [bookingModalDate, setBookingModalDate] = useState<Date | undefined>();
-  const [bookingModalHour, setBookingModalHour] = useState<number | undefined>();
+  const {
+    selectedDate,
+    setSelectedDate,
+    sidebarOpen,
+    setSidebarOpen,
+    dailyLessons,
+    externalEvents,
+    loadDayData,
+    handleSidebarClose,
+  } = useSidebarData({
+    initialDate: state.activeDate,
+    refreshKey: state.refreshKey,
+  });
 
-  // Quick actions popover state
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const [quickActionsPosition, setQuickActionsPosition] = useState({ x: 0, y: 0 });
-  const [pendingSlotDate, setPendingSlotDate] = useState<Date | undefined>();
-  const [pendingSlotHour, setPendingSlotHour] = useState<number | undefined>();
+  const setFeedback = useCallback((feedback: CalendarFeedback) => {
+    dispatch({ type: "set_feedback", feedback });
+  }, []);
 
-  // Event details popover state
-  const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
-  const [eventPopoverPosition, setEventPopoverPosition] = useState({ x: 0, y: 0 });
-  const [popoverEvent, setPopoverEvent] = useState<CalendarEvent | null>(null);
+  const refreshCalendar = useCallback(() => {
+    dispatch({ type: "refresh" });
+  }, []);
 
-  // Sidebar state
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [dailyLessons, setDailyLessons] = useState<DailyLesson[]>([]);
-  const [externalEvents, setExternalEvents] = useState<CalendarEvent[]>([]);
+  const selectDate = useCallback(
+    (date: Date, openSidebar: boolean) => {
+      dispatch({ type: "set_active_date", date });
+      setSelectedDate(date);
+
+      if (openSidebar) {
+        setSidebarOpen(true);
+        loadDayData(date);
+      } else {
+        setSidebarOpen(false);
+      }
+    },
+    [loadDayData, setSelectedDate, setSidebarOpen]
+  );
+
+  const selectDateForView = useCallback(
+    (date: Date) => {
+      selectDate(date, state.view === "month");
+    },
+    [selectDate, state.view]
+  );
+
+  const calendarEvent = useCalendarEvent({ onDateSelect: selectDateForView });
+  const calendarSlot = useCalendarSlot({
+    onDateSelect: selectDateForView,
+    onRefresh: refreshCalendar,
+    onFeedback: setFeedback,
+  });
+
+  const setView = useCallback(
+    (newView: CalendarViewType) => {
+      dispatch({ type: "set_view", view: newView });
+      const params = new URLSearchParams(searchParams.toString());
+      if (newView === "month") {
+        params.delete("view");
+      } else {
+        params.set("view", newView);
+      }
+      router.replace(`/calendar${params.toString() ? `?${params}` : ""}`,
+        { scroll: false }
+      );
+    },
+    [router, searchParams]
+  );
 
   useEffect(() => {
-    setAvailabilitySlots(availability);
+    dispatch({ type: "set_availability_slots", slots: availability });
   }, [availability]);
 
   useEffect(() => {
     const nextView = resolveViewFromSearchParams(searchParams);
-    setViewState((prev) => (prev === nextView ? prev : nextView));
+    dispatch({ type: "set_view", view: nextView });
   }, [searchParams]);
 
   useEffect(() => {
     if (!isMobile || hasAutoViewRef.current) return;
     const viewParam = searchParams.get("view");
     if (!viewParam) {
-      if (view !== "day") {
+      if (state.view !== "day") {
         setView("day");
       }
       hasAutoViewRef.current = true;
     }
-  }, [isMobile, searchParams, setView, view]);
+  }, [isMobile, searchParams, setView, state.view]);
 
-  // Close availability drawer when switching to availability tab
   useEffect(() => {
-    if (view === "availability") {
-      setAvailabilityDrawerOpen(false);
-    }
-  }, [view]);
-
-  // Handle ?action=book deep link for unified booking experience
-  useEffect(() => {
-    const action = searchParams.get("action");
-    if (action === "book" && !bookingModalOpen) {
-      // Pre-fill with today at next available hour in the tutor's timezone.
+    if (!state.bookingModalOpen && searchParams.get("action") === "book") {
       let zonedNow: Date;
       try {
         zonedNow = toZonedTime(new Date(), tutorTimezone);
@@ -191,61 +327,44 @@ export function CalendarPageClient({
         nextHour = 9;
       }
 
-      setBookingModalDate(bookingDate);
-      setBookingModalHour(nextHour);
-      setBookingModalOpen(true);
-      // Clean up URL param after opening
+      dispatch({
+        type: "open_booking_modal",
+        date: bookingDate,
+        hour: nextHour,
+      });
+
       const params = new URLSearchParams(searchParams.toString());
       params.delete("action");
       router.replace(`/calendar${params.toString() ? `?${params}` : ""}`, { scroll: false });
     }
-  }, [searchParams, bookingModalOpen, router, tutorTimezone]);
+  }, [searchParams, state.bookingModalOpen, router, tutorTimezone]);
 
-  // Load lessons when date is selected
-  const loadDayData = useCallback(async (date: Date) => {
-    try {
-      const [lessonsResult, eventsResult] = await Promise.all([
-        getDailyLessons(date),
-        getDayEvents(date.toISOString()),
-      ]);
-      setDailyLessons(lessonsResult.lessons);
-      // Filter to only external events (Google/Outlook)
-      const external = (eventsResult.events || []).filter(
-        (e) => e.type === "google" || e.type === "outlook"
-      );
-      setExternalEvents(external);
-    } catch (error) {
-      console.error("Failed to load day data:", error);
-    }
-  }, []);
+  useEffect(() => {
+    setSelectedDate(state.activeDate);
+  }, [state.activeDate, setSelectedDate]);
 
-  // Handle date selection from calendar
-  const handleDateSelect = useCallback((date: Date) => {
-    setSelectedDate(date);
-    setActiveDate(date);
-    setSelectedEvent(null);
-    setSidebarOpen(true);
-    setQuickActionsOpen(false);
-    setEventPopoverOpen(false);
-    setPopoverEvent(null);
-    loadDayData(date);
-  }, [loadDayData]);
+  const handleMonthDateSelect = useCallback(
+    (date: Date) => {
+      calendarEvent.setSelectedEvent(null);
+      calendarSlot.setQuickActionsOpen(false);
+      calendarEvent.closeEventPopover();
+      selectDate(date, true);
+    },
+    [calendarEvent, calendarSlot, selectDate]
+  );
 
-  // Handle sidebar close
-  const handleSidebarClose = useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
-
-  // Handle reschedule from sidebar
-  const handleRescheduleFromSidebar = useCallback((lessonId: string) => {
-    // Find the lesson and open reschedule dialog
-    const lesson = dailyLessons.find((l) => l.id === lessonId);
-    if (lesson) {
-      setSelectedEvent({
+  const handleRescheduleFromSidebar = useCallback(
+    (lessonId: string) => {
+      const lesson = dailyLessons.find((lesson) => lesson.id === lessonId);
+      if (!lesson) return;
+      calendarEvent.setSelectedEvent({
         id: lesson.id,
         title: lesson.student?.full_name || "Lesson",
         start: lesson.scheduled_at,
-        end: new Date(new Date(lesson.scheduled_at).getTime() + lesson.duration_minutes * 60 * 1000).toISOString(),
+        end: new Date(
+          new Date(lesson.scheduled_at).getTime() +
+            lesson.duration_minutes * 60 * 1000
+        ).toISOString(),
         type: "tutorlingua",
         source: "TutorLingua",
         studentId: lesson.student?.id,
@@ -257,158 +376,59 @@ export function CalendarPageClient({
         durationMinutes: lesson.duration_minutes,
         packageType: lesson.packageType,
       });
-      setRescheduleOpen(true);
-    }
-  }, [dailyLessons]);
+      calendarEvent.setRescheduleOpen(true);
+    },
+    [calendarEvent, dailyLessons]
+  );
 
-  // Reload data when refreshKey changes and sidebar is open
-  useEffect(() => {
-    if (selectedDate && sidebarOpen && refreshKey > 0) {
-      loadDayData(selectedDate);
-    }
-  }, [refreshKey, selectedDate, sidebarOpen, loadDayData]);
+  const handleEventClick = useCallback(
+    (event: CalendarEvent, clickEvent?: React.MouseEvent) => {
+      calendarSlot.setQuickActionsOpen(false);
+      calendarEvent.handleEventClick(event, clickEvent);
+    },
+    [calendarEvent, calendarSlot]
+  );
 
-  const handleEventClick = (event: CalendarEvent, clickEvent?: React.MouseEvent) => {
-    const eventDate = new Date(event.start);
-    setSelectedDate(eventDate);
-    setActiveDate(eventDate);
-    setSelectedEvent(event);
-    setQuickActionsOpen(false);
+  const handleTimeSlotClick = useCallback(
+    (date: Date, hour: number, clickEvent?: React.MouseEvent) => {
+      calendarEvent.setSelectedEvent(null);
+      calendarEvent.closeEventPopover();
+      calendarSlot.handleTimeSlotClick(date, hour, clickEvent);
+    },
+    [calendarEvent, calendarSlot]
+  );
 
-    if (clickEvent) {
-      setEventPopoverPosition({ x: clickEvent.clientX, y: clickEvent.clientY });
-      setPopoverEvent(event);
-      setEventPopoverOpen(true);
-    } else {
-      setEventPopoverOpen(false);
-      setPopoverEvent(null);
-    }
+  const handleQuickActionsBlockTime = useCallback(() => {
+    const slot = calendarSlot.handleQuickActionsBlockTime();
+    if (!slot) return;
+    dispatch({ type: "open_block_dialog", date: slot.date, hour: slot.hour });
+  }, [calendarSlot]);
 
-    if (view === "month") {
-      setSidebarOpen(true);
-      loadDayData(eventDate);
-    } else {
-      setSidebarOpen(false);
-    }
-  };
+  const handleQuickActionsCreateBooking = useCallback(() => {
+    const slot = calendarSlot.handleQuickActionsCreateBooking();
+    if (!slot) return;
+    dispatch({ type: "open_booking_modal", date: slot.date, hour: slot.hour });
+  }, [calendarSlot]);
 
-  const handlePopoverReschedule = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setRescheduleOpen(true);
-  };
-
-  const handlePopoverRefresh = () => {
-    setRefreshKey((key) => key + 1);
-  };
-
-  const handleTimeSlotClick = (date: Date, hour: number, clickEvent?: React.MouseEvent) => {
-    setPendingSlotDate(date);
-    setPendingSlotHour(hour);
-    setSelectedEvent(null);
-    setSelectedDate(date);
-    setActiveDate(date);
-    setEventPopoverOpen(false);
-    setPopoverEvent(null);
-
-    if (clickEvent) {
-      setQuickActionsPosition({ x: clickEvent.clientX, y: clickEvent.clientY });
-      setQuickActionsOpen(true);
-    } else {
-      setQuickActionsOpen(false);
-    }
-
-    if (view === "month") {
-      setSidebarOpen(true);
-      loadDayData(date);
-    } else {
-      setSidebarOpen(false);
-    }
-  };
-
-  const handleQuickActionsBlockTime = () => {
-    setBlockDialogDate(pendingSlotDate);
-    setBlockDialogHour(pendingSlotHour);
-    setBlockDialogOpen(true);
-  };
-
-  const handleQuickActionsCreateBooking = () => {
-    setBookingModalDate(pendingSlotDate);
-    setBookingModalHour(pendingSlotHour);
-    setBookingModalOpen(true);
-  };
-
-  useEffect(() => {
-    // Sync selected date used for side panel with activeDate changes
-    setSelectedDate(activeDate);
-  }, [activeDate]);
-
-  const handleBlockSuccess = () => {
-    // Refresh the calendar to show the new blocked time
-    setRefreshKey((key) => key + 1);
-    setFeedback({ type: "success", message: "Time blocked successfully." });
-  };
-
-  const formatBlockDuration = useCallback((minutes: number) => {
-    if (minutes <= 0) return "0m";
-    if (minutes % 60 === 0) {
-      return `${minutes / 60}hr`;
-    }
-    if (minutes < 60) {
-      return `${minutes}m`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-    return `${hours}hr ${remainder}m`;
-  }, []);
-
-  // Instant block handler for quick action buttons (1hr, 2hr)
-  const handleInstantBlock = useCallback(async (durationMinutes: number) => {
-    if (!pendingSlotDate || pendingSlotHour === undefined) return;
-
-    const startDateTime = new Date(pendingSlotDate);
-    startDateTime.setHours(pendingSlotHour, 0, 0, 0);
-
-    const endDateTime = new Date(startDateTime);
-    endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
-
-    const result = await createBlockedTime({
-      startTime: startDateTime.toISOString(),
-      endTime: endDateTime.toISOString(),
-    });
-
-    if (result.success) {
-      setRefreshKey((key) => key + 1);
-      setFeedback({
-        type: "success",
-        message: `Blocked ${formatBlockDuration(durationMinutes)} successfully.`,
-      });
-    } else {
-      setFeedback({ type: "error", message: result.error || "Failed to block time." });
-    }
-  }, [formatBlockDuration, pendingSlotDate, pendingSlotHour]);
-
-  const handleBookingSuccess = () => {
-    // Refresh the calendar to show the new booking
-    setRefreshKey((key) => key + 1);
-    setFeedback({ type: "success", message: "Booking created successfully." });
-  };
-
-  // Quick actions from sidebar panel (month view)
   const handleQuickAddFromPanel = useCallback(() => {
-    if (selectedDate) {
-      setBookingModalDate(selectedDate);
-      setBookingModalHour(9); // Default to 9am
-      setBookingModalOpen(true);
-    }
+    if (!selectedDate) return;
+    dispatch({ type: "open_booking_modal", date: selectedDate, hour: 9 });
   }, [selectedDate]);
 
   const handleQuickBlockFromPanel = useCallback(() => {
-    if (selectedDate) {
-      setBlockDialogDate(selectedDate);
-      setBlockDialogHour(9); // Default to 9am
-      setBlockDialogOpen(true);
-    }
+    if (!selectedDate) return;
+    dispatch({ type: "open_block_dialog", date: selectedDate, hour: 9 });
   }, [selectedDate]);
+
+  const handleBlockSuccess = useCallback(() => {
+    refreshCalendar();
+    setFeedback({ type: "success", message: "Time blocked successfully." });
+  }, [refreshCalendar, setFeedback]);
+
+  const handleBookingSuccess = useCallback(() => {
+    refreshCalendar();
+    setFeedback({ type: "success", message: "Booking created successfully." });
+  }, [refreshCalendar, setFeedback]);
 
   const handleEventMove = (event: CalendarEvent, newStartIso: string) => {
     setFeedback(null);
@@ -428,84 +448,95 @@ export function CalendarPageClient({
         }
 
         setFeedback({ type: "success", message: "Booking moved to the new time." });
-        setRefreshKey((key) => key + 1);
+        refreshCalendar();
       })();
     });
   };
 
-  const handleRescheduleSuccess = (newStartIso: string) => {
-    setRefreshKey((key) => key + 1);
-    setFeedback({ type: "success", message: "Booking rescheduled." });
-
-    if (selectedEvent) {
-      setSelectedEvent({ ...selectedEvent, start: newStartIso });
-    }
-  };
-
-  const containerHeightClass =
-    view === "month"
-      ? "h-[calc(100vh-11.5rem-env(safe-area-inset-bottom))] lg:h-[calc(100vh-8rem)]"
-      : "h-[calc(100vh-11.5rem-env(safe-area-inset-bottom))] lg:h-[calc(100vh-8rem)]";
-
-  const primaryTimezone = useMemo(
-    () => tutorTimezone || detectUserTimezone(),
-    [tutorTimezone]
+  const handleRescheduleSuccess = useCallback(
+    (newStartIso: string) => {
+      refreshCalendar();
+      setFeedback({ type: "success", message: "Booking rescheduled." });
+      calendarEvent.handleRescheduleSuccess(newStartIso);
+    },
+    [calendarEvent, refreshCalendar, setFeedback]
   );
 
   const handlePrev = () => {
     setFeedback(null);
-    setActiveDate((prev) => {
-      if (view === "month") return subMonths(prev, 1);
-      if (view === "week") return subWeeks(prev, 1);
-      return subDays(prev, 1);
+    dispatch({
+      type: "set_active_date",
+      date:
+        state.view === "month"
+          ? subMonths(state.activeDate, 1)
+          : state.view === "week"
+            ? subWeeks(state.activeDate, 1)
+            : subDays(state.activeDate, 1),
     });
   };
 
   const handleNext = () => {
     setFeedback(null);
-    setActiveDate((prev) => {
-      if (view === "month") return addMonths(prev, 1);
-      if (view === "week") return addWeeks(prev, 1);
-      return addDays(prev, 1);
+    dispatch({
+      type: "set_active_date",
+      date:
+        state.view === "month"
+          ? addMonths(state.activeDate, 1)
+          : state.view === "week"
+            ? addWeeks(state.activeDate, 1)
+            : addDays(state.activeDate, 1),
     });
   };
 
   const handleToday = () => {
     setFeedback(null);
     const today = new Date();
-    setActiveDate(today);
+    dispatch({ type: "set_active_date", date: today });
     setSelectedDate(today);
   };
 
-  // Keyboard shortcuts
-  const shortcutsEnabled = !bookingModalOpen && !blockDialogOpen && !availabilityDrawerOpen && !isMobile;
+  const shortcutsEnabled =
+    !state.bookingModalOpen &&
+    !state.blockDialogOpen &&
+    !state.availabilityDrawerOpen &&
+    !isMobile;
 
   useCalendarShortcuts(
     {
-      onNewBooking: () => setBookingModalOpen(true),
-      onBlockTime: () => setBlockDialogOpen(true),
-      onAvailability: () => setAvailabilityDrawerOpen(true),
+      onNewBooking: () => dispatch({ type: "open_booking_modal" }),
+      onBlockTime: () => dispatch({ type: "open_block_dialog" }),
+      onAvailability: () => dispatch({ type: "open_availability_drawer" }),
       onToday: handleToday,
     },
     shortcutsEnabled
   );
 
   const toolbarLabel = useMemo(() => {
-    if (view === "week") {
-      const start = startOfWeek(activeDate, { weekStartsOn: 0 });
-      const end = endOfWeek(activeDate, { weekStartsOn: 0 });
+    if (state.view === "week") {
+      const start = startOfWeek(state.activeDate, { weekStartsOn: 0 });
+      const end = endOfWeek(state.activeDate, { weekStartsOn: 0 });
       return `${format(start, "MMMM")} ${format(start, "d")} - ${format(end, "d, yyyy")}`;
     }
-    if (view === "day") {
-      return format(activeDate, "MMMM d, yyyy");
+    if (state.view === "day") {
+      return format(state.activeDate, "MMMM d, yyyy");
     }
-    return format(activeDate, "MMMM yyyy");
-  }, [activeDate, view]);
+    return format(state.activeDate, "MMMM yyyy");
+  }, [state.activeDate, state.view]);
+
+  const primaryTimezone = useMemo(
+    () => tutorTimezone || detectUserTimezone(),
+    [tutorTimezone]
+  );
 
   const iconButtonClass = isMobile ? "h-11 w-11" : "h-9 w-9";
   const textButtonClass = isMobile ? "h-11 px-4" : "h-9 px-3";
   const viewTabClass = isMobile ? "px-4 py-2.5" : "px-4 py-2";
   const primaryActionClass = isMobile ? "h-12 w-12 rounded-full" : "h-10 w-10 rounded-full";
+
+  const containerHeightClass =
+    state.view === "month"
+      ? "h-[calc(100vh-11.5rem-env(safe-area-inset-bottom))] lg:h-[calc(100vh-8rem)]"
+      : "h-[calc(100vh-11.5rem-env(safe-area-inset-bottom))] lg:h-[calc(100vh-8rem)]";
 
   return (
     <div
@@ -518,10 +549,10 @@ export function CalendarPageClient({
       <div className="px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <span className="text-3xl font-semibold tracking-tight text-foreground">
-            {view === "availability" ? "Availability" : toolbarLabel}
+            {state.view === "availability" ? "Availability" : toolbarLabel}
           </span>
 
-          {view !== "availability" && (
+          {state.view !== "availability" && (
             <div className="flex items-center gap-1 text-muted-foreground">
               <Button
                 variant="ghost"
@@ -569,7 +600,7 @@ export function CalendarPageClient({
                 { value: "day" as const, label: "Day", Icon: Calendar },
                 { value: "availability" as const, label: "Availability", Icon: Clock },
               ].map(({ value, label, Icon }) => {
-                const isActive = view === value;
+                const isActive = state.view === value;
                 return (
                   <button
                     key={value}
@@ -592,17 +623,17 @@ export function CalendarPageClient({
               })}
             </div>
 
-            {view !== "availability" && (
+            {state.view !== "availability" && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={iconButtonClass}
-                  onClick={() => setAvailabilityDrawerOpen(true)}
-                >
-                  <Clock className="h-4 w-4" />
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={iconButtonClass}
+                    onClick={() => dispatch({ type: "open_availability_drawer" })}
+                  >
+                    <Clock className="h-4 w-4" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <span className="flex items-center gap-2">
@@ -619,7 +650,11 @@ export function CalendarPageClient({
                 variant="ghost"
                 size="icon"
                 className={`relative ${iconButtonClass}`}
-                title={connectedCalendars.length > 0 ? `${connectedCalendars.length} calendar(s) connected` : "Connect your calendar"}
+                title={
+                  connectedCalendars.length > 0
+                    ? `${connectedCalendars.length} calendar(s) connected`
+                    : "Connect your calendar"
+                }
               >
                 <Link2 className="h-4 w-4" />
                 {connectedCalendars.length > 0 ? (
@@ -640,19 +675,19 @@ export function CalendarPageClient({
                 <DropdownMenuItem className="flex-col items-start gap-2">
                   <span className="text-xs font-semibold uppercase text-muted-foreground">Timezone</span>
                   <TimezoneSelect
-                    value={secondaryTimezone}
-                    onChange={(tz) => setSecondaryTimezone(tz)}
+                    value={state.secondaryTimezone}
+                    onChange={(tz) => dispatch({ type: "set_secondary_timezone", timezone: tz })}
                     placeholder="Select timezone"
                     autoDetect={false}
                     showCurrentTime
                     className="w-full"
                   />
-                  {secondaryTimezone ? (
+                  {state.secondaryTimezone ? (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-8 px-2 text-xs font-semibold"
-                      onClick={() => setSecondaryTimezone("")}
+                      onClick={() => dispatch({ type: "set_secondary_timezone", timezone: "" })}
                     >
                       Clear
                     </Button>
@@ -666,7 +701,7 @@ export function CalendarPageClient({
                 <Button
                   size="icon"
                   className={primaryActionClass}
-                  onClick={() => setBookingModalOpen(true)}
+                  onClick={() => dispatch({ type: "open_booking_modal" })}
                 >
                   <Plus className="h-5 w-5" />
                 </Button>
@@ -681,84 +716,78 @@ export function CalendarPageClient({
           </div>
         </div>
 
-        {feedback ? (
-          <p
-            className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-              feedback.type === "success"
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-destructive/10 text-destructive"
-            }`}
-          >
-            {feedback.message}
-          </p>
+        {state.feedback ? (
+          <FeedbackBanner
+            type={state.feedback.type}
+            message={state.feedback.message}
+            onDismiss={() => setFeedback(null)}
+            className="mt-3"
+          />
         ) : null}
       </div>
 
       {/* Main Content Area - Calendar + Sidebar */}
-      <div
-        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40 transition-all duration-300 lg:flex-row"
-      >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40 transition-all duration-300 lg:flex-row">
         {/* Calendar Views */}
         <div
           className={[
             "relative flex-1 min-w-0 min-h-0 flex flex-col px-4 py-4 transition-all duration-300 sm:px-6 lg:flex-[2] lg:px-8",
-            view === "month" ? "overflow-hidden" : "overflow-x-auto overflow-y-auto",
+            state.view === "month" ? "overflow-hidden" : "overflow-x-auto overflow-y-auto",
           ].join(" ")}
         >
           <AnimatePresence mode="wait">
             <motion.div
-              key={view}
+              key={state.view}
               initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: "easeOut" }}
               className="flex-1 min-h-0 flex flex-col"
             >
-              {view === "month" && (
+              {state.view === "month" && (
                 <DashboardBookingCalendar
                   signupDate={signupDate}
-                  selectedDate={activeDate}
+                  selectedDate={state.activeDate}
                   showHeaderControls={false}
                   onDateSelect={(date) => {
-                    setActiveDate(date);
-                    handleDateSelect(date);
+                    handleMonthDateSelect(date);
                   }}
                 />
               )}
 
-              {view === "week" && (
+              {state.view === "week" && (
                 <CalendarWeekView
                   onEventClick={handleEventClick}
                   onTimeSlotClick={handleTimeSlotClick}
                   onEventMove={handleEventMove}
-                  refreshKey={refreshKey}
+                  refreshKey={state.refreshKey}
                   primaryTimezone={primaryTimezone}
-                  secondaryTimezone={secondaryTimezone || null}
-                  activeDate={activeDate}
+                  secondaryTimezone={state.secondaryTimezone || null}
+                  activeDate={state.activeDate}
                   showHeaderControls={false}
-                  availabilitySlots={availabilitySlots}
+                  availabilitySlots={state.availabilitySlots}
                 />
               )}
 
-              {view === "day" && (
+              {state.view === "day" && (
                 <CalendarDayView
                   onEventClick={handleEventClick}
                   onTimeSlotClick={handleTimeSlotClick}
                   onEventMove={handleEventMove}
-                  refreshKey={refreshKey}
+                  refreshKey={state.refreshKey}
                   primaryTimezone={primaryTimezone}
-                  secondaryTimezone={secondaryTimezone || null}
-                  activeDate={activeDate}
+                  secondaryTimezone={state.secondaryTimezone || null}
+                  activeDate={state.activeDate}
                   showHeaderControls={false}
                 />
               )}
 
-              {view === "availability" && (
+              {state.view === "availability" && (
                 <AvailabilityTab
-                  initialSlots={availabilitySlots}
+                  initialSlots={state.availabilitySlots}
                   onSaveSuccess={(slots) => {
-                    setAvailabilitySlots(slots);
-                    setRefreshKey((key) => key + 1);
+                    dispatch({ type: "set_availability_slots", slots });
+                    refreshCalendar();
                     setFeedback({ type: "success", message: "Availability updated." });
                   }}
                 />
@@ -766,7 +795,6 @@ export function CalendarPageClient({
             </motion.div>
           </AnimatePresence>
         </div>
-
       </div>
 
       {/* Day Details Panel - fixed overlay, only visible on month view */}
@@ -783,58 +811,52 @@ export function CalendarPageClient({
 
       {/* Quick Actions Popover */}
       <SlotQuickActions
-        isOpen={quickActionsOpen}
-        onClose={() => setQuickActionsOpen(false)}
-        position={quickActionsPosition}
+        isOpen={calendarSlot.quickActionsOpen}
+        onClose={() => calendarSlot.setQuickActionsOpen(false)}
+        position={calendarSlot.quickActionsPosition}
         onBlockTime={handleQuickActionsBlockTime}
         onCreateBooking={handleQuickActionsCreateBooking}
-        onQuickBlock={handleInstantBlock}
-        slotDate={pendingSlotDate}
-        slotHour={pendingSlotHour}
+        onQuickBlock={calendarSlot.handleInstantBlock}
+        slotDate={calendarSlot.pendingSlotDate}
+        slotHour={calendarSlot.pendingSlotHour}
       />
 
       {/* Event Details Popover - Show different popover based on event type */}
-      {popoverEvent && popoverEvent.type === "blocked" ? (
+      {calendarEvent.popoverEvent && calendarEvent.popoverEvent.type === "blocked" ? (
         <BlockedTimePopover
-          event={popoverEvent}
-          isOpen={eventPopoverOpen}
-          onClose={() => {
-            setEventPopoverOpen(false);
-            setPopoverEvent(null);
-          }}
-          position={eventPopoverPosition}
-          onRefresh={handlePopoverRefresh}
+          event={calendarEvent.popoverEvent}
+          isOpen={calendarEvent.eventPopoverOpen}
+          onClose={calendarEvent.closeEventPopover}
+          position={calendarEvent.eventPopoverPosition}
+          onRefresh={refreshCalendar}
         />
-      ) : popoverEvent ? (
+      ) : calendarEvent.popoverEvent ? (
         <EventDetailsPopover
-          event={popoverEvent}
-          isOpen={eventPopoverOpen}
-          onClose={() => {
-            setEventPopoverOpen(false);
-            setPopoverEvent(null);
-          }}
-          position={eventPopoverPosition}
-          onReschedule={handlePopoverReschedule}
-          onRefresh={handlePopoverRefresh}
+          event={calendarEvent.popoverEvent}
+          isOpen={calendarEvent.eventPopoverOpen}
+          onClose={calendarEvent.closeEventPopover}
+          position={calendarEvent.eventPopoverPosition}
+          onReschedule={calendarEvent.handlePopoverReschedule}
+          onRefresh={refreshCalendar}
         />
       ) : null}
 
       {/* Quick Block Dialog */}
       <QuickBlockDialog
-        isOpen={blockDialogOpen}
-        onClose={() => setBlockDialogOpen(false)}
+        isOpen={state.blockDialogOpen}
+        onClose={() => dispatch({ type: "close_block_dialog" })}
         onSuccess={handleBlockSuccess}
-        initialDate={blockDialogDate}
-        initialHour={blockDialogHour}
+        initialDate={state.blockDialogDate}
+        initialHour={state.blockDialogHour}
       />
 
       {/* Calendar Booking Modal */}
       <CalendarBookingModal
-        isOpen={bookingModalOpen}
-        onClose={() => setBookingModalOpen(false)}
+        isOpen={state.bookingModalOpen}
+        onClose={() => dispatch({ type: "close_booking_modal" })}
         onSuccess={handleBookingSuccess}
-        initialDate={bookingModalDate}
-        initialHour={bookingModalHour}
+        initialDate={state.bookingModalDate}
+        initialHour={state.bookingModalHour}
         services={services}
         students={students}
         recentStudentIds={recentStudentIds}
@@ -843,25 +865,29 @@ export function CalendarPageClient({
       />
 
       <RescheduleDialog
-        open={rescheduleOpen}
+        open={calendarEvent.rescheduleOpen}
         onOpenChange={(open) => {
-          setRescheduleOpen(open);
-          if (!open) setSelectedEvent(null);
+          calendarEvent.setRescheduleOpen(open);
+          if (!open) calendarEvent.setSelectedEvent(null);
         }}
-        bookingId={selectedEvent?.id ?? null}
-        defaultStart={selectedEvent?.start}
-        timezone={selectedEvent?.timezone}
-        durationMinutes={selectedEvent?.durationMinutes ?? null}
-        title={selectedEvent?.title}
-        subtitle={selectedEvent?.serviceName ? `Service: ${selectedEvent.serviceName}` : undefined}
+        bookingId={calendarEvent.selectedEvent?.id ?? null}
+        defaultStart={calendarEvent.selectedEvent?.start}
+        timezone={calendarEvent.selectedEvent?.timezone}
+        durationMinutes={calendarEvent.selectedEvent?.durationMinutes ?? null}
+        title={calendarEvent.selectedEvent?.title}
+        subtitle={
+          calendarEvent.selectedEvent?.serviceName
+            ? `Service: ${calendarEvent.selectedEvent.serviceName}`
+            : undefined
+        }
         onSuccess={handleRescheduleSuccess}
       />
 
       {/* Availability Drawer */}
       <AvailabilityDrawer
-        isOpen={availabilityDrawerOpen}
-        onClose={() => setAvailabilityDrawerOpen(false)}
-        initialSlots={availabilitySlots.map((slot) => ({
+        isOpen={state.availabilityDrawerOpen}
+        onClose={() => dispatch({ type: "close_availability_drawer" })}
+        initialSlots={state.availabilitySlots.map((slot) => ({
           id: slot.id,
           day_of_week: slot.day_of_week,
           start_time: slot.start_time,
@@ -873,8 +899,8 @@ export function CalendarPageClient({
             if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
             return a.start_time.localeCompare(b.start_time);
           });
-          setAvailabilitySlots(normalized);
-          setRefreshKey((key) => key + 1);
+          dispatch({ type: "set_availability_slots", slots: normalized });
+          refreshCalendar();
           setFeedback({ type: "success", message: "Availability updated." });
         }}
       />

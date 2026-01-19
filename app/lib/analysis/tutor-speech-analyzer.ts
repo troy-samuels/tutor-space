@@ -17,6 +17,7 @@
 import OpenAI from "openai";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import type { SpeakerSegment } from "./speaker-diarization";
+import { SpeechAnalyzerBase } from "./speech-analyzer-base";
 
 // =============================================================================
 // TYPES
@@ -143,90 +144,13 @@ Return JSON only:
   "teaching_summary": "1-2 sentence summary of what was taught in this lesson"
 }`;
 
-function truncateText(value: string, maxChars: number): string {
-  if (value.length <= maxChars) return value;
-  return value.slice(0, maxChars).trimEnd();
-}
-
-function selectRepresentativeSegments(
-  segments: SpeakerSegment[],
-  maxSegments: number,
-  headCount: number,
-  tailCount: number
-): SpeakerSegment[] {
-  if (segments.length <= maxSegments) return segments;
-
-  const normalizedHead = Math.min(headCount, maxSegments);
-  const normalizedTail = Math.min(tailCount, Math.max(0, maxSegments - normalizedHead));
-  const middleCount = Math.max(0, maxSegments - normalizedHead - normalizedTail);
-
-  const selected: SpeakerSegment[] = [];
-  selected.push(...segments.slice(0, normalizedHead));
-
-  if (middleCount > 0) {
-    const startIdx = normalizedHead;
-    const endIdx = Math.max(startIdx, segments.length - normalizedTail);
-    const middle = segments.slice(startIdx, endIdx);
-
-    if (middle.length > 0) {
-      for (let i = 0; i < middleCount; i++) {
-        const ratio = middleCount === 1 ? 0 : i / (middleCount - 1);
-        const index = Math.min(middle.length - 1, Math.floor(ratio * (middle.length - 1)));
-        selected.push(middle[index]!);
-      }
-    }
-  }
-
-  if (normalizedTail > 0) {
-    selected.push(...segments.slice(-normalizedTail));
-  }
-
-  const byStart = new Map<number, SpeakerSegment>();
-  for (const segment of selected) {
-    byStart.set(segment.start, segment);
-  }
-
-  return Array.from(byStart.values()).sort((a, b) => a.start - b.start);
-}
-
-function formatSegmentsForPrompt(segments: SpeakerSegment[]): string {
-  const MAX_PROMPT_CHARS = 12000;
-  const HEAD_SEGMENTS = 20;
-  const TAIL_SEGMENTS = 20;
-  const MIN_SEGMENTS = 40;
-  const MIN_SEGMENT_CHARS = 120;
-
-  const cleaned = segments
-    .filter((s) => typeof s.text === "string" && s.text.trim().length > 0)
-    .slice()
-    .sort((a, b) => a.start - b.start);
-
-  if (cleaned.length === 0) return "";
-
-  let maxSegments = Math.min(140, cleaned.length);
-  let segmentMaxChars = 240;
-
-  while (true) {
-    const selected = selectRepresentativeSegments(cleaned, maxSegments, HEAD_SEGMENTS, TAIL_SEGMENTS);
-    const formatted = selected
-      .map((s) => `[${s.start.toFixed(1)}s] ${truncateText(s.text.trim(), segmentMaxChars)}`)
-      .join("\n");
-
-    if (formatted.length <= MAX_PROMPT_CHARS) return formatted;
-
-    if (maxSegments > MIN_SEGMENTS) {
-      maxSegments = Math.max(MIN_SEGMENTS, Math.floor(maxSegments * 0.8));
-      continue;
-    }
-
-    if (segmentMaxChars > MIN_SEGMENT_CHARS) {
-      segmentMaxChars = Math.max(MIN_SEGMENT_CHARS, Math.floor(segmentMaxChars * 0.8));
-      continue;
-    }
-
-    return formatted.slice(0, MAX_PROMPT_CHARS);
+class TutorSpeechAnalyzer extends SpeechAnalyzerBase {
+  formatSegments(segments: SpeakerSegment[]): string {
+    return this.formatSegmentsForPrompt(segments, { maxSegments: 140 });
   }
 }
+
+const tutorAnalyzer = new TutorSpeechAnalyzer();
 
 /**
  * Analyze tutor speech using OpenAI
@@ -240,7 +164,7 @@ export async function analyzeTutorSpeech(
     preDefinedObjectives?: PreDefinedObjective[];
   } = {}
 ): Promise<TutorAnalysis> {
-  const formattedSegments = formatSegmentsForPrompt(tutorSegments);
+  const formattedSegments = tutorAnalyzer.formatSegments(tutorSegments);
 
   // Format pre-defined objectives if provided
   let predefinedSection = "";

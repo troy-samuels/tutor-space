@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   User,
@@ -21,6 +21,9 @@ import { markBookingAsPaid, cancelBooking, rescheduleBooking } from "@/lib/actio
 import { updateBookingDuration } from "@/lib/actions/booking-duration";
 import { QuickMessageDialog } from "./quick-message-dialog";
 import { isClassroomUrl } from "@/lib/utils/classroom-links";
+import { usePopoverClose } from "@/lib/hooks/usePopoverClose";
+import { usePopoverPosition } from "@/lib/hooks/usePopoverPosition";
+import { FeedbackBanner } from "@/components/ui/feedback-banner";
 
 type EventDetailsPopoverProps = {
   event: CalendarEvent;
@@ -41,7 +44,11 @@ export function EventDetailsPopover({
   onReschedule,
   onRefresh,
 }: EventDetailsPopoverProps) {
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const { popoverRef, close } = usePopoverClose({ isOpen, onClose });
+  const { position: adjustedPosition, setClickPosition } = usePopoverPosition({
+    popoverRef,
+    offset: { x: 0, y: 8 },
+  });
   const [isChangingDuration, setIsChangingDuration] = useState(false);
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -61,53 +68,10 @@ export function EventDetailsPopover({
     (endTime.getTime() - startTime.getTime()) / 60000
   );
 
-  // Close on click outside
   useEffect(() => {
     if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onClose]);
-
-  // Adjust position to keep popover in viewport
-  useEffect(() => {
-    if (!isOpen || !popoverRef.current) return;
-
-    const popover = popoverRef.current;
-    const rect = popover.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Adjust if going off right edge
-    if (rect.right > viewportWidth - 16) {
-      popover.style.left = `${viewportWidth - rect.width - 16}px`;
-    }
-
-    // Adjust if going off bottom edge
-    if (rect.bottom > viewportHeight - 16) {
-      popover.style.top = `${position.y - rect.height - 8}px`;
-    }
-  }, [isOpen, position]);
+    setClickPosition(position);
+  }, [isOpen, position, setClickPosition]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], {
@@ -204,8 +168,8 @@ export function EventDetailsPopover({
       ref={popoverRef}
       className="fixed z-50 w-80 rounded-xl border border-border bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150"
       style={{
-        left: position.x,
-        top: position.y + 8,
+        left: adjustedPosition.x,
+        top: adjustedPosition.y,
       }}
     >
       {/* Header */}
@@ -225,7 +189,7 @@ export function EventDetailsPopover({
           </h3>
         </div>
         <button
-          onClick={onClose}
+          onClick={close}
           className="rounded-full p-1 text-muted-foreground hover:bg-white/50 hover:text-foreground"
         >
           <X className="h-4 w-4" />
@@ -337,15 +301,12 @@ export function EventDetailsPopover({
 
         {/* Feedback message */}
         {feedback && (
-          <div
-            className={`rounded-lg px-3 py-2 text-xs font-medium ${
-              feedback.type === "success"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-red-50 text-red-700"
-            }`}
-          >
-            {feedback.message}
-          </div>
+          <FeedbackBanner
+            type={feedback.type}
+            message={feedback.message}
+            onDismiss={() => setFeedback(null)}
+            className="text-xs"
+          />
         )}
       </div>
 
@@ -385,7 +346,7 @@ export function EventDetailsPopover({
             <button
               onClick={() => {
                 onReschedule?.(event);
-                onClose();
+                close();
               }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >

@@ -117,12 +117,11 @@ export interface LessonNote {
 	student_id: string;
 	tutor_id: string;
 	topics_covered: string[] | null;
-	vocabulary_introduced: string[] | null;
-	grammar_points: string[] | null;
+	vocabulary_words: string[] | null;
 	homework: string | null;
-	strengths: string | null;
-	areas_to_improve: string | null;
-	student_visible_notes: string | null;
+	notes: string | null;
+	student_performance: string | null;
+	areas_to_focus: string[] | null;
 	created_at: string;
 }
 
@@ -209,7 +208,6 @@ export async function getLearningGoalById(
 		.select("*")
 		.eq("id", goalId)
 		.eq("tutor_id", tutorId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
@@ -232,7 +230,6 @@ export async function getGoalsForStudent(
 		.select("*")
 		.eq("student_id", studentId)
 		.eq("tutor_id", tutorId)
-		.is("deleted_at", null)
 		.order("created_at", { ascending: false });
 
 	if (error) {
@@ -418,7 +415,7 @@ export async function updateLearningStats(
 // ============================================================================
 
 const STUDENT_PROFILE_SELECT =
-	"id, tutor_id, user_id, first_name, last_name, email, ai_practice_enabled, ai_practice_current_period_end, ai_practice_free_tier_enabled, ai_practice_subscription_id";
+	"id, tutor_id, user_id, full_name, email, ai_practice_enabled, ai_practice_current_period_end, ai_practice_free_tier_enabled, ai_practice_subscription_id";
 
 export async function getStudentByUserId(
 	client: SupabaseClient,
@@ -428,8 +425,7 @@ export async function getStudentByUserId(
 	let query = client
 		.from("students")
 		.select(STUDENT_PROFILE_SELECT)
-		.eq("user_id", userId)
-		.is("deleted_at", null);
+		.eq("user_id", userId);
 
 	if (tutorId) {
 		query = query.eq("tutor_id", tutorId);
@@ -451,7 +447,6 @@ export async function getStudentById(
 		.from("students")
 		.select(STUDENT_PROFILE_SELECT)
 		.eq("id", studentId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
@@ -471,7 +466,6 @@ export async function getStudentByIdForTutor(
 		.select(STUDENT_PROFILE_SELECT)
 		.eq("id", studentId)
 		.eq("tutor_id", tutorId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
@@ -485,7 +479,7 @@ export async function getStudentProgressContext(
 	client: SupabaseClient,
 	options: { userId: string; studentId?: string | null; tutorId?: string | null }
 ): Promise<{ id: string; tutor_id: string } | null> {
-	let query = client.from("students").select("id, tutor_id").limit(1).is("deleted_at", null);
+	let query = client.from("students").select("id, tutor_id").limit(1);
 
 	if (options.studentId) {
 		query = query.eq("id", options.studentId);
@@ -508,19 +502,18 @@ export async function getStudentProgressContext(
 export async function getStudentContactById(
 	client: SupabaseClient,
 	studentId: string
-): Promise<Pick<StudentProfile, "user_id" | "first_name" | "last_name" | "email"> | null> {
+): Promise<{ user_id: string | null; full_name: string | null; email: string | null } | null> {
 	const { data, error } = await client
 		.from("students")
-		.select("user_id, first_name, last_name, email")
+		.select("user_id, full_name, email")
 		.eq("id", studentId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
 		throw error;
 	}
 
-	return data as Pick<StudentProfile, "user_id" | "first_name" | "last_name" | "email"> | null;
+	return data as { user_id: string | null; full_name: string | null; email: string | null } | null;
 }
 
 export async function getTutorProfileById(
@@ -556,7 +549,7 @@ export async function getRecentLessonNotes(
 	const { data, error } = await client
 		.from("lesson_notes")
 		.select(
-			"id, booking_id, student_id, tutor_id, topics_covered, vocabulary_introduced, grammar_points, homework, strengths, areas_to_improve, student_visible_notes, created_at"
+			"id, booking_id, student_id, tutor_id, topics_covered, vocabulary_words, homework, notes, student_performance, areas_to_focus, created_at"
 		)
 		.eq("student_id", studentId)
 		.eq("tutor_id", tutorId)

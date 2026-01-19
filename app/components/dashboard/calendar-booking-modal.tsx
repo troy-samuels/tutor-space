@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useId } from "react";
-import { format, setHours, setMinutes } from "date-fns";
+import { setHours, setMinutes } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 import { X, Loader2, Clock, Calendar, User, BookOpen, CreditCard, FileText } from "lucide-react";
 import { createBooking } from "@/lib/actions/bookings";
 import { Switch } from "@/components/ui/switch";
 import { useBookingPreferences } from "@/lib/hooks/useBookingPreferences";
+import { useBookingForm } from "@/lib/hooks/useBookingForm";
+import { useBookingSlots } from "@/lib/hooks/useBookingSlots";
 
 type ServiceSummary = {
   id: string;
@@ -50,11 +52,8 @@ export function CalendarBookingModal({
   tutorId,
   mostUsedServiceId,
 }: CalendarBookingModalProps) {
-  const defaultDate = initialDate || new Date();
-  const defaultHour = initialHour ?? 9;
   const quickModeId = useId();
 
-  // Use shared booking preferences hook
   const {
     preferences,
     isLoaded: prefsLoaded,
@@ -65,50 +64,36 @@ export function CalendarBookingModal({
     getSmartDefaultStudent,
   } = useBookingPreferences({ mostUsedServiceId });
 
-  const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
-  const [startTime, setStartTime] = useState(
-    `${String(defaultHour).padStart(2, "0")}:00`
-  );
-  const [serviceId, setServiceId] = useState<string>("");
-  const [studentId, setStudentId] = useState<string>("");
-  const [paymentStatus, setPaymentStatus] = useState<"unpaid" | "paid">("unpaid");
-  const [notes, setNotes] = useState("");
+  const defaultServiceId = prefsLoaded ? getSmartDefaultService(services) : "";
+  const defaultStudentId = prefsLoaded
+    ? getSmartDefaultStudent(students, recentStudentIds)
+    : "";
+
+  const bookingSlots = useBookingSlots({ isOpen, initialDate, initialHour });
+  const bookingForm = useBookingForm({
+    isOpen,
+    isReady: prefsLoaded,
+    tutorTimezone,
+    defaultServiceId,
+    defaultStudentId,
+    quickModeEnabled: preferences.quickModeEnabled,
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isQuickMode, setIsQuickMode] = useState(true);
-  const [step, setStep] = useState(0);
 
-  // New student inline creation
-  const [showNewStudent, setShowNewStudent] = useState(false);
-  const [newStudentName, setNewStudentName] = useState("");
-  const [newStudentEmail, setNewStudentEmail] = useState("");
-  const [newStudentTimezone, setNewStudentTimezone] = useState(tutorTimezone);
-
-  // Reset form when modal opens with new date/time and smart defaults
   useEffect(() => {
-    if (isOpen && prefsLoaded) {
-      setIsQuickMode(preferences.quickModeEnabled);
-      setDate(format(initialDate || new Date(), "yyyy-MM-dd"));
-      setStartTime(`${String(initialHour ?? 9).padStart(2, "0")}:00`);
-      setServiceId(getSmartDefaultService(services));
-      setStudentId(getSmartDefaultStudent(students, recentStudentIds));
-      setError(null);
-      setShowNewStudent(false);
-      setNewStudentName("");
-      setNewStudentEmail("");
-      setNewStudentTimezone(tutorTimezone);
-      setStep(0);
-    }
-  }, [isOpen, prefsLoaded, initialDate, initialHour, tutorTimezone, preferences.quickModeEnabled, getSmartDefaultService, getSmartDefaultStudent, services, students, recentStudentIds]);
+    if (!isOpen) return;
+    setError(null);
+    setIsSubmitting(false);
+  }, [isOpen]);
 
   const handleQuickModeChange = (checked: boolean) => {
-    setIsQuickMode(checked);
+    bookingForm.handleQuickModeChange(checked);
     setQuickMode(checked);
-    setStep(0);
   };
 
-  // Get selected service details
-  const selectedService = services.find((s) => s.id === serviceId);
+  const selectedService = services.find((service) => service.id === bookingForm.serviceId);
   const durationMinutes = selectedService?.duration_minutes ?? 60;
 
   if (!isOpen) return null;
@@ -119,29 +104,26 @@ export function CalendarBookingModal({
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
-      if (!serviceId) {
+      if (!bookingForm.serviceId) {
         setError("Please select a service");
         setIsSubmitting(false);
         return;
       }
 
-      // Handle new student creation if needed
-      let finalStudentId = studentId;
-      if (showNewStudent) {
-        if (!newStudentName.trim() || !newStudentEmail.trim()) {
+      let finalStudentId = bookingForm.studentId;
+      if (bookingForm.showNewStudent) {
+        if (!bookingForm.newStudentName.trim() || !bookingForm.newStudentEmail.trim()) {
           setError("Please enter student name and email");
           setIsSubmitting(false);
           return;
         }
-        // Import ensureStudent dynamically
         const { ensureStudent } = await import("@/lib/actions/students");
-        const normalizedEmail = newStudentEmail.trim().toLowerCase();
+        const normalizedEmail = bookingForm.newStudentEmail.trim().toLowerCase();
         const clientMutationId = `idempotency-student-${tutorId}-${normalizedEmail}`;
         const studentResult = await ensureStudent({
-          full_name: newStudentName.trim(),
+          full_name: bookingForm.newStudentName.trim(),
           email: normalizedEmail,
-          timezone: newStudentTimezone,
+          timezone: bookingForm.newStudentTimezone,
           clientMutationId,
         });
         if (studentResult.error) {
@@ -158,29 +140,28 @@ export function CalendarBookingModal({
         return;
       }
 
-      if (!date || !startTime) {
+      if (!bookingSlots.date || !bookingSlots.startTime) {
         setError("Please choose a date and start time");
         setIsSubmitting(false);
         return;
       }
 
-      // Combine date and time
       let startDateTime: Date;
       try {
-        startDateTime = fromZonedTime(`${date}T${startTime}:00`, tutorTimezone);
+        startDateTime = fromZonedTime(`${bookingSlots.date}T${bookingSlots.startTime}:00`, tutorTimezone);
       } catch {
-        const [startHour, startMinute] = startTime.split(":").map(Number);
-        startDateTime = setMinutes(setHours(new Date(date), startHour), startMinute);
+        const [startHour, startMinute] = bookingSlots.startTime.split(":").map(Number);
+        startDateTime = setMinutes(setHours(new Date(bookingSlots.date), startHour), startMinute);
       }
 
       const result = await createBooking({
-        service_id: serviceId,
+        service_id: bookingForm.serviceId,
         student_id: finalStudentId,
         scheduled_at: startDateTime.toISOString(),
         duration_minutes: durationMinutes,
         timezone: tutorTimezone,
-        notes: notes || undefined,
-        skipAdvanceBookingCheck: true, // Tutors can book any time without advance notice restriction
+        notes: bookingForm.notes || undefined,
+        skipAdvanceBookingCheck: true,
       });
 
       if (result.error) {
@@ -189,36 +170,24 @@ export function CalendarBookingModal({
         return;
       }
 
-      // If marked as unpaid, send payment request email to student
-      if (paymentStatus === "unpaid" && result.data) {
+      if (bookingForm.paymentStatus === "unpaid" && result.data) {
         const { sendPaymentRequestForBooking } = await import("@/lib/actions/bookings");
-        // Fire and forget - don't block UI for email sending
         sendPaymentRequestForBooking(result.data.id).catch((err) => {
           console.error("Failed to send payment request email:", err);
         });
       }
 
-      // If marked as paid, update payment status
-      if (paymentStatus === "paid" && result.data) {
+      if (bookingForm.paymentStatus === "paid" && result.data) {
         const { markBookingAsPaid } = await import("@/lib/actions/bookings");
         await markBookingAsPaid(result.data.id);
       }
 
-      // Save selections for quick repeat bookings
-      saveServiceId(serviceId);
+      saveServiceId(bookingForm.serviceId);
       saveStudentId(finalStudentId);
 
       onSuccess();
       onClose();
-
-      // Reset form
-      setServiceId("");
-      setStudentId("");
-      setNotes("");
-      setPaymentStatus("unpaid");
-      setShowNewStudent(false);
-      setNewStudentName("");
-      setNewStudentEmail("");
+      bookingForm.resetForm();
     } catch {
       setError("An unexpected error occurred");
     } finally {
@@ -226,26 +195,19 @@ export function CalendarBookingModal({
     }
   };
 
-  // Calculate end time for display
-  const getEndTime = () => {
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const startDate = setMinutes(setHours(new Date(), startHour), startMinute);
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    return format(endDate, "HH:mm");
-  };
-
   const stepLabels = ["Service & student", "Schedule & payment", "Notes"];
   const canProceedFromStep = () => {
-    const hasStudent =
-      showNewStudent ? Boolean(newStudentName.trim() && newStudentEmail.trim()) : Boolean(studentId);
-    if (step === 0) return Boolean(serviceId && hasStudent);
-    if (step === 1) return Boolean(date && startTime);
+    const hasStudent = bookingForm.showNewStudent
+      ? Boolean(bookingForm.newStudentName.trim() && bookingForm.newStudentEmail.trim())
+      : Boolean(bookingForm.studentId);
+    if (bookingForm.step === 0) return Boolean(bookingForm.serviceId && hasStudent);
+    if (bookingForm.step === 1) return Boolean(bookingSlots.date && bookingSlots.startTime);
     return true;
   };
 
-  const showServiceAndStudent = isQuickMode || step === 0;
-  const showScheduleAndPayment = isQuickMode || step === 1;
-  const showNotes = isQuickMode || step === 2;
+  const showServiceAndStudent = bookingForm.isQuickMode || bookingForm.step === 0;
+  const showScheduleAndPayment = bookingForm.isQuickMode || bookingForm.step === 1;
+  const showNotes = bookingForm.isQuickMode || bookingForm.step === 2;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -271,11 +233,11 @@ export function CalendarBookingModal({
                 Show all fields in one scrollable form.
               </p>
             </div>
-            <Switch id={quickModeId} checked={isQuickMode} onCheckedChange={handleQuickModeChange} />
+            <Switch id={quickModeId} checked={bookingForm.isQuickMode} onCheckedChange={handleQuickModeChange} />
           </div>
-          {!isQuickMode ? (
+          {!bookingForm.isQuickMode ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              Step {step + 1} of {stepLabels.length}: {stepLabels[step]}
+              Step {bookingForm.step + 1} of {stepLabels.length}: {stepLabels[bookingForm.step]}
             </p>
           ) : null}
         </div>
@@ -290,8 +252,8 @@ export function CalendarBookingModal({
                   Service
                 </label>
                 <select
-                  value={serviceId}
-                  onChange={(e) => setServiceId(e.target.value)}
+                  value={bookingForm.serviceId}
+                  onChange={(e) => bookingForm.setServiceId(e.target.value)}
                   className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                   autoFocus
@@ -313,9 +275,8 @@ export function CalendarBookingModal({
                   <User className="inline h-4 w-4 mr-1" />
                   Student
                 </label>
-                {!showNewStudent ? (
+                {!bookingForm.showNewStudent ? (
                   <div className="space-y-2">
-                    {/* Recent Students Quick Pick */}
                     {recentStudentIds.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         <span className="text-xs text-muted-foreground mr-1">Recent:</span>
@@ -326,9 +287,9 @@ export function CalendarBookingModal({
                             <button
                               key={id}
                               type="button"
-                              onClick={() => setStudentId(id)}
+                              onClick={() => bookingForm.setStudentId(id)}
                               className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                                studentId === id
+                                bookingForm.studentId === id
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-muted hover:bg-muted/80"
                               }`}
@@ -340,8 +301,8 @@ export function CalendarBookingModal({
                       </div>
                     )}
                     <select
-                      value={studentId}
-                      onChange={(e) => setStudentId(e.target.value)}
+                      value={bookingForm.studentId}
+                      onChange={(e) => bookingForm.setStudentId(e.target.value)}
                       className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                       <option value="">Select a student...</option>
@@ -370,7 +331,7 @@ export function CalendarBookingModal({
                     </select>
                     <button
                       type="button"
-                      onClick={() => setShowNewStudent(true)}
+                      onClick={() => bookingForm.setShowNewStudent(true)}
                       className="text-sm text-primary hover:underline"
                     >
                       + Add new student
@@ -382,11 +343,7 @@ export function CalendarBookingModal({
                       <span className="text-sm font-medium">New Student</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setShowNewStudent(false);
-                          setNewStudentName("");
-                          setNewStudentEmail("");
-                        }}
+                        onClick={bookingForm.resetNewStudent}
                         className="text-xs text-muted-foreground hover:text-foreground"
                       >
                         Cancel
@@ -394,21 +351,21 @@ export function CalendarBookingModal({
                     </div>
                     <input
                       type="text"
-                      value={newStudentName}
-                      onChange={(e) => setNewStudentName(e.target.value)}
+                      value={bookingForm.newStudentName}
+                      onChange={(e) => bookingForm.setNewStudentName(e.target.value)}
                       placeholder="Full name"
                       className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                     <input
                       type="email"
-                      value={newStudentEmail}
-                      onChange={(e) => setNewStudentEmail(e.target.value)}
+                      value={bookingForm.newStudentEmail}
+                      onChange={(e) => bookingForm.setNewStudentEmail(e.target.value)}
                       placeholder="Email address"
                       className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                     <select
-                      value={newStudentTimezone}
-                      onChange={(e) => setNewStudentTimezone(e.target.value)}
+                      value={bookingForm.newStudentTimezone}
+                      onChange={(e) => bookingForm.setNewStudentTimezone(e.target.value)}
                       className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                       <option value={tutorTimezone}>{tutorTimezone} (Your timezone)</option>
@@ -440,8 +397,8 @@ export function CalendarBookingModal({
                   </label>
                   <input
                     type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    value={bookingSlots.date}
+                    onChange={(e) => bookingSlots.setDate(e.target.value)}
                     className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     required
                   />
@@ -453,23 +410,21 @@ export function CalendarBookingModal({
                   </label>
                   <input
                     type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    step={900} // 15-minute steps
+                    value={bookingSlots.startTime}
+                    onChange={(e) => bookingSlots.setStartTime(e.target.value)}
+                    step={900}
                     className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     required
                   />
                 </div>
               </div>
 
-              {/* Duration Display */}
               {selectedService && (
                 <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                  Duration: {durationMinutes} min (ends at {getEndTime()})
+                  Duration: {durationMinutes} min (ends at {bookingSlots.getEndTime(durationMinutes)})
                 </div>
               )}
 
-              {/* Payment Status */}
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">
                   <CreditCard className="inline h-4 w-4 mr-1" />
@@ -478,9 +433,9 @@ export function CalendarBookingModal({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setPaymentStatus("unpaid")}
+                    onClick={() => bookingForm.setPaymentStatus("unpaid")}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      paymentStatus === "unpaid"
+                      bookingForm.paymentStatus === "unpaid"
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border hover:bg-muted"
                     }`}
@@ -489,9 +444,9 @@ export function CalendarBookingModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPaymentStatus("paid")}
+                    onClick={() => bookingForm.setPaymentStatus("paid")}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      paymentStatus === "paid"
+                      bookingForm.paymentStatus === "paid"
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                         : "border-border hover:bg-muted"
                     }`}
@@ -503,7 +458,6 @@ export function CalendarBookingModal({
             </>
           ) : null}
 
-          {/* Notes */}
           {showNotes ? (
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -511,8 +465,8 @@ export function CalendarBookingModal({
                 Notes (optional)
               </label>
               <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={bookingForm.notes}
+                onChange={(e) => bookingForm.setNotes(e.target.value)}
                 placeholder="Any notes about this booking..."
                 rows={2}
                 className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none"
@@ -520,14 +474,12 @@ export function CalendarBookingModal({
             </div>
           ) : null}
 
-          {/* Error */}
           {error && (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
               {error}
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -537,20 +489,20 @@ export function CalendarBookingModal({
             >
               Cancel
             </button>
-            {!isQuickMode && step > 0 ? (
+            {!bookingForm.isQuickMode && bookingForm.step > 0 ? (
               <button
                 type="button"
-                onClick={() => setStep((prev) => Math.max(0, prev - 1))}
+                onClick={() => bookingForm.setStep((prev) => Math.max(0, prev - 1))}
                 className="flex-1 rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
                 disabled={isSubmitting}
               >
                 Back
               </button>
             ) : null}
-            {!isQuickMode && step < 2 ? (
+            {!bookingForm.isQuickMode && bookingForm.step < 2 ? (
               <button
                 type="button"
-                onClick={() => setStep((prev) => Math.min(2, prev + 1))}
+                onClick={() => bookingForm.setStep((prev) => Math.min(2, prev + 1))}
                 disabled={isSubmitting || !canProceedFromStep()}
                 className="flex-1 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >

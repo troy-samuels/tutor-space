@@ -239,7 +239,6 @@ export async function getHomeworkById(
 		.from("homework_assignments")
 		.select("*")
 		.eq("id", assignmentId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
@@ -265,7 +264,6 @@ export async function getHomeworkAssignmentForSubmission(
 		.from("homework_assignments")
 		.select("id, student_id, status, tutor_id, title")
 		.eq("id", assignmentId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
@@ -288,8 +286,7 @@ export async function setHomeworkNotificationSent(
 	const { error } = await client
 		.from("homework_assignments")
 		.update({ notification_sent_at: new Date().toISOString() })
-		.eq("id", assignmentId)
-		.is("deleted_at", null);
+		.eq("id", assignmentId);
 
 	if (error) {
 		throw error;
@@ -307,19 +304,9 @@ export async function getHomeworkForStudent(
 ): Promise<HomeworkAssignment[]> {
 	let query = client
 		.from("homework_assignments")
-		.select(
-			`
-			*,
-			practice_assignment:practice_assignments!homework_assignments_practice_assignment_id_fkey (
-				id,
-				status,
-				sessions_completed
-			)
-		`
-		)
+		.select("*")
 		.eq("student_id", studentId)
-		.eq("tutor_id", tutorId)
-		.is("deleted_at", null);
+		.eq("tutor_id", tutorId);
 
 	if (!options?.includeDraft) {
 		query = query.neq("status", "draft");
@@ -336,42 +323,16 @@ export async function getHomeworkForStudent(
 	const { data, error } = await query;
 
 	if (error) {
-		// Fallback without join if practice_assignments table doesn't exist
-		const fallbackQuery = client
-			.from("homework_assignments")
-			.select("*")
-			.eq("student_id", studentId)
-			.eq("tutor_id", tutorId)
-			.is("deleted_at", null)
-			.order("due_date", { ascending: true, nullsFirst: false })
-			.order("created_at", { ascending: false });
-
-		if (options?.limit) {
-			fallbackQuery.limit(options.limit);
-		}
-
-		const fallback = await fallbackQuery;
-		if (fallback.error) throw fallback.error;
-
-		return (fallback.data ?? []).map((assignment) => ({
-			...assignment,
-			attachments: normalizeAttachments(assignment.attachments),
-			practice_assignment: null,
-		})) as HomeworkAssignment[];
+		throw error;
 	}
 
 	return (data ?? []).map((assignment: Record<string, unknown>) => {
-		const practiceRaw = assignment.practice_assignment;
-		const practiceAssignment = Array.isArray(practiceRaw)
-			? practiceRaw[0] || null
-			: practiceRaw || null;
-
 		return {
 			...assignment,
 			attachments: normalizeAttachments(
 				assignment.attachments as HomeworkAttachment[]
 			),
-			practice_assignment: practiceAssignment,
+			practice_assignment: null,
 		};
 	}) as HomeworkAssignment[];
 }
@@ -385,54 +346,8 @@ export async function getHomeworkForStudentWithDrills(
 	tutorId: string,
 	limit: number = 25
 ): Promise<HomeworkAssignment[]> {
-	const { data, error } = await client
-		.from("homework_assignments")
-		.select(
-			`
-			*,
-			practice_assignment:practice_assignments!homework_assignments_practice_assignment_id_fkey (
-				id,
-				status,
-				sessions_completed
-			),
-			drills:lesson_drills!lesson_drills_homework_assignment_id_fkey (
-				id,
-				drill_type,
-				content,
-				is_completed
-			)
-		`
-		)
-		.eq("student_id", studentId)
-		.eq("tutor_id", tutorId)
-		.is("deleted_at", null)
-		.order("due_date", { ascending: true, nullsFirst: false })
-		.order("created_at", { ascending: false })
-		.limit(limit);
-
-	if (error) {
-		// Fallback without joins
-		return getHomeworkForStudent(client, studentId, tutorId, { limit });
-	}
-
-	return (data ?? []).map((assignment: Record<string, unknown>) => {
-		const practiceRaw = assignment.practice_assignment;
-		const practiceAssignment = Array.isArray(practiceRaw)
-			? practiceRaw[0] || null
-			: practiceRaw || null;
-
-		const drillsRaw = assignment.drills;
-		const drills = Array.isArray(drillsRaw) ? drillsRaw : [];
-
-		return {
-			...assignment,
-			attachments: normalizeAttachments(
-				assignment.attachments as HomeworkAttachment[]
-			),
-			practice_assignment: practiceAssignment,
-			drills,
-		};
-	}) as HomeworkAssignment[];
+	// Use the simpler getHomeworkForStudent since the joins are not available
+	return getHomeworkForStudent(client, studentId, tutorId, { limit });
 }
 
 /**
@@ -458,7 +373,6 @@ export async function getPendingHomeworkForPractice(
 		.select("id, title, topic, due_date, status, practice_assignment_id")
 		.eq("student_id", studentId)
 		.eq("tutor_id", tutorId)
-		.is("deleted_at", null)
 		.in("status", ["assigned", "in_progress"])
 		.is("practice_assignment_id", null)
 		.order("due_date", { ascending: true, nullsFirst: false })
@@ -523,8 +437,7 @@ export async function markHomeworkCompletedFromReview(
 			completed_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
 		})
-		.eq("id", assignmentId)
-		.is("deleted_at", null);
+		.eq("id", assignmentId);
 
 	if (error) {
 		throw error;
@@ -574,7 +487,6 @@ export async function getSubmissionsForHomework(
 		.from("homework_submissions")
 		.select("*")
 		.eq("homework_id", homeworkId)
-		.is("deleted_at", null)
 		.order("submitted_at", { ascending: false });
 
 	if (error) {
@@ -595,7 +507,6 @@ export async function getSubmissionById(
 		.from("homework_submissions")
 		.select("*")
 		.eq("id", submissionId)
-		.is("deleted_at", null)
 		.maybeSingle();
 
 	if (error) {
@@ -620,7 +531,6 @@ export async function getLatestSubmissionsForHomework(
 		.select("id, homework_id, tutor_feedback, review_status, reviewed_at, submitted_at")
 		.eq("student_id", studentId)
 		.in("homework_id", homeworkIds)
-		.is("deleted_at", null)
 		.order("submitted_at", { ascending: false });
 
 	if (error) {
@@ -683,8 +593,6 @@ export async function getSubmissionWithHomework(
 		`
 		)
 		.eq("id", submissionId)
-		.is("deleted_at", null)
-		.is("homework_assignments.deleted_at", null)
 		.maybeSingle();
 
 	if (error || !data) {

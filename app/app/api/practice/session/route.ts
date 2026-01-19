@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { createPracticeGreetingMessage, type GreetingContext } from "@/lib/practice/greeting";
+
+type ScenarioContext = {
+  language?: string | null;
+  level?: string | null;
+  topic?: string | null;
+  vocabulary_focus?: unknown;
+  grammar_focus?: unknown;
+};
+
+function normalizeFocusList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0);
+}
+
+function buildGreetingContext(params: {
+  scenario: ScenarioContext | null;
+  fallbackLanguage: string;
+  fallbackLevel: string | null;
+  fallbackTopic: string | null;
+  studentName?: string;
+}): GreetingContext {
+  const { scenario, fallbackLanguage, fallbackLevel, fallbackTopic, studentName } = params;
+
+  return {
+    language: scenario?.language || fallbackLanguage || "English",
+    level: scenario?.level ?? fallbackLevel ?? null,
+    topic: scenario?.topic ?? fallbackTopic ?? null,
+    vocabularyFocus: normalizeFocusList(scenario?.vocabulary_focus),
+    grammarFocus: normalizeFocusList(scenario?.grammar_focus),
+    studentName,
+  };
+}
 
 /**
  * POST /api/practice/session
@@ -46,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Get student record
     const { data: student } = await adminClient
       .from("students")
-      .select("id, tutor_id")
+      .select("id, tutor_id, full_name")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
@@ -58,7 +93,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get assignment with scenario
+    // Get assignment with scenario (include focus areas for greeting)
     const { data: assignment } = await adminClient
       .from("practice_assignments")
       .select(`
@@ -68,7 +103,10 @@ export async function POST(request: NextRequest) {
           id,
           language,
           level,
-          topic
+          topic,
+          vocabulary_focus,
+          grammar_focus,
+          system_prompt
         )
       `)
       .eq("id", assignmentId)
@@ -82,10 +120,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const scenario = (Array.isArray(assignment.scenario)
+      ? assignment.scenario[0]
+      : assignment.scenario) as ScenarioContext | null;
+
     // Check for existing active session
     const { data: existingSession } = await adminClient
       .from("student_practice_sessions")
-      .select("id, mode, message_count, started_at, ended_at")
+      .select("id, has_audio_input, message_count, started_at, ended_at, language, level, topic")
       .eq("assignment_id", assignmentId)
       .is("ended_at", null)
       .order("started_at", { ascending: false })
@@ -93,15 +135,35 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingSession) {
-      // Return existing session (mode already set)
+      if ((existingSession.message_count ?? 0) === 0) {
+        const greetingContext = buildGreetingContext({
+          scenario,
+          fallbackLanguage: existingSession.language,
+          fallbackLevel: existingSession.level,
+          fallbackTopic: existingSession.topic,
+          studentName: student.full_name || (user.user_metadata?.full_name as string | undefined) || undefined,
+        });
+
+        void createPracticeGreetingMessage({
+          adminClient,
+          sessionId: existingSession.id,
+          context: greetingContext,
+        }).catch((error) => {
+          console.error("[Session API] Failed to backfill greeting:", error);
+        });
+      }
+
+      // Return existing session with mode derived from has_audio_input
       return NextResponse.json({
-        session: existingSession,
+        session: {
+          ...existingSession,
+          mode: existingSession.has_audio_input ? "audio" : "text",
+        },
         isExisting: true,
       });
     }
 
-    // Create new session with mode
-    const scenario = assignment.scenario as any;
+    // Create new session with has_audio_input based on mode
     const { data: newSession, error } = await adminClient
       .from("student_practice_sessions")
       .insert({
@@ -112,9 +174,9 @@ export async function POST(request: NextRequest) {
         language: scenario?.language || "English",
         level: scenario?.level || null,
         topic: scenario?.topic || null,
-        mode: mode,
+        has_audio_input: mode === "audio",
       })
-      .select("id, mode, message_count, started_at, ended_at")
+      .select("id, has_audio_input, message_count, started_at, ended_at")
       .single();
 
     if (error) {
@@ -131,8 +193,34 @@ export async function POST(request: NextRequest) {
       .update({ status: "in_progress" })
       .eq("id", assignmentId);
 
+    // Generate personalized greeting for new session (async, non-blocking)
+    if (newSession) {
+      const fallbackLanguage = scenario?.language || "English";
+      const fallbackLevel = scenario?.level ?? null;
+      const fallbackTopic = scenario?.topic ?? null;
+
+      const greetingContext = buildGreetingContext({
+        scenario,
+        fallbackLanguage,
+        fallbackLevel,
+        fallbackTopic,
+        studentName: student.full_name || (user.user_metadata?.full_name as string | undefined) || undefined,
+      });
+
+      void createPracticeGreetingMessage({
+        adminClient,
+        sessionId: newSession.id,
+        context: greetingContext,
+      }).catch((error) => {
+        console.error("[Session API] Failed to generate greeting:", error);
+      });
+    }
+
     return NextResponse.json({
-      session: newSession,
+      session: {
+        ...newSession,
+        mode: newSession?.has_audio_input ? "audio" : "text",
+      },
       isExisting: false,
     });
   } catch (error) {

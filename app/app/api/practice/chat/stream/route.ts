@@ -107,7 +107,7 @@ export async function POST(request: Request) {
         language,
         level,
         topic,
-        mode,
+        has_audio_input,
         message_count,
         ended_at,
         scenario_id,
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (session.mode === "audio") {
+    if (session.has_audio_input === true) {
       return new Response(
         JSON.stringify({ error: "This session is audio-only. Use the microphone to speak.", code: "MODE_MISMATCH", requestId }),
         { status: 400, headers: { "Content-Type": "application/json" } }

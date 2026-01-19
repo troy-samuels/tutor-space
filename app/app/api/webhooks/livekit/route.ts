@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { CallbackUrl } from "@deepgram/sdk";
 import { WebhookReceiver } from "livekit-server-sdk";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { extractPlainText } from "@/lib/analysis/lesson-insights";
 import {
   getDeepgramClient,
   isDeepgramConfigured,
@@ -312,11 +313,31 @@ export async function POST(request: NextRequest) {
             console.log("[LiveKit Webhook] Deepgram async transcription started:", result);
           } else {
             console.log("[LiveKit Webhook] Transcription complete, updating DB...");
+            const transcriptPayload = (result as { results?: unknown })?.results;
+            const transcriptText = (
+              extractPlainText(transcriptPayload) ||
+              (transcriptPayload as { channels?: Array<{ alternatives?: Array<{ transcript?: string }> }> })
+                ?.channels?.[0]?.alternatives?.[0]?.transcript ||
+              ""
+            ).trim();
+
+            if (!transcriptText) {
+              console.warn("[LiveKit Webhook] Empty transcript from Deepgram, marking failed");
+              const updateResult = await updateRecordingStatus(supabase, {
+                egressId: egress.egressId,
+                status: "failed",
+                transcriptJson: transcriptPayload,
+              });
+              if (updateResult.error) {
+                console.error("[LiveKit Webhook] Failed to update transcript status:", updateResult.error);
+              }
+              return NextResponse.json({ received: true });
+            }
 
             const updateResult = await updateRecordingStatus(supabase, {
               egressId: egress.egressId,
               status: "completed",
-              transcriptJson: (result as { results?: unknown })?.results,
+              transcriptJson: transcriptPayload,
             });
 
             if (updateResult.error) {

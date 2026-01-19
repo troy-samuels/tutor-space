@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { runFullPageA11y, runFormA11y, assertNoViolations } from "./fixtures/a11y-helpers";
 
 /**
  * Enterprise-grade E2E Payment Flow Tests
@@ -585,4 +586,172 @@ test.describe("Stripe Payment Flows", () => {
 test.afterAll(async () => {
   // Any global cleanup can go here
   // Individual tests handle their own cleanup in finally blocks
+});
+
+test.describe("Accessibility - Payment Pages", () => {
+  test.skip(
+    !process.env.STRIPE_SECRET_KEY,
+    "Skipping: STRIPE_SECRET_KEY not configured"
+  );
+
+  test("billing settings page passes WCAG AA accessibility checks", async ({
+    page,
+    baseURL,
+  }) => {
+    const appUrl = baseURL ?? "http://localhost:3000";
+    const adminClient = createAdminClient();
+    const testData = generateTestData("a11y-billing");
+
+    const { data: tutorUser, error: tutorError } =
+      await adminClient.auth.admin.createUser({
+        email: testData.email,
+        password: testData.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: testData.fullName,
+          username: testData.username,
+          role: "tutor",
+          plan: "professional",
+        },
+      });
+
+    if (tutorError || !tutorUser.user) {
+      throw new Error(`Failed to create tutor: ${tutorError?.message}`);
+    }
+
+    await adminClient.from("profiles").upsert({
+      id: tutorUser.user.id,
+      email: testData.email,
+      full_name: testData.fullName,
+      username: testData.username,
+      role: "tutor",
+      plan: "professional",
+      onboarding_completed: true,
+      timezone: "America/New_York",
+    });
+
+    try {
+      // Login
+      await page.goto(`${appUrl}/login`);
+      await page.fill('input[name="email"]', testData.email);
+      await page.fill('input[name="password"]', testData.password);
+      await page.click('button[type="submit"]');
+      await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+
+      // Navigate to billing
+      await page.goto(`${appUrl}/settings/billing`);
+      await page.waitForLoadState("networkidle");
+
+      // Run accessibility scan
+      const results = await runFullPageA11y(page, { include: "main" });
+      assertNoViolations(results, "Billing settings page");
+    } finally {
+      await adminClient.auth.admin.deleteUser(tutorUser.user.id);
+    }
+  });
+
+  test("payment settings page passes WCAG AA accessibility checks", async ({
+    page,
+    baseURL,
+  }) => {
+    const appUrl = baseURL ?? "http://localhost:3000";
+    const adminClient = createAdminClient();
+    const testData = generateTestData("a11y-payments");
+
+    const { data: tutorUser, error: tutorError } =
+      await adminClient.auth.admin.createUser({
+        email: testData.email,
+        password: testData.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: testData.fullName,
+          username: testData.username,
+          role: "tutor",
+          plan: "pro_monthly",
+        },
+      });
+
+    if (tutorError || !tutorUser.user) {
+      throw new Error(`Failed to create tutor: ${tutorError?.message}`);
+    }
+
+    await adminClient.from("profiles").upsert({
+      id: tutorUser.user.id,
+      email: testData.email,
+      full_name: testData.fullName,
+      username: testData.username,
+      role: "tutor",
+      plan: "pro_monthly",
+      onboarding_completed: true,
+      timezone: "America/New_York",
+    });
+
+    try {
+      // Login
+      await page.goto(`${appUrl}/login`);
+      await page.fill('input[name="email"]', testData.email);
+      await page.fill('input[name="password"]', testData.password);
+      await page.click('button[type="submit"]');
+      await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+
+      // Navigate to payment settings
+      await page.goto(`${appUrl}/settings/payments`);
+      await page.waitForLoadState("networkidle");
+
+      // Run accessibility scan
+      const results = await runFullPageA11y(page, { include: "main" });
+      assertNoViolations(results, "Payment settings page");
+    } finally {
+      await adminClient.auth.admin.deleteUser(tutorUser.user.id);
+    }
+  });
+
+  test("public booking page passes WCAG AA accessibility checks", async ({
+    page,
+    baseURL,
+  }) => {
+    const appUrl = baseURL ?? "http://localhost:3000";
+    const adminClient = createAdminClient();
+    const testData = generateTestData("a11y-booking");
+
+    const { data: tutorUser, error: tutorError } =
+      await adminClient.auth.admin.createUser({
+        email: testData.email,
+        password: testData.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: testData.fullName,
+          username: testData.username,
+          role: "tutor",
+          plan: "pro_monthly",
+        },
+      });
+
+    if (tutorError || !tutorUser.user) {
+      throw new Error(`Failed to create tutor: ${tutorError?.message}`);
+    }
+
+    await adminClient.from("profiles").upsert({
+      id: tutorUser.user.id,
+      email: testData.email,
+      full_name: testData.fullName,
+      username: testData.username,
+      role: "tutor",
+      plan: "pro_monthly",
+      onboarding_completed: true,
+      timezone: "America/New_York",
+    });
+
+    try {
+      // Visit public booking page
+      await page.goto(`${appUrl}/book/${testData.username}`);
+      await page.waitForLoadState("networkidle");
+
+      // Run accessibility scan
+      const results = await runFullPageA11y(page);
+      assertNoViolations(results, "Public booking page");
+    } finally {
+      await adminClient.auth.admin.deleteUser(tutorUser.user.id);
+    }
+  });
 });

@@ -13,11 +13,17 @@
 
 import OpenAI from "openai";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
+import { identifyTutorSpeaker, parseDiarization, separateSpeakers } from "./speaker-diarization";
 
 type TranscriptSegment = {
   text: string;
   start?: number | null;
   end?: number | null;
+};
+
+type TranscriptExtractionOptions = {
+  role?: "all" | "student" | "tutor";
+  tutorName?: string | null;
 };
 
 type KeyPoint = {
@@ -109,7 +115,27 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function extractSegments(transcriptJson: unknown): TranscriptSegment[] {
+function extractSegments(transcriptJson: unknown, options?: TranscriptExtractionOptions): TranscriptSegment[] {
+  const role = options?.role ?? "all";
+  if (role !== "all") {
+    const diarized = parseDiarization(transcriptJson);
+    if (diarized.length > 0) {
+      const tutorSpeakerId = identifyTutorSpeaker(diarized, options?.tutorName ?? undefined);
+      const { tutorSegments, studentSegments } = separateSpeakers(diarized, tutorSpeakerId);
+      const selected = role === "tutor" ? tutorSegments : studentSegments;
+      const filtered = selected
+        .map((segment) => ({
+          text: sanitizeText(segment.text),
+          start: segment.start ?? null,
+          end: segment.end ?? null,
+        }))
+        .filter((segment) => segment.text.length > 0);
+      if (filtered.length > 0) {
+        return filtered;
+      }
+    }
+  }
+
   if (typeof transcriptJson === "string") {
     const text = sanitizeText(transcriptJson);
     if (!text) return [];
@@ -261,8 +287,8 @@ function buildDrills(flags: FluencyFlag[]): Drill[] {
     .filter((d): d is Drill => Boolean(d));
 }
 
-export function analyzeTranscript(transcriptJson: unknown) {
-  const segments = extractSegments(transcriptJson);
+export function analyzeTranscript(transcriptJson: unknown, options?: TranscriptExtractionOptions) {
+  const segments = extractSegments(transcriptJson, options);
   const fillerFlags = scoreFillerFlags(segments);
   const pauseFlags = scorePauseFlags(segments);
   const flags = [...fillerFlags, ...pauseFlags].slice(0, 8);
@@ -281,8 +307,8 @@ export function analyzeTranscript(transcriptJson: unknown) {
 /**
  * Extract plain text from Deepgram transcript JSON for OpenAI analysis
  */
-export function extractPlainText(transcriptJson: unknown): string {
-  const segments = extractSegments(transcriptJson);
+export function extractPlainText(transcriptJson: unknown, options?: TranscriptExtractionOptions): string {
+  const segments = extractSegments(transcriptJson, options);
   return segments.map((s) => s.text).join(" ");
 }
 
@@ -344,7 +370,7 @@ Rules:
         },
         {
           role: "user",
-          content: transcript.slice(0, 4000), // Limit to ~4000 chars to control costs
+          content: transcript.slice(0, 8000), // Limit to ~8000 chars to control costs
         },
       ],
       response_format: { type: "json_object" },

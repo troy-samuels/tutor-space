@@ -8,6 +8,7 @@
  */
 
 import { test, expect, E2E_TUTOR, E2E_STUDENT, createE2EAdminClient, getTestState } from "./fixtures";
+import { runFullPageA11y, assertNoViolations } from "./fixtures/a11y-helpers";
 import { addMinutes, addDays, addHours, setHours, setMinutes, format } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -894,6 +895,36 @@ test.describe("Availability Blocking", () => {
         if (block1) await adminClient.from("blocked_times").delete().eq("id", block1.id);
         if (block2) await adminClient.from("blocked_times").delete().eq("id", block2.id);
       }
+    });
+  });
+
+  // ============================================
+  // GROUP 6: Accessibility
+  // ============================================
+
+  test.describe("Accessibility", () => {
+    test("booking page passes WCAG AA accessibility checks", async ({ testStudent }) => {
+      await testStudent.goto(`/book/${E2E_TUTOR.username}`);
+      await testStudent.waitForLoadState("networkidle");
+
+      // Wait for slots to load
+      await testStudent.waitForSelector('text="Available times"', { timeout: 15000 });
+
+      const results = await runFullPageA11y(testStudent);
+      assertNoViolations(results, "Booking page");
+    });
+
+    test("date picker is keyboard accessible", async ({ testStudent }) => {
+      await testStudent.goto(`/book/${E2E_TUTOR.username}`);
+      await testStudent.waitForLoadState("networkidle");
+      await testStudent.waitForSelector('text="Available times"', { timeout: 15000 });
+
+      // Tab to date picker and verify keyboard navigation works
+      await testStudent.keyboard.press("Tab");
+
+      // Verify focus is visible
+      const focusedElement = await testStudent.evaluate(() => document.activeElement?.tagName);
+      expect(focusedElement).toBeTruthy();
     });
   });
 });

@@ -4,6 +4,7 @@ import { getDeepgramClient, isDeepgramConfigured } from "@/lib/deepgram";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import { updateRecordingStatus } from "@/lib/repositories/recordings";
 import { getSignedUrl } from "@/lib/storage/signed-urls";
+import { extractPlainText } from "@/lib/analysis/lesson-insights";
 
 function parseSupabaseStoragePath(
   value: string,
@@ -154,6 +155,22 @@ export async function POST(request: NextRequest) {
 
         results.push({ egress_id: recording.egress_id, success: false, error: String(dgError) });
       } else if (result) {
+        const transcriptText = (extractPlainText(result.results) || "").trim();
+
+        if (!transcriptText) {
+          console.warn(`[Retry Transcriptions] Empty transcript for ${recording.egress_id}`);
+          const updateResult = await updateRecordingStatus(supabase, {
+            egressId: recording.egress_id,
+            status: "failed",
+            transcriptJson: result.results,
+          });
+          if (updateResult.error) {
+            console.error(`[Retry Transcriptions] DB update error for ${recording.egress_id}:`, updateResult.error);
+          }
+          results.push({ egress_id: recording.egress_id, success: false, error: "Empty transcript" });
+          continue;
+        }
+
         console.log(`[Retry Transcriptions] Transcription complete for ${recording.egress_id}`);
 
         const updateResult = await updateRecordingStatus(supabase, {

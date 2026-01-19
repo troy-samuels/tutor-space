@@ -17,6 +17,7 @@
 import OpenAI from "openai";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import type { SpeakerSegment } from "./speaker-diarization";
+import { SpeechAnalyzerBase } from "./speech-analyzer-base";
 
 // =============================================================================
 // TYPES
@@ -108,21 +109,100 @@ export interface StudentAnalysis {
   };
 }
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
+class StudentSpeechAnalyzer extends SpeechAnalyzerBase {
+  formatSegments(segments: SpeakerSegment[]): string {
+    return this.formatSegmentsForPrompt(segments, { maxSegments: 160 });
+  }
 
-const FILLER_WORDS: Record<string, string[]> = {
-  en: ["um", "uh", "like", "you know", "kind of", "sort of", "basically", "actually", "right", "well"],
-  es: ["eh", "este", "o sea", "pues", "bueno", "entonces", "como", "digamos"],
-  fr: ["euh", "ben", "genre", "en fait", "quoi", "donc", "voilà"],
-  de: ["äh", "ähm", "also", "halt", "sozusagen", "irgendwie", "na ja"],
-  pt: ["é", "tipo", "né", "assim", "então", "bom", "tipo assim"],
-  it: ["ehm", "cioè", "allora", "praticamente", "insomma", "tipo"],
-  ja: ["えーと", "あの", "その", "なんか", "まあ"],
-  ko: ["음", "어", "그", "저", "이제"],
-  zh: ["那个", "嗯", "就是", "然后"],
-};
+  resolveBaseLanguage(language?: string): string {
+    return this.getBaseLanguage(language);
+  }
+
+  truncateValue(value: string, maxChars: number): string {
+    return this.truncateText(value, maxChars);
+  }
+
+  calculateFluencyMetrics(
+    segments: SpeakerSegment[],
+    language: string
+  ): StudentAnalysis["fluencyMetrics"] {
+    const fillerList = this.getFillerWords(language);
+    const singleWordFillers = new Set(
+      fillerList
+        .filter((f) => !f.includes(" "))
+        .map((f) => f.toLowerCase())
+    );
+    const multiWordFillers = fillerList
+      .filter((f) => f.includes(" "))
+      .map((f) => f.toLowerCase());
+
+    const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    let totalWords = 0;
+    let totalDuration = 0;
+    let fillerCount = 0;
+    const fillerWordsFound: string[] = [];
+    let selfCorrectionCount = 0;
+    const pauseDurations: number[] = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const words = segment.text.split(/\s+/).filter(Boolean);
+      totalWords += words.length;
+      totalDuration += segment.end - segment.start;
+
+      const segmentLower = segment.text.toLowerCase().replace(/[.,!?]/g, " ");
+
+      for (const filler of multiWordFillers) {
+        const regex = new RegExp(`\\b${escapeRegex(filler)}\\b`, "g");
+        const matches = segmentLower.match(regex);
+        if (matches && matches.length > 0) {
+          fillerCount += matches.length;
+          if (!fillerWordsFound.includes(filler)) {
+            fillerWordsFound.push(filler);
+          }
+        }
+      }
+
+      for (const word of words) {
+        const wordLower = word.toLowerCase().replace(/[.,!?]/g, "");
+        if (singleWordFillers.has(wordLower)) {
+          fillerCount++;
+          if (!fillerWordsFound.includes(wordLower)) {
+            fillerWordsFound.push(wordLower);
+          }
+        }
+      }
+
+      if (/\b(I mean|no wait|sorry|I meant)\b/i.test(segment.text)) {
+        selfCorrectionCount++;
+      }
+
+      if (i > 0) {
+        const pause = segment.start - segments[i - 1].end;
+        if (pause > 0.3 && pause < 10) {
+          pauseDurations.push(pause);
+        }
+      }
+    }
+
+    const durationMinutes = totalDuration / 60 || 1;
+    const avgPause =
+      pauseDurations.length > 0
+        ? pauseDurations.reduce((a, b) => a + b, 0) / pauseDurations.length
+        : 0;
+
+    return {
+      wordsPerMinute: Math.round(totalWords / durationMinutes),
+      avgPauseDuration: Math.round(avgPause * 100) / 100,
+      fillerWordCount: fillerCount,
+      fillerWords: fillerWordsFound,
+      selfCorrectionCount,
+    };
+  }
+}
+
+const studentAnalyzer = new StudentSpeechAnalyzer();
 
 // =============================================================================
 // OPENAI ANALYSIS
@@ -202,96 +282,6 @@ Return JSON only:
   "primary_strength_areas": ["area1", "area2"]
 }`;
 
-function getBaseLanguage(language: string | undefined): string {
-  if (!language) return "en";
-  const base = language.split(/[-_]/)[0]?.toLowerCase();
-  return base && base.length > 0 ? base : "en";
-}
-
-function truncateText(value: string, maxChars: number): string {
-  if (value.length <= maxChars) return value;
-  return value.slice(0, maxChars).trimEnd();
-}
-
-function selectRepresentativeSegments(
-  segments: SpeakerSegment[],
-  maxSegments: number,
-  headCount: number,
-  tailCount: number
-): SpeakerSegment[] {
-  if (segments.length <= maxSegments) return segments;
-  const normalizedHead = Math.min(headCount, maxSegments);
-  const normalizedTail = Math.min(tailCount, Math.max(0, maxSegments - normalizedHead));
-  const middleCount = Math.max(0, maxSegments - normalizedHead - normalizedTail);
-
-  const selected: SpeakerSegment[] = [];
-  selected.push(...segments.slice(0, normalizedHead));
-
-  if (middleCount > 0) {
-    const startIdx = normalizedHead;
-    const endIdx = Math.max(startIdx, segments.length - normalizedTail);
-    const middle = segments.slice(startIdx, endIdx);
-
-    if (middle.length > 0) {
-      for (let i = 0; i < middleCount; i++) {
-        const ratio = middleCount === 1 ? 0 : i / (middleCount - 1);
-        const index = Math.min(middle.length - 1, Math.floor(ratio * (middle.length - 1)));
-        selected.push(middle[index]!);
-      }
-    }
-  }
-
-  if (normalizedTail > 0) {
-    selected.push(...segments.slice(-normalizedTail));
-  }
-
-  const byStart = new Map<number, SpeakerSegment>();
-  for (const segment of selected) {
-    byStart.set(segment.start, segment);
-  }
-
-  return Array.from(byStart.values()).sort((a, b) => a.start - b.start);
-}
-
-function formatSegmentsForPrompt(segments: SpeakerSegment[]): string {
-  const MAX_PROMPT_CHARS = 12000;
-  const HEAD_SEGMENTS = 20;
-  const TAIL_SEGMENTS = 20;
-  const MIN_SEGMENTS = 40;
-  const MIN_SEGMENT_CHARS = 120;
-
-  const cleaned = segments
-    .filter((s) => typeof s.text === "string" && s.text.trim().length > 0)
-    .slice()
-    .sort((a, b) => a.start - b.start);
-
-  if (cleaned.length === 0) return "";
-
-  let maxSegments = Math.min(160, cleaned.length);
-  let segmentMaxChars = 240;
-
-  while (true) {
-    const selected = selectRepresentativeSegments(cleaned, maxSegments, HEAD_SEGMENTS, TAIL_SEGMENTS);
-    const formatted = selected
-      .map((s) => `[${s.start.toFixed(1)}s] ${truncateText(s.text.trim(), segmentMaxChars)}`)
-      .join("\n");
-
-    if (formatted.length <= MAX_PROMPT_CHARS) return formatted;
-
-    if (maxSegments > MIN_SEGMENTS) {
-      maxSegments = Math.max(MIN_SEGMENTS, Math.floor(maxSegments * 0.8));
-      continue;
-    }
-
-    if (segmentMaxChars > MIN_SEGMENT_CHARS) {
-      segmentMaxChars = Math.max(MIN_SEGMENT_CHARS, Math.floor(segmentMaxChars * 0.8));
-      continue;
-    }
-
-    return formatted.slice(0, MAX_PROMPT_CHARS);
-  }
-}
-
 /**
  * Analyze student speech using OpenAI
  */
@@ -300,7 +290,7 @@ export async function analyzeStudentSpeech(
   languageProfile?: StudentLanguageProfile,
   l1Patterns?: L1InterferencePattern[]
 ): Promise<StudentAnalysis> {
-  const formattedSegments = formatSegmentsForPrompt(studentSegments);
+  const formattedSegments = studentAnalyzer.formatSegments(studentSegments);
 
   // Format L1 patterns
   const l1PatternsText = l1Patterns?.length
@@ -312,7 +302,7 @@ export async function analyzeStudentSpeech(
 
   const vocabularyStyleText =
     languageProfile?.vocabularyStyle && typeof languageProfile.vocabularyStyle === "object"
-      ? truncateText(JSON.stringify(languageProfile.vocabularyStyle), 800)
+      ? studentAnalyzer.truncateValue(JSON.stringify(languageProfile.vocabularyStyle), 800)
       : "none";
 
   const prompt = STUDENT_ANALYSIS_PROMPT.replace("{student_segments}", formattedSegments)
@@ -325,8 +315,8 @@ export async function analyzeStudentSpeech(
     .replace("{l1_patterns}", l1PatternsText);
 
   // Calculate fluency metrics regardless of OpenAI
-  const baseTargetLanguage = getBaseLanguage(languageProfile?.targetLanguage);
-  const fluencyMetrics = calculateFluencyMetrics(
+  const baseTargetLanguage = studentAnalyzer.resolveBaseLanguage(languageProfile?.targetLanguage);
+  const fluencyMetrics = studentAnalyzer.calculateFluencyMetrics(
     studentSegments,
     baseTargetLanguage
   );
@@ -530,7 +520,11 @@ function analyzeWithHeuristics(
   }
 
   const calculatedFluency =
-    fluencyMetrics || calculateFluencyMetrics(segments, getBaseLanguage(languageProfile?.targetLanguage));
+    fluencyMetrics ||
+    studentAnalyzer.calculateFluencyMetrics(
+      segments,
+      studentAnalyzer.resolveBaseLanguage(languageProfile?.targetLanguage)
+    );
 
   return {
     errors,
@@ -554,89 +548,6 @@ function analyzeWithHeuristics(
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
-
-function calculateFluencyMetrics(
-  segments: SpeakerSegment[],
-  language: string
-): StudentAnalysis["fluencyMetrics"] {
-  const fillerList = FILLER_WORDS[language] || FILLER_WORDS["en"];
-  const singleWordFillers = new Set(
-    fillerList
-      .filter((f) => !f.includes(" "))
-      .map((f) => f.toLowerCase())
-  );
-  const multiWordFillers = fillerList
-    .filter((f) => f.includes(" "))
-    .map((f) => f.toLowerCase());
-
-  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  let totalWords = 0;
-  let totalDuration = 0;
-  let fillerCount = 0;
-  const fillerWordsFound: string[] = [];
-  let selfCorrectionCount = 0;
-  const pauseDurations: number[] = [];
-
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    const words = segment.text.split(/\s+/).filter(Boolean);
-    totalWords += words.length;
-    totalDuration += segment.end - segment.start;
-
-    const segmentLower = segment.text.toLowerCase().replace(/[.,!?]/g, " ");
-
-    // Count filler phrases
-    for (const filler of multiWordFillers) {
-      const regex = new RegExp(`\\b${escapeRegex(filler)}\\b`, "g");
-      const matches = segmentLower.match(regex);
-      if (matches && matches.length > 0) {
-        fillerCount += matches.length;
-        if (!fillerWordsFound.includes(filler)) {
-          fillerWordsFound.push(filler);
-        }
-      }
-    }
-
-    // Count filler words (single tokens)
-    for (const word of words) {
-      const wordLower = word.toLowerCase().replace(/[.,!?]/g, "");
-      if (singleWordFillers.has(wordLower)) {
-        fillerCount++;
-        if (!fillerWordsFound.includes(wordLower)) {
-          fillerWordsFound.push(wordLower);
-        }
-      }
-    }
-
-    // Count self-corrections
-    if (/\b(I mean|no wait|sorry|I meant)\b/i.test(segment.text)) {
-      selfCorrectionCount++;
-    }
-
-    // Calculate pause between segments
-    if (i > 0) {
-      const pause = segment.start - segments[i - 1].end;
-      if (pause > 0.3 && pause < 10) {
-        pauseDurations.push(pause);
-      }
-    }
-  }
-
-  const durationMinutes = totalDuration / 60 || 1;
-  const avgPause =
-    pauseDurations.length > 0
-      ? pauseDurations.reduce((a, b) => a + b, 0) / pauseDurations.length
-      : 0;
-
-  return {
-    wordsPerMinute: Math.round(totalWords / durationMinutes),
-    avgPauseDuration: Math.round(avgPause * 100) / 100,
-    fillerWordCount: fillerCount,
-    fillerWords: fillerWordsFound,
-    selfCorrectionCount,
-  };
-}
 
 function extractVocabulary(segments: SpeakerSegment[]): string[] {
   const vocabulary = new Set<string>();

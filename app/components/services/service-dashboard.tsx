@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
+import { StatusAlert } from "@/components/ui/status-alert";
 
 type ServiceWithPackages = ServiceRecord & {
   packages: SessionPackageRecord[];
@@ -219,15 +220,11 @@ export function ServiceDashboard({
       </header>
 
       {status ? (
-        <p
-          className={`rounded-2xl px-4 py-3 text-sm ${
-            status.type === "success"
-              ? "bg-emerald-50 text-emerald-600"
-              : "bg-destructive/10 text-destructive"
-          }`}
-        >
-          {status.message}
-        </p>
+        <StatusAlert
+          status={status.type === "success" ? "success" : "error"}
+          title={status.type === "success" ? "Changes saved" : "Update failed"}
+          message={status.message}
+        />
       ) : null}
 
       <AnimatePresence mode="wait" initial={false}>

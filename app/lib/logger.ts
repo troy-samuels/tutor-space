@@ -163,7 +163,21 @@ export function enrichError(error: unknown): object {
 		};
 	}
 
-	// Handle non-Error throwables
+	// Handle plain object errors (e.g., Supabase PostgrestError)
+	if (typeof error === "object" && error !== null) {
+		const errObj = error as Record<string, unknown>;
+		return {
+			message: errObj.message ?? errObj.error ?? undefined,
+			code: errObj.code ?? undefined,
+			details: errObj.details ?? undefined,
+			hint: errObj.hint ?? undefined,
+			statusCode: errObj.statusCode ?? errObj.status ?? undefined,
+			// Include full object for debugging if no standard fields found
+			...((!errObj.message && !errObj.code) && { raw: JSON.stringify(error) }),
+		};
+	}
+
+	// Handle primitive throwables
 	return { raw: String(error) };
 }
 

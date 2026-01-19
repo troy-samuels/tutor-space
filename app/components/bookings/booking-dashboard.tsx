@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { CalendarDays, CalendarPlus, Clock, Video, RefreshCw, Sparkles } from "lucide-react";
@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { buildClassroomUrl, isClassroomUrl } from "@/lib/utils/classroom-links";
 import Link from "next/link";
+import { StatusAlert } from "@/components/ui/status-alert";
+import { useBookingList } from "@/lib/hooks/useBookingList";
 
 type BookingDashboardProps = {
   bookings: BookingRecord[];
@@ -45,40 +47,14 @@ export function BookingDashboard({
   tutorId,
 }: BookingDashboardProps) {
   const router = useRouter();
-  const [bookingList, setBookingList] = useState<BookingRecord[]>(bookings);
+  const { setBookingList, today, todaysLessons, upcomingBookings, pastBookings } =
+    useBookingList(bookings);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [paymentPending, startPaymentTransition] = useTransition();
 
   const handleRescheduleSuccess = () => {
     router.refresh();
   };
-
-  useEffect(() => {
-    setBookingList(bookings);
-  }, [bookings]);
-
-  const today = useMemo(() => new Date(), []);
-
-  const todaysLessons = useMemo(() => {
-    const todayStart = new Date(today);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(today);
-    todayEnd.setHours(23, 59, 59, 999);
-
-    return bookingList.filter((booking) => {
-      const bookingDate = new Date(booking.scheduled_at);
-      return bookingDate >= todayStart && bookingDate <= todayEnd;
-    }).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
-  }, [bookingList, today]);
-
-  const upcomingBookings = useMemo(
-    () => bookingList.filter((booking) => new Date(booking.scheduled_at).getTime() >= Date.now()),
-    [bookingList]
-  );
-  const pastBookings = useMemo(
-    () => bookingList.filter((booking) => new Date(booking.scheduled_at).getTime() < Date.now()),
-    [bookingList]
-  );
 
   function handleMarkAsPaid(bookingId: string) {
     setStatus(null);
@@ -121,15 +97,11 @@ export function BookingDashboard({
       </header>
 
       {status ? (
-        <p
-          className={`rounded-2xl px-4 py-3 text-sm ${
-            status.type === "success"
-              ? "bg-emerald-50 text-emerald-600"
-              : "bg-destructive/10 text-destructive"
-          }`}
-        >
-          {status.message}
-        </p>
+        <StatusAlert
+          status={status.type === "success" ? "success" : "error"}
+          title={status.type === "success" ? "Booking updated" : "Update failed"}
+          message={status.message}
+        />
       ) : null}
 
       {/* Today's Lessons Calendar View */}

@@ -9,6 +9,7 @@ import {
 	getRecentLessonNotes,
 	getStudentProgressContext,
 } from "@/lib/repositories/progress";
+import { getNextBookingForStudent } from "@/lib/repositories/bookings";
 import {
 	getHomeworkForStudent,
 	getHomeworkForStudentWithDrills,
@@ -94,13 +95,31 @@ export async function getStudentProgress(
 	}
 
 	try {
+		let hasUpcomingLesson = false;
+		try {
+			const nextBooking = await getNextBookingForStudent(
+				serviceClient,
+				scopedTutorId,
+				studentId
+			);
+			hasUpcomingLesson = !!nextBooking;
+		} catch (error) {
+			logStepError(log, "getStudentProgress:next_booking_failed", error, {
+				studentId,
+			});
+		}
+
 		// Fetch all data in parallel using repository functions
+		const homeworkPromise: Promise<HomeworkAssignment[]> = hasUpcomingLesson
+			? getHomeworkForStudent(serviceClient, studentId, scopedTutorId, { limit: 25 })
+			: Promise.resolve([]);
+
 		const [stats, goals, assessments, recentNotes, homework] = await Promise.all([
 			getLearningStats(serviceClient, studentId, scopedTutorId),
 			getGoalsForStudent(serviceClient, studentId, scopedTutorId),
 			getLatestAssessmentsForStudent(serviceClient, studentId, scopedTutorId),
 			getRecentLessonNotes(serviceClient, studentId, scopedTutorId, 10),
-			getHomeworkForStudent(serviceClient, studentId, scopedTutorId, { limit: 25 }),
+			homeworkPromise,
 		]);
 
 		// Fetch latest submissions for homework

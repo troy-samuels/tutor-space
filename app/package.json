@@ -33,7 +33,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "deploy": "cd .. && npx vercel --prod",
-    "deploy:preview": "cd .. && npx vercel"
+    "deploy:preview": "cd .. && npx vercel",
+    "test:load": "k6 run k6/scripts/booking-endpoints.js",
+    "test:load:calendar": "k6 run k6/scripts/calendar-rendering.js"
   },
   "dependencies": {
     "@deepgram/sdk": "^4.11.2",

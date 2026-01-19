@@ -23,6 +23,8 @@ import {
 } from "@/lib/types/calendar";
 import { CalendarEventBlock, CalendarColorLegend } from "./calendar-event-block";
 import { createBlockedTime } from "@/lib/actions/blocked-times";
+import { FeedbackBanner } from "@/components/ui/feedback-banner";
+import { formatSecondaryTimezone, formatTimeInTimezone } from "@/lib/utils/timezone-formatting";
 
 type AvailabilitySlot = {
   id?: string;
@@ -81,11 +83,8 @@ export function CalendarWeekView({
   const slotTap = prefersReducedMotion ? undefined : { scale: 0.995 };
   const slotTransition = prefersReducedMotion ? { duration: 0 } : { duration: 0.12 };
   const primaryAbbr = useMemo(() => {
-    try {
-      return formatInTimeZone(new Date(), baseTimezone, "zzz");
-    } catch {
-      return "LOCAL";
-    }
+    const label = formatTimeInTimezone(new Date(), baseTimezone, "zzz");
+    return label || "LOCAL";
   }, [baseTimezone]);
 
   // Generate days for the week
@@ -103,7 +102,7 @@ export function CalendarWeekView({
         `${datePart}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
         baseTimezone
       );
-      return formatInTimeZone(zoned, secondaryTimezone, "h a");
+      return formatSecondaryTimezone(zoned, baseTimezone, secondaryTimezone, "h a");
     } catch {
       return "";
     }
@@ -287,15 +286,12 @@ export function CalendarWeekView({
       ) : null}
 
       {copyStatus ? (
-        <p
-          className={`mb-2 inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ${
-            copyStatus.type === "success"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-destructive/10 text-destructive"
-          }`}
-        >
-          {copyStatus.message}
-        </p>
+        <FeedbackBanner
+          type={copyStatus.type}
+          message={copyStatus.message}
+          onDismiss={() => setCopyStatus(null)}
+          className="mb-3 w-fit"
+        />
       ) : null}
 
       {/* Calendar Grid */}

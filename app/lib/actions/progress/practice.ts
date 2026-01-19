@@ -21,6 +21,7 @@ import {
 	listPracticeScenariosForTutor,
 	listStudentPracticeSessions,
 } from "@/lib/repositories/progress";
+import { getNextBookingForStudent } from "@/lib/repositories/bookings";
 import {
 	getTraceId,
 	createRequestLogger,
@@ -204,6 +205,25 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
 		return emptyResponse;
 	}
 
+	let hasUpcomingLesson = false;
+	try {
+		const nextBooking = await getNextBookingForStudent(
+			serviceClient,
+			student.tutor_id,
+			student.id
+		);
+		hasUpcomingLesson = !!nextBooking;
+	} catch (error) {
+		logStepError(log, "getStudentPracticeData:next_booking_failed", error, {
+			studentId: student.id,
+		});
+	}
+
+	if (!hasUpcomingLesson) {
+		logStep(log, "getStudentPracticeData:no_upcoming_lesson", { studentId: student.id });
+		return emptyResponse;
+	}
+
 	// Check subscription status
 	let isSubscribed = isSubscriptionActive(student);
 
@@ -220,11 +240,35 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
 
 	try {
 		// Fetch assignments with scenarios
-		const assignments = await listPracticeAssignmentsForStudent(
+		const assignmentsRaw = await listPracticeAssignmentsForStudent(
 			serviceClient,
 			student.id,
 			undefined,
 			20
+		);
+
+		const homeworkIds = assignmentsRaw
+			.map((assignment: { homework_assignment_id?: string | null }) => assignment.homework_assignment_id)
+			.filter((id): id is string => Boolean(id));
+
+		const homeworkStatusMap = new Map<string, string>();
+		if (homeworkIds.length > 0) {
+			const { data: homeworkRows } = await serviceClient
+				.from("homework_assignments")
+				.select("id, status")
+				.in("id", homeworkIds);
+
+			(homeworkRows || []).forEach((row: { id: string; status: string }) => {
+				homeworkStatusMap.set(row.id, row.status);
+			});
+		}
+
+		const assignments = assignmentsRaw.filter(
+			(assignment: { homework_assignment_id?: string | null }) => {
+				if (!assignment.homework_assignment_id) return true;
+				const status = homeworkStatusMap.get(assignment.homework_assignment_id);
+				return !!status && status !== "draft";
+			}
 		);
 
 		// Get practice stats from learning_stats

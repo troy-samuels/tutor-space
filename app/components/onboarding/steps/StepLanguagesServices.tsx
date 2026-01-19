@@ -187,10 +187,13 @@ export function StepLanguagesServices({
         newErrors[`service_name_${service.id}`] = "Service name is required";
       }
 
+      const numericPrice = Number(service.price);
       if (!service.price) {
         newErrors[`service_price_${service.id}`] = "Price is required";
-      } else if (isNaN(Number(service.price)) || Number(service.price) <= 0) {
+      } else if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
         newErrors[`service_price_${service.id}`] = "Enter a valid price";
+      } else if (!Number.isInteger(numericPrice)) {
+        newErrors[`service_price_${service.id}`] = "Use whole dollars (no cents)";
       }
 
       // Validate package price if package is enabled
@@ -233,7 +236,7 @@ export function StepLanguagesServices({
             name: service.name.trim(),
             description: "",
             duration_minutes: parseInt(service.duration),
-            price_cents: Math.round(parseFloat(service.price) * 100),
+            price_cents: Number.parseInt(service.price, 10) * 100,
             currency: formData.currency.toUpperCase(),
             is_active: true,
             requires_approval: false,
@@ -469,7 +472,7 @@ export function StepLanguagesServices({
                   id={`service_price_${service.id}`}
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="1"
                   value={service.price}
                   onChange={(e) => updateLocalService(service.id, "price", e.target.value)}
                   placeholder="50"

@@ -561,6 +561,56 @@ function ReviewsList({ reviews }: { reviews: ReviewData[] }) {
 // Mobile CTA (Smart Button)
 // ============================================================
 
+function CTAContent({
+  nextSlot,
+  accentColor,
+  selectedService,
+  onBook,
+  formatPriceLabel,
+}: {
+  nextSlot?: string | null;
+  accentColor: string;
+  selectedService?: ServiceData | null;
+  onBook?: () => void;
+  formatPriceLabel: (amount?: number | null, currency?: string | null) => string;
+}) {
+  return (
+    <>
+      <div className="min-w-0 flex-1">
+        {selectedService ? (
+          <>
+            <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
+            <p className="text-sm font-medium text-stone-900 break-words">
+              {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
+            </p>
+          </>
+        ) : nextSlot ? (
+          <>
+            <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Next Available</p>
+            <p className="text-sm font-medium text-stone-900 break-words">{nextSlot}</p>
+          </>
+        ) : (
+          <p className="text-sm font-medium text-stone-500">Choose a service to book</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onBook}
+        disabled={!selectedService}
+        className={cn(
+          "shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
+          selectedService
+            ? "text-white"
+            : "cursor-not-allowed bg-stone-200 text-stone-400"
+        )}
+        style={selectedService ? { backgroundColor: accentColor } : undefined}
+      >
+        {selectedService ? `Book ${selectedService.name}` : "Select a Service"}
+      </button>
+    </>
+  );
+}
+
 function MobileCTA({
   nextSlot,
   accentColor,
@@ -577,37 +627,13 @@ function MobileCTA({
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full border-t border-black/5 bg-white/90 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-md md:hidden">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          {selectedService ? (
-            <>
-              <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
-              <p className="text-sm font-medium text-stone-900 break-words">
-                {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
-              </p>
-            </>
-          ) : nextSlot ? (
-            <>
-              <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Next Available</p>
-              <p className="text-sm font-medium text-stone-900 break-words">{nextSlot}</p>
-            </>
-          ) : (
-            <p className="text-sm font-medium text-stone-500">Choose a service to book</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={onBook}
-          disabled={!selectedService}
-          className={cn(
-            "shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
-            selectedService
-              ? "text-white"
-              : "cursor-not-allowed bg-stone-200 text-stone-400"
-          )}
-          style={selectedService ? { backgroundColor: accentColor } : undefined}
-        >
-          {selectedService ? `Book ${selectedService.name}` : "Select a Service"}
-        </button>
+        <CTAContent
+          nextSlot={nextSlot}
+          accentColor={accentColor}
+          selectedService={selectedService}
+          onBook={onBook}
+          formatPriceLabel={formatPriceLabel}
+        />
       </div>
     </div>
   );
@@ -634,37 +660,13 @@ function DesktopCTA({
     <div className="hidden md:block">
       <div className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white/90 px-6 py-4 shadow-sm">
-          <div className="min-w-0 flex-1">
-            {selectedService ? (
-              <>
-                <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Selected</p>
-                <p className="text-sm font-medium text-stone-900 break-words">
-                  {selectedService.name} • {formatPriceLabel(selectedService.price, selectedService.currency)}
-                </p>
-              </>
-            ) : nextSlot ? (
-              <>
-                <p className="text-xs uppercase tracking-[0.12em] text-stone-500">Next Available</p>
-                <p className="text-sm font-medium text-stone-900 break-words">{nextSlot}</p>
-              </>
-            ) : (
-              <p className="text-sm font-medium text-stone-500">Choose a service to book</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onBook}
-            disabled={!selectedService}
-            className={cn(
-              "shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all",
-              selectedService
-                ? "text-white"
-                : "cursor-not-allowed bg-stone-200 text-stone-400"
-            )}
-            style={selectedService ? { backgroundColor: accentColor } : undefined}
-          >
-            {selectedService ? `Book ${selectedService.name}` : "Select a Service"}
-          </button>
+          <CTAContent
+            nextSlot={nextSlot}
+            accentColor={accentColor}
+            selectedService={selectedService}
+            onBook={onBook}
+            formatPriceLabel={formatPriceLabel}
+          />
         </div>
       </div>
     </div>
@@ -753,4 +755,3 @@ function LiveStatusIndicator() {
 // ============================================================
 // Signature Block - Graceful end to the scrolling experience
 // ============================================================
-
