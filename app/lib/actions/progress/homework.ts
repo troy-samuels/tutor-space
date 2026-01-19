@@ -127,7 +127,7 @@ export async function assignHomework(
 				const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
 				await sendHomeworkAssignedEmail({
 					to: studentResult.email,
-					studentName: studentResult.first_name || "Student",
+					studentName: studentResult.full_name || "Student",
 					tutorName: tutorResult?.full_name || "Your tutor",
 					title: input.title.trim(),
 					instructions: input.instructions ?? null,

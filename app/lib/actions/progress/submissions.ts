@@ -167,9 +167,7 @@ export async function submitHomework(
 			const studentData = await getStudentContactById(adminClient, student.id);
 
 			if (studentData) {
-				const studentName =
-					[studentData.first_name, studentData.last_name].filter(Boolean).join(" ") ||
-					"Student";
+				const studentName = studentData.full_name || "Student";
 				const { notifyHomeworkSubmissionReceived } = await import(
 					"@/lib/actions/notifications"
 				);

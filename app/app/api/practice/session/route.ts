@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createPracticeGreetingMessage, type GreetingContext } from "@/lib/practice/greeting";
 
 type ScenarioContext = {
+  id?: string | null;
   language?: string | null;
   level?: string | null;
   topic?: string | null;

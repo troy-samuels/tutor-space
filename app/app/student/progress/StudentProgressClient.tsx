@@ -350,13 +350,13 @@ export function StudentProgressClient({
                     </div>
                   )}
 
-                  {note.vocabulary_introduced && note.vocabulary_introduced.length > 0 && (
+                  {note.vocabulary_words && note.vocabulary_words.length > 0 && (
                     <div className="mb-3">
                       <p className="text-xs font-medium text-muted-foreground mb-1">
                         New Vocabulary
                       </p>
                       <div className="flex flex-wrap gap-1">
-                        {note.vocabulary_introduced.map((word, i) => (
+                        {note.vocabulary_words.map((word: string, i: number) => (
                           <Badge key={i} variant="outline" className="text-xs">
                             {word}
                           </Badge>
@@ -365,12 +365,12 @@ export function StudentProgressClient({
                     </div>
                   )}
 
-                  {note.student_visible_notes && (
+                  {note.notes && (
                     <div className="mb-3">
                       <p className="text-xs font-medium text-muted-foreground mb-1">
                         Notes
                       </p>
-                      <p className="text-sm">{note.student_visible_notes}</p>
+                      <p className="text-sm">{note.notes}</p>
                     </div>
                   )}
 
@@ -384,22 +384,22 @@ export function StudentProgressClient({
                   )}
 
                   <div className="grid md:grid-cols-2 gap-3 mt-3">
-                    {note.strengths && (
+                    {note.student_performance && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                         <p className="text-xs font-medium text-green-800 mb-1">
                           <CheckCircle className="h-3 w-3 inline mr-1" />
-                          Strengths
+                          Performance
                         </p>
-                        <p className="text-sm text-green-900">{note.strengths}</p>
+                        <p className="text-sm text-green-900">{note.student_performance}</p>
                       </div>
                     )}
-                    {note.areas_to_improve && (
+                    {note.areas_to_focus && note.areas_to_focus.length > 0 && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <p className="text-xs font-medium text-blue-800 mb-1">
                           <TrendingUp className="h-3 w-3 inline mr-1" />
-                          Areas to Improve
+                          Areas to Focus
                         </p>
-                        <p className="text-sm text-blue-900">{note.areas_to_improve}</p>
+                        <p className="text-sm text-blue-900">{note.areas_to_focus.join(", ")}</p>
                       </div>
                     )}
                   </div>
