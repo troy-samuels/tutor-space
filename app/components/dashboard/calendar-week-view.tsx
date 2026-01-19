@@ -13,6 +13,7 @@ import {
 } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { ChevronLeft, ChevronRight, Copy, Plus } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { getWeekEvents } from "@/lib/actions/calendar-events";
 import type { CalendarEvent } from "@/lib/types/calendar";
 import {
@@ -56,6 +57,7 @@ export function CalendarWeekView({
   secondaryTimezone,
   availabilitySlots = [],
 }: CalendarWeekViewProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [currentWeekStart, setCurrentWeekStart] = useState(
     startOfWeek(initialDate || new Date(), { weekStartsOn: 0 })
   );
@@ -75,6 +77,9 @@ export function CalendarWeekView({
   const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-16 sm:w-20";
   const baseTimezone =
     primaryTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const slotHover = prefersReducedMotion ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.04)" };
+  const slotTap = prefersReducedMotion ? undefined : { scale: 0.995 };
+  const slotTransition = prefersReducedMotion ? { duration: 0 } : { duration: 0.12 };
   const primaryAbbr = useMemo(() => {
     try {
       return formatInTimeZone(new Date(), baseTimezone, "zzz");
@@ -391,11 +396,14 @@ export function CalendarWeekView({
 
                   {/* Time slot backgrounds */}
                   {timeSlots.map((slot, slotIndex) => (
-                    <div
+                    <motion.div
                       key={`${slot.hour}-${slot.minute}`}
                       className={`${getRowBg(slotIndex)} cursor-pointer transition-colors hover:bg-muted/40`}
                       style={{ height: `${pixelsPerHour}px` }}
                       onClick={(event) => onTimeSlotClick?.(day, slot.hour, event)}
+                      whileHover={slotHover}
+                      whileTap={slotTap}
+                      transition={slotTransition}
                     >
                       {/* Quick add button on hover */}
                       <div className="group h-full w-full">
@@ -403,7 +411,7 @@ export function CalendarWeekView({
                           <Plus className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
 
                   {/* Events */}

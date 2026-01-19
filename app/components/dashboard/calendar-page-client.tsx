@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback, useMemo } from "react";
+import { useState, useTransition, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { addDays, addMonths, addWeeks, endOfWeek, format, startOfWeek, subDays, subMonths, subWeeks } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Calendar, CalendarRange, Plus, Settings, ChevronLeft, ChevronRight, Clock, Link2 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { DashboardBookingCalendar } from "./dashboard-booking-calendar";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarDayView } from "./calendar-day-view";
@@ -20,7 +20,7 @@ import { EventDetailsPopover } from "./event-details-popover";
 import { BlockedTimePopover } from "./blocked-time-popover";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useCalendarKeyboardShortcuts } from "@/lib/hooks/useCalendarKeyboardShortcuts";
+import { useCalendarShortcuts } from "@/lib/hooks/useCalendarShortcuts";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import type { CalendarEvent, CalendarViewType } from "@/lib/types/calendar";
 import { rescheduleBooking } from "@/lib/actions/bookings";
@@ -96,6 +96,9 @@ export function CalendarPageClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [view, setViewState] = useState<CalendarViewType>(initialView);
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = useReducedMotion();
+  const hasAutoViewRef = useRef(false);
 
   const setView = useCallback((newView: CalendarViewType) => {
     setViewState(newView);
@@ -150,6 +153,17 @@ export function CalendarPageClient({
     const nextView = resolveViewFromSearchParams(searchParams);
     setViewState((prev) => (prev === nextView ? prev : nextView));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!isMobile || hasAutoViewRef.current) return;
+    const viewParam = searchParams.get("view");
+    if (!viewParam) {
+      if (view !== "day") {
+        setView("day");
+      }
+      hasAutoViewRef.current = true;
+    }
+  }, [isMobile, searchParams, setView, view]);
 
   // Close availability drawer when switching to availability tab
   useEffect(() => {
@@ -464,10 +478,9 @@ export function CalendarPageClient({
   };
 
   // Keyboard shortcuts
-  const isMobile = useIsMobile();
   const shortcutsEnabled = !bookingModalOpen && !blockDialogOpen && !availabilityDrawerOpen && !isMobile;
 
-  useCalendarKeyboardShortcuts(
+  useCalendarShortcuts(
     {
       onNewBooking: () => setBookingModalOpen(true),
       onBlockTime: () => setBlockDialogOpen(true),
@@ -489,6 +502,11 @@ export function CalendarPageClient({
     return format(activeDate, "MMMM yyyy");
   }, [activeDate, view]);
 
+  const iconButtonClass = isMobile ? "h-11 w-11" : "h-9 w-9";
+  const textButtonClass = isMobile ? "h-11 px-4" : "h-9 px-3";
+  const viewTabClass = isMobile ? "px-4 py-2.5" : "px-4 py-2";
+  const primaryActionClass = isMobile ? "h-12 w-12 rounded-full" : "h-10 w-10 rounded-full";
+
   return (
     <div
       className={[
@@ -508,7 +526,7 @@ export function CalendarPageClient({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className={iconButtonClass}
                 onClick={handlePrev}
                 title="Previous"
               >
@@ -517,7 +535,7 @@ export function CalendarPageClient({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className={iconButtonClass}
                 onClick={handleNext}
                 title="Next"
               >
@@ -525,7 +543,7 @@ export function CalendarPageClient({
               </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-9 px-3" onClick={handleToday}>
+                  <Button variant="ghost" size="sm" className={textButtonClass} onClick={handleToday}>
                     Today
                   </Button>
                 </TooltipTrigger>
@@ -560,7 +578,7 @@ export function CalendarPageClient({
                     onClick={() => setView(value)}
                     data-testid={`calendar-view-${value}`}
                     className={[
-                      "relative flex items-center gap-1.5 px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                      `relative flex items-center gap-1.5 ${viewTabClass} text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60`,
                       isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                     ].join(" ")}
                   >
@@ -577,14 +595,14 @@ export function CalendarPageClient({
             {view !== "availability" && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    onClick={() => setAvailabilityDrawerOpen(true)}
-                  >
-                    <Clock className="h-4 w-4" />
-                  </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={iconButtonClass}
+                  onClick={() => setAvailabilityDrawerOpen(true)}
+                >
+                  <Clock className="h-4 w-4" />
+                </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <span className="flex items-center gap-2">
@@ -600,7 +618,7 @@ export function CalendarPageClient({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 relative"
+                className={`relative ${iconButtonClass}`}
                 title={connectedCalendars.length > 0 ? `${connectedCalendars.length} calendar(s) connected` : "Connect your calendar"}
               >
                 <Link2 className="h-4 w-4" />
@@ -614,7 +632,7 @@ export function CalendarPageClient({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Button variant="ghost" size="icon" className={iconButtonClass}>
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -647,7 +665,7 @@ export function CalendarPageClient({
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
-                  className="h-10 w-10 rounded-full"
+                  className={primaryActionClass}
                   onClick={() => setBookingModalOpen(true)}
                 >
                   <Plus className="h-5 w-5" />
@@ -690,10 +708,10 @@ export function CalendarPageClient({
           <AnimatePresence mode="wait">
             <motion.div
               key={view}
-              initial={{ opacity: 0, y: 10 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: "easeOut" }}
               className="flex-1 min-h-0 flex flex-col"
             >
               {view === "month" && (

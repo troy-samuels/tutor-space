@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo, useEffect } from "react";
 import { Clock, Plus, Trash2, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { saveAvailability } from "@/lib/actions/availability";
@@ -38,6 +39,7 @@ export function AvailabilityDrawer({
   initialSlots,
   onSaveSuccess,
 }: AvailabilityDrawerProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [slots, setSlots] = useState<AvailabilitySlotInput[]>(
     initialSlots.map((slot) => ({
       day_of_week: slot.day_of_week,
@@ -150,148 +152,159 @@ export function AvailabilityDrawer({
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()} side="right">
       <SheetOverlay onClick={onClose} />
       <SheetContent className="w-96 max-w-[90vw] overflow-y-auto">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Weekly Hours</h2>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-1.5 hover:bg-muted transition-colors"
+        <AnimatePresence mode="wait" initial={false}>
+          {isOpen ? (
+            <motion.div
+              key="availability-drawer"
+              initial={prefersReducedMotion ? false : { opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 24 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
+              className="flex flex-col h-full"
             >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="flex gap-3 px-4 py-3 border-b border-border bg-muted/30">
-            <div className="flex-1 text-center">
-              <p className="text-2xl font-semibold text-foreground">{slots.length}</p>
-              <p className="text-xs text-muted-foreground">Slots</p>
-            </div>
-            <div className="flex-1 text-center">
-              <p className="text-2xl font-semibold text-foreground">{totalHours.toFixed(0)}</p>
-              <p className="text-xs text-muted-foreground">Hours/week</p>
-            </div>
-          </div>
-
-          {/* Status message */}
-          {status && (
-            <div
-              className={`mx-4 mt-3 rounded-lg px-3 py-2 text-sm ${
-                status.type === "success"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-destructive/10 text-destructive"
-              }`}
-            >
-              {status.message}
-            </div>
-          )}
-
-          {/* Add slot form */}
-          <div className="px-4 py-4 border-b border-border">
-            <h3 className="text-sm font-medium text-foreground mb-3">Add availability</h3>
-            <div className="grid grid-cols-3 gap-2">
-              <select
-                value={draft.day_of_week}
-                onChange={(e) => setDraft((prev) => ({ ...prev, day_of_week: Number(e.target.value) }))}
-                className="col-span-3 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                {DAY_LABELS.map((day, index) => (
-                  <option key={day} value={index}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">From</label>
-                <input
-                  type="time"
-                  value={draft.start_time}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, start_time: e.target.value }))}
-                  className="rounded-lg border border-input bg-background px-2 py-2 text-sm"
-                />
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-border px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Weekly Hours</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-full p-1.5 hover:bg-muted transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground">To</label>
-                <input
-                  type="time"
-                  value={draft.end_time}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, end_time: e.target.value }))}
-                  className="rounded-lg border border-input bg-background px-2 py-2 text-sm"
-                />
+
+              {/* Stats */}
+              <div className="flex gap-3 px-4 py-3 border-b border-border bg-muted/30">
+                <div className="flex-1 text-center">
+                  <p className="text-2xl font-semibold text-foreground">{slots.length}</p>
+                  <p className="text-xs text-muted-foreground">Slots</p>
+                </div>
+                <div className="flex-1 text-center">
+                  <p className="text-2xl font-semibold text-foreground">{totalHours.toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">Hours/week</p>
+                </div>
               </div>
-              <div className="flex items-end">
+
+              {/* Status message */}
+              {status && (
+                <div
+                  className={`mx-4 mt-3 rounded-lg px-3 py-2 text-sm ${
+                    status.type === "success"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  {status.message}
+                </div>
+              )}
+
+              {/* Add slot form */}
+              <div className="px-4 py-4 border-b border-border">
+                <h3 className="text-sm font-medium text-foreground mb-3">Add availability</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={draft.day_of_week}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, day_of_week: Number(e.target.value) }))}
+                    className="col-span-3 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {DAY_LABELS.map((day, index) => (
+                      <option key={day} value={index}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">From</label>
+                    <input
+                      type="time"
+                      value={draft.start_time}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, start_time: e.target.value }))}
+                      className="rounded-lg border border-input bg-background px-2 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">To</label>
+                    <input
+                      type="time"
+                      value={draft.end_time}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, end_time: e.target.value }))}
+                      className="rounded-lg border border-input bg-background px-2 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleAddSlot}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slot list */}
+              <div className="flex-1 overflow-y-auto px-4 py-3">
+                {grouped.every((group) => group.slots.length === 0) ? (
+                  <p className="text-center text-sm text-muted-foreground py-8">
+                    No availability set yet.
+                    <br />
+                    Add your first time slot above.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {grouped
+                      .filter((group) => group.slots.length > 0)
+                      .map((group) => (
+                        <div key={group.day_of_week}>
+                          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                            {group.label}
+                          </h4>
+                          <div className="space-y-1.5">
+                            {group.slots.map((slot, slotIndex) => (
+                              <div
+                                key={`${group.day_of_week}-${slot.start_time}-${slot.end_time}`}
+                                className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
+                              >
+                                <span className="text-sm text-foreground">
+                                  {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSlot(group.day_of_week, slotIndex)}
+                                  className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-border px-4 py-4 bg-background">
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  onClick={handleSave}
+                  disabled={isPending}
                   className="w-full"
-                  onClick={handleAddSlot}
                 >
-                  <Plus className="h-4 w-4" />
+                  {isPending ? "Saving..." : "Save changes"}
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {/* Slot list */}
-          <div className="flex-1 overflow-y-auto px-4 py-3">
-            {grouped.every((group) => group.slots.length === 0) ? (
-              <p className="text-center text-sm text-muted-foreground py-8">
-                No availability set yet.
-                <br />
-                Add your first time slot above.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {grouped
-                  .filter((group) => group.slots.length > 0)
-                  .map((group) => (
-                    <div key={group.day_of_week}>
-                      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                        {group.label}
-                      </h4>
-                      <div className="space-y-1.5">
-                        {group.slots.map((slot, slotIndex) => (
-                          <div
-                            key={`${group.day_of_week}-${slot.start_time}-${slot.end_time}`}
-                            className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
-                          >
-                            <span className="text-sm text-foreground">
-                              {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSlot(group.day_of_week, slotIndex)}
-                              className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="border-t border-border px-4 py-4 bg-background">
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={isPending}
-              className="w-full"
-            >
-              {isPending ? "Saving..." : "Save changes"}
-            </Button>
-          </div>
-        </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </SheetContent>
     </Sheet>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { addDays, subDays, format, isToday } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { ChevronLeft, ChevronRight, Plus, Video, ExternalLink } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { getDayEvents } from "@/lib/actions/calendar-events";
 import type { CalendarEvent } from "@/lib/types/calendar";
 import { isClassroomUrl } from "@/lib/utils/classroom-links";
@@ -38,6 +39,7 @@ export function CalendarDayView({
   primaryTimezone,
   secondaryTimezone,
 }: CalendarDayViewProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [currentDate, setCurrentDate] = useState(initialDate || new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +54,9 @@ export function CalendarDayView({
   const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-20";
   const baseTimezone =
     primaryTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const slotHover = prefersReducedMotion ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.04)" };
+  const slotTap = prefersReducedMotion ? undefined : { scale: 0.995 };
+  const slotTransition = prefersReducedMotion ? { duration: 0 } : { duration: 0.12 };
 
   // Fetch events when date changes
   useEffect(() => {
@@ -231,11 +236,14 @@ export function CalendarDayView({
               >
                 {/* Time slot backgrounds */}
                 {timeSlots.map((slot, index) => (
-                  <div
+                  <motion.div
                     key={`${slot.hour}-${slot.minute}`}
                     className={`${getRowBg(index)} cursor-pointer transition-colors hover:bg-muted/40`}
                     style={{ height: `${pixelsPerHour}px` }}
                     onClick={(e) => onTimeSlotClick?.(currentDate, slot.hour, e)}
+                    whileHover={slotHover}
+                    whileTap={slotTap}
+                    transition={slotTransition}
                   >
                     <div className="group h-full w-full p-2">
                       <div className="hidden group-hover:flex items-center gap-1 text-xs text-muted-foreground">
@@ -243,7 +251,7 @@ export function CalendarDayView({
                         <span>Add event</span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
 
                 {/* Events */}

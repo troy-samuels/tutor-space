@@ -207,7 +207,7 @@ Scope:
 - Video provider (LiveKit)
 - AI features (OpenAI/Deepgram)
 
-Status: In progress (OpenAI config guard + retryable stream errors for AI practice)
+Status: ✅ Completed (OpenAI config guard, retryable streams with exponential backoff, LiveKit integration with token generation and recording)
 
 Acceptance criteria:
 - Video room creation/join flow works for tutor and student.
@@ -222,6 +222,8 @@ Edge cases:
 Scope:
 - Client and server analytics events
 
+Status: ✅ Completed (PostHog/Sentry + Google Analytics tracking, analytics API endpoints for payments and tutor metrics)
+
 Acceptance criteria:
 - Key funnel events are tracked (view booking, request, payment success/fail).
 - Events include service, tutor, and booking identifiers.
@@ -235,6 +237,8 @@ Scope:
 - Booking endpoints
 - Calendar rendering
 
+Status: ⚠️ Partial (query optimization + rate limiting done; load testing framework like K6/Artillery needed)
+
 Acceptance criteria:
 - p95 API response time targets met under expected load.
 - No database hot spots or N+1 queries in booking flow.
@@ -245,6 +249,8 @@ Edge cases:
 ### P2. Security and compliance testing
 Scope:
 - Auth, authorization, payment flows
+
+Status: ✅ Completed (CSRF via Server Actions, XSS sanitization, RLS on all tables, DAST scanning in CI)
 
 Acceptance criteria:
 - No privilege escalation across tutor/student roles.
@@ -260,6 +266,8 @@ Scope:
 - Booking pages
 - Service edit form
 
+Status: ⚠️ Partial (ARIA + Radix + axe-core + eslint-plugin-jsx-a11y done; explicit a11y E2E assertions needed)
+
 Acceptance criteria:
 - Keyboard navigation and screen reader flows are usable.
 - Color contrast meets WCAG 2.1 AA.
@@ -272,6 +280,8 @@ Edge cases:
 ### P2. Automated end-to-end regression suite
 Scope:
 - Critical booking and pricing flows
+
+Status: ✅ Completed (Playwright suite with 20+ tests, CI integration, multi-browser coverage)
 
 Acceptance criteria:
 - E2E tests cover public booking, authenticated booking, pricing update, and payment.
@@ -421,7 +431,7 @@ Consolidate the fragmented calendar/availability/booking experience into a unifi
 
 ---
 
-### Phase 1: Quick Wins (Week 1-2)
+### Phase 1: Quick Wins (Week 1-2) - ✅ COMPLETE
 
 #### 1.1 Visualize Availability in Calendar Week View
 **Problem**: Tutors can't see their "bookable windows" when looking at their calendar.
@@ -464,7 +474,7 @@ Consolidate the fragmented calendar/availability/booking experience into a unifi
 
 ---
 
-### Phase 2: Availability Integration (Week 3-4)
+### Phase 2: Availability Integration (Week 3-4) - ✅ COMPLETE
 
 #### 2.1 Inline Availability Editing
 **Problem**: Editing availability requires navigating to a separate page.
@@ -495,7 +505,7 @@ Consolidate the fragmented calendar/availability/booking experience into a unifi
 
 ---
 
-### Phase 3: Unified Booking Experience (Week 5-6)
+### Phase 3: Unified Booking Experience (Week 5-6) - ✅ COMPLETE
 
 #### 3.1 Single-Page Booking Form
 **Problem**: Power users find the wizard slow.
@@ -533,7 +543,7 @@ Consolidate the fragmented calendar/availability/booking experience into a unifi
 
 ---
 
-### Phase 4: Polish (Week 7-8)
+### Phase 4: Polish (Week 7-8) - ⚠️ MOSTLY COMPLETE
 
 #### 4.1 Framer Motion Transitions
 - Smooth view switching animations
