@@ -28,6 +28,7 @@ interface CreateStudentBookingParams {
   amount: number;
   currency: string;
   packageId?: string; // Optional: Use package instead of payment
+  clientMutationId?: string; // Optional: Idempotency key to prevent duplicate bookings
 }
 
 /**
@@ -214,6 +215,7 @@ export async function createStudentBooking(
     amount: params.amount,
     currency: params.currency,
     packageId: params.packageId, // Pass package ID if using package payment
+    clientMutationId: params.clientMutationId,
   });
 
   if ("success" in result && result.success) {

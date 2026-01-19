@@ -63,6 +63,8 @@ export async function markBookingAsPaid(bookingId: string) {
 	const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
 	const service = Array.isArray(booking.services) ? booking.services[0] : booking.services;
 	const tutorProfile = Array.isArray(booking.tutor) ? booking.tutor[0] : booking.tutor;
+	let meetingUrl = booking.meeting_url ?? undefined;
+	let meetingProvider = booking.meeting_provider ?? undefined;
 
 	// Update booking status using repository
 	try {
@@ -98,8 +100,10 @@ export async function markBookingAsPaid(bookingId: string) {
 
 			if (tutorHasStudio) {
 				const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-				const meetingUrl = buildClassroomUrl(booking.id, booking.short_code, appUrl);
-				await updateBookingMeetingUrl(adminClient, booking.id, user.id, meetingUrl, "livekit");
+				const generatedMeetingUrl = buildClassroomUrl(booking.id, booking.short_code, appUrl);
+				await updateBookingMeetingUrl(adminClient, booking.id, user.id, generatedMeetingUrl, "livekit");
+				meetingUrl = generatedMeetingUrl;
+				meetingProvider = "livekit";
 			}
 		} catch (meetingUrlError) {
 			logStepError(log, "markBookingAsPaid:meeting_url_failed", meetingUrlError, { bookingId });
@@ -112,6 +116,7 @@ export async function markBookingAsPaid(bookingId: string) {
 
 	if (studentEmail && amountCents > 0) {
 		await sendPaymentReceiptEmail({
+			bookingId,
 			studentName: student?.full_name ?? "Student",
 			studentEmail,
 			tutorName: tutorProfile?.full_name ?? "Your tutor",
@@ -122,6 +127,24 @@ export async function markBookingAsPaid(bookingId: string) {
 			currency,
 			paymentMethod: "Manual payment",
 			notes: "Marked as paid by your tutor",
+		});
+
+		await sendBookingConfirmationEmail({
+			bookingId,
+			studentName: student?.full_name ?? "Student",
+			studentEmail,
+			tutorName: tutorProfile?.full_name ?? "Your tutor",
+			tutorEmail: tutorProfile?.email ?? "",
+			serviceName: service?.name ?? "Lesson",
+			scheduledAt: booking.scheduled_at,
+			durationMinutes: booking.duration_minutes ?? service?.duration_minutes ?? 60,
+			timezone: booking.timezone ?? "UTC",
+			amount: amountCents / 100,
+			currency,
+			confirmationStatus: "confirmed",
+			paymentStatus: "paid",
+			meetingUrl,
+			meetingProvider,
 		});
 	}
 
@@ -271,6 +294,7 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 	if (paymentUrl) {
 		// Send payment request email with Stripe checkout link
 		await sendBookingPaymentRequestEmail({
+			bookingId,
 			studentName: student.full_name,
 			studentEmail: student.email,
 			tutorName: tutorProfile.full_name ?? "Your tutor",
@@ -318,6 +342,7 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 		}
 
 		await sendBookingConfirmationEmail({
+			bookingId,
 			studentName: student.full_name,
 			studentEmail: student.email,
 			tutorName: tutorProfile.full_name ?? "Your tutor",
@@ -328,6 +353,8 @@ export async function sendPaymentRequestForBooking(bookingId: string) {
 			timezone: studentTimezone,
 			amount: paymentAmount / 100,
 			currency,
+			confirmationStatus: "pending",
+			paymentStatus: "unpaid",
 			paymentInstructions: {
 				general: tutorProfile.payment_instructions ?? undefined,
 				venmoHandle: tutorProfile.venmo_handle ?? undefined,

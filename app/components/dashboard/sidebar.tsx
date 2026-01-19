@@ -67,7 +67,7 @@ export function DashboardSidebar({ className, onNavigate }: SidebarProps) {
         className={cn(
           "flex items-center gap-3 rounded-md px-4 py-2 text-sm transition-colors",
           disabled
-            ? "border border-dashed border-border/60 text-muted-foreground/70"
+            ? "border border-dashed border-border text-muted-foreground/70"
             : isActive
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",

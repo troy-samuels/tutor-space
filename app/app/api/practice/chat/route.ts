@@ -11,7 +11,7 @@ import {
   BLOCK_TEXT_TURNS,
   BLOCK_AUDIO_SECONDS,
 } from "@/lib/practice/constants";
-import { createPracticeChatCompletion } from "@/lib/practice/openai";
+import { createPracticeChatCompletion, isPracticeOpenAIConfigured } from "@/lib/practice/openai";
 import {
   GRAMMAR_CATEGORY_SLUGS,
   type GrammarCategorySlug,
@@ -200,6 +200,18 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO", requestId },
         { status: 403 }
+      );
+    }
+
+    if (!await isPracticeOpenAIConfigured()) {
+      return NextResponse.json(
+        {
+          error: "AI practice is temporarily unavailable. Please try again later.",
+          code: "OPENAI_NOT_CONFIGURED",
+          retryable: false,
+          requestId,
+        },
+        { status: 503 }
       );
     }
 

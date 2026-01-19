@@ -9,6 +9,8 @@ import type { BookableSlot } from "@/lib/utils/slots";
 import type { TutorWithDetails, StudentPackage } from "@/lib/actions/types";
 import { createStudentBooking, getStudentPackagesForTutor } from "@/lib/actions/student-bookings";
 import { formatCurrency } from "@/lib/utils";
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
+import { formatBookingError } from "@/lib/utils/booking-errors";
 
 interface Service {
   id: string;
@@ -39,6 +41,7 @@ export function StudentBookingForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successStatus, setSuccessStatus] = useState<"confirmed" | "pending">("confirmed");
   const [notes, setNotes] = useState("");
 
   // Payment method state
@@ -49,11 +52,20 @@ export function StudentBookingForm({
 
   const zonedStart = toZonedTime(slot.start, tutor.timezone);
   const zonedEnd = toZonedTime(slot.end, tutor.timezone);
-  const priceDisplay = formatCurrency(service.price_amount, service.price_currency);
+  const isFreeService = service.price_amount === 0;
+  const priceDisplay = isFreeService ? "Free" : formatCurrency(service.price_amount, service.price_currency);
 
   // Load available packages on mount
   useEffect(() => {
     async function loadPackages() {
+      if (isFreeService) {
+        setPackages([]);
+        setPaymentMethod("direct");
+        setSelectedPackageId(null);
+        setLoadingPackages(false);
+        return;
+      }
+
       setLoadingPackages(true);
       const result = await getStudentPackagesForTutor(tutor.id);
       if (result.packages) {
@@ -71,7 +83,7 @@ export function StudentBookingForm({
       setLoadingPackages(false);
     }
     loadPackages();
-  }, [tutor.id, service.duration_minutes]);
+  }, [tutor.id, service.duration_minutes, isFreeService]);
 
   const getInitials = (name: string | null) => {
     if (!name) return "?";
@@ -83,18 +95,23 @@ export function StudentBookingForm({
       .slice(0, 2);
   };
 
+  const setFormattedError = (message: string) => {
+    setError(formatBookingError(message) ?? message);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     // Validate package selection if using package payment
     if (paymentMethod === "package" && !selectedPackageId) {
-      setError("Please select a package to use");
+      setFormattedError("Please select a package to use.");
       return;
     }
 
     startTransition(async () => {
       try {
+        const clientMutationId = crypto.randomUUID();
         const result = await createStudentBooking({
           tutorId: tutor.id,
           serviceId: service.id,
@@ -103,46 +120,61 @@ export function StudentBookingForm({
           notes: notes || null,
           amount: service.price_amount,
           currency: service.price_currency,
-          packageId: paymentMethod === "package" ? selectedPackageId ?? undefined : undefined,
+          packageId:
+            !isFreeService && paymentMethod === "package" ? selectedPackageId ?? undefined : undefined,
+          clientMutationId,
         });
 
         if (result.error) {
-          setError(result.error);
+          setFormattedError(result.error);
+          return;
+        }
+
+        if (result.checkoutUrl) {
+          // Redirect to Stripe checkout
+          window.location.href = result.checkoutUrl;
           return;
         }
 
         if (result.success) {
+          const isInstantConfirm = isFreeService || paymentMethod === "package";
+          setSuccessStatus(isInstantConfirm ? "confirmed" : "pending");
           setSuccess(true);
           // Wait a moment then refresh
           setTimeout(() => {
             onSuccess();
           }, 2000);
         }
-
-        if (result.checkoutUrl) {
-          // Redirect to Stripe checkout
-          window.location.href = result.checkoutUrl;
-        }
       } catch (err) {
         console.error("Booking error:", err);
-        setError("An error occurred. Please try again.");
+        setFormattedError("An error occurred. Please try again.");
       }
     });
   };
 
   if (success) {
+    const isConfirmed = successStatus === "confirmed";
     return (
       <div className="max-w-lg mx-auto text-center py-12">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Booking Confirmed!</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">
+          {isConfirmed ? "Booking Confirmed!" : "Booking Requested"}
+        </h2>
         <p className="text-muted-foreground mb-4">
-          Your lesson with {tutor.full_name || `@${tutor.username}`} has been scheduled.
+          {isConfirmed
+            ? `Your lesson with ${tutor.full_name || `@${tutor.username}`} has been scheduled.`
+            : `Your booking request was sent to ${tutor.full_name || `@${tutor.username}`}.`}
         </p>
         <p className="text-sm text-muted-foreground">
           {format(zonedStart, "EEEE, MMMM d, yyyy")} at {format(zonedStart, "h:mm a")}
         </p>
+        {!isConfirmed && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            You&apos;ll receive payment instructions once the tutor confirms your booking.
+          </p>
+        )}
       </div>
     );
   }
@@ -218,7 +250,9 @@ export function StudentBookingForm({
                 {priceDisplay}
               </div>
               <div className="text-sm text-muted-foreground">
-                {paymentMethod === "package" && selectedPackageId
+                {isFreeService
+                  ? "No payment required"
+                  : paymentMethod === "package" && selectedPackageId
                   ? "Using package credit · no charge"
                   : "Secure checkout after confirm"}
               </div>
@@ -231,24 +265,32 @@ export function StudentBookingForm({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="font-semibold">
-                {paymentMethod === "package" && selectedPackageId
+                {isFreeService
+                  ? "Free lesson"
+                  : paymentMethod === "package" && selectedPackageId
                   ? "Using session package"
                   : "Pay with card"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {paymentMethod === "package" && selectedPackageId
+                {isFreeService
+                  ? "No payment is required for this booking."
+                  : paymentMethod === "package" && selectedPackageId
                   ? "1 session credit will be applied. No payment required today."
                   : `You will pay ${priceDisplay} via secure checkout after confirming.`}
               </p>
             </div>
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary">
-              {paymentMethod === "package" && selectedPackageId ? "Credits" : "Checkout"}
+              {isFreeService
+                ? "Free"
+                : paymentMethod === "package" && selectedPackageId
+                ? "Credits"
+                : "Checkout"}
             </span>
           </div>
         </div>
 
         {/* Payment Method Selector */}
-        {!loadingPackages && (packages.length > 0 || true) && (
+        {!isFreeService && !loadingPackages && (packages.length > 0 || true) && (
           <div className="py-4 border-t border-border">
             <h3 className="text-sm font-semibold mb-3">Payment Method</h3>
 
@@ -340,7 +382,7 @@ export function StudentBookingForm({
           </div>
         )}
 
-        {loadingPackages && (
+        {!isFreeService && loadingPackages && (
           <div className="py-4 border-t border-border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -365,11 +407,12 @@ export function StudentBookingForm({
             />
           </div>
 
-          {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">
-              {error}
-            </div>
-          )}
+          <FormStatusAlert
+            message={error || undefined}
+            tone="error"
+            ariaLive="assertive"
+            className="rounded-lg border border-destructive/20 bg-destructive/10"
+          />
 
           <button
             type="submit"
@@ -392,7 +435,9 @@ export function StudentBookingForm({
           </button>
 
           <p className="text-xs text-muted-foreground text-center">
-            {paymentMethod === "package"
+            {isFreeService
+              ? "No payment is required. Your lesson will be confirmed immediately."
+              : paymentMethod === "package"
               ? `This will deduct ${service.duration_minutes} minutes from your selected package.`
               : "Your tutor will send payment instructions after the booking is confirmed."}
           </p>

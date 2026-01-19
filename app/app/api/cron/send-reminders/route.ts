@@ -221,7 +221,7 @@ export async function GET(request: Request) {
             continue;
           }
 
-          await sendLessonReminderEmail({
+          const sendResult = await sendLessonReminderEmail({
             studentName: student.full_name,
             studentEmail: student.email,
             tutorName: tutor?.full_name || "Your tutor",
@@ -234,6 +234,9 @@ export async function GET(request: Request) {
             customVideoName: tutor?.custom_video_name || undefined,
             hoursUntil: 24,
           });
+          if (!sendResult.success) {
+            console.warn(`24h reminder email failed for lesson ${lesson.id}:`, sendResult.error);
+          }
 
           // Mark as sent
           await adminClient
@@ -304,7 +307,7 @@ export async function GET(request: Request) {
             continue;
           }
 
-          await sendLessonReminderEmail({
+          const sendResult = await sendLessonReminderEmail({
             studentName: student.full_name,
             studentEmail: student.email,
             tutorName: tutor?.full_name || "Your tutor",
@@ -317,6 +320,9 @@ export async function GET(request: Request) {
             customVideoName: tutor?.custom_video_name || undefined,
             hoursUntil: 1,
           });
+          if (!sendResult.success) {
+            console.warn(`1h reminder email failed for lesson ${lesson.id}:`, sendResult.error);
+          }
 
           // Mark as sent
           await adminClient

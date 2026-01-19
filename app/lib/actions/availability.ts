@@ -58,3 +58,20 @@ export async function saveAvailability(slots: AvailabilitySlotInput[]) {
 
   return { success: true };
 }
+
+/**
+ * Creates a one-time unavailability exception.
+ * Semantic wrapper around createBlockedTime() for clarity.
+ */
+export async function createOneTimeException(input: {
+  startTime: string;
+  endTime: string;
+  label?: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  const { createBlockedTime } = await import("./blocked-times");
+  return createBlockedTime({
+    startTime: input.startTime,
+    endTime: input.endTime,
+    label: input.label,
+  });
+}

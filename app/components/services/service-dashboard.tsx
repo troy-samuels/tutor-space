@@ -375,7 +375,9 @@ export function ServiceDashboard({
                           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                             <div className="flex items-center gap-3">
                               <span className="text-xl font-semibold tracking-tight text-foreground">
-                                {formatCurrency(service.price, service.currency ?? defaultCurrency)}
+                                {service.price === 0
+                                  ? "Free"
+                                  : formatCurrency(service.price, service.currency ?? defaultCurrency)}
                               </span>
                               <span className="h-4 w-px bg-stone-200" aria-hidden />
                               <span className="text-muted-foreground">

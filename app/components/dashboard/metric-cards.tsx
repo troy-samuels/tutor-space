@@ -55,11 +55,15 @@ export function MetricCards({ metrics }: MetricCardsProps) {
         const ActionIcon = metric.action?.icon ? resolveIcon(metric.action.icon) : null;
 
         const cardContent = (
-          <>
+          <div className="flex flex-col h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
               <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
               <div className="flex items-center gap-2">
-                {Icon ? <Icon className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
+                {Icon ? (
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Icon className="h-4 w-4 shrink-0 text-primary" />
+                  </div>
+                ) : null}
                 {metric.action && !metric.action.fullCard && ActionIcon && (
                   <Link
                     href={metric.action.href}
@@ -79,13 +83,13 @@ export function MetricCards({ metrics }: MetricCardsProps) {
                 <p className="mt-1 text-xs text-muted-foreground">{metric.helperText}</p>
               ) : null}
             </CardContent>
-          </>
+          </div>
         );
 
         if (metric.action?.fullCard) {
           return (
             <Link key={metric.label} href={metric.action.href} className="block">
-              <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
+              <Card className="h-full border-border shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] cursor-pointer">
                 {cardContent}
               </Card>
             </Link>
@@ -93,7 +97,7 @@ export function MetricCards({ metrics }: MetricCardsProps) {
         }
 
         return (
-          <Card key={metric.label}>
+          <Card key={metric.label} className="border-border shadow-[var(--shadow-soft)]">
             {cardContent}
           </Card>
         );

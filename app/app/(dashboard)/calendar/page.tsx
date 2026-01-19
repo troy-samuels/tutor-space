@@ -1,8 +1,24 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarPageClient } from "@/components/dashboard/calendar-page-client";
+import type { CalendarViewType } from "@/lib/types/calendar";
 
-export default async function CalendarPage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+
+  // Parse and validate view param
+  const viewParam = typeof params.view === "string" ? params.view : "month";
+  const validViews: CalendarViewType[] = ["month", "week", "day", "availability"];
+  const initialView = validViews.includes(viewParam as CalendarViewType)
+    ? (viewParam as CalendarViewType)
+    : "month";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -40,7 +56,6 @@ export default async function CalendarPage() {
       .from("availability")
       .select("id, day_of_week, start_time, end_time, is_available")
       .eq("tutor_id", user.id)
-      .eq("is_available", true)
       .order("day_of_week")
       .order("start_time"),
     supabase
@@ -77,6 +92,7 @@ export default async function CalendarPage() {
       tutorId={user.id}
       availability={availability}
       connectedCalendars={connectedProviders}
+      initialView={initialView}
     />
   );
 }

@@ -122,6 +122,7 @@ export async function cancelBooking(bookingId: string) {
 	const studentEmail = student?.email;
 	if (studentEmail) {
 		await sendBookingCancelledEmail({
+			bookingId,
 			studentName,
 			studentEmail,
 			tutorName: tutorProfile?.full_name ?? "Your tutor",

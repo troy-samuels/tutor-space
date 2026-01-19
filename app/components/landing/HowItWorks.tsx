@@ -55,7 +55,7 @@ export function HowItWorks({ howItWorks }: HowItWorksProps) {
                   </div>
 
                   {/* Step content */}
-                  <div className="flex-1 rounded-2xl bg-brand-white p-6 shadow-sm md:p-8">
+                  <div className="flex-1 rounded-2xl bg-brand-white p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] md:p-8">
                     <h3 className="mb-3 text-xl font-semibold text-foreground md:text-2xl">
                       {step.title}
                     </h3>
@@ -77,7 +77,7 @@ export function HowItWorks({ howItWorks }: HowItWorksProps) {
           <div className="mt-12 text-center">
             <Link
               href="/signup"
-              className="inline-block rounded-md bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-lg"
+              className="inline-block rounded-md bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-300 hover:bg-primary/90 hover:shadow-[var(--shadow-hover)] hover:-translate-y-0.5"
             >
               {howItWorks.cta}
             </Link>

@@ -111,7 +111,7 @@ app/
 │   ├── book/                    # Public booking flow
 │   ├── signup/                  # Registration
 │   ├── login/                   # Login
-│   └── student-auth/            # Student portal
+│   └── student/                 # Student portal
 ├── components/                   # React components
 │   ├── dashboard/               # Dashboard UI components
 │   ├── booking/                 # Booking flow components

@@ -27,15 +27,25 @@ const RETRYABLE_STATUSES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function getOpenAIKey(): string | null {
+  const value = process.env.OPENAI_API_KEY?.trim();
+  return value && value.length > 0 ? value : null;
+}
+
+export async function isPracticeOpenAIConfigured(): Promise<boolean> {
+  return !!getOpenAIKey();
+}
+
 export async function getPracticeOpenAIClient(): Promise<OpenAI> {
   const OpenAI = (await import("openai")).default;
 
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = getOpenAIKey();
+  if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
 
   return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey,
   });
 }
 

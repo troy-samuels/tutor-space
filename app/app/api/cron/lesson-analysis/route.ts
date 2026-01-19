@@ -13,12 +13,12 @@ import { recordSystemEvent, recordSystemMetric, startDuration } from "@/lib/moni
 type AdminClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 type TutorApprovalPreference = "require_approval" | "auto_send";
 
-const BATCH_LIMIT = 5;
+const BATCH_LIMIT = 2;
 const STALE_ANALYZING_MINUTES = 120;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 55;
 
 async function logProcessing(client: ReturnType<typeof createServiceRoleClient>, params: {
   entityType: string;

@@ -139,13 +139,6 @@ export function proxy(request: NextRequest) {
     const preferredLocale = pathLocale ?? getPreferredLocale(request);
     const normalizedPathname = pathLocale ? pathname.replace(`/${pathLocale}`, "") || "/" : pathname;
 
-    // Backwards-compatible redirect: `/student-auth/*` → `/student/*`
-    if (normalizedPathname === "/student-auth" || normalizedPathname.startsWith("/student-auth/")) {
-      const redirectUrl = new URL(request.url);
-      redirectUrl.pathname = normalizedPathname.replace(/^\/student-auth(?=\/|$)/, "/student");
-      return redirectResponse(redirectUrl);
-    }
-
     // Password gate check - blocks entire site until password is entered
     const gateEnabled =
       typeof process !== "undefined" &&

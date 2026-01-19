@@ -148,9 +148,11 @@ export function StudentList() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">Students</h2>
         </div>
-        <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-8">
+        <div className="rounded-2xl border border-border bg-muted/30 p-8 shadow-sm">
           <div className="flex flex-col items-center text-center space-y-4">
-            <Users className="h-12 w-12 text-muted-foreground/50" />
+            <div className="h-16 w-16 rounded-full bg-background flex items-center justify-center shadow-sm">
+              <Users className="h-8 w-8 text-muted-foreground/60" />
+            </div>
             <div>
               <h3 className="font-semibold text-foreground">No students yet</h3>
               <p className="mt-1 text-sm text-muted-foreground">

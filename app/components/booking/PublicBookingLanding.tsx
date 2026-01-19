@@ -156,11 +156,16 @@ export function PublicBookingLanding({
             {t("availableServices")}
           </h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className="shadow-sm rounded-xl p-4 sm:p-6 hover:shadow-lg transition"
-              >
+            {services.map((service) => {
+              const priceLabel =
+                service.price_amount === 0
+                  ? "Free"
+                  : formatCurrency(service.price_amount, service.price_currency);
+              return (
+                <div
+                  key={service.id}
+                  className="shadow-sm rounded-xl p-4 sm:p-6 hover:shadow-lg transition"
+                >
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-semibold text-gray-900">{service.name}</h4>
                   <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
@@ -175,11 +180,12 @@ export function PublicBookingLanding({
                     {t("minutes", { minutes: service.duration_minutes })}
                   </span>
                   <span className="font-semibold text-primary">
-                    {formatCurrency(service.price_amount, service.price_currency)}
+                    {priceLabel}
                   </span>
                 </div>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
 

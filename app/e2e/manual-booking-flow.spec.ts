@@ -25,7 +25,7 @@ function createAdminClient() {
 test.describe("Manual Booking Flow", () => {
   test.setTimeout(3 * 60 * 1000); // 3 minutes max
 
-  test("should display redesigned New Lesson modal with correct terminology", async ({ browser, baseURL }) => {
+  test("should open calendar booking modal via deep link", async ({ browser, baseURL }) => {
     const appUrl = baseURL ?? "http://localhost:3000";
     const now = Date.now();
 
@@ -79,6 +79,40 @@ test.describe("Manual Booking Flow", () => {
         timezone: "America/New_York",
         calendar_access_status: "approved",
       }).select().single();
+      if (!student) {
+        throw new Error("Failed to create test student");
+      }
+
+      // Ensure at least one active service exists
+      const { data: existingServices } = await adminClient
+        .from("services")
+        .select("id")
+        .eq("tutor_id", tutorId)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (!existingServices || existingServices.length === 0) {
+        const { error: serviceError } = await adminClient
+          .from("services")
+          .insert({
+            tutor_id: tutorId,
+            name: "E2E Lesson",
+            description: "Manual booking flow test service",
+            duration_minutes: 60,
+            price_amount: 5000,
+            price_currency: "USD",
+            price: 5000,
+            currency: "USD",
+            is_active: true,
+            requires_approval: false,
+            max_students_per_session: 1,
+            offer_type: "one_off",
+          });
+
+        if (serviceError) {
+          throw new Error(`Failed to create test service: ${serviceError.message}`);
+        }
+      }
 
       // Create availability (9 AM - 5 PM every day)
       const availabilitySlots = [];
@@ -106,29 +140,19 @@ test.describe("Manual Booking Flow", () => {
       await page.goto(`${appUrl}/bookings`);
       await page.waitForLoadState("networkidle");
 
-      // Test 1: Verify "New Lesson" button exists (renamed from "Add Booking")
-      const newLessonButton = page.locator('button:has-text("New Lesson")');
-      await expect(newLessonButton).toBeVisible({ timeout: 10000 });
-      await newLessonButton.click();
+      // Open booking modal via calendar deep link
+      const bookViaCalendarLink = page.getByRole("link", { name: "Book via Calendar" });
+      await expect(bookViaCalendarLink).toBeVisible({ timeout: 10000 });
+      await bookViaCalendarLink.click();
+      await page.waitForURL(/\/calendar/);
 
-      // Test 2: Verify modal title is "New Lesson"
-      const modalTitle = page.locator('[role="dialog"] h2');
-      await expect(modalTitle).toContainText("New Lesson");
+      const modalHeading = page.getByRole("heading", { name: "Create Booking" });
+      await expect(modalHeading).toBeVisible();
+      const modal = modalHeading.locator("..").locator("..");
 
-      // Test 3: Verify description text
-      await expect(page.locator('text=Schedule a lesson and send your student the details')).toBeVisible();
+      await expect(modal.locator('text=Quick mode')).toBeVisible();
 
-      // Test 4: Verify step labels use new terminology ("Lesson", "Student", "Review & Send")
-      // Use more specific selectors for step labels in the flow progress component
-      const stepLabels = page.locator('[role="dialog"]').locator('p.text-sm.font-semibold');
-      const labels = await stepLabels.allTextContents();
-      expect(labels.some(l => l.includes("Lesson"))).toBe(true);
-      expect(labels.some(l => l.includes("Student"))).toBe(true);
-      expect(labels.some(l => l.includes("Review"))).toBe(true);
-
-      // Test 5: Navigate through steps and verify payment options
-      // Step 1: Select service and time
-      const serviceSelect = page.locator('[role="dialog"] select').first();
+      const serviceSelect = modal.locator("select").first();
       await serviceSelect.waitFor({ state: "visible" });
 
       // Get available options
@@ -137,67 +161,18 @@ test.describe("Manual Booking Flow", () => {
         await serviceSelect.selectOption({ index: 1 });
       }
 
-      // Select date
-      const dateSelect = page.locator('[role="dialog"] select').nth(1);
-      await dateSelect.waitFor({ state: "visible" });
-      const dateOptions = await dateSelect.locator('option').allTextContents();
-      if (dateOptions.length > 1 && !dateOptions[0].includes("No available")) {
-        await dateSelect.selectOption({ index: 1 });
-      }
+      const studentSelect = modal.locator("select").nth(1);
+      await studentSelect.waitFor({ state: "visible" });
+      await studentSelect.selectOption({ label: `Test Student (${student.email})` });
 
-      // Wait for time options and select
-      await page.waitForTimeout(500);
-      const timeSelect = page.locator('[role="dialog"] select').nth(2);
-      const timeOptions = await timeSelect.locator('option').allTextContents();
-      if (timeOptions.length > 1) {
-        await timeSelect.selectOption({ index: 1 });
-      }
+      await expect(modal.locator('input[type="date"]')).toBeVisible();
+      await expect(modal.locator('input[type="time"]')).toBeVisible();
+      await expect(modal.locator('textarea')).toBeVisible();
 
-      // Click Continue
-      await page.click('[role="dialog"] button:has-text("Continue")');
-      await page.waitForTimeout(500);
+      await expect(modal.locator('button:has-text("Unpaid")')).toBeVisible();
+      await expect(modal.locator('button:has-text("Paid")')).toBeVisible();
 
-      // Step 2: Select student
-      if (student) {
-        const studentSelect = page.locator('[role="dialog"] select').first();
-        await studentSelect.waitFor({ state: "visible" });
-        const studentOptions = await studentSelect.locator('option').allTextContents();
-        const testStudentIndex = studentOptions.findIndex(opt => opt.includes("Test Student"));
-        if (testStudentIndex >= 0) {
-          await studentSelect.selectOption({ index: testStudentIndex });
-        }
-      }
-
-      // Click Continue
-      await page.click('[role="dialog"] button:has-text("Continue")');
-      await page.waitForTimeout(500);
-
-      // Step 3: Verify payment options are visible
-      await expect(page.locator('[role="dialog"]').locator('text=Send payment link')).toBeVisible();
-      await expect(page.locator('[role="dialog"]').locator('text=Already paid')).toBeVisible();
-      await expect(page.locator('[role="dialog"]').locator('text=Free / trial lesson')).toBeVisible();
-
-      // Verify radio buttons exist
-      const sendLinkRadio = page.locator('[role="dialog"] input[value="send_link"]');
-      const alreadyPaidRadio = page.locator('[role="dialog"] input[value="already_paid"]');
-      const freeRadio = page.locator('[role="dialog"] input[value="free"]');
-
-      await expect(sendLinkRadio).toBeVisible();
-      await expect(alreadyPaidRadio).toBeVisible();
-      await expect(freeRadio).toBeVisible();
-
-      // Test selecting different payment options
-      await alreadyPaidRadio.check();
-      await expect(alreadyPaidRadio).toBeChecked();
-
-      await freeRadio.check();
-      await expect(freeRadio).toBeChecked();
-
-      // Verify "Schedule Lesson" button exists
-      await expect(page.locator('[role="dialog"] button:has-text("Schedule Lesson")')).toBeVisible();
-
-      // Verify lesson summary card shows Price
-      await expect(page.locator('[role="dialog"]').locator('text=Price').first()).toBeVisible();
+      await expect(modal.locator('button:has-text("Create Booking")')).toBeVisible();
 
       await context.close();
     } finally {

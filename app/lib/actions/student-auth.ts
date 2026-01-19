@@ -1,17 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { upsertThread } from "@/lib/repositories/messaging";
 import { buildAuthCallbackUrl, sanitizeRedirectPath } from "@/lib/auth/redirects";
 import { sendAccessRequestNotification } from "@/lib/emails/access-emails";
+import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
 import type { AccessStatus, StudentAccessInfo } from "@/lib/actions/types";
 
 type StudentAccessRecord = {
   id: string;
   status: string | null; // "active", "trial", "paused", "alumni", etc.
   tutor_id: string;
+  calendar_access_status?: string | null;
   profiles: {
     full_name: string | null;
   } | null;
@@ -576,7 +579,7 @@ async function getStudentForTutor(tutorId: string) {
 
   const { data: student, error } = await adminClient
     .from("students")
-    .select("id, full_name, email, phone, tutor_id")
+    .select("id, full_name, email, phone, tutor_id, calendar_access_status")
     .eq("user_id", user.id)
     .eq("tutor_id", tutorId)
     .single();
@@ -615,9 +618,31 @@ export async function cancelAccessRequest(tutorId: string) {
 }
 
 export async function resendAccessRequest(tutorId: string) {
+  const headersList = await headers();
+  const rateLimitResult = await ServerActionLimiters.accessRequest(headersList);
+  if (!rateLimitResult.success) {
+    return { error: rateLimitResult.error || "Too many requests. Please try again later." };
+  }
+
   const result = await getStudentForTutor(tutorId);
   if ("error" in result) return result;
   const { student, adminClient } = result;
+
+  if (student.calendar_access_status && student.calendar_access_status !== "pending") {
+    return { error: "This access request has already been resolved." };
+  }
+
+  const { data: pendingRequest } = await adminClient
+    .from("student_access_requests")
+    .select("id")
+    .eq("student_id", student.id)
+    .eq("tutor_id", tutorId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (!pendingRequest) {
+    return { error: "No pending access request found to resend." };
+  }
 
   const now = new Date().toISOString();
 
@@ -633,17 +658,10 @@ export async function resendAccessRequest(tutorId: string) {
 
   await adminClient
     .from("student_access_requests")
-    .delete()
+    .update({ updated_at: now })
     .eq("student_id", student.id)
     .eq("tutor_id", tutorId)
     .eq("status", "pending");
-
-  await adminClient.from("student_access_requests").insert({
-    student_id: student.id,
-    tutor_id: tutorId,
-    status: "pending",
-    student_message: null,
-  });
 
   const { data: tutorProfile } = await adminClient
     .from("profiles")

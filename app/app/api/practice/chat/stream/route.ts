@@ -4,7 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { FREE_TEXT_TURNS, BLOCK_TEXT_TURNS } from "@/lib/practice/constants";
-import { createPracticeChatStream } from "@/lib/practice/openai";
+import { createPracticeChatStream, isPracticeOpenAIConfigured } from "@/lib/practice/openai";
 import {
   GRAMMAR_CATEGORY_SLUGS,
   type GrammarCategorySlug,
@@ -178,6 +178,18 @@ export async function POST(request: Request) {
       return new Response(
         JSON.stringify({ error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO", requestId }),
         { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!await isPracticeOpenAIConfigured()) {
+      return new Response(
+        JSON.stringify({
+          error: "AI practice is temporarily unavailable. Please try again later.",
+          code: "OPENAI_NOT_CONFIGURED",
+          retryable: false,
+          requestId,
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -367,12 +379,32 @@ export async function POST(request: Request) {
     });
 
     // Create streaming response
-    const stream = await createPracticeChatStream({
-      model: "gpt-4o-mini",
-      messages: openAIMessages,
-      temperature: 0.8,
-      max_tokens: MAX_OUTPUT_TOKENS_PER_CALL,
-    });
+    let stream;
+    try {
+      stream = await createPracticeChatStream({
+        model: "gpt-4o-mini",
+        messages: openAIMessages,
+        temperature: 0.8,
+        max_tokens: MAX_OUTPUT_TOKENS_PER_CALL,
+      });
+    } catch (error) {
+      console.error("[Stream] OpenAI error:", error);
+      await rollbackReservedMessageCount({
+        adminClient,
+        sessionId: sessionIdValueLocal,
+        reservedMessageCount,
+        initialMessageCount,
+      });
+      return new Response(
+        JSON.stringify({
+          error: "AI service temporarily unavailable. Please try again.",
+          code: "OPENAI_ERROR",
+          retryable: true,
+          requestId,
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     const parser = createStreamParser();
     const sseEncoder = createSSEEncoder();

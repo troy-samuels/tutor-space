@@ -2,8 +2,11 @@
 
 import { useState, useTransition, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { addDays, addMonths, addWeeks, endOfWeek, format, startOfWeek, subDays, subMonths, subWeeks } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { Calendar, CalendarRange, Plus, Settings, ChevronLeft, ChevronRight, Clock, Link2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { DashboardBookingCalendar } from "./dashboard-booking-calendar";
 import { CalendarWeekView } from "./calendar-week-view";
 import { CalendarDayView } from "./calendar-day-view";
@@ -11,10 +14,14 @@ import { CalendarDayPanel } from "./calendar-day-panel";
 import { QuickBlockDialog } from "./quick-block-dialog";
 import { CalendarBookingModal } from "./calendar-booking-modal";
 import { AvailabilityDrawer } from "./availability-drawer";
+import { AvailabilityTab } from "./availability-tab";
 import { SlotQuickActions } from "./slot-quick-actions";
 import { EventDetailsPopover } from "./event-details-popover";
 import { BlockedTimePopover } from "./blocked-time-popover";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCalendarKeyboardShortcuts } from "@/lib/hooks/useCalendarKeyboardShortcuts";
+import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import type { CalendarEvent, CalendarViewType } from "@/lib/types/calendar";
 import { rescheduleBooking } from "@/lib/actions/bookings";
 import { RescheduleDialog } from "@/components/bookings/reschedule-dialog";
@@ -30,6 +37,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const VALID_VIEWS: CalendarViewType[] = ["month", "week", "day", "availability"];
+
+function resolveViewFromSearchParams(params: URLSearchParams): CalendarViewType {
+  const viewParam = params.get("view");
+  return VALID_VIEWS.includes(viewParam as CalendarViewType)
+    ? (viewParam as CalendarViewType)
+    : "month";
+}
 
 type ServiceSummary = {
   id: string;
@@ -63,6 +79,7 @@ type CalendarPageClientProps = {
   tutorId: string;
   availability?: AvailabilitySlot[];
   connectedCalendars?: string[];
+  initialView?: CalendarViewType;
 };
 
 export function CalendarPageClient({
@@ -74,8 +91,22 @@ export function CalendarPageClient({
   tutorId,
   availability = [],
   connectedCalendars = [],
+  initialView = "month",
 }: CalendarPageClientProps) {
-  const [view, setView] = useState<CalendarViewType>("month");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [view, setViewState] = useState<CalendarViewType>(initialView);
+
+  const setView = useCallback((newView: CalendarViewType) => {
+    setViewState(newView);
+    const params = new URLSearchParams(searchParams.toString());
+    if (newView === "month") {
+      params.delete("view");
+    } else {
+      params.set("view", newView);
+    }
+    router.replace(`/calendar${params.toString() ? `?${params}` : ""}`, { scroll: false });
+  }, [router, searchParams]);
   const [activeDate, setActiveDate] = useState<Date>(new Date());
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [availabilityDrawerOpen, setAvailabilityDrawerOpen] = useState(false);
@@ -86,7 +117,7 @@ export function CalendarPageClient({
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [, startMoveTransition] = useTransition();
-  const [secondaryTimezone, setSecondaryTimezone] = useState<string>("");
+  const [secondaryTimezone, setSecondaryTimezone] = useState<string>(tutorTimezone || "");
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(availability);
 
   // Booking modal state
@@ -114,6 +145,47 @@ export function CalendarPageClient({
   useEffect(() => {
     setAvailabilitySlots(availability);
   }, [availability]);
+
+  useEffect(() => {
+    const nextView = resolveViewFromSearchParams(searchParams);
+    setViewState((prev) => (prev === nextView ? prev : nextView));
+  }, [searchParams]);
+
+  // Close availability drawer when switching to availability tab
+  useEffect(() => {
+    if (view === "availability") {
+      setAvailabilityDrawerOpen(false);
+    }
+  }, [view]);
+
+  // Handle ?action=book deep link for unified booking experience
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (action === "book" && !bookingModalOpen) {
+      // Pre-fill with today at next available hour in the tutor's timezone.
+      let zonedNow: Date;
+      try {
+        zonedNow = toZonedTime(new Date(), tutorTimezone);
+      } catch {
+        zonedNow = new Date();
+      }
+      let nextHour = zonedNow.getHours() + 1;
+      let bookingDate = zonedNow;
+
+      if (nextHour >= 22) {
+        bookingDate = addDays(zonedNow, 1);
+        nextHour = 9;
+      }
+
+      setBookingModalDate(bookingDate);
+      setBookingModalHour(nextHour);
+      setBookingModalOpen(true);
+      // Clean up URL param after opening
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      router.replace(`/calendar${params.toString() ? `?${params}` : ""}`, { scroll: false });
+    }
+  }, [searchParams, bookingModalOpen, router, tutorTimezone]);
 
   // Load lessons when date is selected
   const loadDayData = useCallback(async (date: Date) => {
@@ -262,6 +334,19 @@ export function CalendarPageClient({
     setFeedback({ type: "success", message: "Time blocked successfully." });
   };
 
+  const formatBlockDuration = useCallback((minutes: number) => {
+    if (minutes <= 0) return "0m";
+    if (minutes % 60 === 0) {
+      return `${minutes / 60}hr`;
+    }
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    return `${hours}hr ${remainder}m`;
+  }, []);
+
   // Instant block handler for quick action buttons (1hr, 2hr)
   const handleInstantBlock = useCallback(async (durationMinutes: number) => {
     if (!pendingSlotDate || pendingSlotHour === undefined) return;
@@ -279,11 +364,14 @@ export function CalendarPageClient({
 
     if (result.success) {
       setRefreshKey((key) => key + 1);
-      setFeedback({ type: "success", message: `Blocked ${durationMinutes / 60}hr successfully.` });
+      setFeedback({
+        type: "success",
+        message: `Blocked ${formatBlockDuration(durationMinutes)} successfully.`,
+      });
     } else {
       setFeedback({ type: "error", message: result.error || "Failed to block time." });
     }
-  }, [pendingSlotDate, pendingSlotHour]);
+  }, [formatBlockDuration, pendingSlotDate, pendingSlotHour]);
 
   const handleBookingSuccess = () => {
     // Refresh the calendar to show the new booking
@@ -375,11 +463,28 @@ export function CalendarPageClient({
     setSelectedDate(today);
   };
 
+  // Keyboard shortcuts
+  const isMobile = useIsMobile();
+  const shortcutsEnabled = !bookingModalOpen && !blockDialogOpen && !availabilityDrawerOpen && !isMobile;
+
+  useCalendarKeyboardShortcuts(
+    {
+      onNewBooking: () => setBookingModalOpen(true),
+      onBlockTime: () => setBlockDialogOpen(true),
+      onAvailability: () => setAvailabilityDrawerOpen(true),
+      onToday: handleToday,
+    },
+    shortcutsEnabled
+  );
+
   const toolbarLabel = useMemo(() => {
     if (view === "week") {
       const start = startOfWeek(activeDate, { weekStartsOn: 0 });
       const end = endOfWeek(activeDate, { weekStartsOn: 0 });
       return `${format(start, "MMMM")} ${format(start, "d")} - ${format(end, "d, yyyy")}`;
+    }
+    if (view === "day") {
+      return format(activeDate, "MMMM d, yyyy");
     }
     return format(activeDate, "MMMM yyyy");
   }, [activeDate, view]);
@@ -394,31 +499,45 @@ export function CalendarPageClient({
       {/* Header */}
       <div className="px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <span className="text-3xl font-semibold tracking-tight text-foreground">{toolbarLabel}</span>
+          <span className="text-3xl font-semibold tracking-tight text-foreground">
+            {view === "availability" ? "Availability" : toolbarLabel}
+          </span>
 
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={handlePrev}
-              title="Previous"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={handleNext}
-              title="Next"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-9 px-3" onClick={handleToday}>
-              Today
-            </Button>
-          </div>
+          {view !== "availability" && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={handlePrev}
+                title="Previous"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={handleNext}
+                title="Next"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 px-3" onClick={handleToday}>
+                    Today
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="flex items-center gap-2">
+                    Jump to today
+                    <kbd className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">T</kbd>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
 
           <div className="ml-auto flex items-center gap-2">
             <div
@@ -429,6 +548,8 @@ export function CalendarPageClient({
               {[
                 { value: "month" as const, label: "Month", Icon: Calendar },
                 { value: "week" as const, label: "Week", Icon: CalendarRange },
+                { value: "day" as const, label: "Day", Icon: Calendar },
+                { value: "availability" as const, label: "Availability", Icon: Clock },
               ].map(({ value, label, Icon }) => {
                 const isActive = view === value;
                 return (
@@ -453,15 +574,26 @@ export function CalendarPageClient({
               })}
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => setAvailabilityDrawerOpen(true)}
-              title="Edit weekly hours"
-            >
-              <Clock className="h-4 w-4" />
-            </Button>
+            {view !== "availability" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setAvailabilityDrawerOpen(true)}
+                  >
+                    <Clock className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="flex items-center gap-2">
+                    Edit availability
+                    <kbd className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">A</kbd>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Calendar sync status indicator */}
             <Link href="/settings/calendar">
@@ -488,7 +620,7 @@ export function CalendarPageClient({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuItem className="flex-col items-start gap-2">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">Display timezone</span>
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">Timezone</span>
                   <TimezoneSelect
                     value={secondaryTimezone}
                     onChange={(tz) => setSecondaryTimezone(tz)}
@@ -511,16 +643,23 @@ export function CalendarPageClient({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              asChild
-              size="icon"
-              className="h-10 w-10 rounded-full"
-              title="New booking"
-            >
-              <Link href="/bookings">
-                <Plus className="h-5 w-5" />
-              </Link>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  onClick={() => setBookingModalOpen(true)}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span className="flex items-center gap-2">
+                  New booking
+                  <kbd className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">N</kbd>
+                </span>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -548,44 +687,66 @@ export function CalendarPageClient({
             view === "month" ? "overflow-hidden" : "overflow-x-auto overflow-y-auto",
           ].join(" ")}
         >
-          {view === "month" && (
-            <DashboardBookingCalendar
-              signupDate={signupDate}
-              selectedDate={activeDate}
-              showHeaderControls={false}
-              onDateSelect={(date) => {
-                setActiveDate(date);
-                handleDateSelect(date);
-              }}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={view}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="flex-1 min-h-0 flex flex-col"
+            >
+              {view === "month" && (
+                <DashboardBookingCalendar
+                  signupDate={signupDate}
+                  selectedDate={activeDate}
+                  showHeaderControls={false}
+                  onDateSelect={(date) => {
+                    setActiveDate(date);
+                    handleDateSelect(date);
+                  }}
+                />
+              )}
 
-          {view === "week" && (
-            <CalendarWeekView
-              onEventClick={handleEventClick}
-              onTimeSlotClick={handleTimeSlotClick}
-              onEventMove={handleEventMove}
-              refreshKey={refreshKey}
-              primaryTimezone={primaryTimezone}
-              secondaryTimezone={secondaryTimezone || null}
-              activeDate={activeDate}
-              showHeaderControls={false}
-              availabilitySlots={availabilitySlots}
-            />
-          )}
+              {view === "week" && (
+                <CalendarWeekView
+                  onEventClick={handleEventClick}
+                  onTimeSlotClick={handleTimeSlotClick}
+                  onEventMove={handleEventMove}
+                  refreshKey={refreshKey}
+                  primaryTimezone={primaryTimezone}
+                  secondaryTimezone={secondaryTimezone || null}
+                  activeDate={activeDate}
+                  showHeaderControls={false}
+                  availabilitySlots={availabilitySlots}
+                />
+              )}
 
-          {view === "day" && (
-            <CalendarDayView
-              onEventClick={handleEventClick}
-              onTimeSlotClick={handleTimeSlotClick}
-              onEventMove={handleEventMove}
-              refreshKey={refreshKey}
-              primaryTimezone={primaryTimezone}
-              secondaryTimezone={secondaryTimezone || null}
-              activeDate={activeDate}
-              showHeaderControls={false}
-            />
-          )}
+              {view === "day" && (
+                <CalendarDayView
+                  onEventClick={handleEventClick}
+                  onTimeSlotClick={handleTimeSlotClick}
+                  onEventMove={handleEventMove}
+                  refreshKey={refreshKey}
+                  primaryTimezone={primaryTimezone}
+                  secondaryTimezone={secondaryTimezone || null}
+                  activeDate={activeDate}
+                  showHeaderControls={false}
+                />
+              )}
+
+              {view === "availability" && (
+                <AvailabilityTab
+                  initialSlots={availabilitySlots}
+                  onSaveSuccess={(slots) => {
+                    setAvailabilitySlots(slots);
+                    setRefreshKey((key) => key + 1);
+                    setFeedback({ type: "success", message: "Availability updated." });
+                  }}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
       </div>

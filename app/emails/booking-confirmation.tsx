@@ -10,6 +10,8 @@ interface BookingConfirmationEmailProps {
   timezone: string;
   amount: number;
   currency: string;
+  confirmationStatus?: "confirmed" | "pending";
+  paymentStatus?: "paid" | "unpaid";
   paymentInstructions?: {
     general?: string;
     venmoHandle?: string;
@@ -33,6 +35,8 @@ export function BookingConfirmationEmail({
   timezone,
   amount,
   currency,
+  confirmationStatus = "confirmed",
+  paymentStatus = "unpaid",
   paymentInstructions,
   meetingUrl,
   meetingProvider,
@@ -62,6 +66,8 @@ export function BookingConfirmationEmail({
   };
 
   const providerName = getProviderName();
+  const isFreeLesson = amount === 0;
+  const isConfirmed = confirmationStatus === "confirmed";
 
   // Build payment methods
   const paymentMethods: Array<{ label: string; value: string; link?: string }> = [];
@@ -122,8 +128,10 @@ export function BookingConfirmationEmail({
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #8B6B47 0%, #6B5335 100%); padding: 40px 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">Booking Confirmed!</h1>
-              <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Your lesson has been scheduled</p>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">${isConfirmed ? "Booking Confirmed!" : "Booking Pending"}</h1>
+              <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">
+                ${isConfirmed ? "Your lesson has been scheduled" : "Complete payment to confirm your lesson"}
+              </p>
             </td>
           </tr>
 
@@ -136,7 +144,11 @@ export function BookingConfirmationEmail({
               </p>
 
               <p style="margin: 0 0 30px 0; color: #333; font-size: 16px; line-height: 1.6;">
-                Great news! Your lesson with ${tutorName} has been confirmed. Here are the details:
+                ${
+                  isConfirmed
+                    ? `Great news! Your lesson with ${tutorName} has been confirmed. Here are the details:`
+                    : `Thanks for booking with ${tutorName}. Complete payment to confirm your lesson. Here are the details:`
+                }
               </p>
 
               <!-- Booking Details -->
@@ -204,8 +216,26 @@ export function BookingConfirmationEmail({
 
               <!-- Payment Instructions -->
               ${
-                paymentMethods.length > 0
+                isFreeLesson
                   ? `
+              <div style="background-color: #DCFCE7; border-left: 4px solid #22C55E; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <h2 style="margin: 0 0 10px 0; color: #166534; font-size: 18px; font-weight: 600;">No Payment Required</h2>
+                <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
+                  This lesson is free. No payment is needed.
+                </p>
+              </div>
+              `
+                  : paymentStatus === "paid"
+                    ? `
+              <div style="background-color: #DCFCE7; border-left: 4px solid #22C55E; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <h2 style="margin: 0 0 10px 0; color: #166534; font-size: 18px; font-weight: 600;">Payment Received</h2>
+                <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
+                  Your payment has been received. You're all set for your lesson.
+                </p>
+              </div>
+              `
+                    : paymentMethods.length > 0
+                      ? `
               <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
                 <h2 style="margin: 0 0 15px 0; color: #92400E; font-size: 18px; font-weight: 600;">Payment Required</h2>
 
@@ -233,7 +263,7 @@ export function BookingConfirmationEmail({
                   .join("")}
               </div>
               `
-                  : `
+                      : `
               <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
                 <h2 style="margin: 0 0 10px 0; color: #92400E; font-size: 18px; font-weight: 600;">Payment Information</h2>
                 <p style="margin: 0; color: #78350F; font-size: 14px; line-height: 1.6;">
@@ -306,6 +336,8 @@ export function BookingConfirmationEmailText({
   timezone,
   amount,
   currency,
+  confirmationStatus = "confirmed",
+  paymentStatus = "unpaid",
   paymentInstructions,
   meetingUrl,
   meetingProvider,
@@ -335,12 +367,16 @@ export function BookingConfirmationEmailText({
   };
 
   const providerName = getProviderName();
+  const isFreeLesson = amount === 0;
+  const isConfirmed = confirmationStatus === "confirmed";
 
-  let text = `Booking Confirmed!
+  let text = `${isConfirmed ? "Booking Confirmed!" : "Booking Pending"}
 
 Hi ${studentName},
 
-Great news! Your lesson with ${tutorName} has been confirmed.
+${isConfirmed
+  ? `Great news! Your lesson with ${tutorName} has been confirmed.`
+  : `Thanks for booking with ${tutorName}. Complete payment to confirm your lesson.`}
 
 BOOKING DETAILS:
 --------------
@@ -362,28 +398,34 @@ PAYMENT INFORMATION:
 -------------------
 `;
 
-  if (paymentInstructions?.general) {
-    text += `${paymentInstructions.general}\n\n`;
-  }
+  if (isFreeLesson) {
+    text += "No payment required for this booking.\n";
+  } else if (paymentStatus === "paid") {
+    text += "Payment received. You're all set for your lesson.\n";
+  } else {
+    if (paymentInstructions?.general) {
+      text += `${paymentInstructions.general}\n\n`;
+    }
 
-  if (paymentInstructions?.venmoHandle) {
-    text += `Venmo: @${paymentInstructions.venmoHandle}\n`;
-  }
-  if (paymentInstructions?.paypalEmail) {
-    text += `PayPal: ${paymentInstructions.paypalEmail}\n`;
-  }
-  if (paymentInstructions?.zellePhone) {
-    text += `Zelle: ${paymentInstructions.zellePhone}\n`;
-  }
-  if (paymentInstructions?.stripePaymentLink) {
-    text += `Card Payment: ${paymentInstructions.stripePaymentLink}\n`;
-  }
-  if (paymentInstructions?.customPaymentUrl) {
-    text += `Payment Link: ${paymentInstructions.customPaymentUrl}\n`;
-  }
+    if (paymentInstructions?.venmoHandle) {
+      text += `Venmo: @${paymentInstructions.venmoHandle}\n`;
+    }
+    if (paymentInstructions?.paypalEmail) {
+      text += `PayPal: ${paymentInstructions.paypalEmail}\n`;
+    }
+    if (paymentInstructions?.zellePhone) {
+      text += `Zelle: ${paymentInstructions.zellePhone}\n`;
+    }
+    if (paymentInstructions?.stripePaymentLink) {
+      text += `Card Payment: ${paymentInstructions.stripePaymentLink}\n`;
+    }
+    if (paymentInstructions?.customPaymentUrl) {
+      text += `Payment Link: ${paymentInstructions.customPaymentUrl}\n`;
+    }
 
-  if (!paymentInstructions || Object.keys(paymentInstructions).length === 0) {
-    text += `Please contact ${tutorName} at ${tutorEmail} for payment instructions.\n`;
+    if (!paymentInstructions || Object.keys(paymentInstructions).length === 0) {
+      text += `Please contact ${tutorName} at ${tutorEmail} for payment instructions.\n`;
+    }
   }
 
   text += `

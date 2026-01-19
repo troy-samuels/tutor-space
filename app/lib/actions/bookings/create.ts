@@ -10,6 +10,7 @@ import { validateServicePricing } from "@/lib/utils/booking-validation";
 import {
 	sendBookingConfirmationEmail,
 	sendTutorBookingNotificationEmail,
+	sendTutorBookingConfirmedEmail,
 	sendBookingPaymentRequestEmail,
 } from "@/lib/emails/booking-emails";
 import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
@@ -479,7 +480,7 @@ export async function createBookingAndCheckout(params: {
 				? serviceRecord.price_amount
 				: typeof serviceRecord.price === "number"
 					? serviceRecord.price
-					: 0;
+					: null;
 
 		const pricingValidation = validateServicePricing({
 			servicePriceCents,
@@ -497,6 +498,11 @@ export async function createBookingAndCheckout(params: {
 
 		const serviceCurrency = pricingValidation.currency;
 		const normalizedPriceCents = pricingValidation.priceCents;
+		const isFreeService = normalizedPriceCents === 0;
+
+		if (isFreeService && (params.packageId || params.subscriptionId)) {
+			return { error: "This service is free; credits are not required." };
+		}
 		const serviceDurationMinutes =
 			serviceRecord.duration_minutes || params.durationMinutes || 60;
 		const serviceName = serviceRecord.name ?? "Lesson";
@@ -629,8 +635,10 @@ export async function createBookingAndCheckout(params: {
 		await ensureConversationThread(adminClient, params.tutorId, studentId);
 
 		// 5. Create booking record atomically to avoid race conditions (repository)
-		// If packageId or subscriptionId provided, booking will be confirmed immediately
-		const usingCredit = !!(params.packageId || params.subscriptionId);
+		// If using credits or free, booking will be confirmed immediately
+		const usingCredit = !isFreeService && !!(params.packageId || params.subscriptionId);
+		const shouldAutoConfirm = usingCredit || isFreeService;
+		const paymentStatus = shouldAutoConfirm ? "paid" : "unpaid";
 
 		let booking: { id: string; created_at: string };
 		try {
@@ -641,8 +649,8 @@ export async function createBookingAndCheckout(params: {
 				scheduledAt: params.scheduledAt,
 				durationMinutes: serviceRecord.duration_minutes,
 				timezone: tutorTimezone,
-				status: usingCredit ? "confirmed" : "pending",
-				paymentStatus: usingCredit ? "paid" : "unpaid",
+				status: shouldAutoConfirm ? "confirmed" : "pending",
+				paymentStatus,
 				paymentAmount: normalizedPriceCents,
 				currency: serviceCurrency,
 				studentNotes: params.notes,
@@ -713,7 +721,13 @@ export async function createBookingAndCheckout(params: {
 				durationMinutes: serviceRecord.duration_minutes,
 				serviceId: params.serviceId,
 				source: "public_checkout",
-				paymentMethod: params.packageId ? "package" : params.subscriptionId ? "subscription" : "stripe",
+				paymentMethod: isFreeService
+					? "free"
+					: params.packageId
+						? "package"
+						: params.subscriptionId
+							? "subscription"
+							: "stripe",
 			},
 		});
 
@@ -737,7 +751,7 @@ export async function createBookingAndCheckout(params: {
 		}
 
 		// 5a. If package redemption requested, process it
-		if (params.packageId) {
+		if (!isFreeService && params.packageId) {
 			const { redeemPackageMinutes } = await import("@/lib/actions/packages");
 
 			const redemptionResult = await redeemPackageMinutes({
@@ -759,7 +773,7 @@ export async function createBookingAndCheckout(params: {
 		}
 
 		// 5b. If subscription redemption requested, process it
-		if (params.subscriptionId) {
+		if (!isFreeService && params.subscriptionId) {
 			const { redeemSubscriptionLesson } = await import("@/lib/actions/subscriptions");
 
 			const redemptionResult = await redeemSubscriptionLesson(
@@ -826,69 +840,6 @@ export async function createBookingAndCheckout(params: {
 			}
 		}
 
-		// 8. Send confirmation emails (don't block on email sending)
-		if (tutorProfile) {
-			// Send to student
-			sendBookingConfirmationEmail({
-				studentName: params.student.fullName,
-				studentEmail: params.student.email,
-				tutorName: tutorProfile.full_name || "Your tutor",
-				tutorEmail: tutorProfile.email ?? "",
-				serviceName,
-				scheduledAt: params.scheduledAt,
-				durationMinutes: serviceRecord.duration_minutes,
-				timezone: tutorTimezone,
-				amount: normalizedPriceCents,
-				currency: serviceCurrency,
-				paymentInstructions: {
-					general: tutorProfile.payment_instructions || undefined,
-					venmoHandle: tutorProfile.venmo_handle || undefined,
-					paypalEmail: tutorProfile.paypal_email || undefined,
-					zellePhone: tutorProfile.zelle_phone || undefined,
-					stripePaymentLink: tutorProfile.stripe_payment_link || undefined,
-					customPaymentUrl: tutorProfile.custom_payment_url || undefined,
-				},
-				meetingUrl: meetingUrl || undefined,
-				meetingProvider: meetingProvider || undefined,
-				customVideoName: tutorProfile.custom_video_name || undefined,
-			}).catch((error) => {
-				logStepError(log, "createBookingAndCheckout:student_email_failed", error, { bookingId: booking.id });
-			});
-
-			// Send to tutor
-			sendTutorBookingNotificationEmail({
-				tutorName: tutorProfile.full_name || "Tutor",
-				tutorEmail: tutorProfile.email ?? "",
-				studentName: params.student.fullName,
-				studentEmail: params.student.email,
-				studentPhone: params.student.phone || undefined,
-				serviceName,
-				scheduledAt: params.scheduledAt,
-				durationMinutes: serviceRecord.duration_minutes,
-				timezone: tutorTimezone,
-				amount: normalizedPriceCents,
-				currency: serviceCurrency,
-				notes: params.notes || undefined,
-				dashboardUrl: `${appUrl}/bookings`,
-			}).catch((error) => {
-				logStepError(log, "createBookingAndCheckout:tutor_email_failed", error, { bookingId: booking.id });
-			});
-
-			// Send in-app notification to tutor
-			try {
-				const { notifyNewBooking } = await import("@/lib/actions/notifications");
-				await notifyNewBooking({
-					tutorId: params.tutorId,
-					studentName: params.student.fullName,
-					serviceName,
-					scheduledAt: params.scheduledAt,
-					bookingId: booking.id,
-				});
-			} catch (notificationError) {
-				logStepError(log, "createBookingAndCheckout:notification_failed", notificationError, { bookingId: booking.id });
-			}
-		}
-
 		// 8.5. Create calendar event immediately for confirmed bookings (packages/subscriptions)
 		if (usingCredit) {
 			const startDate = new Date(params.scheduledAt);
@@ -928,7 +879,7 @@ export async function createBookingAndCheckout(params: {
 			tutorProfile?.stripe_account_id &&
 			tutorProfile?.stripe_onboarding_status !== "restricted";
 
-		if (!params.packageId && stripeAccountReady) {
+		if (!usingCredit && !isFreeService && stripeAccountReady) {
 			if (!studentProfileId) {
 				logStep(log, "createBookingAndCheckout:stripe_skip_unauthenticated", { bookingId: booking.id });
 			} else {
@@ -1006,6 +957,105 @@ export async function createBookingAndCheckout(params: {
 					logStepError(log, "createBookingAndCheckout:stripe_checkout_failed", stripeError, { bookingId: booking.id });
 					// Fall back to manual payment instructions
 				}
+			}
+		}
+
+		// 8. Send emails/notifications for confirmed or manual-payment bookings
+		if (tutorProfile) {
+			const confirmationStatus = shouldAutoConfirm ? "confirmed" : "pending";
+			const paymentStatus = shouldAutoConfirm ? "paid" : "unpaid";
+			const paymentStatusLabel = usingCredit
+				? "Paid with credits"
+				: isFreeService
+					? "Free lesson"
+					: "Paid";
+
+			sendBookingConfirmationEmail({
+				bookingId: booking.id,
+				studentName: params.student.fullName,
+				studentEmail: params.student.email,
+				tutorName: tutorProfile.full_name || "Your tutor",
+				tutorEmail: tutorProfile.email ?? "",
+				serviceName,
+				scheduledAt: params.scheduledAt,
+				durationMinutes: serviceRecord.duration_minutes,
+				timezone: tutorTimezone,
+				amount: normalizedPriceCents,
+				currency: serviceCurrency,
+				confirmationStatus,
+				paymentStatus,
+				paymentInstructions: shouldAutoConfirm
+					? undefined
+					: {
+							general: tutorProfile.payment_instructions || undefined,
+							venmoHandle: tutorProfile.venmo_handle || undefined,
+							paypalEmail: tutorProfile.paypal_email || undefined,
+							zellePhone: tutorProfile.zelle_phone || undefined,
+							stripePaymentLink: tutorProfile.stripe_payment_link || undefined,
+							customPaymentUrl: tutorProfile.custom_payment_url || undefined,
+						},
+				meetingUrl: meetingUrl || undefined,
+				meetingProvider: meetingProvider || undefined,
+				customVideoName: tutorProfile.custom_video_name || undefined,
+			}).catch((error) => {
+				logStepError(log, "createBookingAndCheckout:student_email_failed", error, { bookingId: booking.id });
+			});
+
+			if (shouldAutoConfirm) {
+				sendTutorBookingConfirmedEmail({
+					bookingId: booking.id,
+					tutorName: tutorProfile.full_name || "Tutor",
+					tutorEmail: tutorProfile.email ?? "",
+					studentName: params.student.fullName,
+					studentEmail: params.student.email,
+					studentPhone: params.student.phone || undefined,
+					serviceName,
+					scheduledAt: params.scheduledAt,
+					durationMinutes: serviceRecord.duration_minutes,
+					timezone: tutorTimezone,
+					amount: normalizedPriceCents,
+					currency: serviceCurrency,
+					notes: params.notes || undefined,
+					meetingUrl: meetingUrl || undefined,
+					meetingProvider: meetingProvider || undefined,
+					customVideoName: tutorProfile.custom_video_name || undefined,
+					dashboardUrl: `${appUrl}/bookings`,
+					paymentStatusLabel,
+				}).catch((error) => {
+					logStepError(log, "createBookingAndCheckout:tutor_email_failed", error, { bookingId: booking.id });
+				});
+			} else {
+				sendTutorBookingNotificationEmail({
+					bookingId: booking.id,
+					tutorName: tutorProfile.full_name || "Tutor",
+					tutorEmail: tutorProfile.email ?? "",
+					studentName: params.student.fullName,
+					studentEmail: params.student.email,
+					studentPhone: params.student.phone || undefined,
+					serviceName,
+					scheduledAt: params.scheduledAt,
+					durationMinutes: serviceRecord.duration_minutes,
+					timezone: tutorTimezone,
+					amount: normalizedPriceCents,
+					currency: serviceCurrency,
+					notes: params.notes || undefined,
+					dashboardUrl: `${appUrl}/bookings`,
+				}).catch((error) => {
+					logStepError(log, "createBookingAndCheckout:tutor_email_failed", error, { bookingId: booking.id });
+				});
+			}
+
+			try {
+				const { notifyNewBooking } = await import("@/lib/actions/notifications");
+				await notifyNewBooking({
+					tutorId: params.tutorId,
+					studentName: params.student.fullName,
+					serviceName,
+					scheduledAt: params.scheduledAt,
+					bookingId: booking.id,
+				});
+			} catch (notificationError) {
+				logStepError(log, "createBookingAndCheckout:notification_failed", notificationError, { bookingId: booking.id });
 			}
 		}
 
@@ -1393,6 +1443,7 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		// Send payment request email
 		if (paymentUrl) {
 			await sendBookingPaymentRequestEmail({
+				bookingId: booking.id,
 				studentName: studentData.full_name,
 				studentEmail: studentData.email,
 				tutorName: tutorProfile.full_name ?? "Your tutor",
@@ -1408,6 +1459,7 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 		} else {
 			// Stripe not available, send confirmation with manual payment instructions
 			await sendBookingConfirmationEmail({
+				bookingId: booking.id,
 				studentName: studentData.full_name,
 				studentEmail: studentData.email,
 				tutorName: tutorProfile.full_name ?? "Your tutor",
@@ -1418,6 +1470,8 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 				timezone: studentData.timezone ?? tutorTimezone,
 				amount: paymentAmount / 100,
 				currency: service.price_currency ?? "USD",
+				confirmationStatus: "pending",
+				paymentStatus: "unpaid",
 				paymentInstructions: {
 					general: tutorProfile.payment_instructions ?? undefined,
 					venmoHandle: tutorProfile.venmo_handle ?? undefined,
@@ -1434,6 +1488,7 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 	} else {
 		// Send confirmation email for already_paid or free bookings
 		await sendBookingConfirmationEmail({
+			bookingId: booking.id,
 			studentName: studentData.full_name,
 			studentEmail: studentData.email,
 			tutorName: tutorProfile.full_name ?? "Your tutor",
@@ -1444,6 +1499,8 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 			timezone: studentData.timezone ?? tutorTimezone,
 			amount: isFree ? 0 : paymentAmount / 100,
 			currency: service.price_currency ?? "USD",
+			confirmationStatus: "confirmed",
+			paymentStatus: "paid",
 			meetingUrl: meetingUrl ?? undefined,
 			meetingProvider: meetingProvider ?? undefined,
 			customVideoName: tutorProfile.custom_video_name ?? undefined,
@@ -1451,20 +1508,43 @@ export async function createManualBookingWithPaymentLink(input: ManualBookingInp
 	}
 
 	// Send notification to tutor
-	await sendTutorBookingNotificationEmail({
-		tutorName: tutorProfile.full_name ?? "Tutor",
-		tutorEmail: tutorProfile.email ?? "",
-		studentName: studentData.full_name,
-		studentEmail: studentData.email,
-		serviceName: service.name,
-		scheduledAt: input.scheduled_at,
-		durationMinutes: input.duration_minutes,
-		timezone: tutorTimezone,
-		amount: isFree ? 0 : paymentAmount / 100,
-		currency: service.price_currency ?? "USD",
-		notes: input.notes,
-		dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/bookings`,
-	});
+	if (isPendingPayment) {
+		await sendTutorBookingNotificationEmail({
+			bookingId: booking.id,
+			tutorName: tutorProfile.full_name ?? "Tutor",
+			tutorEmail: tutorProfile.email ?? "",
+			studentName: studentData.full_name,
+			studentEmail: studentData.email,
+			serviceName: service.name,
+			scheduledAt: input.scheduled_at,
+			durationMinutes: input.duration_minutes,
+			timezone: tutorTimezone,
+			amount: isFree ? 0 : paymentAmount / 100,
+			currency: service.price_currency ?? "USD",
+			notes: input.notes,
+			dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/bookings`,
+		});
+	} else {
+		await sendTutorBookingConfirmedEmail({
+			bookingId: booking.id,
+			tutorName: tutorProfile.full_name ?? "Tutor",
+			tutorEmail: tutorProfile.email ?? "",
+			studentName: studentData.full_name,
+			studentEmail: studentData.email,
+			serviceName: service.name,
+			scheduledAt: input.scheduled_at,
+			durationMinutes: input.duration_minutes,
+			timezone: tutorTimezone,
+			amount: isFree ? 0 : paymentAmount / 100,
+			currency: service.price_currency ?? "USD",
+			notes: input.notes,
+			meetingUrl: meetingUrl ?? undefined,
+			meetingProvider: meetingProvider ?? undefined,
+			customVideoName: tutorProfile.custom_video_name ?? undefined,
+			dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/bookings`,
+			paymentStatusLabel: isFree ? "Free lesson" : "Paid",
+		});
+	}
 
 	// Create calendar event
 	try {

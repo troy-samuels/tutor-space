@@ -14,6 +14,17 @@ type Tag = { name: string; value: string };
   */
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   const supabase = createServiceRoleClient();
+  const baseMetadata = (() => {
+    const metadata: Record<string, unknown> = {
+      category: params.category,
+      metadata: params.metadata,
+    };
+    const bookingId = (params.metadata as { bookingId?: string } | undefined)?.bookingId;
+    const emailType = (params.metadata as { emailType?: string } | undefined)?.emailType;
+    if (bookingId) metadata.bookingId = bookingId;
+    if (emailType) metadata.emailType = emailType;
+    return metadata;
+  })();
 
   const recipients = Array.isArray(params.to) ? params.to : [params.to];
   const normalized = recipients
@@ -50,7 +61,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
           .insert({
             to_email: normalized.join(","),
             event_type: "suppressed_skip",
-            metadata: { suppressed, category: params.category, metadata: params.metadata },
+            metadata: { ...baseMetadata, suppressed },
           });
       } catch {
         // Ignore logging errors
@@ -81,6 +92,21 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   });
 
   if (error) {
+    if (supabase) {
+      try {
+        await supabase
+          .from("email_events")
+          .insert({
+            message_id: (data as any)?.id ?? null,
+            to_email: deliverable.join(","),
+            event_type: "error",
+            reason: error.message,
+            metadata: { ...baseMetadata, suppressed },
+          });
+      } catch {
+        // Ignore logging errors
+      }
+    }
     return { success: false, suppressed, error: error.message };
   }
 
@@ -93,9 +119,8 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
           to_email: deliverable.join(","),
           event_type: "requested",
           metadata: {
-            category: params.category,
+            ...baseMetadata,
             suppressed,
-            metadata: params.metadata,
           },
         });
     } catch {

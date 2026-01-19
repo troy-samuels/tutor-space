@@ -18,6 +18,268 @@
 
 ## Tasks (with file/area mappings + acceptance criteria)
 
+## Launch Readiness Task List (from Comprehensive Testing Report)
+
+### P0.1 Define pricing policy (paid + free allowed) and align validation rules
+Scope:
+- Service creation/update UI and API
+- Booking creation/confirmation logic
+- Public pricing display
+
+Status: ✅ Completed (pricing allows $0, validations aligned, free services skip Stripe)
+
+Acceptance criteria:
+- Pricing policy allows $0 services at tutor discretion (min/max, currency rules, and $0 allowed).
+- The same pricing rules are enforced in service create, service update, and booking confirmation.
+- UI prevents invalid prices and shows actionable validation copy.
+- Backend rejects invalid prices with a clear error code/message.
+- $0 services are clearly labeled as free to students and tutors and do not attempt Stripe checkout.
+
+Edge cases:
+- $0 services combined with package/subscription logic (block or handle consistently).
+- Decimal rounding to currency precision; zero-decimal currencies.
+- Price changes between selection and confirmation.
+- Negative, very large, or non-numeric prices.
+
+### P0.2 Fix service update failure (pricing edits)
+Scope:
+- Service update API endpoint
+- Service edit form error handling
+
+Status: ✅ Completed (update saves succeed with structured errors + logging)
+
+Acceptance criteria:
+- Tutors can update service price and save successfully.
+- API returns structured error details on failure; UI surfaces them.
+- Audit/logging captures update failures with request context.
+
+Edge cases:
+- Concurrent edits (two tabs) and stale data writes.
+- Permission checks for tutor ownership.
+- Currency changes or missing currency.
+
+### P0.3 Backfill invalid services and enforce data integrity
+Scope:
+- Data migration for existing services with missing/invalid price or currency
+- Guards for new services
+
+Status: ✅ Completed (pricing integrity migration + guards)
+
+Acceptance criteria:
+- All existing services are either updated to valid prices/currencies or flagged for action.
+- No active service remains in a state that blocks booking (e.g., null price or missing currency).
+- Migration report is generated for visibility and rollback.
+
+Edge cases:
+- Archived or draft services.
+- Tutors without access due to deactivated accounts.
+- Mixed currencies across services.
+
+### P0.4 Unblock authenticated booking and payment flow
+Scope:
+- Student booking confirmation
+- Stripe checkout session creation
+- Booking persistence and receipt
+
+Status: ✅ Completed (auth bookings idempotent, free services skip Stripe, webhook finalizes)
+
+Acceptance criteria:
+- Authenticated students can complete booking for paid or $0 services end-to-end.
+- Stripe payment succeeds, booking is created, and confirmation is shown.
+- $0 services skip Stripe checkout and create a confirmed booking with a clear "no payment required" confirmation.
+- Webhook processing finalizes booking and payment status.
+- Duplicate submits are idempotent and do not create double bookings.
+
+Edge cases:
+- Payment failure, cancellation, or timeouts.
+- Webhook retries and out-of-order events.
+- Booking slot conflict detected after payment initiation.
+- Tutor has Stripe disabled; flow falls back to manual payment instructions.
+- $0 services with credits/subscriptions selected should block or ignore credits consistently.
+
+Execution checklist:
+- Ensure $0 bookings skip Stripe and set payment_status to paid.
+- Add idempotency key for authenticated booking submits.
+- Confirm UI copy reflects free vs. paid vs. credit flows.
+- Validate manual payment fallback when Stripe is not connected.
+
+### P0.5 Repair public booking REQUEST flow
+Scope:
+- Public booking page client
+- Booking request API
+
+Status: ✅ Completed (request buttons now open booking form and submit with feedback + analytics tracking)
+
+Acceptance criteria:
+- Clicking REQUEST triggers the intended flow (modal/form or request creation).
+- Users receive clear success or error feedback.
+- Flow works across Chrome, Safari, Firefox, Edge.
+- Analytics/event tracking logs the action and outcome.
+
+Edge cases:
+- No available slots, or slot becomes unavailable mid-flow.
+- Double-clicks and rapid retries.
+- Rate limiting or abuse prevention for unauthenticated users.
+- Network timeout or API 5xx errors.
+
+### P1. Consolidate public and authenticated booking UI patterns
+Scope:
+- Public booking page UI
+- Authenticated booking UI
+
+Status: ✅ Completed (public `/book?service=...` now uses the same BookingInterface as authenticated flow)
+
+Acceptance criteria:
+- A single booking UI pattern is used for both public and authenticated flows.
+- Feature parity (slot selection, pricing display, confirmation).
+- Public flow handles account creation or login seamlessly.
+
+Edge cases:
+- Returning users arriving via public link while logged out.
+- Users with existing account but different email casing.
+
+### P1. Improve error messaging and user feedback
+Scope:
+- Booking flows
+- Service configuration
+- Pricing validation
+
+Status: ✅ Completed (standardized booking errors, added retry feedback, and clarified next steps)
+
+Acceptance criteria:
+- Errors provide specific reason and next step.
+- Loading states and disabled buttons prevent duplicate submissions.
+- Errors are logged with trace IDs for support.
+
+Edge cases:
+- API returns unknown error.
+- Client offline or network flakiness.
+
+### P1. Add booking request feedback on public page
+Scope:
+- Public booking page
+
+Status: ✅ Completed (loading banner, success confirmation, and clear failure feedback in public booking flow)
+
+Acceptance criteria:
+- A visible loading state appears after REQUEST.
+- Success state confirms the request and next steps.
+- Failure state explains what to do next.
+
+Edge cases:
+- User navigates away mid-request.
+- Duplicate request submissions.
+
+### P1. Validate timezone handling and DST
+Scope:
+- Booking creation/display
+- Calendar views
+
+Status: ✅ Completed (timezone-safe slot grouping and formatting across booking UIs)
+
+Acceptance criteria:
+- Bookings are stored in UTC and rendered correctly in user timezones.
+- Cross-timezone bookings show correct local times for both tutor and student.
+- DST transitions do not shift booked times.
+
+Edge cases:
+- DST forward/back transition days.
+- User changes timezone after booking.
+
+### P1. Notifications and calendar sync verification
+Scope:
+- Email notifications (Resend)
+- Calendar sync (Google/Outlook)
+
+Status: ✅ Completed (email logging + retry, booking success status panel, calendar sync status surfaced)
+
+Acceptance criteria:
+- Booking confirmations and reminders are delivered.
+- Calendar events are created/updated/canceled correctly.
+- Notification failures are retried and logged.
+
+Edge cases:
+- Calendar auth expired or revoked.
+- Email soft bounces or suppression.
+
+### P2. Video classroom and AI feature validation
+Scope:
+- Video provider (LiveKit)
+- AI features (OpenAI/Deepgram)
+
+Status: In progress (OpenAI config guard + retryable stream errors for AI practice)
+
+Acceptance criteria:
+- Video room creation/join flow works for tutor and student.
+- AI features execute without errors and handle rate limits.
+- Clear messaging if integrations are unavailable.
+
+Edge cases:
+- Participant reconnects mid-session.
+- Provider quota limits or transient outages.
+
+### P2. Analytics verification
+Scope:
+- Client and server analytics events
+
+Acceptance criteria:
+- Key funnel events are tracked (view booking, request, payment success/fail).
+- Events include service, tutor, and booking identifiers.
+
+Edge cases:
+- Ad blockers or disabled analytics.
+- Duplicate events from retries.
+
+### P2. Performance and load testing
+Scope:
+- Booking endpoints
+- Calendar rendering
+
+Acceptance criteria:
+- p95 API response time targets met under expected load.
+- No database hot spots or N+1 queries in booking flow.
+
+Edge cases:
+- Peak usage spikes and simultaneous slot selection.
+
+### P2. Security and compliance testing
+Scope:
+- Auth, authorization, payment flows
+
+Acceptance criteria:
+- No privilege escalation across tutor/student roles.
+- CSRF and XSS protections validated on booking/service forms.
+- Payment flow meets PCI requirements for hosted checkout.
+
+Edge cases:
+- Stale sessions and token reuse.
+- Untrusted input in public booking links.
+
+### P2. Accessibility and cross-browser testing
+Scope:
+- Booking pages
+- Service edit form
+
+Acceptance criteria:
+- Keyboard navigation and screen reader flows are usable.
+- Color contrast meets WCAG 2.1 AA.
+- Core flows work on mobile browsers.
+
+Edge cases:
+- Reduced motion preference.
+- Small viewport widths and landscape orientation.
+
+### P2. Automated end-to-end regression suite
+Scope:
+- Critical booking and pricing flows
+
+Acceptance criteria:
+- E2E tests cover public booking, authenticated booking, pricing update, and payment.
+- Tests run in CI and gate release candidate builds.
+
+Edge cases:
+- Test data cleanup and isolation between runs.
+
 ## Comprehensive acceptance tests (Gherkin-style)
 1) Auth login with username
    - Given a tutor has a username and password

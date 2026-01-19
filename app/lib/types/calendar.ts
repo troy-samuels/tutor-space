@@ -122,7 +122,7 @@ export function getPackageColors(packageType?: PackageType) {
 }
 
 // Calendar view types
-export type CalendarViewType = "month" | "week" | "day";
+export type CalendarViewType = "month" | "week" | "day" | "availability";
 
 // Time slot for the week/day view grid
 export type TimeSlot = {

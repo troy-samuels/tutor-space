@@ -29,13 +29,13 @@ export function Hero({ hero, socialProof }: HeroProps) {
           <div className="mt-8 sm:mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6">
             <Link
               href="/signup"
-              className="w-full rounded-md bg-primary px-6 sm:px-8 py-3 sm:py-3.5 text-center text-sm sm:text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
+              className="w-full rounded-md bg-primary px-6 sm:px-8 py-3 sm:py-3.5 text-center text-sm sm:text-base font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-300 hover:bg-primary/90 hover:shadow-[var(--shadow-hover)] hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
             >
               {hero.primaryCTA}
             </Link>
             <Link
               href="#calendar-demo"
-              className="w-full text-center text-sm sm:text-base font-semibold leading-7 text-foreground transition-colors hover:text-primary sm:w-auto"
+              className="w-full rounded-md border border-border px-6 sm:px-8 py-3 sm:py-3.5 text-center text-sm sm:text-base font-semibold leading-7 text-foreground transition-all duration-300 hover:bg-stone-50 hover:border-stone-200 sm:w-auto"
             >
               {hero.secondaryCTA} <span aria-hidden="true">→</span>
             </Link>

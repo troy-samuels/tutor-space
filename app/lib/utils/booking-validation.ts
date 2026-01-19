@@ -3,7 +3,7 @@ export type ServicePricingValidationResult =
   | { success: false; error: string };
 
 export function validateServicePricing(options: {
-  servicePriceCents: number;
+  servicePriceCents: number | null | undefined;
   serviceCurrency: string;
   serviceDurationMinutes: number;
   requestedAmount?: number;
@@ -19,7 +19,11 @@ export function validateServicePricing(options: {
     requestedDuration,
   } = options;
 
-  if (!Number.isFinite(servicePriceCents) || servicePriceCents <= 0) {
+  if (typeof servicePriceCents !== "number" || !Number.isFinite(servicePriceCents)) {
+    return { success: false, error: "Service price is not configured" };
+  }
+
+  if (servicePriceCents < 0) {
     return { success: false, error: "Service price is not configured" };
   }
 

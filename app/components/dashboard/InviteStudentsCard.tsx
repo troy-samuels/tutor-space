@@ -114,7 +114,7 @@ export function InviteStudentsCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-stone-200 bg-white p-5 sm:rounded-3xl sm:p-6",
+        "rounded-2xl border border-border bg-white p-5 sm:rounded-3xl sm:p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)]",
         className
       )}
     >
@@ -132,7 +132,7 @@ export function InviteStudentsCard({
         </div>
 
         {/* Divider */}
-        <div className="border-t border-stone-100" />
+        <div className="border-t border-border" />
 
         {/* Tutor info */}
         <div className="space-y-1">

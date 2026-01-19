@@ -44,7 +44,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
               <div
                 key={tier.name}
                 className={cn(
-                  "relative w-full max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-8 shadow-lg flex h-full flex-col",
+                  "relative w-full max-w-md rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-8 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] flex h-full flex-col",
                   tier.highlighted
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-foreground"

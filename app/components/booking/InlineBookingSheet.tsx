@@ -6,6 +6,7 @@ import { X, Loader2, LogIn, ShieldAlert, CalendarClock, RefreshCw } from "lucide
 import BookingInterface from "./BookingInterface";
 import type { BookableSlot } from "@/lib/utils/slots";
 import type { AccessStatus, StudentLessonHistoryData } from "@/lib/actions/types";
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
 
 type Service = {
   id: string;
@@ -151,9 +152,23 @@ export function InlineBookingSheet({ open, onClose, username, fallbackUrl }: Inl
     }
 
     if (error || data.status === "error") {
+      const message = error || "Unable to load booking right now.";
       return (
         <div className="space-y-4">
-          <p className="text-center text-sm text-slate-600">{error || "Unable to load booking right now."}</p>
+          <FormStatusAlert
+            message={message}
+            tone="error"
+            ariaLive="assertive"
+            className="rounded-lg border border-destructive/20 bg-destructive/10 text-left"
+          />
+          <button
+            type="button"
+            onClick={() => setReloadKey((prev) => prev + 1)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try again
+          </button>
           <a
             href={fallbackUrl}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"

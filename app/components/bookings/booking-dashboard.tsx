@@ -3,70 +3,22 @@
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarDays, Clock, Plus, Video, RefreshCw, Sparkles } from "lucide-react";
+import { CalendarDays, CalendarPlus, Clock, Video, RefreshCw, Sparkles } from "lucide-react";
 import { RescheduleModal } from "@/components/booking/RescheduleModal";
-import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { useAuth } from "@/lib/hooks/useAuth";
-import type { BookingRecord, ManualBookingInput } from "@/lib/actions/bookings";
-import { createManualBookingWithPaymentLink, markBookingAsPaid } from "@/lib/actions/bookings";
-import type { StudentRecord } from "@/lib/actions/students";
-import type { AvailabilitySlotInput } from "@/lib/validators/availability";
-import {
-  generateBookingSlots,
-  type GeneratedSlot,
-  type TimeWindow,
-} from "@/lib/utils/scheduling";
+import type { BookingRecord } from "@/lib/actions/bookings";
+import { markBookingAsPaid } from "@/lib/actions/bookings";
 import { formatInTimeZone } from "date-fns-tz";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { FlowProgress } from "@/components/flows/FlowProgress";
-import { detectUserTimezone } from "@/lib/utils/timezones";
 import { buildClassroomUrl, isClassroomUrl } from "@/lib/utils/classroom-links";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import Link from "next/link";
-
-type ServiceSummary = {
-  id: string;
-  name: string;
-  duration_minutes: number;
-  price: number;
-  currency: string;
-};
 
 type BookingDashboardProps = {
   bookings: BookingRecord[];
-  students: StudentRecord[];
-  services: ServiceSummary[];
   timezone: string;
-  availability: AvailabilitySlotInput[];
-  busyWindows: TimeWindow[];
-  bufferMinutes: number;
   tutorId: string;
 };
-
-type PaymentOption = "send_link" | "already_paid" | "free";
-
-type BookingFormState = {
-  serviceId: string | null;
-  studentId: string | null;
-  name: string;
-  email: string;
-  studentTimezone: string;
-  slot: GeneratedSlot | null;
-  notes: string;
-  paymentOption: PaymentOption;
-};
-
-const BOOKING_STEPS = [
-  { id: "details", title: "Lesson", helper: "Pick service and time" },
-  { id: "student", title: "Student", helper: "Select or add student" },
-  { id: "confirm", title: "Review & Send", helper: "Payment and notes" },
-] as const;
 
 function getMeetingProviderLabel(provider?: string | null): string {
   switch (provider) {
@@ -89,47 +41,23 @@ function getMeetingProviderLabel(provider?: string | null): string {
 
 export function BookingDashboard({
   bookings,
-  students,
-  services,
   timezone,
-  availability,
-  busyWindows,
-  bufferMinutes,
   tutorId,
 }: BookingDashboardProps) {
   const router = useRouter();
   const [bookingList, setBookingList] = useState<BookingRecord[]>(bookings);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [paymentPending, startPaymentTransition] = useTransition();
 
   const handleRescheduleSuccess = () => {
-    // Refresh the page to get updated booking data
     router.refresh();
   };
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formState, setFormState] = useState<BookingFormState>(() => ({
-    serviceId: services[0]?.id ?? null,
-    studentId: students[0]?.id ?? null,
-    name: "",
-    email: "",
-    studentTimezone: detectUserTimezone(),
-    slot: null,
-    notes: "",
-    paymentOption: "send_link" as PaymentOption,
-  }));
-  const [bookingStepIndex, setBookingStepIndex] = useState(0);
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [paymentPending, startPaymentTransition] = useTransition();
-  const [selectedDay, setSelectedDay] = useState<string>("");
-  const [isValidatingSlot, setIsValidatingSlot] = useState(false);
-  const isSubmitting = isPending || isValidatingSlot;
 
   useEffect(() => {
     setBookingList(bookings);
   }, [bookings]);
 
   const today = useMemo(() => new Date(), []);
-  const selectedService = services.find((item) => item.id === formState.serviceId) ?? null;
-  const selectedStudent = students.find((student) => student.id === formState.studentId);
 
   const todaysLessons = useMemo(() => {
     const todayStart = new Date(today);
@@ -151,212 +79,6 @@ export function BookingDashboard({
     () => bookingList.filter((booking) => new Date(booking.scheduled_at).getTime() < Date.now()),
     [bookingList]
   );
-
-  const generatedSlots = useMemo(() => {
-    if (!formState.serviceId) return [];
-    const baseSlots = generateBookingSlots({
-      availability,
-      timezone,
-      busyWindows,
-      bufferMinutes,
-    });
-    return baseSlots.filter((slot) =>
-      bookingList.every((booking) => {
-        const bookingStart = new Date(booking.scheduled_at).getTime();
-        const slotStart = new Date(slot.start).getTime();
-        return bookingStart !== slotStart;
-      })
-    );
-  }, [availability, formState.serviceId, timezone, bookingList, busyWindows, bufferMinutes]);
-
-  const dayOptions = useMemo(() => {
-    const seen = new Set<string>();
-    return generatedSlots.reduce<{ value: string; label: string }[]>((acc, slot) => {
-      const key = format(new Date(slot.start), "yyyy-MM-dd");
-      if (!seen.has(key)) {
-        seen.add(key);
-        acc.push({ value: key, label: slot.day_label });
-      }
-      return acc;
-    }, []);
-  }, [generatedSlots]);
-
-  const timeOptions = useMemo(
-    () =>
-      selectedDay
-        ? generatedSlots.filter((slot) => format(new Date(slot.start), "yyyy-MM-dd") === selectedDay)
-        : [],
-    [generatedSlots, selectedDay]
-  );
-
-  useEffect(() => {
-    if (formState.slot) {
-      const key = format(new Date(formState.slot.start), "yyyy-MM-dd");
-      setSelectedDay(key);
-      return;
-    }
-    if (dayOptions.length > 0 && !selectedDay) {
-      setSelectedDay(dayOptions[0].value);
-    }
-  }, [formState.slot, dayOptions, selectedDay]);
-
-  function resetForm() {
-    setFormState({
-      serviceId: services[0]?.id ?? null,
-      studentId: students[0]?.id ?? null,
-      name: "",
-      email: "",
-      studentTimezone: detectUserTimezone(),
-      slot: null,
-      notes: "",
-      paymentOption: "send_link" as PaymentOption,
-    });
-    setBookingStepIndex(0);
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus(null);
-
-    const service = services.find((item) => item.id === formState.serviceId) ?? null;
-    const slot = formState.slot;
-
-    // Section 1: lock in service and time
-    if (bookingStepIndex === 0) {
-      if (!service) {
-        setStatus({ type: "error", message: "Select a service to continue." });
-        return;
-      }
-      if (!slot) {
-        setStatus({ type: "error", message: "Choose a time slot before moving on." });
-        return;
-      }
-      setBookingStepIndex(1);
-      return;
-    }
-
-    // Section 2: capture student
-    if (bookingStepIndex === 1) {
-      if (!formState.studentId) {
-        if (!formState.name || !formState.email) {
-          setStatus({ type: "error", message: "Add student name and email." });
-          return;
-        }
-      }
-      setBookingStepIndex(2);
-      return;
-    }
-
-    if (!service) {
-      setStatus({ type: "error", message: "Select a service." });
-      return;
-    }
-
-    if (!slot) {
-      setStatus({ type: "error", message: "Choose a time slot." });
-      return;
-    }
-
-    // Validate slot availability and submit booking
-    setIsValidatingSlot(true);
-    startTransition(() => {
-      (async () => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-          let checkResponse: Response;
-          try {
-            checkResponse = await fetch("/api/booking/check-slot", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                tutorId,
-                startISO: slot.start,
-                durationMinutes: service.duration_minutes,
-              }),
-              signal: controller.signal,
-            });
-          } finally {
-            clearTimeout(timeoutId);
-          }
-
-          let checkResult: { available?: boolean; error?: string } = {};
-          try {
-            checkResult = await checkResponse.json();
-          } catch {
-            checkResult = {};
-          }
-
-          if (!checkResponse.ok || !checkResult.available) {
-            setStatus({
-              type: "error",
-              message: checkResult.error || "This time slot is no longer available. Please choose another time.",
-            });
-            return;
-          }
-
-          // Build the input for the new action
-          const input: ManualBookingInput = {
-            service_id: service.id,
-            scheduled_at: slot.start,
-            duration_minutes: service.duration_minutes,
-            timezone,
-            notes: formState.notes || undefined,
-            payment_option: formState.paymentOption,
-          };
-
-          // Either existing student or new student
-          if (formState.studentId) {
-            input.student_id = formState.studentId;
-          } else {
-            if (!formState.name || !formState.email) {
-              setStatus({ type: "error", message: "Add student name and email." });
-              return;
-            }
-            input.new_student = {
-              name: formState.name,
-              email: formState.email,
-              timezone: formState.studentTimezone,
-            };
-          }
-
-          const result = await createManualBookingWithPaymentLink(input);
-
-          if (result.error || !result.data) {
-            setStatus({ type: "error", message: result.error ?? "Could not create booking." });
-            return;
-          }
-
-          // Build success message based on payment option
-          let successMessage = "Lesson scheduled!";
-          if (formState.paymentOption === "send_link" && result.data.paymentUrl) {
-            successMessage = "Lesson scheduled! Payment link sent to student.";
-          } else if (formState.paymentOption === "already_paid") {
-            successMessage = "Lesson scheduled and marked as paid.";
-          } else if (formState.paymentOption === "free") {
-            successMessage = "Free lesson scheduled!";
-          }
-
-          setStatus({ type: "success", message: successMessage });
-          resetForm();
-          setIsModalOpen(false);
-          router.refresh();
-        } catch (error) {
-          const isAbort =
-            error instanceof Error && error.name === "AbortError";
-          setStatus({
-            type: "error",
-            message: isAbort
-              ? "Availability check timed out. Please try again."
-              : "Could not verify slot availability. Please try again.",
-          });
-        } finally {
-          setIsValidatingSlot(false);
-        }
-      })();
-    });
-  }
 
   function handleMarkAsPaid(bookingId: string) {
     setStatus(null);
@@ -381,18 +103,6 @@ export function BookingDashboard({
     });
   }
 
-  function handleModalChange(open: boolean) {
-    if (!open && isSubmitting) {
-      return;
-    }
-    setIsModalOpen(open);
-    if (open) {
-      setStatus(null);
-    } else {
-      resetForm();
-    }
-  }
-
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -402,9 +112,11 @@ export function BookingDashboard({
             Review upcoming lessons and manage your calendar.
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Lesson
+        <Button asChild className="gap-2">
+          <Link href="/calendar?action=book">
+            <CalendarPlus className="h-4 w-4" />
+            Book via Calendar
+          </Link>
         </Button>
       </header>
 
@@ -436,7 +148,7 @@ export function BookingDashboard({
           <div className="text-center py-8">
             <CalendarDays className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
             <p className="text-sm font-medium text-foreground mb-1">No lessons scheduled for today</p>
-            <p className="text-xs text-muted-foreground">Click &quot;New Lesson&quot; to schedule a lesson.</p>
+            <p className="text-xs text-muted-foreground">Click &quot;Book via Calendar&quot; to schedule a lesson.</p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -535,343 +247,6 @@ export function BookingDashboard({
         />
       </div>
 
-      {/* Add Booking Modal */}
-          <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
-            <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-          <DialogHeader className="shrink-0 pb-6 text-left">
-            <DialogTitle className="text-2xl font-semibold text-foreground">New Lesson</DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Schedule a lesson and send your student the details.
-            </p>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <FlowProgress steps={[...BOOKING_STEPS]} activeIndex={bookingStepIndex} />
-            {status?.type === "error" ? (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-                {status.message}
-              </div>
-            ) : null}
-            <form className="space-y-4 text-sm" onSubmit={handleSubmit} id="booking-form">
-              {bookingStepIndex === 0 ? (
-                <div className="space-y-6">
-                  <label className="flex flex-col">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Service</span>
-                    <select
-                      value={formState.serviceId ?? ""}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          serviceId: event.target.value || null,
-                        }))
-                      }
-                      className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="">Select service</option>
-                      {services.map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {/* Price and Duration Display */}
-                  {selectedService && (
-                    <div className="flex items-center gap-4 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
-                      <div className="flex-1">
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Price</span>
-                        <p className="text-lg font-bold text-primary">
-                          {selectedService.currency.toUpperCase()} {(selectedService.price / 100).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Duration</span>
-                        <p className="text-lg font-semibold text-foreground">
-                          {selectedService.duration_minutes} min
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-4 sm:flex-row">
-                    <label className="flex w-full flex-col sm:w-1/2">
-                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Date</span>
-                      <select
-                        value={selectedDay}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setSelectedDay(value);
-                          const firstSlot = generatedSlots.find(
-                            (slot) => format(new Date(slot.start), "yyyy-MM-dd") === value
-                          );
-                          setFormState((prev) => ({ ...prev, slot: firstSlot ?? null }));
-                        }}
-                        className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      >
-                        {dayOptions.length === 0 ? (
-                          <option value="">No available dates</option>
-                        ) : (
-                          dayOptions.map((day) => (
-                            <option key={day.value} value={day.value}>
-                              {day.label}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </label>
-
-                    <label className="flex w-full flex-col sm:w-1/2">
-                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Start time</span>
-                      <select
-                        value={formState.slot?.start ?? ""}
-                        onChange={(event) => {
-                          const selected = timeOptions.find((slot) => slot.start === event.target.value) ?? null;
-                          setFormState((prev) => ({ ...prev, slot: selected }));
-                        }}
-                        className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        disabled={!selectedDay}
-                      >
-                        <option value="">{selectedDay ? "Select a time" : "Choose a date first"}</option>
-                        {timeOptions.map((slot) => (
-                          <option key={slot.start} value={slot.start}>
-                            {slot.time_label}
-                          </option>
-                        ))}
-                      </select>
-                      {generatedSlots.length === 0 && (
-                        <span className="text-xs text-destructive">
-                          Add availability to generate bookable slots.
-                        </span>
-                      )}
-                    </label>
-                  </div>
-                </div>
-              ) : null}
-
-              {bookingStepIndex === 1 ? (
-                <div className="space-y-4">
-                  <label className="flex flex-col">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Student</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormState((prev) => ({
-                            ...prev,
-                            studentId: null,
-                            name: "",
-                            email: "",
-                          }))
-                        }
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground transition hover:bg-secondary/60"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        New
-                      </button>
-                    </div>
-                    <select
-                      value={formState.studentId ?? ""}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          studentId: event.target.value || null,
-                        }))
-                      }
-                      className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="">New student</option>
-                      {students.map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.full_name} ({student.email})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {!formState.studentId ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="flex flex-col">
-                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Name</span>
-                          <input
-                            type="text"
-                            value={formState.name}
-                            onChange={(event) =>
-                              setFormState((prev) => ({ ...prev, name: event.target.value }))
-                            }
-                            className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          />
-                        </label>
-                        <label className="flex flex-col">
-                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Email</span>
-                          <input
-                            type="email"
-                            value={formState.email}
-                            onChange={(event) =>
-                              setFormState((prev) => ({ ...prev, email: event.target.value }))
-                            }
-                            className="rounded-xl border-0 bg-secondary/50 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          />
-                        </label>
-                      </div>
-                      <label className="flex flex-col">
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Timezone</span>
-                        <TimezoneSelect
-                          value={formState.studentTimezone}
-                          onChange={(timezoneValue) =>
-                            setFormState((prev) => ({ ...prev, studentTimezone: timezoneValue }))
-                          }
-                        />
-                      </label>
-                    </div>
-                  ) : selectedStudent?.timezone ? (
-                    <p className="text-xs text-muted-foreground">
-                      Student timezone: {selectedStudent.timezone}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {bookingStepIndex === 2 ? (
-                <div className="space-y-4">
-                  {/* Lesson Summary Card */}
-                  <div className="rounded-2xl border border-border/60 bg-muted/40 p-4 space-y-3 text-xs">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-foreground">Lesson</span>
-                      <span className="text-muted-foreground">
-                        {selectedService?.name ?? "Choose a service"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-foreground">Time</span>
-                      <span className="text-muted-foreground">
-                        {formState.slot
-                          ? `${formState.slot.day_label} · ${formState.slot.time_label}`
-                          : "No time chosen"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-foreground">Student</span>
-                      <span className="text-muted-foreground">
-                        {selectedStudent
-                          ? selectedStudent.full_name
-                          : formState.name || "New student"}
-                      </span>
-                    </div>
-                    {selectedService && (
-                      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40">
-                        <span className="font-semibold text-foreground">Price</span>
-                        <span className="font-bold text-primary">
-                          {selectedService.currency.toUpperCase()} {(selectedService.price / 100).toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Payment Options */}
-                  <div className="space-y-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment</span>
-                    <div className="space-y-2">
-                      <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-3 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          value="send_link"
-                          checked={formState.paymentOption === "send_link"}
-                          onChange={() => setFormState((prev) => ({ ...prev, paymentOption: "send_link" }))}
-                          className="mt-0.5 h-4 w-4 text-primary focus:ring-primary/20"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">Send payment link</p>
-                          <p className="text-xs text-muted-foreground">Student receives email with payment link</p>
-                        </div>
-                      </label>
-                      <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-3 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          value="already_paid"
-                          checked={formState.paymentOption === "already_paid"}
-                          onChange={() => setFormState((prev) => ({ ...prev, paymentOption: "already_paid" }))}
-                          className="mt-0.5 h-4 w-4 text-primary focus:ring-primary/20"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">Already paid</p>
-                          <p className="text-xs text-muted-foreground">Cash, bank transfer, or other method</p>
-                        </div>
-                      </label>
-                      <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-background p-3 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          value="free"
-                          checked={formState.paymentOption === "free"}
-                          onChange={() => setFormState((prev) => ({ ...prev, paymentOption: "free" }))}
-                          className="mt-0.5 h-4 w-4 text-primary focus:ring-primary/20"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">Free / trial lesson</p>
-                          <p className="text-xs text-muted-foreground">No payment required</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  <label className="flex flex-col">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Notes (optional)</span>
-                    <textarea
-                      value={formState.notes}
-                      onChange={(event) =>
-                        setFormState((prev) => ({ ...prev, notes: event.target.value }))
-                      }
-                      rows={2}
-                      className="rounded-xl border-0 bg-secondary/30 px-3 py-2 text-sm leading-relaxed shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="Add any notes for this lesson..."
-                    />
-                  </label>
-                </div>
-              ) : null}
-            </form>
-          </div>
-          <div className="flex flex-wrap gap-2 px-6 py-4 shrink-0 border-t">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleModalChange(false)}
-              className="flex-1 sm:flex-none"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            {bookingStepIndex > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setBookingStepIndex((prev) => Math.max(prev - 1, 0))}
-                className="flex-1 sm:flex-none"
-                disabled={isSubmitting}
-              >
-                Back
-              </Button>
-            ) : null}
-            <Button
-              type="submit"
-              form="booking-form"
-              disabled={isSubmitting}
-              className="w-full h-12 rounded-full shadow-lg shadow-primary/20"
-            >
-              {isValidatingSlot
-                ? "Checking availability..."
-                : isPending
-                  ? "Scheduling..."
-                  : bookingStepIndex === 2
-                    ? "Schedule Lesson"
-                    : "Continue"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

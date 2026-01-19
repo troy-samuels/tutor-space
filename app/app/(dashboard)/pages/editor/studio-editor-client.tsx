@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetOverlay } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { EditableField } from "@/components/ui/editable-field";
 import {
   Select,
   SelectContent,
@@ -801,6 +802,7 @@ function HeroBuilder({
   startBgUpload: (callback: () => Promise<void>) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [activeField, setActiveField] = useState<string | null>(null);
 
   const handleHeroChange = (key: keyof NonNullable<SiteConfig["hero"]>, value: string) => {
     onConfigChange({
@@ -999,58 +1001,57 @@ function HeroBuilder({
               {bgUploadError && <p className="text-xs text-red-500">{bgUploadError}</p>}
 
               {/* Headline */}
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-stone-500">Headline</Label>
-                <Input
-                  placeholder="Your custom headline..."
-                  value={config.hero?.customHeadline || ""}
-                  onChange={(e) => handleHeroChange("customHeadline", e.target.value)}
-                  className="rounded-xl border-stone-200 bg-stone-50/50 text-sm focus:ring-2 focus:ring-stone-200"
-                />
-              </div>
+              <EditableField
+                label="Headline"
+                value={config.hero?.customHeadline}
+                placeholder="Your custom headline..."
+                emptyText="Add a headline..."
+                onValueChange={(v) => handleHeroChange("customHeadline", v as string)}
+                isActive={activeField === "headline"}
+                onActivate={() => setActiveField("headline")}
+                onDeactivate={() => setActiveField(null)}
+              />
 
               {/* Bio */}
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-stone-500">Intro</Label>
-                <Textarea
-                  placeholder="A short introduction about yourself..."
-                  value={config.bio || ""}
-                  onChange={(e) => onConfigChange({ ...config, bio: e.target.value })}
-                  className="min-h-[80px] rounded-xl border-stone-200 bg-stone-50/50 text-sm resize-none focus:ring-2 focus:ring-stone-200"
-                />
-              </div>
+              <EditableField
+                label="Intro"
+                value={config.bio}
+                placeholder="A short introduction about yourself..."
+                emptyText="Add an introduction..."
+                fieldType="textarea"
+                onValueChange={(v) => onConfigChange({ ...config, bio: v as string })}
+                isActive={activeField === "bio"}
+                onActivate={() => setActiveField("bio")}
+                onDeactivate={() => setActiveField(null)}
+              />
 
               {/* Location & Experience */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-stone-500">Location</Label>
-                  <Input
-                    placeholder="e.g., Barcelona, Spain"
-                    value={config.location || ""}
-                    onChange={(e) => onConfigChange({ ...config, location: e.target.value || undefined })}
-                    className="rounded-xl border-stone-200 bg-stone-50/50 text-sm focus:ring-2 focus:ring-stone-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-stone-500">Years Teaching</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={50}
-                    step={1}
-                    placeholder="e.g., 5"
-                    value={config.yearsExperience ?? ""}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const parsed = raw === "" ? undefined : Number(raw);
-                      const normalized = Number.isFinite(parsed)
-                        ? Math.min(Math.max(Math.trunc(parsed!), 0), 50)
-                        : undefined;
-                      onConfigChange({ ...config, yearsExperience: normalized });
-                    }}
-                    className="rounded-xl border-stone-200 bg-stone-50/50 text-sm focus:ring-2 focus:ring-stone-200"
-                  />
-                </div>
+                <EditableField
+                  label="Location"
+                  value={config.location}
+                  placeholder="e.g., Barcelona, Spain"
+                  emptyText="Add location..."
+                  onValueChange={(v) => onConfigChange({ ...config, location: (v as string) || undefined })}
+                  isActive={activeField === "location"}
+                  onActivate={() => setActiveField("location")}
+                  onDeactivate={() => setActiveField(null)}
+                />
+
+                <EditableField
+                  label="Years Teaching"
+                  value={config.yearsExperience}
+                  placeholder="e.g., 5"
+                  emptyText="Add years..."
+                  fieldType="number"
+                  min={0}
+                  max={50}
+                  displayFormatter={(v) => `${v} years`}
+                  onValueChange={(v) => onConfigChange({ ...config, yearsExperience: v as number })}
+                  isActive={activeField === "experience"}
+                  onActivate={() => setActiveField("experience")}
+                  onDeactivate={() => setActiveField(null)}
+                />
               </div>
             </div>
           </motion.div>

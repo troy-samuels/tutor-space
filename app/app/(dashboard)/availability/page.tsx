@@ -1,8 +1,5 @@
-import { getAvailability } from "@/lib/actions/availability";
-import { AvailabilityDashboard } from "@/components/availability/availability-dashboard";
+import { redirect } from "next/navigation";
 
-export default async function AvailabilityPage() {
-  const { slots } = await getAvailability();
-
-  return <AvailabilityDashboard initialSlots={slots} />;
+export default function AvailabilityPage() {
+  redirect("/calendar?view=availability");
 }

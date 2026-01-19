@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useId } from "react";
+import { useState, useEffect, useId } from "react";
 import { format, setHours, setMinutes } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 import { X, Loader2, Clock, Calendar, User, BookOpen, CreditCard, FileText } from "lucide-react";
 import { createBooking } from "@/lib/actions/bookings";
 import { Switch } from "@/components/ui/switch";
+import { useBookingPreferences } from "@/lib/hooks/useBookingPreferences";
 
 type ServiceSummary = {
   id: string;
@@ -33,11 +34,8 @@ type CalendarBookingModalProps = {
   recentStudentIds?: string[];
   tutorTimezone: string;
   tutorId: string;
+  mostUsedServiceId?: string;
 };
-
-const STORAGE_KEY_SERVICE = "tutorlingua_last_service";
-const STORAGE_KEY_STUDENT = "tutorlingua_last_student";
-const STORAGE_KEY_QUICK_MODE = "tutorlingua_quick_booking_quick_mode";
 
 export function CalendarBookingModal({
   isOpen,
@@ -50,47 +48,22 @@ export function CalendarBookingModal({
   recentStudentIds = [],
   tutorTimezone,
   tutorId,
+  mostUsedServiceId,
 }: CalendarBookingModalProps) {
   const defaultDate = initialDate || new Date();
   const defaultHour = initialHour ?? 9;
   const quickModeId = useId();
 
-  // Helper to get smart default service
-  const getDefaultService = useCallback(() => {
-    if (typeof window === "undefined") return "";
-
-    // Try to use last selected service from localStorage
-    const lastServiceId = localStorage.getItem(STORAGE_KEY_SERVICE);
-    if (lastServiceId && services.some((s) => s.id === lastServiceId)) {
-      return lastServiceId;
-    }
-
-    // Fall back to first service if only one exists
-    if (services.length === 1) {
-      return services[0].id;
-    }
-
-    // Otherwise return empty to prompt selection
-    return "";
-  }, [services]);
-
-  // Helper to get smart default student
-  const getDefaultStudent = useCallback(() => {
-    if (typeof window === "undefined") return "";
-
-    // Try to use last selected student from localStorage
-    const lastStudentId = localStorage.getItem(STORAGE_KEY_STUDENT);
-    if (lastStudentId && students.some((s) => s.id === lastStudentId)) {
-      return lastStudentId;
-    }
-
-    // Fall back to most recent student if available
-    if (recentStudentIds.length > 0 && students.some((s) => s.id === recentStudentIds[0])) {
-      return recentStudentIds[0];
-    }
-
-    return "";
-  }, [students, recentStudentIds]);
+  // Use shared booking preferences hook
+  const {
+    preferences,
+    isLoaded: prefsLoaded,
+    saveServiceId,
+    saveStudentId,
+    setQuickMode,
+    getSmartDefaultService,
+    getSmartDefaultStudent,
+  } = useBookingPreferences({ mostUsedServiceId });
 
   const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(
@@ -113,15 +86,12 @@ export function CalendarBookingModal({
 
   // Reset form when modal opens with new date/time and smart defaults
   useEffect(() => {
-    if (isOpen) {
-      if (typeof window !== "undefined") {
-        const storedQuickMode = localStorage.getItem(STORAGE_KEY_QUICK_MODE);
-        setIsQuickMode(storedQuickMode ? storedQuickMode === "true" : true);
-      }
+    if (isOpen && prefsLoaded) {
+      setIsQuickMode(preferences.quickModeEnabled);
       setDate(format(initialDate || new Date(), "yyyy-MM-dd"));
       setStartTime(`${String(initialHour ?? 9).padStart(2, "0")}:00`);
-      setServiceId(getDefaultService());
-      setStudentId(getDefaultStudent());
+      setServiceId(getSmartDefaultService(services));
+      setStudentId(getSmartDefaultStudent(students, recentStudentIds));
       setError(null);
       setShowNewStudent(false);
       setNewStudentName("");
@@ -129,13 +99,11 @@ export function CalendarBookingModal({
       setNewStudentTimezone(tutorTimezone);
       setStep(0);
     }
-  }, [isOpen, initialDate, initialHour, tutorTimezone, getDefaultService, getDefaultStudent]);
+  }, [isOpen, prefsLoaded, initialDate, initialHour, tutorTimezone, preferences.quickModeEnabled, getSmartDefaultService, getSmartDefaultStudent, services, students, recentStudentIds]);
 
   const handleQuickModeChange = (checked: boolean) => {
     setIsQuickMode(checked);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_QUICK_MODE, String(checked));
-    }
+    setQuickMode(checked);
     setStep(0);
   };
 
@@ -236,11 +204,9 @@ export function CalendarBookingModal({
         await markBookingAsPaid(result.data.id);
       }
 
-      // Save selections to localStorage for quick repeat bookings
-      if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY_SERVICE, serviceId);
-        localStorage.setItem(STORAGE_KEY_STUDENT, finalStudentId);
-      }
+      // Save selections for quick repeat bookings
+      saveServiceId(serviceId);
+      saveStudentId(finalStudentId);
 
       onSuccess();
       onClose();
@@ -282,8 +248,8 @@ export function CalendarBookingModal({
   const showNotes = isQuickMode || step === 2;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-border/50 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Create Booking</h2>

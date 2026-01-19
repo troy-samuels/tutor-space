@@ -189,19 +189,55 @@ export async function createService(payload: ServiceInput) {
 }
 
 export async function updateService(id: string, payload: ServiceInput) {
+  const traceId = await getTraceId();
   const authResult = await getAuthUserResult();
   if (!authResult.success) {
     return { error: authResult.error };
   }
   const user = authResult.data;
+  const log = createRequestLogger(traceId, user.id);
+
+  const formatUpdateError = (input: {
+    code?: string;
+    message?: string;
+  }): string => {
+    switch (input.code) {
+      case "23505":
+        return "You already have a service with that name. Choose a different name.";
+      case "42501":
+        return "You do not have permission to update this service.";
+      case "23502":
+        return "A required field is missing. Please review the form and try again.";
+      case "23514":
+        return "One or more fields are out of range. Please review duration and price.";
+      case "22003":
+        return "The price is too large. Please use a smaller amount.";
+      case "22P02":
+        return "Some values are invalid. Please check price and currency.";
+      case "42703":
+        return "Your service settings are out of date. Refresh the page and try again.";
+      case "PGRST116":
+        return "This service was updated elsewhere. Refresh the page and try again.";
+      default:
+        return `We couldn't update that service. Please try again. Ref: ${traceId}`;
+    }
+  };
 
   const supabase = await createClient();
   const parsed = serviceSchema.safeParse(payload);
 
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? "Invalid service details.";
+    logStep(log, "updateService:validation_failed", { serviceId: id, message });
     return { error: message };
   }
+
+  logStep(log, "updateService:start", {
+    serviceId: id,
+    offerType: parsed.data.offer_type,
+    priceCents: parsed.data.price_cents,
+    currency: parsed.data.currency,
+  });
 
   const { data: existing, error: existingError } = await supabase
     .from("services")
@@ -211,6 +247,7 @@ export async function updateService(id: string, payload: ServiceInput) {
     .single<ServiceRecord>();
 
   if (existingError || !existing) {
+    logStepError(log, "updateService:not_found", existingError, { serviceId: id });
     return { error: "We couldn’t find that service. Please try again." };
   }
 
@@ -239,8 +276,16 @@ export async function updateService(id: string, payload: ServiceInput) {
       stripeProductId = stripeSync.stripeProductId;
       stripePriceId = stripeSync.stripePriceId;
     } catch (syncError) {
-      console.error("[Services] Stripe sync failed:", syncError);
-      return { error: "We couldn’t sync that service to Stripe. Please try again." };
+      const stripeError = syncError as { code?: string; message?: string };
+      logStepError(log, "updateService:stripe_sync_failed", syncError, {
+        serviceId: existing.id,
+        stripeAccountId,
+        stripeErrorCode: stripeError.code,
+      });
+      return {
+        error:
+          "We couldn’t sync that service to Stripe. Please reconnect Stripe and try again.",
+      };
     }
   }
 
@@ -263,11 +308,18 @@ export async function updateService(id: string, payload: ServiceInput) {
     })
     .eq("id", id)
     .eq("tutor_id", user.id)
+    .eq("updated_at", existing.updated_at)
     .select("*")
-    .single<ServiceRecord>();
+    .maybeSingle<ServiceRecord>();
 
   if (error) {
-    return { error: "We couldn't update that service. Please try again." };
+    logStepError(log, "updateService:update_failed", error, { serviceId: id });
+    return { error: formatUpdateError({ code: error.code, message: error.message }) };
+  }
+
+  if (!data) {
+    logStep(log, "updateService:stale_write", { serviceId: id });
+    return { error: "This service was updated elsewhere. Refresh the page and try again." };
   }
 
   // Record audit if price changed
@@ -303,7 +355,9 @@ export async function updateService(id: string, payload: ServiceInput) {
       .eq("tutor_id", user.id);
 
     if (linkedPackagesError) {
-      console.error("[Services] Failed to load linked packages:", linkedPackagesError);
+      logStepError(log, "updateService:linked_packages_fetch_failed", linkedPackagesError, {
+        serviceId: id,
+      });
       return { error: "We couldn't update linked packages. Please try again." };
     }
 
@@ -336,7 +390,10 @@ export async function updateService(id: string, payload: ServiceInput) {
             newStripeProductId = syncResult.stripeProductId;
             newStripePriceId = syncResult.stripePriceId;
           } catch (syncError) {
-            console.error(`[Services] Package ${pkg.id} Stripe sync failed:`, syncError);
+            logStepError(log, "updateService:linked_package_stripe_failed", syncError, {
+              serviceId: id,
+              packageId: pkg.id,
+            });
             return { error: "We couldn't sync linked packages to Stripe. Please try again." };
           }
         }
@@ -353,7 +410,10 @@ export async function updateService(id: string, payload: ServiceInput) {
           .eq("tutor_id", user.id);
 
         if (updateError) {
-          console.error(`[Services] Package ${pkg.id} DB update failed:`, updateError);
+          logStepError(log, "updateService:linked_package_update_failed", updateError, {
+            serviceId: id,
+            packageId: pkg.id,
+          });
           return { error: "We couldn't update linked packages. Please try again." };
         }
       }
@@ -396,6 +456,7 @@ export async function updateService(id: string, payload: ServiceInput) {
   revalidatePath("/marketing/links");
   revalidatePath("/@");
 
+  logStep(log, "updateService:success", { serviceId: data.id });
   return { data };
 }
 

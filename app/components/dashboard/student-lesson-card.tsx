@@ -31,7 +31,7 @@ export function StudentLessonCard({ lesson, onReschedule }: StudentLessonCardPro
 
   return (
     <div
-      className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+      className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)]"
       data-testid="student-lesson-card"
     >
       {/* Top row: Avatar + Info */}

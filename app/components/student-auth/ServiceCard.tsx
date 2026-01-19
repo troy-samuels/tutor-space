@@ -23,6 +23,9 @@ type ServiceCardProps = {
 };
 
 function formatPrice(amount: number, currency: string): string {
+  if (amount === 0) {
+    return "Free";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency.toUpperCase(),
@@ -40,6 +43,8 @@ export function ServiceCard({
   disabled = false,
 }: ServiceCardProps) {
   const hasCredit = hasPackageCredit || hasSubscriptionCredit;
+  const isFreeService = service.price_amount === 0;
+  const showCreditBadge = hasCredit && !isFreeService;
 
   return (
     <button
@@ -75,7 +80,7 @@ export function ServiceCard({
       </div>
 
       <div className="ml-4 flex flex-col items-end gap-1.5 shrink-0">
-        {hasCredit ? (
+        {showCreditBadge ? (
           <Badge
             variant="secondary"
             className={cn(
@@ -92,7 +97,7 @@ export function ServiceCard({
             {formatPrice(service.price_amount, service.price_currency)}
           </p>
         )}
-        {hasCredit && (
+        {showCreditBadge && (
           <p className="text-xs text-muted-foreground line-through">
             {formatPrice(service.price_amount, service.price_currency)}
           </p>

@@ -202,7 +202,7 @@ export function EventDetailsPopover({
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 w-80 rounded-xl border border-border bg-white shadow-xl animate-in fade-in zoom-in-95 duration-150"
+      className="fixed z-50 w-80 rounded-xl border border-border bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150"
       style={{
         left: position.x,
         top: position.y + 8,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,8 @@ import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { detectUserTimezone } from "@/lib/utils/timezones";
 import { formatCurrency } from "@/lib/utils";
 import { SubscriptionCreditSelector, type SubscriptionCredit } from "./SubscriptionCreditSelector";
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
+import { formatBookingError } from "@/lib/utils/booking-errors";
 
 interface Service {
   id: string;
@@ -34,6 +36,9 @@ interface StudentInfoFormProps {
   selectedSlot: BookableSlot;
   onBack: () => void;
   activeSubscription?: SubscriptionCredit | null;
+  onSubmitStart?: () => void;
+  onSubmitSuccess?: (result: { bookingId: string; checkoutUrl?: string | null }) => void;
+  onSubmitError?: (message: string) => void;
 }
 
 export default function StudentInfoForm({
@@ -42,6 +47,9 @@ export default function StudentInfoForm({
   selectedSlot,
   onBack,
   activeSubscription,
+  onSubmitStart,
+  onSubmitSuccess,
+  onSubmitError,
 }: StudentInfoFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -49,6 +57,13 @@ export default function StudentInfoForm({
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string | null>(
     activeSubscription ? activeSubscription.id : null
   );
+  const [successState, setSuccessState] = useState<{
+    bookingId: string;
+    headline: string;
+    detail: string;
+  } | null>(null);
+  const [redirectingToCheckout, setRedirectingToCheckout] = useState(false);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [availabilityStatus, setAvailabilityStatus] = useState<
     "checking" | "available" | "unavailable" | "error"
   >("checking");
@@ -67,16 +82,21 @@ export default function StudentInfoForm({
 
   const zonedStart = toZonedTime(selectedSlot.start, tutor.timezone);
   const zonedEnd = toZonedTime(selectedSlot.end, tutor.timezone);
+  const isFreeService = service.price_amount === 0;
   const priceCurrency = service.price_currency?.toUpperCase?.() || service.price_currency;
-  const priceDisplay = formatCurrency(service.price_amount, priceCurrency);
+  const priceDisplay = isFreeService ? "Free" : formatCurrency(service.price_amount, priceCurrency);
   const hasAvailableCredits = !!(activeSubscription && activeSubscription.lessonsAvailable > 0);
   const usingCredits = hasAvailableCredits && selectedSubscriptionId === activeSubscription?.id;
-  const paymentLabel = usingCredits
+  const paymentLabel = isFreeService
+    ? "No payment required"
+    : usingCredits
     ? `Subscription credits (${activeSubscription?.lessonsAvailable ?? 0} left)`
     : hasAvailableCredits
     ? "Use credits or pay after confirm"
     : "Secure checkout after confirm";
-  const paymentDescription = usingCredits
+  const paymentDescription = isFreeService
+    ? "This session is free. No payment is required."
+    : usingCredits
     ? "This booking will use your subscription credits. No charge today."
     : "You will complete payment via secure checkout after confirming your details.";
   const availabilityLabel = {
@@ -85,6 +105,20 @@ export default function StudentInfoForm({
     unavailable: "Recently booked",
     error: "Unable to confirm availability",
   }[availabilityStatus];
+
+  const setFormattedError = (message: string) => {
+    const formatted = formatBookingError(message) ?? message;
+    setError(formatted);
+    onSubmitError?.(formatted);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,25 +155,26 @@ export default function StudentInfoForm({
     setError(null);
 
     if (availabilityStatus === "unavailable") {
-      setError("This time was just booked. Please pick another slot.");
+      setFormattedError("This time was just booked. Please pick another slot.");
       return;
     }
 
     // Validation
     if (!formData.studentName || !formData.studentEmail) {
-      setError("Please provide student name and email");
+      setFormattedError("Please provide student name and email.");
       const el = document.getElementById(!formData.studentName ? "studentName" : "studentEmail");
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
     if (formData.isMinor && (!formData.parentName || !formData.parentEmail)) {
-      setError("Please provide parent/guardian information for minor students");
+      setFormattedError("Please provide parent or guardian information for minor students.");
       const el = document.getElementById(!formData.parentName ? "parentName" : "parentEmail");
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
+    onSubmitStart?.();
     startTransition(async () => {
       try {
         // Generate unique mutation ID for idempotency (prevents duplicate bookings)
@@ -163,32 +198,88 @@ export default function StudentInfoForm({
           notes: formData.notes || null,
           amount: service.price_amount,
           currency: service.price_currency,
-          subscriptionId: selectedSubscriptionId || undefined,
+          subscriptionId: !isFreeService ? selectedSubscriptionId || undefined : undefined,
           clientMutationId,
         });
 
         if ("error" in result) {
-          setError(result.error);
+          setFormattedError(result.error);
           return;
         }
 
         if ("bookingId" in result) {
+          onSubmitSuccess?.({
+            bookingId: result.bookingId,
+            checkoutUrl: result.checkoutUrl ?? null,
+          });
           if (result.checkoutUrl) {
             // Redirect to Stripe checkout
-            window.location.href = result.checkoutUrl;
+            setRedirectingToCheckout(true);
+            redirectTimeoutRef.current = setTimeout(() => {
+              window.location.href = result.checkoutUrl as string;
+            }, 120);
           } else {
-            // Redirect to success page for manual payment
-            router.push(`/book/success?booking_id=${result.bookingId}`);
+            const nextStep = isFreeService
+              ? "No payment is required. Check your email for confirmation details."
+              : "Your tutor will email payment instructions and confirm your booking.";
+            setSuccessState({
+              bookingId: result.bookingId,
+              headline: isFreeService ? "Lesson booked" : "Booking request sent",
+              detail: nextStep,
+            });
+            redirectTimeoutRef.current = setTimeout(() => {
+              router.push(`/book/success?booking_id=${result.bookingId}`);
+            }, 500);
           }
         } else {
-          setError("We could not create your booking. Please try again.");
+          setFormattedError("We could not create your booking. Please try again.");
         }
       } catch (err) {
         console.error("Booking error:", err);
-        setError("An error occurred. Please try again.");
+        setFormattedError("An error occurred. Please try again.");
       }
     });
   };
+
+  if (redirectingToCheckout) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+          Redirecting to secure checkout…
+        </div>
+      </div>
+    );
+  }
+
+  if (successState) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white">
+            <svg
+              className="h-6 w-6 text-emerald-600"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-emerald-900">{successState.headline}</h2>
+          <p className="mt-2 text-sm text-emerald-800">{successState.detail}</p>
+          <button
+            type="button"
+            onClick={() => router.push(`/book/success?booking_id=${successState.bookingId}`)}
+            className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
+          >
+            View booking details
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -237,6 +328,11 @@ export default function StudentInfoForm({
             />
             {availabilityLabel}
           </div>
+          {availabilityStatus === "error" ? (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              We could not confirm availability. You can still submit, and we will verify before confirming.
+            </div>
+          ) : null}
           <div className="mt-3 space-y-1 text-sm text-gray-700">
             <div className="flex items-center justify-between">
               <span>Lesson</span>
@@ -262,7 +358,7 @@ export default function StudentInfoForm({
               <p className="text-xs text-blue-800">{paymentDescription}</p>
             </div>
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
-              {usingCredits ? "Credits" : "Checkout"}
+              {isFreeService ? "Free" : usingCredits ? "Credits" : "Checkout"}
             </span>
           </div>
         </div>
@@ -400,7 +496,7 @@ export default function StudentInfoForm({
           )}
 
           {/* Subscription Credit Option */}
-          {activeSubscription && activeSubscription.lessonsAvailable > 0 && (
+          {!isFreeService && activeSubscription && activeSubscription.lessonsAvailable > 0 && (
             <div>
               <h2 className="text-lg font-semibold mb-4">Payment Option</h2>
               <SubscriptionCreditSelector
@@ -428,11 +524,18 @@ export default function StudentInfoForm({
           </div>
 
           {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{error}</p>
+          <FormStatusAlert
+            message={error || undefined}
+            tone="error"
+            ariaLive="assertive"
+            className="rounded-lg border border-destructive/20 bg-destructive/10"
+          />
+
+          {isPending ? (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              Submitting your booking…
             </div>
-          )}
+          ) : null}
 
           {/* Submit Button */}
           <button
@@ -444,8 +547,9 @@ export default function StudentInfoForm({
           </button>
 
           <p className="text-xs text-gray-500 text-center">
-            After booking, you&apos;ll receive payment instructions from your tutor.
-            Your lesson will be confirmed once payment is received.
+            {isFreeService
+              ? "No payment is required. Your lesson will be confirmed immediately."
+              : "After booking, you&apos;ll receive payment instructions from your tutor. Your lesson will be confirmed once payment is received."}
           </p>
         </form>
       </div>

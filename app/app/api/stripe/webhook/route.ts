@@ -5,11 +5,17 @@ import { stripe } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import Stripe from "stripe";
 import { sendDigitalProductDeliveryEmail } from "@/lib/emails/digital-products";
-import { sendPaymentReceiptEmail, sendTutorBookingNotificationEmail, sendPaymentFailedEmail } from "@/lib/emails/booking-emails";
+import {
+  sendPaymentReceiptEmail,
+  sendBookingConfirmationEmail,
+  sendTutorBookingConfirmedEmail,
+  sendTutorPaymentReceivedEmail,
+  sendPaymentFailedEmail,
+} from "@/lib/emails/booking-emails";
 import { mapPriceIdToPlan, getPlanDbTier } from "@/lib/payments/subscriptions";
 import { createCalendarEventForBooking } from "@/lib/calendar/busy-windows";
 import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
-import { buildClassroomUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
+import { buildClassroomUrl, tutorHasStudioAccess, isClassroomUrl } from "@/lib/utils/classroom-links";
 // AI Practice constants removed - freemium model uses RPC for period creation
 import { recordSystemEvent, recordSystemMetric, shouldSample } from "@/lib/monitoring";
 import { sendLessonSubscriptionEmails } from "@/lib/emails/ops-emails";
@@ -31,6 +37,7 @@ type BookingDetails = {
   scheduled_at: string | null;
   timezone: string | null;
   meeting_url: string | null;
+  meeting_provider: string | null;
   short_code: string | null;
   services: {
     name: string | null;
@@ -805,6 +812,7 @@ async function handleCheckoutSessionCompleted(
         payment_amount,
         currency,
         meeting_url,
+        meeting_provider,
         short_code,
         services (
           name,
@@ -827,7 +835,10 @@ async function handleCheckoutSessionCompleted(
     .eq("id", bookingId)
     .single<BookingDetails>();
 
-  if (bookingDetails && !bookingDetails.meeting_url) {
+  let meetingUrlForEmail = bookingDetails?.meeting_url ?? null;
+  let meetingProviderForEmail = bookingDetails?.meeting_provider ?? null;
+
+  if (bookingDetails && !meetingUrlForEmail) {
     const tutorHasStudio = tutorHasStudioAccess({
       tier: bookingDetails.tutor?.tier ?? null,
       plan: bookingDetails.tutor?.plan ?? null,
@@ -843,10 +854,16 @@ async function handleCheckoutSessionCompleted(
           appUrl
         );
         await updateBookingMeetingUrl(supabase, bookingDetails.id, resolvedTutorId, meetingUrl, "livekit");
+        meetingUrlForEmail = meetingUrl;
+        meetingProviderForEmail = "livekit";
       } catch (meetingUrlError) {
         console.error("[Webhook] Failed to set LiveKit meeting URL:", meetingUrlError);
       }
     }
+  }
+
+  if (meetingUrlForEmail && !meetingProviderForEmail) {
+    meetingProviderForEmail = isClassroomUrl(meetingUrlForEmail) ? "livekit" : "custom";
   }
 
   const studentEmail = bookingDetails?.students?.email;
@@ -859,13 +876,35 @@ async function handleCheckoutSessionCompleted(
     bookingDetails?.services?.price_currency ??
     session.currency?.toUpperCase() ??
     "USD";
+  const durationMinutes = bookingDetails?.services?.duration_minutes ?? 60;
 
   const emailTasks: Array<{ label: string; promise: Promise<unknown> }> = [];
 
   if (studentEmail && amountCents > 0) {
     emailTasks.push({
+      label: "student_confirmation",
+      promise: sendBookingConfirmationEmail({
+        bookingId: bookingDetails?.id,
+        studentName: bookingDetails?.students?.full_name ?? "Student",
+        studentEmail,
+        tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
+        tutorEmail: bookingDetails?.tutor?.email ?? "",
+        serviceName: bookingDetails?.services?.name ?? "Lesson",
+        scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
+        durationMinutes,
+        timezone: bookingDetails?.timezone ?? "UTC",
+        amount: amountCents / 100,
+        currency,
+        confirmationStatus: "confirmed",
+        paymentStatus: "paid",
+        meetingUrl: meetingUrlForEmail ?? undefined,
+        meetingProvider: meetingProviderForEmail ?? undefined,
+      }),
+    });
+    emailTasks.push({
       label: "student_receipt",
       promise: sendPaymentReceiptEmail({
+        bookingId: bookingDetails?.id,
         studentName: bookingDetails?.students?.full_name ?? "Student",
         studentEmail,
         tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
@@ -885,11 +924,12 @@ async function handleCheckoutSessionCompleted(
   const tutorEmail = bookingDetails?.tutor?.email;
   if (tutorEmail && amountCents > 0 && session.metadata?.tutorId) {
     emailTasks.push({
-      label: "tutor_receipt",
-      promise: sendPaymentReceiptEmail({
-        studentName: bookingDetails?.tutor?.full_name ?? "Tutor",
-        studentEmail: tutorEmail,
-        tutorName: bookingDetails?.tutor?.full_name ?? "Your tutor",
+      label: "tutor_payment_received",
+      promise: sendTutorPaymentReceivedEmail({
+        bookingId: bookingDetails?.id,
+        tutorName: bookingDetails?.tutor?.full_name ?? "Tutor",
+        tutorEmail,
+        studentName: bookingDetails?.students?.full_name ?? "Student",
         serviceName: bookingDetails?.services?.name ?? "Lesson",
         scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
         timezone: bookingDetails?.timezone ?? "UTC",
@@ -897,29 +937,34 @@ async function handleCheckoutSessionCompleted(
         currency,
         paymentMethod: "STRIPE",
         notes: `Payment received from ${bookingDetails?.students?.full_name ?? "student"} via Stripe Connect. Funds will be available in your Stripe account according to your payout schedule.`,
+        dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/bookings`,
       }),
     });
   }
 
-  // Notify tutor of successful payment
+  // Notify tutor of successful payment with a confirmed booking email
   const tutorNotifyEmail = bookingDetails?.tutor?.email;
   const tutorName = bookingDetails?.tutor?.full_name ?? "Tutor";
   if (tutorNotifyEmail && amountCents > 0) {
     emailTasks.push({
-      label: "tutor_booking_notification",
-      promise: sendTutorBookingNotificationEmail({
+      label: "tutor_booking_confirmed",
+      promise: sendTutorBookingConfirmedEmail({
+        bookingId: bookingDetails?.id,
         tutorName,
         tutorEmail: tutorNotifyEmail,
         studentName: bookingDetails?.students?.full_name ?? "Student",
         studentEmail: studentEmail ?? "",
         serviceName: bookingDetails?.services?.name ?? "Lesson",
         scheduledAt: bookingDetails?.scheduled_at ?? new Date().toISOString(),
-        durationMinutes: 60,
+        durationMinutes,
         timezone: bookingDetails?.timezone ?? "UTC",
-        amount: amountCents,
+        amount: amountCents / 100,
         currency,
         notes: undefined,
+        meetingUrl: meetingUrlForEmail ?? undefined,
+        meetingProvider: meetingProviderForEmail ?? undefined,
         dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://app.tutorlingua.co"}/bookings`,
+        paymentStatusLabel: "Paid via Stripe",
       }),
     });
   }

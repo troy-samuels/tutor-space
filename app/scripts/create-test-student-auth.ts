@@ -88,7 +88,7 @@ async function main() {
   console.log("=".repeat(50));
   console.log(`Email:    ${STUDENT_EMAIL}`);
   console.log(`Password: ${STUDENT_PASSWORD}`);
-  console.log("\nLogin at: http://localhost:3000/student-auth/login");
+  console.log("\nLogin at: http://localhost:3000/student/login");
   console.log("=".repeat(50));
 }
 

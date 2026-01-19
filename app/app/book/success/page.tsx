@@ -159,10 +159,30 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
     ? booking.meeting_provider ?? (isClassroomUrl(meetingUrl) ? "livekit" : null)
     : null;
 
-  const { data: calendarConnections } = await adminClient
-    .from("calendar_connections")
-    .select("provider, sync_enabled, sync_status")
-    .eq("tutor_id", booking.tutor_id);
+  const [calendarConnectionsResult, emailEventsResult, calendarEventsResult] = await Promise.all([
+    adminClient
+      .from("calendar_connections")
+      .select("provider, sync_enabled, sync_status")
+      .eq("tutor_id", booking.tutor_id),
+    adminClient
+      .from("email_events")
+      .select("event_type, metadata, occurred_at")
+      .filter("metadata->>bookingId", "eq", booking.id),
+    adminClient
+      .from("calendar_events")
+      .select("id")
+      .eq("booking_id", booking.id)
+      .is("deleted_at", null),
+  ]);
+  const calendarConnections = calendarConnectionsResult.data ?? [];
+
+  const emailEvents = (emailEventsResult.data ?? []) as Array<{
+    event_type: string;
+    metadata: Record<string, unknown> | null;
+    occurred_at: string | null;
+  }>;
+
+  const calendarEvents = calendarEventsResult.data ?? [];
 
   const syncableStatuses = new Set(["idle", "healthy", "syncing"]);
   const hasGoogleSync = (calendarConnections ?? []).some(
@@ -171,6 +191,75 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
       connection.sync_enabled !== false &&
       (!connection.sync_status || syncableStatuses.has(connection.sync_status))
   );
+
+  type StatusTone = "success" | "warning" | "error" | "neutral";
+
+  const hasCalendarConnection = (calendarConnections ?? []).some(
+    (connection) => connection.sync_enabled !== false
+  );
+  const hasCalendarError = (calendarConnections ?? []).some(
+    (connection) =>
+      connection.sync_enabled !== false && connection.sync_status === "error"
+  );
+  const calendarStatus: { label: string; tone: StatusTone } = !hasCalendarConnection
+    ? { label: "Not connected", tone: "neutral" }
+    : hasCalendarError
+      ? { label: "Needs attention", tone: "error" }
+      : calendarEvents.length > 0
+        ? { label: "Synced", tone: "success" }
+        : { label: "Syncing", tone: "warning" };
+
+  const getEmailStatus = (emailTypes: string[]): { label: string; tone: StatusTone } => {
+    const matching = emailEvents.filter((event) => {
+      const metadata = event.metadata ?? {};
+      const emailType = (metadata as { emailType?: string }).emailType;
+      return emailType && emailTypes.includes(emailType);
+    });
+
+    if (matching.length === 0) {
+      return { label: "Queued", tone: "neutral" };
+    }
+
+    const eventTypes = matching.map((event) => event.event_type.toLowerCase());
+    const errorTypes = new Set([
+      "error",
+      "bounced",
+      "bounce",
+      "email.bounced",
+      "complained",
+      "complaint",
+      "email.complained",
+      "dropped",
+      "email.dropped",
+      "suppressed_skip",
+    ]);
+    const deliveredTypes = new Set(["delivered", "email.delivered"]);
+    const requestedTypes = new Set(["requested", "sent", "email.sent"]);
+
+    if (eventTypes.some((eventType) => errorTypes.has(eventType))) {
+      return { label: "Issue", tone: "error" };
+    }
+    if (eventTypes.some((eventType) => deliveredTypes.has(eventType))) {
+      return { label: "Delivered", tone: "success" };
+    }
+    if (eventTypes.some((eventType) => requestedTypes.has(eventType))) {
+      return { label: "Queued", tone: "warning" };
+    }
+
+    return { label: "Queued", tone: "neutral" };
+  };
+
+  const studentEmailStatus = getEmailStatus([
+    "booking_confirmation",
+    "booking_payment_request",
+  ]);
+  const tutorEmailStatus = getEmailStatus(["booking_request_tutor"]);
+  const statusToneClass: Record<StatusTone, string> = {
+    success: "text-emerald-700",
+    warning: "text-amber-700",
+    error: "text-red-700",
+    neutral: "text-gray-600",
+  };
 
   const zonedStart = toZonedTime(
     new Date(booking.scheduled_at),
@@ -268,6 +357,38 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-5 mb-8 text-left">
+            <h3 className="font-semibold text-gray-900 mb-3">Delivery status</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Student email</span>
+                <span className={`font-medium ${statusToneClass[studentEmailStatus.tone]}`}>
+                  {studentEmailStatus.label}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tutor notification</span>
+                <span className={`font-medium ${statusToneClass[tutorEmailStatus.tone]}`}>
+                  {tutorEmailStatus.label}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Calendar sync</span>
+                <span className={`font-medium ${statusToneClass[calendarStatus.tone]}`}>
+                  {calendarStatus.label}
+                </span>
+              </div>
+            </div>
+            {calendarStatus.tone === "error" ? (
+              <p className="mt-3 text-xs text-red-700">
+                Calendar sync needs attention. Ask your tutor to reconnect their calendar.
+              </p>
+            ) : null}
+            <p className="mt-3 text-xs text-gray-500">
+              Status updates can take a minute to appear.
+            </p>
           </div>
 
           {!hasGoogleSync && (

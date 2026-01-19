@@ -68,7 +68,7 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
-            <Badge className="mx-auto rounded-full border border-stone-200 bg-white px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-700 shadow-none">
+            <Badge className="mx-auto rounded-full border border-border bg-white px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-stone-700 shadow-none">
               {copy.studioIntelligence.badge}
             </Badge>
             <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -82,9 +82,9 @@ export default async function LandingPage() {
           {/* Main Container - Vertical Flow */}
           <div className="space-y-6">
             {/* Panel 1: Live Transcript */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] overflow-hidden">
               {/* Recording Header */}
-              <div className="flex items-center gap-3 px-6 py-3 border-b bg-stone-50">
+              <div className="flex items-center gap-3 px-6 py-3 border-b border-border bg-stone-50">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
@@ -111,12 +111,12 @@ export default async function LandingPage() {
                   <div className="flex-1">
                     <p className="text-sm text-foreground">
                       {copy.studioIntelligence.transcript.mispronouncedPrefix}
-                      <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">
+                      <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
                         {copy.studioIntelligence.transcript.mispronouncedWord}
                       </span>
                       {copy.studioIntelligence.transcript.mispronouncedSuffix}
                     </p>
-                    <span className="inline-flex items-center gap-1 mt-1 text-xs text-orange-600">
+                    <span className="inline-flex items-center gap-1 mt-1 text-xs text-primary">
                       <AlertCircle className="h-3 w-3" />
                       {copy.studioIntelligence.transcript.mispronouncedHint}
                     </span>
@@ -138,11 +138,11 @@ export default async function LandingPage() {
                   </span>
                   <div className="flex-1">
                     <p className="text-sm text-foreground">
-                      <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">
+                      <span className="bg-accent/10 text-accent px-1.5 py-0.5 rounded font-medium">
                         {copy.studioIntelligence.transcript.correctedWord}
                       </span>
                     </p>
-                    <span className="inline-flex items-center gap-1 mt-1 text-xs text-emerald-600">
+                    <span className="inline-flex items-center gap-1 mt-1 text-xs text-accent">
                       <CheckCircle2 className="h-3 w-3" />
                       {copy.studioIntelligence.transcript.correctionHint}
                     </span>
@@ -162,43 +162,43 @@ export default async function LandingPage() {
             {/* Panel 2: Two-Column - Struggles → Homework */}
             <div className="grid md:grid-cols-2 gap-4">
               {/* Left: Detected Struggles */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="bg-white rounded-2xl p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)]">
                 <h3 className="text-lg font-semibold text-foreground mb-4">{copy.studioIntelligence.detectedTitle}</h3>
                 <div className="space-y-3">
                   {copy.studioIntelligence.detected.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-3 rounded-xl bg-orange-50 border border-orange-100"
+                      className="flex items-start gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10"
                     >
-                      <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                        <AlertCircle className="h-4 w-4 text-orange-600" />
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <AlertCircle className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground">{item.word}</p>
                         <p className="text-xs text-muted-foreground">{item.description}</p>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-orange-400 shrink-0 mt-2 hidden md:block" />
+                      <ArrowRight className="h-4 w-4 text-primary/40 shrink-0 mt-2 hidden md:block" />
                     </div>
                   ))}
-                  <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                      <BookOpen className="h-4 w-4 text-blue-600" />
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/5 border border-accent/10">
+                    <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                      <BookOpen className="h-4 w-4 text-accent" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground">{copy.studioIntelligence.vocab.title}</p>
                       <p className="text-xs text-muted-foreground">{copy.studioIntelligence.vocab.description}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-blue-400 shrink-0 mt-2 hidden md:block" />
+                    <ArrowRight className="h-4 w-4 text-accent/40 shrink-0 mt-2 hidden md:block" />
                   </div>
                 </div>
               </div>
 
               {/* Right: Generated Homework */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-primary">
+              <div className="bg-white rounded-2xl p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] border-l-4 border-primary">
                 <h3 className="text-lg font-semibold text-foreground mb-4">{copy.studioIntelligence.practiceTitle}</h3>
                 <div className="space-y-3">
                   {copy.studioIntelligence.practice.map((item, index) => (
-                    <div key={index} className="p-3 rounded-xl bg-stone-50 border border-stone-100">
+                    <div key={index} className="p-3 rounded-xl bg-stone-50 border border-border">
                       <div className="flex items-center gap-2 mb-1">
                         <CheckCircle2 className="h-4 w-4 text-primary" />
                         <p className="text-sm font-semibold text-foreground">{item.title}</p>
@@ -209,7 +209,7 @@ export default async function LandingPage() {
                 </div>
 
                 {/* Footer Note */}
-                <div className="mt-4 pt-4 border-t border-stone-100 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
                   <div className="h-2 w-2 rounded-full bg-primary" />
                   <span>{copy.studioIntelligence.saveNote}</span>
                 </div>

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { VideoStage } from "@/components/classroom/VideoStage";
 import { PreJoinScreen } from "@/components/classroom/PreJoinScreen";
 import { ConnectionToast } from "@/components/classroom/ConnectionToast";
+import { ClassroomErrorBoundary } from "@/components/classroom/ClassroomErrorBoundary";
 import { useLiveKitConnectionMonitor } from "@/lib/hooks/useLiveKitConnectionMonitor";
 
 function LiveKitConnectionWatcher({
@@ -231,34 +232,39 @@ export default function TestStudioClient() {
 
       {/* Main Content - Audio Only (no sidebar for test) */}
       <div className="flex-1 min-h-0">
-        <LiveKitRoom
-          token={token}
-          serverUrl={serverUrl}
-          connect={true}
-          audio={audio}
-          video={video}
-          className="flex h-full min-h-0 relative"
+        <ClassroomErrorBoundary
+          onRetry={() => window.location.reload()}
+          onBack={() => router.push("/dashboard")}
         >
-          <LiveKitConnectionWatcher
-            serverUrl={serverUrl}
+          <LiveKitRoom
             token={token}
-            onGiveUp={() => router.push("/dashboard")}
-          />
+            serverUrl={serverUrl}
+            connect={true}
+            audio={audio}
+            video={video}
+            className="flex h-full min-h-0 relative"
+          >
+            <LiveKitConnectionWatcher
+              serverUrl={serverUrl}
+              token={token}
+              onGiveUp={() => router.push("/dashboard")}
+            />
 
-          {/* Video Card - Full width for test */}
-          <div className="flex-1 relative min-h-0">
-            <div className="h-full rounded-xl shadow-lg border border-border overflow-hidden sm:rounded-2xl">
-              <VideoStage
-                roomName={roomName || "test"}
-                isTutor={true}
-                recordingEnabled={false}
-                onLeave={() => router.push("/dashboard")}
-              />
+            {/* Video Card - Full width for test */}
+            <div className="flex-1 relative min-h-0">
+              <div className="h-full rounded-xl shadow-lg border border-border overflow-hidden sm:rounded-2xl">
+                <VideoStage
+                  roomName={roomName || "test"}
+                  isTutor={true}
+                  recordingEnabled={false}
+                  onLeave={() => router.push("/dashboard")}
+                />
+              </div>
             </div>
-          </div>
 
-          <RoomAudioRenderer />
-        </LiveKitRoom>
+            <RoomAudioRenderer />
+          </LiveKitRoom>
+        </ClassroomErrorBoundary>
       </div>
     </div>
   );

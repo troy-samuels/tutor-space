@@ -48,7 +48,7 @@ export function CalendarDayView({
   const timeSlots = generateTimeSlots(6, 22, 60);
   const pixelsPerHour = 80; // Larger for day view
   const startHour = 6;
-  const showSecondaryTimezone = Boolean(secondaryTimezone);
+  const showSecondaryTimezone = Boolean(secondaryTimezone) && secondaryTimezone !== primaryTimezone;
   const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-20";
   const baseTimezone =
     primaryTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";

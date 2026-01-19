@@ -1,5 +1,5 @@
-import { addDays, format, parseISO, startOfDay, addMinutes, isBefore, isAfter, areIntervalsOverlapping } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { addDays, format, startOfDay, addMinutes, isBefore, isAfter, areIntervalsOverlapping, parseISO } from "date-fns";
+import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 
 export interface AvailabilitySlot {
   day_of_week: number; // 0 = Sunday, 6 = Saturday
@@ -26,6 +26,20 @@ export interface ExistingBooking {
 export interface BusyWindow {
   start: string;
   end: string;
+}
+
+function normalizeTimezone(timezone: string): string {
+  try {
+    formatInTimeZone(new Date(), timezone, "yyyy-MM-dd");
+    return timezone;
+  } catch {
+    return "UTC";
+  }
+}
+
+function safeFormatInTimeZone(date: Date, timezone: string, fmt: string): string {
+  const resolvedTimezone = normalizeTimezone(timezone);
+  return formatInTimeZone(date, resolvedTimezone, fmt);
 }
 
 /**
@@ -59,12 +73,13 @@ export function generateBookableSlots(params: {
     busyWindows = [],
     bufferMinutes = 0,
   } = params;
+  const resolvedTimezone = normalizeTimezone(timezone);
 
   const slots: BookableSlot[] = [];
 
   // Convert start and end dates to the tutor's timezone
-  let currentDate = startOfDay(toZonedTime(startDate, timezone));
-  const endDateZoned = startOfDay(toZonedTime(endDate, timezone));
+  let currentDate = startOfDay(toZonedTime(startDate, resolvedTimezone));
+  const endDateZoned = startOfDay(toZonedTime(endDate, resolvedTimezone));
 
   // Loop through each day in the date range
   while (isBefore(currentDate, endDateZoned) || currentDate.getTime() === endDateZoned.getTime()) {
@@ -97,8 +112,8 @@ export function generateBookableSlots(params: {
         }
 
         // Convert to UTC for storage
-        const startUTC = fromZonedTime(slotStart, timezone);
-        const endUTC = fromZonedTime(slotEnd, timezone);
+        const startUTC = fromZonedTime(slotStart, resolvedTimezone);
+        const endUTC = fromZonedTime(slotEnd, resolvedTimezone);
 
         // Check if slot conflicts with existing bookings
         const hasConflict = checkSlotConflict(
@@ -202,23 +217,28 @@ export function checkSlotConflict(
  * Group slots by date for easier display
  */
 export function groupSlotsByDate(slots: BookableSlot[], timezone: string = "UTC") {
-  const grouped = new Map<string, BookableSlot[]>();
+  const grouped = new Map<
+    string,
+    { dateFormatted: string; slots: BookableSlot[] }
+  >();
 
   for (const slot of slots) {
-    const zonedDate = toZonedTime(slot.start, timezone);
-    const dateKey = format(zonedDate, "yyyy-MM-dd");
+    const dateKey = safeFormatInTimeZone(slot.start, timezone, "yyyy-MM-dd");
 
     if (!grouped.has(dateKey)) {
-      grouped.set(dateKey, []);
+      grouped.set(dateKey, {
+        dateFormatted: safeFormatInTimeZone(slot.start, timezone, "EEEE, MMMM d, yyyy"),
+        slots: [],
+      });
     }
 
-    grouped.get(dateKey)!.push(slot);
+    grouped.get(dateKey)!.slots.push(slot);
   }
 
-  return Array.from(grouped.entries()).map(([date, slots]) => ({
+  return Array.from(grouped.entries()).map(([date, entry]) => ({
     date,
-    dateFormatted: format(parseISO(date), "EEEE, MMMM d, yyyy"),
-    slots,
+    dateFormatted: entry.dateFormatted,
+    slots: entry.slots,
   }));
 }
 
@@ -234,8 +254,7 @@ export function filterFutureSlots(slots: BookableSlot[]): BookableSlot[] {
  * Format slot time for display
  */
 export function formatSlotTime(slot: BookableSlot, timezone: string = "UTC"): string {
-  const zonedStart = toZonedTime(slot.start, timezone);
-  const zonedEnd = toZonedTime(slot.end, timezone);
-
-  return `${format(zonedStart, "h:mm a")} - ${format(zonedEnd, "h:mm a")}`;
+  const startLabel = safeFormatInTimeZone(slot.start, timezone, "h:mm a");
+  const endLabel = safeFormatInTimeZone(slot.end, timezone, "h:mm a");
+  return `${startLabel} - ${endLabel}`;
 }

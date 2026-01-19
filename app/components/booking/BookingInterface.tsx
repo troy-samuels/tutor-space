@@ -10,6 +10,7 @@ import StudentInfoForm from "./StudentInfoForm";
 import { StudentLessonHistory } from "./StudentLessonHistory";
 import Image from "next/image";
 import { cn, formatCurrency } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 interface Service {
   id: string;
@@ -112,6 +113,9 @@ interface BookingInterfaceProps {
   lessonHistory?: StudentLessonHistoryData | null;
   variant?: "page" | "inline";
   activeSubscription?: SubscriptionCredit | null;
+  analyticsContext?: {
+    source: "public" | "authenticated";
+  };
 }
 
 export default function BookingInterface({
@@ -122,26 +126,42 @@ export default function BookingInterface({
   lessonHistory,
   variant = "page",
   activeSubscription,
+  analyticsContext,
 }: BookingInterfaceProps) {
   const [selectedService, setSelectedService] = useState(initialService);
   const [selectedSlot, setSelectedSlot] = useState<BookableSlot | null>(null);
   const [showStudentForm, setShowStudentForm] = useState(false);
   const [activeDate, setActiveDate] = useState(groupedSlots[0]?.date ?? "");
 
-  const paymentMethodLabel =
-    activeSubscription && activeSubscription.lessonsAvailable > 0
-      ? `${activeSubscription.lessonsAvailable} subscription credits available`
-      : "Secure checkout after confirm";
+  const isFreeService = selectedService.price_amount === 0;
+  const paymentMethodLabel = isFreeService
+    ? "No payment required"
+    : activeSubscription && activeSubscription.lessonsAvailable > 0
+    ? `${activeSubscription.lessonsAvailable} subscription credits available`
+    : "Secure checkout after confirm";
   const subscriptionChip =
-    activeSubscription && activeSubscription.lessonsAvailable > 0 ? (
+    !isFreeService && activeSubscription && activeSubscription.lessonsAvailable > 0 ? (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
         {activeSubscription.lessonsAvailable} credits
       </span>
     ) : null;
 
+  const trackEvent = (event: string, payload: Record<string, unknown>) => {
+    if (!analyticsContext || analyticsContext.source !== "public") return;
+    track(event, {
+      ...payload,
+      source: analyticsContext.source,
+      tutor_id: tutor.id,
+    });
+  };
+
   const handleSlotSelect = (slot: BookableSlot) => {
     setSelectedSlot(slot);
     setShowStudentForm(true);
+    trackEvent("public_booking_request_click", {
+      service_id: selectedService.id,
+      slot_start: slot.startISO,
+    });
   };
 
   const handleBack = () => {
@@ -151,8 +171,11 @@ export default function BookingInterface({
 
   const activeGroup = groupedSlots.find((group) => group.date === activeDate) || groupedSlots[0];
   const priceCurrency = selectedService.price_currency?.toUpperCase?.() || selectedService.price_currency;
-  const priceDisplay = formatCurrency(selectedService.price_amount, priceCurrency);
+  const priceDisplay = isFreeService
+    ? "Free"
+    : formatCurrency(selectedService.price_amount, priceCurrency);
   const durationDisplay = `${selectedService.duration_minutes} minutes`;
+  const paymentStepLabel = isFreeService ? "No payment required" : "Complete payment";
 
   const formatSlotTime = (slot: BookableSlot) => {
     const zonedStart = toZonedTime(slot.start, tutor.timezone);
@@ -170,6 +193,27 @@ export default function BookingInterface({
           selectedSlot={selectedSlot}
           onBack={handleBack}
           activeSubscription={activeSubscription}
+          onSubmitStart={() =>
+            trackEvent("public_booking_submit_start", {
+              service_id: selectedService.id,
+              slot_start: selectedSlot.startISO,
+            })
+          }
+          onSubmitSuccess={(result) =>
+            trackEvent("public_booking_submit_success", {
+              service_id: selectedService.id,
+              slot_start: selectedSlot.startISO,
+              booking_id: result.bookingId,
+              checkout: Boolean(result.checkoutUrl),
+            })
+          }
+          onSubmitError={(message) =>
+            trackEvent("public_booking_submit_error", {
+              service_id: selectedService.id,
+              slot_start: selectedSlot.startISO,
+              error: message,
+            })
+          }
         />
       </div>
     );
@@ -280,7 +324,9 @@ export default function BookingInterface({
                     </div>
                     <div className="text-right">
                       <p className="text-base font-semibold text-gray-900">
-                        {formatCurrency(service.price_amount, service.price_currency)}
+                        {service.price_amount === 0
+                          ? "Free"
+                          : formatCurrency(service.price_amount, service.price_currency)}
                       </p>
                     </div>
                   </div>
@@ -420,7 +466,7 @@ export default function BookingInterface({
                 </li>
                 <li className="flex gap-2">
                   <span className="font-bold">3.</span>
-                  <span>Complete payment</span>
+                  <span>{paymentStepLabel}</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="font-bold">4.</span>

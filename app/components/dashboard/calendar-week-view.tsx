@@ -71,7 +71,7 @@ export function CalendarWeekView({
   const endHour = 22;
   const timeSlots = generateTimeSlots(startHour, endHour, 60);
   const pixelsPerHour = 60;
-  const showSecondaryTimezone = Boolean(secondaryTimezone);
+  const showSecondaryTimezone = Boolean(secondaryTimezone) && secondaryTimezone !== primaryTimezone;
   const timeColumnWidth = showSecondaryTimezone ? "w-28 sm:w-32" : "w-16 sm:w-20";
   const baseTimezone =
     primaryTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";

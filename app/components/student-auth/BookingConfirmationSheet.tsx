@@ -15,6 +15,8 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { FormStatusAlert } from "@/components/forms/form-status-alert";
+import { formatBookingError } from "@/lib/utils/booking-errors";
 import { createStudentBooking } from "@/lib/actions/student-bookings";
 import type { StudentPackage, TutorSearchResult } from "@/lib/actions/types";
 
@@ -49,6 +51,9 @@ type BookingConfirmationSheetProps = {
 };
 
 function formatPrice(amount: number, currency: string): string {
+  if (amount === 0) {
+    return "Free";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency.toUpperCase(),
@@ -85,8 +90,10 @@ export function BookingConfirmationSheet({
   packages,
   subscription,
 }: BookingConfirmationSheetProps) {
+  const isFreeService = service.price_amount === 0;
   const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
+    if (isFreeService) return "direct";
     // Default to subscription if available
     if (subscription && subscription.lessonsAvailable > 0) return "subscription";
     // Then package if available
@@ -103,6 +110,7 @@ export function BookingConfirmationSheet({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successStatus, setSuccessStatus] = useState<"confirmed" | "pending">("confirmed");
   const [bookingId, setBookingId] = useState<string | null>(null);
 
   const { date, time } = formatDateTime(slot.start, timezone);
@@ -121,25 +129,31 @@ export function BookingConfirmationSheet({
     (p) => p.remaining_minutes >= service.duration_minutes
   );
   const hasSubscription = subscription && subscription.lessonsAvailable > 0;
+  const effectivePaymentMethod = isFreeService ? "direct" : paymentMethod;
 
   const handleConfirm = () => {
     setError(null);
 
     startTransition(async () => {
       try {
+        const clientMutationId = crypto.randomUUID();
         const result = await createStudentBooking({
           tutorId: tutor.id,
           serviceId: service.id,
           scheduledAt: slot.start,
           durationMinutes: service.duration_minutes,
           notes: notes.trim() || null,
-          amount: paymentMethod === "direct" ? service.price_amount : 0,
+          amount: effectivePaymentMethod === "direct" ? service.price_amount : 0,
           currency: service.price_currency,
-          packageId: paymentMethod === "package" ? selectedPackageId || undefined : undefined,
+          packageId:
+            !isFreeService && effectivePaymentMethod === "package"
+              ? selectedPackageId || undefined
+              : undefined,
+          clientMutationId,
         });
 
         if (result.error) {
-          setError(result.error);
+          setError(formatBookingError(result.error) ?? result.error);
           return;
         }
 
@@ -150,11 +164,14 @@ export function BookingConfirmationSheet({
         }
 
         // Booking created successfully (using credits)
+        const isInstantConfirm =
+          isFreeService || effectivePaymentMethod === "subscription" || effectivePaymentMethod === "package";
+        setSuccessStatus(isInstantConfirm ? "confirmed" : "pending");
         setSuccess(true);
         setBookingId(result.bookingId || null);
       } catch (err) {
         console.error("Booking error:", err);
-        setError("Something went wrong. Please try again.");
+        setError(formatBookingError("Something went wrong. Please try again.") ?? "Something went wrong. Please try again.");
       }
     });
   };
@@ -172,6 +189,7 @@ export function BookingConfirmationSheet({
 
   // Success state
   if (success) {
+    const isConfirmed = successStatus === "confirmed";
     return (
       <Sheet open={open} onOpenChange={onOpenChange} side="right">
         <SheetContent className="flex flex-col p-0 w-full max-w-md">
@@ -179,14 +197,23 @@ export function BookingConfirmationSheet({
             <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle className="h-8 w-8 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-foreground">Lesson Booked!</h2>
+            <h2 className="text-xl font-bold text-foreground">
+              {isConfirmed ? "Lesson Booked!" : "Booking Requested"}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-              Your lesson with {tutor.full_name || tutor.username} has been confirmed.
+              {isConfirmed
+                ? `Your lesson with ${tutor.full_name || tutor.username} has been confirmed.`
+                : `Your booking request was sent to ${tutor.full_name || tutor.username}.`}
             </p>
             <div className="mt-4 rounded-lg bg-muted/50 px-4 py-3 text-sm">
               <p className="font-medium text-foreground">{date}</p>
               <p className="text-muted-foreground">{time}</p>
             </div>
+            {!isConfirmed && (
+              <p className="mt-3 text-xs text-muted-foreground max-w-xs">
+                You&apos;ll receive payment instructions once the tutor confirms your booking.
+              </p>
+            )}
             <div className="mt-6 flex flex-col gap-2 w-full max-w-xs">
               <button
                 onClick={handleViewCalendar}
@@ -224,11 +251,12 @@ export function BookingConfirmationSheet({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-5">
           {/* Error */}
-          {error && (
-            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+          <FormStatusAlert
+            message={error || undefined}
+            tone="error"
+            ariaLive="assertive"
+            className="rounded-lg border border-destructive/20 bg-destructive/10"
+          />
 
           {/* Tutor info */}
           <div className="flex items-center gap-3">
@@ -268,114 +296,125 @@ export function BookingConfirmationSheet({
                 </p>
               </div>
             </div>
+            {isFreeService && (
+              <div className="flex items-start gap-3">
+                <CreditCard className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground">Free lesson</p>
+                  <p className="text-sm text-muted-foreground">No payment required</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payment method selection */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-foreground">Payment Method</h3>
+          {!isFreeService && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-foreground">Payment Method</h3>
 
-            {/* Subscription option */}
-            {hasSubscription && (
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("subscription")}
-                className={cn(
-                  "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition",
-                  paymentMethod === "subscription"
-                    ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500/20"
-                    : "border-border bg-white hover:border-blue-300"
-                )}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">Use Subscription</p>
-                  <p className="text-sm text-muted-foreground">
-                    {subscription!.lessonsAvailable} lesson
-                    {subscription!.lessonsAvailable !== 1 ? "s" : ""} available
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-blue-600">No charge</span>
-              </button>
-            )}
-
-            {/* Package option */}
-            {availablePackages.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentMethod("package");
-                  if (!selectedPackageId && availablePackages[0]) {
-                    setSelectedPackageId(availablePackages[0].purchase_id);
-                  }
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition",
-                  paymentMethod === "package"
-                    ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20"
-                    : "border-border bg-white hover:border-emerald-300"
-                )}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                  <Package className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">Use Package</p>
-                  <p className="text-sm text-muted-foreground">
-                    {availablePackages.reduce((sum, p) => sum + p.remaining_minutes, 0)} min
-                    available
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-emerald-600">No charge</span>
-              </button>
-            )}
-
-            {/* Package selector (if multiple) */}
-            {paymentMethod === "package" && availablePackages.length > 1 && (
-              <div className="ml-13 space-y-2">
-                {availablePackages.map((pkg) => (
-                  <button
-                    key={pkg.purchase_id}
-                    type="button"
-                    onClick={() => setSelectedPackageId(pkg.purchase_id)}
-                    className={cn(
-                      "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition",
-                      selectedPackageId === pkg.purchase_id
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-border hover:border-emerald-300"
-                    )}
-                  >
-                    <span>{pkg.name}</span>
-                    <span className="text-muted-foreground">{pkg.remaining_minutes} min</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Direct payment option */}
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("direct")}
-              className={cn(
-                "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition",
-                paymentMethod === "direct"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                  : "border-border bg-white hover:border-primary/40"
+              {/* Subscription option */}
+              {hasSubscription && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("subscription")}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition",
+                    paymentMethod === "subscription"
+                      ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500/20"
+                      : "border-border bg-white hover:border-blue-300"
+                  )}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                    <CreditCard className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Use Subscription</p>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription!.lessonsAvailable} lesson
+                      {subscription!.lessonsAvailable !== 1 ? "s" : ""} available
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600">No charge</span>
+                </button>
               )}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <CreditCard className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">Pay Now</p>
-                <p className="text-sm text-muted-foreground">Card payment via Stripe</p>
-              </div>
-              <span className="text-sm font-semibold text-foreground">
-                {formatPrice(service.price_amount, service.price_currency)}
-              </span>
-            </button>
-          </div>
+
+              {/* Package option */}
+              {availablePackages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod("package");
+                    if (!selectedPackageId && availablePackages[0]) {
+                      setSelectedPackageId(availablePackages[0].purchase_id);
+                    }
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition",
+                    paymentMethod === "package"
+                      ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20"
+                      : "border-border bg-white hover:border-emerald-300"
+                  )}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                    <Package className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Use Package</p>
+                    <p className="text-sm text-muted-foreground">
+                      {availablePackages.reduce((sum, p) => sum + p.remaining_minutes, 0)} min
+                      available
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-emerald-600">No charge</span>
+                </button>
+              )}
+
+              {/* Package selector (if multiple) */}
+              {paymentMethod === "package" && availablePackages.length > 1 && (
+                <div className="ml-13 space-y-2">
+                  {availablePackages.map((pkg) => (
+                    <button
+                      key={pkg.purchase_id}
+                      type="button"
+                      onClick={() => setSelectedPackageId(pkg.purchase_id)}
+                      className={cn(
+                        "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition",
+                        selectedPackageId === pkg.purchase_id
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-border hover:border-emerald-300"
+                      )}
+                    >
+                      <span>{pkg.name}</span>
+                      <span className="text-muted-foreground">{pkg.remaining_minutes} min</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Direct payment option */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("direct")}
+                className={cn(
+                  "w-full flex items-center gap-3 rounded-xl border p-4 text-left transition",
+                  paymentMethod === "direct"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border bg-white hover:border-primary/40"
+                )}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">Pay Now</p>
+                  <p className="text-sm text-muted-foreground">Card payment via Stripe</p>
+                </div>
+                <span className="text-sm font-semibold text-foreground">
+                  {formatPrice(service.price_amount, service.price_currency)}
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-2">
@@ -408,6 +447,8 @@ export function BookingConfirmationSheet({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Processing...
               </>
+            ) : isFreeService ? (
+              "Confirm Booking"
             ) : paymentMethod === "direct" ? (
               <>
                 Continue to Payment

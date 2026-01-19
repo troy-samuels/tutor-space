@@ -43,7 +43,7 @@ export function SolutionSection({ solution }: SolutionSectionProps) {
               return (
                 <div
                   key={index}
-                  className="relative rounded-2xl bg-muted p-6 transition-all hover:-translate-y-1 hover:shadow-lg group sm:p-8"
+                  className="relative rounded-2xl bg-muted p-6 transition-all duration-300 hover:-translate-y-1 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-hover)] group sm:p-8"
                 >
                   {/* Icon */}
                   <div className="mb-4">

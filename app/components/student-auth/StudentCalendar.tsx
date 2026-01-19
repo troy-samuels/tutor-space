@@ -329,7 +329,9 @@ export function StudentCalendar() {
                       </div>
                       <div className="flex items-center gap-1 text-lg font-bold">
                         <DollarSign className="h-4 w-4" />
-                        {formatCurrency(service.price_amount, service.price_currency)}
+                        {service.price_amount === 0
+                          ? "Free"
+                          : formatCurrency(service.price_amount, service.price_currency)}
                       </div>
                     </div>
                   </button>

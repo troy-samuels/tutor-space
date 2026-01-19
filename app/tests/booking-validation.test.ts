@@ -61,3 +61,33 @@ test("validateServicePricing rejects mismatched duration", () => {
     error: "Selected duration does not match service settings",
   });
 });
+
+test("validateServicePricing allows free services", () => {
+  const result = validateServicePricing({
+    servicePriceCents: 0,
+    serviceCurrency: "usd",
+    serviceDurationMinutes: 30,
+    requestedAmount: 0,
+    requestedCurrency: "USD",
+    requestedDuration: 30,
+  });
+
+  assert.deepStrictEqual(result, {
+    success: true,
+    priceCents: 0,
+    currency: "USD",
+  });
+});
+
+test("validateServicePricing rejects missing price", () => {
+  const result = validateServicePricing({
+    servicePriceCents: null,
+    serviceCurrency: "usd",
+    serviceDurationMinutes: 30,
+  });
+
+  assert.deepStrictEqual(result, {
+    success: false,
+    error: "Service price is not configured",
+  });
+});
