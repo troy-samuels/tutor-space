@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { MessageSquare, Mic, Lock } from "lucide-react";
+import { Coffee, MessageSquare, Mic } from "lucide-react";
 import Link from "next/link";
 import type { PracticeMode } from "./AIPracticeChat";
 
@@ -29,41 +28,29 @@ export function LimitReachedOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-lg">
-        {/* Depleted indicator */}
+        {/* Friendly icon */}
         <div className="mb-4 flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-            <Lock className="h-8 w-8 text-muted-foreground" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+            <Coffee className="h-8 w-8 text-amber-600" />
           </div>
         </div>
 
         <h3 className="mb-2 text-center text-lg font-semibold text-foreground">
-          {mode === "text" ? "Text" : "Audio"} practice paused
+          Time for a quick break
         </h3>
 
-        {/* Depleted bar */}
-        <div className="mb-4 flex items-center justify-center gap-2">
-          {mode === "text" ? (
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Mic className="h-4 w-4 text-muted-foreground" />
-          )}
-          <Progress
-            value={0}
-            className="h-2 w-32"
-            indicatorClassName="bg-red-500"
-          />
-        </div>
-
         <p className="mb-6 text-center text-sm text-muted-foreground">
-          You've reached your monthly {mode} limit.
+          You've been practicing hard!{" "}
+          {otherModeAvailable && otherModeRemaining > 0
+            ? `Keep the momentum going with ${otherMode === "text" ? "written" : "spoken"} practice.`
+            : "Practice refreshes next month."}
         </p>
 
-        {/* Actions */}
+        {/* Actions - free option first, paid option second */}
         <div className="space-y-3">
-          {/* Switch mode option */}
+          {/* Switch mode option (free) - shown first */}
           {otherModeAvailable && otherModeRemaining > 0 && onSwitchMode && (
             <Button
-              variant="outline"
               className="w-full"
               onClick={onSwitchMode}
             >
@@ -73,20 +60,15 @@ export function LimitReachedOverlay({
                 ) : (
                   <Mic className="h-4 w-4" />
                 )}
-                Continue with {otherMode}
+                Continue with {otherMode === "text" ? "written" : "spoken"} practice
               </span>
-              <Progress
-                value={otherModeRemaining}
-                className="ml-auto h-2 w-12"
-                indicatorClassName="bg-emerald-500"
-              />
             </Button>
           )}
 
-          {/* Unlock more */}
+          {/* Get more practice (paid) - shown second */}
           {upgradeUrl && (
-            <Button asChild className="w-full">
-              <Link href={upgradeUrl}>Unlock more practice</Link>
+            <Button asChild variant="outline" className="w-full">
+              <Link href={upgradeUrl}>Get more practice time</Link>
             </Button>
           )}
 

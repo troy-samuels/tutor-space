@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { MessageSquare, Mic, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeMode } from "./AIPracticeChat";
@@ -39,10 +38,6 @@ export function ModeSelectionScreen({
     onSelectMode(mode);
   };
 
-  // Calculate remaining percentage (inverted for depletion bar)
-  const textRemaining = Math.max(0, 100 - percentTextUsed);
-  const audioRemaining = Math.max(0, 100 - percentAudioUsed);
-
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
       <div className="text-center mb-8">
@@ -50,7 +45,7 @@ export function ModeSelectionScreen({
           {assignmentTitle}
         </h2>
         <p className="text-muted-foreground">
-          How do you want to practice?
+          Choose your practice style
         </p>
       </div>
 
@@ -73,24 +68,13 @@ export function ModeSelectionScreen({
                 <MessageSquare className="h-10 w-10 text-primary" />
               )}
             </div>
-            <h3 className="font-medium text-foreground mb-1">Text</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Type responses
+            <h3 className="font-medium text-foreground mb-1">Written Practice</h3>
+            <p className="text-sm text-muted-foreground">
+              Type your responses and build writing confidence
             </p>
 
-            {/* Depletion bar - shows remaining */}
-            <Progress
-              value={textRemaining}
-              className="h-2"
-              indicatorClassName={cn(
-                textRemaining > 30 ? "bg-emerald-500" :
-                textRemaining > 10 ? "bg-amber-500" :
-                "bg-red-500"
-              )}
-            />
-
             {textExhausted && (
-              <p className="text-xs text-red-500 mt-2">Limit reached</p>
+              <p className="text-xs text-amber-600 mt-3">Try speaking practice instead!</p>
             )}
           </CardContent>
         </Card>
@@ -113,24 +97,13 @@ export function ModeSelectionScreen({
                 <Mic className="h-10 w-10 text-primary" />
               )}
             </div>
-            <h3 className="font-medium text-foreground mb-1">Audio</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Speak responses
+            <h3 className="font-medium text-foreground mb-1">Spoken Practice</h3>
+            <p className="text-sm text-muted-foreground">
+              Speak out loud and improve your pronunciation
             </p>
 
-            {/* Depletion bar - shows remaining */}
-            <Progress
-              value={audioRemaining}
-              className="h-2"
-              indicatorClassName={cn(
-                audioRemaining > 30 ? "bg-emerald-500" :
-                audioRemaining > 10 ? "bg-amber-500" :
-                "bg-red-500"
-              )}
-            />
-
             {audioExhausted && (
-              <p className="text-xs text-red-500 mt-2">Limit reached</p>
+              <p className="text-xs text-amber-600 mt-3">Try written practice instead!</p>
             )}
           </CardContent>
         </Card>
