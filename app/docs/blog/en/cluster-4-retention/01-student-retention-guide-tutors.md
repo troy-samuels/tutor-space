@@ -29,6 +29,17 @@ alternateLocale:
   locale: es
   slug: guia-retencion-estudiantes-tutores
 position: replacement
+faqs:
+  - question: "What is a good student retention rate for language tutors?"
+    answer: "Top tutors retain 70-80% of students for 3+ months. Average retention is 50-60%. If your retention is below 40%, focus on improving lesson personalization, tracking progress, and communicating clear outcomes. Package sales significantly improve retention compared to pay-per-lesson models."
+  - question: "Why do students stop taking tutoring lessons?"
+    answer: "Common reasons: lack of visible progress, lessons becoming repetitive, scheduling difficulties, life changes, and feeling the lessons aren't personalized. Regular progress check-ins, varied lesson formats, and flexible scheduling policies help address most retention challenges."
+  - question: "How do I keep tutoring students engaged long-term?"
+    answer: "Track and celebrate progress milestones, vary lesson formats to prevent monotony, set clear goals with timelines, send brief lesson summaries, and maintain genuine interest in their lives. Students stay when they feel supported and see consistent improvement in their skills."
+  - question: "Should I offer discounts to retain students who want to cancel?"
+    answer: "Discounts can work short-term but often signal low value. Instead, address the underlying issue: Are lessons personalized? Is progress visible? Try offering a pause instead of cancellation, or adjust lesson format. If cost is genuinely the issue, packages provide savings without devaluing your service."
+  - question: "How often should I check in with tutoring students about their progress?"
+    answer: "Formal check-ins every 8-10 lessons work well, with informal progress notes after each session. Monthly 'milestone reviews' where you summarize achievements help students see progress they might miss day-to-day. These touchpoints reduce dropout significantly."
 publishedAt: '2025-01-15'
 updatedAt: '2025-01-15'
 ---

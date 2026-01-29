@@ -1,24 +1,30 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { errorResponse } from "@/lib/api/error-responses";
 
 export async function GET(request: NextRequest) {
+  const requestId = randomUUID();
+  const respondError = (message: string, status: number, code: string) =>
+    errorResponse(message, { status, code, extra: { requestId } });
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const sessionId = request.nextUrl.searchParams.get("sessionId");
     if (!sessionId) {
-      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+      return respondError("Missing sessionId", 400, "INVALID_REQUEST");
     }
 
     const adminClient = createServiceRoleClient();
     if (!adminClient) {
-      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
     const { data: student } = await adminClient
@@ -28,7 +34,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (!student) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return respondError("Unauthorized", 403, "UNAUTHORIZED");
     }
 
     const { data: session } = await adminClient
@@ -39,7 +45,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (!session) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+      return respondError("Session not found", 404, "SESSION_NOT_FOUND");
     }
 
     const { data: messages } = await adminClient
@@ -52,9 +58,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ messages: messages || [] });
   } catch (error) {
     console.error("[Practice Messages] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to load messages" },
-      { status: 500 }
-    );
+    return respondError("Failed to load messages", 500, "INTERNAL_ERROR");
   }
 }

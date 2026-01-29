@@ -1,11 +1,12 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import {
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
   FREE_AUDIO_SECONDS,
   FREE_TEXT_TURNS,
   BLOCK_AUDIO_SECONDS,
@@ -17,50 +18,208 @@ import {
   checkMonthlyUsageCap,
   rateLimitHeaders,
 } from "@/lib/security/limiter";
+import { errorResponse } from "@/lib/api/error-responses";
 
 // Azure Speech Services pricing: ~$0.022/minute = ~$0.000367/second
 const AZURE_COST_PER_SECOND = 0.000367;
-const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+const MAX_AUDIO_SECONDS = 30;
+const SESSION_ID_SCHEMA = z.string().uuid();
+
+const ALLOWED_AUDIO_MIME_TYPES = new Set([
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg",
+  "audio/wav",
+]);
+
+const LANGUAGE_NAME_MAP: Record<string, string> = {
+  english: "en-US",
+  spanish: "es-ES",
+  french: "fr-FR",
+  german: "de-DE",
+  portuguese: "pt-BR",
+  italian: "it-IT",
+  japanese: "ja-JP",
+  korean: "ko-KR",
+  chinese: "zh-CN",
+  mandarin: "zh-CN",
+};
+
+const LANGUAGE_ALIASES: Record<string, string> = {
+  en: "en-US",
+  "en-us": "en-US",
+  "en-gb": "en-GB",
+  "american english": "en-US",
+  "british english": "en-GB",
+  es: "es-ES",
+  "es-es": "es-ES",
+  fr: "fr-FR",
+  "fr-fr": "fr-FR",
+  de: "de-DE",
+  "de-de": "de-DE",
+  pt: "pt-BR",
+  "pt-br": "pt-BR",
+  it: "it-IT",
+  "it-it": "it-IT",
+  ja: "ja-JP",
+  "ja-jp": "ja-JP",
+  ko: "ko-KR",
+  "ko-kr": "ko-KR",
+  zh: "zh-CN",
+  "zh-cn": "zh-CN",
+  "zh-tw": "zh-TW",
+};
+
+const SUPPORTED_AUDIO_LOCALES = new Set(Object.values({
+  ...LANGUAGE_NAME_MAP,
+  ...LANGUAGE_ALIASES,
+}));
 
 type ServiceRoleClient = SupabaseClient;
 
+type PracticeUsage = {
+  audio_seconds_used?: number;
+  audio_seconds_allowance?: number;
+  text_turns_used?: number;
+  text_turns_allowance?: number;
+  blocks_consumed?: number;
+};
+
+type PracticeError = Error & {
+  code?: string;
+  usage?: PracticeUsage;
+};
+
+function getPracticeErrorMeta(error: unknown): { code?: string; usage?: PracticeUsage } {
+  if (!error || typeof error !== "object") {
+    return {};
+  }
+
+  const metadata = error as { code?: unknown; usage?: unknown };
+  const code = typeof metadata.code === "string" ? metadata.code : undefined;
+  const usage = metadata.usage && typeof metadata.usage === "object" ? (metadata.usage as PracticeUsage) : undefined;
+
+  return { code, usage };
+}
+
+function normalizeMimeType(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.replace(/\u0000/g, "").trim().toLowerCase();
+  if (!trimmed) return null;
+  return trimmed.split(";")[0];
+}
+
+function normalizeAudioLanguage(value: string): string | null {
+  const trimmed = value.replace(/\u0000/g, "").trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.toLowerCase().replace(/_/g, "-");
+
+  const directAlias = LANGUAGE_ALIASES[normalized] || LANGUAGE_NAME_MAP[normalized];
+  if (directAlias) return directAlias;
+
+  const withoutParens = normalized.replace(/\(.*?\)/g, "").trim();
+  const alias = LANGUAGE_ALIASES[withoutParens] || LANGUAGE_NAME_MAP[withoutParens];
+  if (alias) return alias;
+
+  for (const [name, locale] of Object.entries(LANGUAGE_NAME_MAP)) {
+    if (withoutParens.includes(name)) {
+      return locale;
+    }
+  }
+
+  if (SUPPORTED_AUDIO_LOCALES.has(trimmed)) {
+    return trimmed;
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
+  const requestId = randomUUID();
+  const respondError = (
+    message: string,
+    status: number,
+    code: string,
+    options: { details?: Record<string, unknown>; headers?: HeadersInit; extra?: Record<string, unknown> } = {}
+  ) => errorResponse(message, {
+    status,
+    code,
+    details: options.details,
+    headers: options.headers,
+    extra: { requestId, ...options.extra },
+  });
+
   let studentId: string | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const formData = await request.formData();
-    const audioFile = formData.get("audio") as File | null;
-    const sessionId = formData.get("sessionId") as string | null;
-    const language = formData.get("language") as string || "en-US";
-    const mimeType = formData.get("mimeType") as string || audioFile?.type || "audio/webm";
+    const audioEntry = formData.get("audio");
+    const sessionIdEntry = formData.get("sessionId");
+    const languageEntry = formData.get("language");
+    const mimeTypeEntry = formData.get("mimeType");
 
-    if (!audioFile) {
-      return NextResponse.json(
-        { error: "Audio file is required" },
-        { status: 400 }
-      );
+    if (!(audioEntry instanceof File)) {
+      return respondError("Audio file is required", 400, "AUDIO_REQUIRED");
+    }
+
+    const audioFile = audioEntry;
+
+    if (audioFile.size === 0) {
+      return respondError("Audio file is empty", 400, "AUDIO_EMPTY");
     }
 
     if (audioFile.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json(
-        { error: "Audio file is too large" },
-        { status: 413 }
-      );
+      return respondError("Audio file is too large", 413, "AUDIO_TOO_LARGE");
     }
+
+    const rawSessionId = typeof sessionIdEntry === "string" ? sessionIdEntry.trim() : "";
+    const sessionId = rawSessionId.length > 0 ? rawSessionId : null;
+
+    if (sessionId && !SESSION_ID_SCHEMA.safeParse(sessionId).success) {
+      return respondError("Invalid sessionId", 400, "INVALID_SESSION_ID");
+    }
+
+    if (typeof languageEntry !== "string") {
+      return respondError("Language is required", 400, "LANGUAGE_REQUIRED");
+    }
+
+    const normalizedLanguage = normalizeAudioLanguage(languageEntry);
+    if (!normalizedLanguage) {
+      return respondError("Unsupported language", 400, "UNSUPPORTED_LANGUAGE", {
+        details: { language: languageEntry },
+      });
+    }
+
+    const normalizedMimeType = normalizeMimeType(
+      typeof mimeTypeEntry === "string" ? mimeTypeEntry : null
+    ) ?? normalizeMimeType(audioFile.type);
+
+    if (!normalizedMimeType || !ALLOWED_AUDIO_MIME_TYPES.has(normalizedMimeType)) {
+      return respondError("Invalid audio format", 400, "INVALID_AUDIO_FORMAT", {
+        details: { mimeType: normalizedMimeType ?? null },
+      });
+    }
+
+    const fileMimeType = normalizeMimeType(audioFile.type);
+    if (fileMimeType && fileMimeType !== normalizedMimeType) {
+      return respondError("MIME type mismatch", 400, "MIME_TYPE_MISMATCH", {
+        details: { fileMimeType, mimeType: normalizedMimeType },
+      });
+    }
+
+    const language = normalizedLanguage;
+    const mimeType = normalizedMimeType;
 
     const adminClient = createServiceRoleClient();
     if (!adminClient) {
-      return NextResponse.json(
-        { error: "Service unavailable" },
-        { status: 503 }
-      );
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
     // Get student record
@@ -74,18 +233,12 @@ export async function POST(request: Request) {
     studentId = student?.id ?? null;
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
-      );
+      return respondError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
     // Check if student has AI practice enabled (either free tier or legacy subscription)
     if (!student.ai_practice_enabled && !student.ai_practice_free_tier_enabled) {
-      return NextResponse.json(
-        { error: "AI Practice not enabled. Please enable it first." },
-        { status: 403 }
-      );
+      return respondError("AI Practice not enabled. Please enable it first.", 403, "PRACTICE_DISABLED");
     }
 
     // MODE ENFORCEMENT: If sessionId provided, verify session is audio mode
@@ -97,63 +250,42 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (!session) {
-        return NextResponse.json(
-          { error: "Session not found" },
-          { status: 404 }
-        );
+        return respondError("Session not found", 404, "SESSION_NOT_FOUND");
       }
 
       if (session.student_id !== student.id) {
-        return NextResponse.json(
-          { error: "Unauthorized", code: "UNAUTHORIZED" },
-          { status: 403 }
-        );
+        return respondError("Unauthorized", 403, "UNAUTHORIZED");
       }
 
       if (session && session.mode === "text") {
-        return NextResponse.json(
-          { error: "This session is text-only. Type your response instead.", code: "MODE_MISMATCH" },
-          { status: 400 }
-        );
+        return respondError("This session is text-only. Type your response instead.", 400, "MODE_MISMATCH");
       }
     }
 
     // FREEMIUM MODEL: Check if tutor has Studio tier (access gate)
     if (!student.tutor_id) {
-      return NextResponse.json(
-        { error: "No tutor assigned", code: "NO_TUTOR" },
-        { status: 403 }
-      );
+      return respondError("No tutor assigned", 403, "NO_TUTOR");
     }
 
     const tutorHasStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
     if (!tutorHasStudio) {
-      return NextResponse.json(
-        { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO" },
-        { status: 403 }
-      );
+      return respondError("AI Practice requires tutor Studio subscription", 403, "TUTOR_NOT_STUDIO");
     }
 
     // RATE LIMITING: Check monthly cap (Margin Guard)
     const usageCap = await checkMonthlyUsageCap(adminClient, student.id, student.tutor_id);
     if (!usageCap.allowed) {
-      return NextResponse.json(
-        {
-          error: "Monthly practice limit reached. Contact your tutor to upgrade your plan.",
-          code: "MONTHLY_LIMIT_EXCEEDED",
-          usage: { used: usageCap.used, cap: usageCap.cap },
-        },
-        { status: 403 }
-      );
+      return respondError("Monthly practice limit reached. Contact your tutor to upgrade your plan.", 403, "MONTHLY_LIMIT_EXCEEDED", {
+        extra: { usage: { used: usageCap.used, cap: usageCap.cap } },
+      });
     }
 
     // RATE LIMITING: Check per-minute rate limit (tier-based)
     const rateLimit = await checkAIPracticeRateLimit(student.id, tutorHasStudio);
     if (!rateLimit.success) {
-      return NextResponse.json(
-        { error: "Rate limit exceeded. Please wait before sending more messages.", code: "RATE_LIMIT_EXCEEDED" },
-        { status: 429, headers: rateLimitHeaders(rateLimit) }
-      );
+      return respondError("Rate limit exceeded. Please wait before sending more messages.", 429, "RATE_LIMIT_EXCEEDED", {
+        headers: rateLimitHeaders(rateLimit),
+      });
     }
 
     // FREEMIUM MODEL: Get or create FREE usage period (no Stripe subscription required)
@@ -167,10 +299,7 @@ export async function POST(request: Request) {
 
     if (periodError || !usagePeriod) {
       console.error("[Audio] Failed to get/create usage period:", periodError);
-      return NextResponse.json(
-        { error: "Unable to track usage. Please try again or contact support." },
-        { status: 500 }
-      );
+      return respondError("Unable to track usage. Please try again or contact support.", 500, "USAGE_PERIOD_ERROR");
     }
 
     // Calculate current audio allowance (free tier + any purchased blocks)
@@ -182,25 +311,20 @@ export async function POST(request: Request) {
     // For simplicity, we estimate based on file size (rough approximation)
     // Better: Use Web Audio API on client to get exact duration
     const estimatedDuration = Math.ceil(audioFile.size / 16000); // Rough estimate for 16kHz audio
-    const maxDuration = 30; // Cap individual recordings at 30 seconds
-    const audioDuration = Math.min(estimatedDuration, maxDuration);
+    const audioDuration = Math.min(estimatedDuration, MAX_AUDIO_SECONDS);
 
     // FREEMIUM MODEL: Check if this recording would exceed free allowance
     const willExceed = (usagePeriod.audio_seconds_used + audioDuration) > currentAudioAllowance;
-    if (willExceed && !student.ai_practice_block_subscription_item_id) {
-      return NextResponse.json(
-        {
-          error: "Free audio allowance exhausted",
-          code: "FREE_TIER_EXHAUSTED",
+    if (willExceed) {
+      return respondError("Free audio allowance exhausted", 402, "FREE_TIER_EXHAUSTED", {
+        extra: {
           usage: {
             audio_seconds_used: usagePeriod.audio_seconds_used,
             audio_seconds_allowance: currentAudioAllowance,
             blocks_consumed: usagePeriod.blocks_consumed,
           },
-          upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
         },
-        { status: 402 } // Payment Required
-      );
+      });
     }
 
     // Check if Azure Speech is configured
@@ -235,7 +359,7 @@ export async function POST(request: Request) {
         adminClient,
         usagePeriodId: usagePeriod.id,
         seconds: audioDuration,
-        blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+        blockSubscriptionItemId: null,
         freeAudioSeconds,
       });
 
@@ -259,8 +383,7 @@ export async function POST(request: Request) {
           blocks_consumed: updatedUsage.blocks_consumed,
           block_purchased: blockPurchased,
           isFreeUser: updatedUsage.blocks_consumed === 0,
-          canBuyBlocks: true,
-          blockPriceCents: BLOCK_PRICE_CENTS,
+          canBuyBlocks: false,
         },
         cost_cents: costCents,
       });
@@ -306,7 +429,7 @@ export async function POST(request: Request) {
       adminClient,
       usagePeriodId: usagePeriod.id,
       seconds: audioDuration,
-      blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+      blockSubscriptionItemId: null,
       freeAudioSeconds,
     });
 
@@ -338,70 +461,68 @@ export async function POST(request: Request) {
         blocks_consumed: updatedUsage.blocks_consumed,
         block_purchased: blockPurchased,
         isFreeUser: updatedUsage.blocks_consumed === 0,
-        canBuyBlocks: true,
-        blockPriceCents: BLOCK_PRICE_CENTS,
+        canBuyBlocks: false,
       },
     });
   } catch (error) {
     console.error("[Audio] Error:", error);
 
-    const errorCode = (error as any)?.code;
+    const { code: errorCode, usage } = getPracticeErrorMeta(error);
     if (errorCode === "BLOCK_SUBSCRIPTION_ITEM_MISSING") {
-      return NextResponse.json(
-        { error: "Subscription is missing a metered block item. Please re-subscribe to continue." },
-        { status: 400 }
+      return respondError(
+        "Subscription is missing a metered block item. Please re-subscribe to continue.",
+        400,
+        "BLOCK_SUBSCRIPTION_ITEM_MISSING"
       );
     }
 
     if (errorCode === "STRIPE_USAGE_FAILED") {
-      return NextResponse.json(
-        { error: "Unable to bill the add-on block right now. Please try again." },
-        { status: 502 }
-      );
+      return respondError("Unable to bill the add-on block right now. Please try again.", 502, "STRIPE_USAGE_FAILED");
     }
 
     if (errorCode === "AUDIO_INCREMENT_FAILED") {
-      return NextResponse.json(
-        { error: "Unable to track audio usage right now. Please retry." },
-        { status: 409 }
-      );
+      return respondError("Unable to track audio usage right now. Please retry.", 409, "AUDIO_INCREMENT_FAILED");
     }
 
     if (errorCode === "BLOCK_REQUIRED") {
-      return NextResponse.json(
-        {
-          error: "Free audio allowance exhausted",
-          code: "FREE_TIER_EXHAUSTED",
-          usage: (error as any).usage,
-          upgradeUrl: `/student/practice/buy-credits?student=${studentId ?? ""}`,
+      return respondError("Free audio allowance exhausted", 402, "FREE_TIER_EXHAUSTED", {
+        extra: {
+          usage,
         },
-        { status: 402 }
-      );
+      });
     }
 
-    return NextResponse.json(
-      { error: "Failed to process audio" },
-      { status: 500 }
-    );
+    return respondError("Failed to process audio", 500, "AUDIO_PROCESSING_FAILED");
   }
 }
 
 // FREEMIUM MODEL: Get current audio budget for a student
 export async function GET() {
+  const requestId = randomUUID();
+  const respondError = (
+    message: string,
+    status: number,
+    code: string,
+    options: { details?: Record<string, unknown>; headers?: HeadersInit; extra?: Record<string, unknown> } = {}
+  ) => errorResponse(message, {
+    status,
+    code,
+    details: options.details,
+    headers: options.headers,
+    extra: { requestId, ...options.extra },
+  });
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const adminClient = createServiceRoleClient();
     if (!adminClient) {
-      return NextResponse.json(
-        { error: "Service unavailable" },
-        { status: 503 }
-      );
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
     // Get student record - check both free tier and legacy subscription
@@ -472,15 +593,11 @@ export async function GET() {
       period_end: usagePeriod?.period_end || student.ai_practice_current_period_end,
       // Freemium model additions
       isFreeUser: blocks === 0,
-      canBuyBlocks: true,
-      blockPriceCents: BLOCK_PRICE_CENTS,
+      canBuyBlocks: false,
     });
   } catch (error) {
     console.error("[Audio Budget] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to get audio budget" },
-      { status: 500 }
-    );
+    return respondError("Failed to get audio budget", 500, "AUDIO_BUDGET_FAILED");
   }
 }
 
@@ -522,17 +639,19 @@ async function incrementAudioWithBillingFreemium(params: {
     console.error("[Audio] increment_audio_seconds_freemium failed:", incrementError);
 
     if (incrementResult?.error === "BLOCK_REQUIRED") {
-      const err = new Error("Block required");
-      (err as any).code = "BLOCK_REQUIRED";
-      (err as any).usage = {
-        audio_seconds_used: incrementResult.audio_seconds_used,
-        audio_seconds_allowance: incrementResult.audio_seconds_allowance,
-        blocks_consumed: incrementResult.blocks_consumed,
-      };
+      const err: PracticeError = Object.assign(new Error("Block required"), {
+        code: "BLOCK_REQUIRED",
+        usage: {
+          audio_seconds_used: incrementResult.audio_seconds_used,
+          audio_seconds_allowance: incrementResult.audio_seconds_allowance,
+          blocks_consumed: incrementResult.blocks_consumed,
+        },
+      });
       throw err;
     }
-    const err = new Error("Failed to increment audio seconds");
-    (err as any).code = "AUDIO_INCREMENT_FAILED";
+    const err: PracticeError = Object.assign(new Error("Failed to increment audio seconds"), {
+      code: "AUDIO_INCREMENT_FAILED",
+    });
     throw err;
   }
 
@@ -542,7 +661,7 @@ async function incrementAudioWithBillingFreemium(params: {
   if (incrementResult.needs_block && blockSubscriptionItemId) {
     try {
       // Record metered usage on Stripe
-      const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
+      const usageRecord = await stripe.subscriptionItems.createUsageRecord(
         blockSubscriptionItemId,
         {
           quantity: 1,
@@ -578,8 +697,9 @@ async function incrementAudioWithBillingFreemium(params: {
     .single();
 
   if (fetchError || !updatedUsage) {
-    const err = new Error("Failed to fetch updated usage");
-    (err as any).code = "AUDIO_INCREMENT_FAILED";
+    const err: PracticeError = Object.assign(new Error("Failed to fetch updated usage"), {
+      code: "AUDIO_INCREMENT_FAILED",
+    });
     throw err;
   }
 
@@ -614,16 +734,30 @@ async function assessPronunciation(
   // Map language codes to Azure format
   const langMap: Record<string, string> = {
     "en": "en-US",
+    "en-us": "en-US",
+    "en-gb": "en-GB",
     "es": "es-ES",
+    "es-es": "es-ES",
     "fr": "fr-FR",
+    "fr-fr": "fr-FR",
     "de": "de-DE",
+    "de-de": "de-DE",
     "pt": "pt-BR",
+    "pt-br": "pt-BR",
     "it": "it-IT",
+    "it-it": "it-IT",
     "zh": "zh-CN",
+    "zh-cn": "zh-CN",
+    "zh-tw": "zh-TW",
     "ja": "ja-JP",
+    "ja-jp": "ja-JP",
     "ko": "ko-KR",
+    "ko-kr": "ko-KR",
   };
-  const azureLang = langMap[language.substring(0, 2)] || language;
+  const normalizedLanguage = language.trim();
+  const languageKey = normalizedLanguage.toLowerCase().replace(/_/g, "-");
+  const baseLanguage = languageKey.split("-")[0];
+  const azureLang = langMap[languageKey] || langMap[baseLanguage] || normalizedLanguage;
 
   // Map browser mimeType to Azure-compatible content type
   // Azure Speech supports: audio/wav, audio/ogg, audio/webm, audio/mp4

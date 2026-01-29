@@ -3,12 +3,15 @@
 import { useState, useEffect, useId } from "react";
 import { setHours, setMinutes } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
-import { X, Loader2, Clock, Calendar, User, BookOpen, CreditCard, FileText } from "lucide-react";
+import { X, Loader2, Clock, Calendar, User, BookOpen, CreditCard, FileText, Globe } from "lucide-react";
 import { createBooking } from "@/lib/actions/bookings";
+import { createExternalBooking } from "@/lib/actions/external-bookings";
 import { Switch } from "@/components/ui/switch";
 import { useBookingPreferences } from "@/lib/hooks/useBookingPreferences";
 import { useBookingForm } from "@/lib/hooks/useBookingForm";
 import { useBookingSlots } from "@/lib/hooks/useBookingSlots";
+import type { ExternalBookingSource } from "@/lib/types/calendar";
+import { EXTERNAL_SOURCE_LABELS } from "@/lib/types/calendar";
 
 type ServiceSummary = {
   id: string;
@@ -39,6 +42,8 @@ type CalendarBookingModalProps = {
   mostUsedServiceId?: string;
 };
 
+type BookingType = "tutorlingua" | "external";
+
 export function CalendarBookingModal({
   isOpen,
   onClose,
@@ -53,6 +58,13 @@ export function CalendarBookingModal({
   mostUsedServiceId,
 }: CalendarBookingModalProps) {
   const quickModeId = useId();
+  const bookingTypeId = useId();
+
+  // Booking type state (TutorLingua vs External)
+  const [bookingType, setBookingType] = useState<BookingType>("tutorlingua");
+  const [externalSource, setExternalSource] = useState<ExternalBookingSource>("preply");
+  const [externalStudentName, setExternalStudentName] = useState("");
+  const [externalDuration, setExternalDuration] = useState(60);
 
   const {
     preferences,
@@ -86,6 +98,11 @@ export function CalendarBookingModal({
     if (!isOpen) return;
     setError(null);
     setIsSubmitting(false);
+    // Reset external booking state
+    setBookingType("tutorlingua");
+    setExternalSource("preply");
+    setExternalStudentName("");
+    setExternalDuration(60);
   }, [isOpen]);
 
   const handleQuickModeChange = (checked: boolean) => {
@@ -104,6 +121,51 @@ export function CalendarBookingModal({
     setIsSubmitting(true);
 
     try {
+      if (!bookingSlots.date || !bookingSlots.startTime) {
+        setError("Please choose a date and start time");
+        setIsSubmitting(false);
+        return;
+      }
+
+      let startDateTime: Date;
+      try {
+        startDateTime = fromZonedTime(`${bookingSlots.date}T${bookingSlots.startTime}:00`, tutorTimezone);
+      } catch {
+        const [startHour, startMinute] = bookingSlots.startTime.split(":").map(Number);
+        startDateTime = setMinutes(setHours(new Date(bookingSlots.date), startHour), startMinute);
+      }
+
+      // Handle external booking
+      if (bookingType === "external") {
+        // External bookings require either a linked student or a student name
+        if (!bookingForm.studentId && !externalStudentName.trim()) {
+          setError("Please select a student or enter a student name");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const result = await createExternalBooking({
+          source: externalSource,
+          scheduledAt: startDateTime.toISOString(),
+          durationMinutes: externalDuration,
+          studentId: bookingForm.studentId || undefined,
+          studentName: externalStudentName.trim() || undefined,
+          notes: bookingForm.notes || undefined,
+        });
+
+        if (result.error) {
+          setError(result.error);
+          setIsSubmitting(false);
+          return;
+        }
+
+        onSuccess();
+        onClose();
+        bookingForm.resetForm();
+        return;
+      }
+
+      // Handle TutorLingua booking
       if (!bookingForm.serviceId) {
         setError("Please select a service");
         setIsSubmitting(false);
@@ -138,20 +200,6 @@ export function CalendarBookingModal({
         setError("Please select or create a student");
         setIsSubmitting(false);
         return;
-      }
-
-      if (!bookingSlots.date || !bookingSlots.startTime) {
-        setError("Please choose a date and start time");
-        setIsSubmitting(false);
-        return;
-      }
-
-      let startDateTime: Date;
-      try {
-        startDateTime = fromZonedTime(`${bookingSlots.date}T${bookingSlots.startTime}:00`, tutorTimezone);
-      } catch {
-        const [startHour, startMinute] = bookingSlots.startTime.split(":").map(Number);
-        startDateTime = setMinutes(setHours(new Date(bookingSlots.date), startHour), startMinute);
       }
 
       const result = await createBooking({
@@ -223,28 +271,138 @@ export function CalendarBookingModal({
           </button>
         </div>
 
+        {/* Booking Type Toggle */}
         <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <label htmlFor={quickModeId} className="text-sm font-medium text-foreground">
-                Quick mode
-              </label>
-              <p className="text-xs text-muted-foreground">
-                Show all fields in one scrollable form.
-              </p>
-            </div>
-            <Switch id={quickModeId} checked={bookingForm.isQuickMode} onCheckedChange={handleQuickModeChange} />
+          <label htmlFor={bookingTypeId} className="block text-sm font-medium text-foreground mb-2">
+            Booking Type
+          </label>
+          <div className="flex gap-2">
+            <button
+              id={bookingTypeId}
+              type="button"
+              onClick={() => setBookingType("tutorlingua")}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                bookingType === "tutorlingua"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:bg-muted"
+              }`}
+            >
+              TutorLingua
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookingType("external")}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                bookingType === "external"
+                  ? "border-teal-500 bg-teal-50 text-teal-700"
+                  : "border-border hover:bg-muted"
+              }`}
+            >
+              <Globe className="inline h-4 w-4 mr-1" />
+              External
+            </button>
           </div>
-          {!bookingForm.isQuickMode ? (
+          {bookingType === "external" && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Step {bookingForm.step + 1} of {stepLabels.length}: {stepLabels[bookingForm.step]}
+              Track a lesson from Preply, iTalki, Verbling, or another platform.
             </p>
-          ) : null}
+          )}
         </div>
 
+        {bookingType === "tutorlingua" && (
+          <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <label htmlFor={quickModeId} className="text-sm font-medium text-foreground">
+                  Quick mode
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Show all fields in one scrollable form.
+                </p>
+              </div>
+              <Switch id={quickModeId} checked={bookingForm.isQuickMode} onCheckedChange={handleQuickModeChange} />
+            </div>
+            {!bookingForm.isQuickMode ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Step {bookingForm.step + 1} of {stepLabels.length}: {stepLabels[bookingForm.step]}
+              </p>
+            ) : null}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Service Selection */}
-          {showServiceAndStudent ? (
+          {/* External Booking Fields */}
+          {bookingType === "external" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <Globe className="inline h-4 w-4 mr-1" />
+                  Platform
+                </label>
+                <select
+                  value={externalSource}
+                  onChange={(e) => setExternalSource(e.target.value as ExternalBookingSource)}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoFocus
+                >
+                  {(Object.entries(EXTERNAL_SOURCE_LABELS) as [ExternalBookingSource, string][]).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <User className="inline h-4 w-4 mr-1" />
+                  Student
+                </label>
+                <select
+                  value={bookingForm.studentId}
+                  onChange={(e) => bookingForm.setStudentId(e.target.value)}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary mb-2"
+                >
+                  <option value="">Select existing student (optional)</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.full_name} ({student.email})
+                    </option>
+                  ))}
+                </select>
+                {!bookingForm.studentId && (
+                  <input
+                    type="text"
+                    value={externalStudentName}
+                    onChange={(e) => setExternalStudentName(e.target.value)}
+                    placeholder="Or enter student name..."
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  <Clock className="inline h-4 w-4 mr-1" />
+                  Duration
+                </label>
+                <select
+                  value={externalDuration}
+                  onChange={(e) => setExternalDuration(Number(e.target.value))}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value={30}>30 minutes</option>
+                  <option value={45}>45 minutes</option>
+                  <option value={60}>60 minutes</option>
+                  <option value={90}>90 minutes</option>
+                  <option value={120}>120 minutes</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* TutorLingua Booking Fields - Service Selection */}
+          {bookingType === "tutorlingua" && showServiceAndStudent ? (
             <>
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -386,9 +544,9 @@ export function CalendarBookingModal({
             </>
           ) : null}
 
-          {showScheduleAndPayment ? (
+          {/* Date & Time - shown for both types (always visible for external, conditional for TutorLingua) */}
+          {(bookingType === "external" || showScheduleAndPayment) ? (
             <>
-              {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -419,46 +577,56 @@ export function CalendarBookingModal({
                 </div>
               </div>
 
-              {selectedService && (
+              {/* Duration end time preview */}
+              {bookingType === "external" && (
+                <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                  Duration: {externalDuration} min (ends at {bookingSlots.getEndTime(externalDuration)})
+                </div>
+              )}
+              {bookingType === "tutorlingua" && selectedService && (
                 <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
                   Duration: {durationMinutes} min (ends at {bookingSlots.getEndTime(durationMinutes)})
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  <CreditCard className="inline h-4 w-4 mr-1" />
-                  Payment Status
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => bookingForm.setPaymentStatus("unpaid")}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      bookingForm.paymentStatus === "unpaid"
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border hover:bg-muted"
-                    }`}
-                  >
-                    Unpaid
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => bookingForm.setPaymentStatus("paid")}
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                      bookingForm.paymentStatus === "paid"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : "border-border hover:bg-muted"
-                    }`}
-                  >
-                    Paid
-                  </button>
+              {/* Payment Status - only for TutorLingua bookings */}
+              {bookingType === "tutorlingua" && (
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
+                    <CreditCard className="inline h-4 w-4 mr-1" />
+                    Payment Status
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => bookingForm.setPaymentStatus("unpaid")}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                        bookingForm.paymentStatus === "unpaid"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      Unpaid
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => bookingForm.setPaymentStatus("paid")}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                        bookingForm.paymentStatus === "paid"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      Paid
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           ) : null}
 
-          {showNotes ? (
+          {/* Notes - shown for both types (always for external, conditional for TutorLingua) */}
+          {(bookingType === "external" || showNotes) ? (
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">
                 <FileText className="inline h-4 w-4 mr-1" />
@@ -489,7 +657,8 @@ export function CalendarBookingModal({
             >
               Cancel
             </button>
-            {!bookingForm.isQuickMode && bookingForm.step > 0 ? (
+            {/* Step navigation only for TutorLingua bookings in non-quick mode */}
+            {bookingType === "tutorlingua" && !bookingForm.isQuickMode && bookingForm.step > 0 ? (
               <button
                 type="button"
                 onClick={() => bookingForm.setStep((prev) => Math.max(0, prev - 1))}
@@ -499,7 +668,7 @@ export function CalendarBookingModal({
                 Back
               </button>
             ) : null}
-            {!bookingForm.isQuickMode && bookingForm.step < 2 ? (
+            {bookingType === "tutorlingua" && !bookingForm.isQuickMode && bookingForm.step < 2 ? (
               <button
                 type="button"
                 onClick={() => bookingForm.setStep((prev) => Math.min(2, prev + 1))}
@@ -512,13 +681,19 @@ export function CalendarBookingModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50 ${
+                  bookingType === "external"
+                    ? "bg-teal-600 text-white"
+                    : "bg-primary text-primary-foreground"
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
                     Creating...
                   </>
+                ) : bookingType === "external" ? (
+                  "Add External Booking"
                 ) : (
                   "Create Booking"
                 )}

@@ -39,6 +39,10 @@ app/playwright-report/
 # Storybook build
 app/storybook-static/
 
+# Remotion output
+app/remotion/out/
+app/remotion/dist/
+
 # IDE
 .idea/
 *.swp

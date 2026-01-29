@@ -31,6 +31,17 @@ alternateLocale:
   locale: es
   slug: primeros-10-estudiantes-tutor-nuevo
 position: complement
+faqs:
+  - question: "How do I get my first tutoring students with no experience?"
+    answer: "Start with your network: friends, family, colleagues learning languages. Offer 2-3 free trial sessions to get initial reviews. Join language learning communities on Reddit, Facebook, and Discord. Create helpful content on social media. Your first students often come from personal connections and community engagement."
+  - question: "How long does it take to get first students as a new tutor?"
+    answer: "With consistent effort, expect your first paying student within 2-4 weeks. Reaching 10 regular students typically takes 4-8 weeks using a systematic approach: combining platform profiles, social media presence, and community engagement. Patience and consistency matter more than any single tactic."
+  - question: "Where should new tutors find students online?"
+    answer: "Best channels for new tutors: iTalki/Preply for discovery (despite commissions), Instagram/TikTok for visibility, language learning subreddits, Facebook groups for language learners, and LinkedIn for business English. Focus on 2-3 channels rather than spreading thin across all platforms."
+  - question: "Should new tutors offer free trial lessons?"
+    answer: "Yes, but strategically. Offer 15-30 minute free consultations rather than full lessons. This filters serious students, demonstrates your teaching style, and creates urgency to book paid lessons. After building reviews, switch to low-cost ($5-15) paid trials to attract committed learners."
+  - question: "How do I stand out as a new tutor with no reviews?"
+    answer: "Differentiate through specialization (conversation practice, exam prep, kids), professional presentation (quality profile photo, clear bio), and valuable free content (teaching tips on social media). Offer detailed lesson previews so students know exactly what they'll learn. Early adopter discounts can also help."
 ---
 
 You've set up your booking page, chosen your rates, and created your first lesson materials. Now comes the hardest part: getting people to actually book.

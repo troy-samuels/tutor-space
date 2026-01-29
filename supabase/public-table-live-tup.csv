@@ -1,0 +1,103 @@
+table,n_live_tup,n_dead_tup,last_analyze,last_autoanalyze
+public.tutor_site_services,0,0,None,None
+public.links,0,0,None,None
+public.refund_requests,0,0,None,None
+public.lifetime_purchases,0,0,None,None
+public.tutor_status_history,0,0,None,None
+public.system_metrics,0,0,None,None
+public.system_metrics_hourly,0,0,None,None
+public.system_error_log,0,0,None,None
+public.content_reports,0,0,None,None
+public.moderation_actions,0,0,None,None
+public.notifications,0,21,None,None
+public.notification_preferences,0,0,None,None
+public.learning_goals,0,0,None,None
+public.proficiency_assessments,0,0,None,None
+public.plan_overrides,0,0,None,None
+public.plan_change_history,0,0,None,None
+public.ai_conversations,0,0,None,None
+public.ai_messages,0,0,None,None
+public.ai_usage,0,0,None,None
+public.tutor_reengagement_emails,0,0,None,None
+public.calendar_sync_runs,0,0,None,None
+public.calendar_sync_jobs,0,0,None,None
+public.email_suppressions,0,2,None,None
+public.homework_submissions,0,34,None,2025-12-29 04:44:46.176430+00:00
+public.marketing_clips,0,0,None,None
+public.learning_roadmaps,0,0,None,None
+public.lesson_subscription_templates,0,0,None,None
+public.lesson_subscriptions,0,0,None,None
+public.lesson_allowance_periods,0,0,None,None
+public.lesson_subscription_redemptions,0,0,None,None
+public.practice_block_ledger,0,1,None,None
+public.student_practice_messages,0,12,None,2026-01-19 11:42:21.710703+00:00
+public.grammar_errors,0,0,None,None
+public.student_grammar_patterns,0,0,None,None
+public.phonetic_errors,0,0,None,None
+public.pronunciation_assessments,0,1,None,None
+public.student_practice_summaries,0,0,None,None
+public.student_engagement_scores,0,0,None,None
+public.lesson_notes,0,0,None,None
+public.subscriptions,0,0,None,None
+public.session_package_purchases,0,0,None,None
+public.session_package_redemptions,0,0,None,None
+public.invoices,0,0,None,None
+public.invoice_line_items,0,0,None,None
+public.payment_reminders,0,0,None,None
+public.reviews,0,0,None,None
+public.group_sessions,0,0,None,None
+public.group_session_attendees,0,0,None,None
+public.marketplace_resources,0,0,None,None
+public.marketplace_orders,0,0,None,None
+public.interactive_activities,0,0,None,None
+public.email_campaigns,0,0,None,None
+public.email_campaign_recipients,0,0,None,None
+public.tutor_site_reviews,0,0,None,None
+public.tutor_site_resources,0,0,None,None
+public.payments_audit,0,0,None,None
+public.admin_users,0,0,None,None
+public.admin_audit_log,0,0,None,None
+public.impersonation_sessions,0,0,None,None
+public.admin_emails,0,0,None,None
+public.lesson_deliveries,0,0,None,None
+public.support_tickets,0,0,None,None
+public.conversation_messages,0,0,None,None
+public.digital_products,0,0,None,None
+public.digital_product_purchases,0,0,None,None
+public.link_events,0,0,None,None
+public.lesson_briefings,1,6,None,None
+public.calendar_events,1,0,None,None
+public.practice_usage_periods,1,9,None,None
+public.student_tutor_connections,1,14,None,None
+public.student_engagement_score_queue,1,29,None,2026-01-19 12:04:22.311408+00:00
+public.learning_stats,1,37,None,2025-12-29 04:43:46.258299+00:00
+public.blocked_times,1,0,None,None
+public.booking_reschedule_history,2,0,None,None
+public.calendar_connections,2,27,None,2026-01-08 23:01:08.770778+00:00
+public.student_preferences,2,1,None,None
+public.lesson_recordings,2,12,None,None
+public.tutor_sites,2,5,None,2025-12-29 05:05:46.604427+00:00
+public.conversation_threads,2,25,None,2025-12-29 04:39:46.118193+00:00
+public.homework_assignments,3,3,None,2025-12-29 04:44:46.183171+00:00
+public.practice_assignments,3,37,None,2026-01-19 11:42:21.706035+00:00
+public.practice_scenarios,3,1,None,2026-01-19 11:54:22.036308+00:00
+public.audit_logs,3,0,None,None
+public.student_practice_sessions,3,17,None,2025-12-29 04:42:46.147161+00:00
+public.session_package_templates,5,45,None,2026-01-19 11:55:22.027193+00:00
+public.bookings,5,49,None,2026-01-12 01:00:42.086178+00:00
+public.email_events,6,3,None,None
+public.system_status,6,0,None,None
+public.processed_requests,6,7,None,None
+public.lesson_drills,6,0,None,None
+public.processed_stripe_events,9,14,None,None
+public.grammar_error_categories,11,0,None,None
+public.student_timeline_events,11,35,None,2026-01-19 11:54:22.039796+00:00
+public.students,12,46,None,2026-01-19 11:55:22.044006+00:00
+public.student_onboarding_templates,12,27,None,2026-01-19 11:42:21.712768+00:00
+public.student_onboarding_progress,12,28,None,2026-01-12 01:03:42.143298+00:00
+public.platform_config,20,0,None,None
+public.availability,27,7,None,2026-01-19 11:54:22.013424+00:00
+public.profiles,43,0,None,2026-01-19 11:54:22.032228+00:00
+public.rate_limit_events,73,0,None,2025-12-21 20:16:03.319055+00:00
+public.page_views,122,0,None,2025-11-27 10:33:04.756373+00:00
+public.services,127,12,None,2026-01-19 11:54:22.020526+00:00

@@ -16,6 +16,17 @@ alternateLocale:
   locale: "es"
   slug: "aceptar-pagos-tutor-privado"
 position: "replacement"
+faqs:
+  - question: "What's the best way for tutors to accept payments online?"
+    answer: "Stripe is the professional standard with 2.9% + $0.30 per transaction, excellent for recurring payments and lesson packages. PayPal is widely trusted internationally. For the smoothest experience, use booking software with integrated payment processing that charges automatically at booking time."
+  - question: "How much do payment processors charge tutors?"
+    answer: "Standard rates: Stripe and PayPal charge 2.9% + $0.30 per transaction. For a $50 lesson, that's about $1.75 in fees. International transactions may add 1-1.5%. Compare this to marketplace commissions of 15-33% to see why direct payment processing saves significant money."
+  - question: "Should tutors require upfront payment for lessons?"
+    answer: "Yes, collecting payment at booking time reduces no-shows from 30-40% to under 5%. Students who pay in advance show up consistently. Offer a clear cancellation policy (24-hour notice) rather than allowing unpaid bookings that lead to last-minute cancellations."
+  - question: "Is it safe to use PayPal for tutoring payments?"
+    answer: "PayPal is secure but use Business transactions, not Friends & Family. Business payments include buyer protection and create proper records for taxes. Avoid F&F requests as they look unprofessional and provide no protection for disputes."
+  - question: "Should I offer lesson packages or pay-per-lesson?"
+    answer: "Offering both works best. Pay-per-lesson suits new students testing your services. Packages (5, 10, or 20 lessons at a 10-15% discount) improve retention and cash flow. Students who commit to packages complete 80% more lessons than those paying per session."
 ---
 
 # How to Accept Payments as a Private Language Tutor (Stripe, PayPal & More)

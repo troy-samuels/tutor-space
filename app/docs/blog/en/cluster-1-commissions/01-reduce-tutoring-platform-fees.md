@@ -30,6 +30,17 @@ alternateLocale:
   locale: "es"
   slug: "reducir-comisiones-plataformas"
 position: "authority"
+faqs:
+  - question: "How much do tutoring platforms like Preply and iTalki take in commission?"
+    answer: "Preply takes 18-33% commission depending on hours taught (33% for new tutors, 18% after 400+ hours). iTalki and Verbling both charge a flat 15% commission. On a $50 lesson, you could lose $9-17 per session to platform fees."
+  - question: "Is it allowed to take students off Preply or iTalki for direct booking?"
+    answer: "Most platforms prohibit actively soliciting students for off-platform bookings. However, having your own booking system for students who find you independently through social media or Google searches is completely legitimate and common practice among professional tutors."
+  - question: "How much can tutors save by accepting direct bookings?"
+    answer: "A tutor teaching 60 lessons/month at $35/hour on Preply (33% commission) loses approximately $693/month to fees. By shifting 50% of repeat students to direct booking, you can save $4,000+ annually while offering students better rates."
+  - question: "What do I need to accept direct bookings as a tutor?"
+    answer: "You need four essential components: a professional booking system for scheduling, payment processing (Stripe/PayPal), automated lesson reminders and video links, and a professional web presence or landing page. All-in-one platforms like TutorLingua provide these in one integrated solution."
+  - question: "Should I offer lower prices for direct bookings vs marketplace bookings?"
+    answer: "Yes, offering a small discount for direct bookings creates a win-win: students save money while you earn more per hour. For example, if you charge $35 on Preply (receiving $23 after 33% commission), you could charge $30 directly and both parties benefit."
 ---
 
 ## Introduction: The Commission Problem Nobody Talks About

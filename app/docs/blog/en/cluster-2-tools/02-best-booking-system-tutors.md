@@ -16,6 +16,17 @@ alternateLocale:
   locale: "es"
   slug: "mejor-sistema-reservas-tutores"
 position: "replacement"
+faqs:
+  - question: "What is the best booking system for language tutors?"
+    answer: "For most language tutors, all-in-one platforms like TutorLingua offer the best value by combining booking, payments, and student management. For those wanting standalone scheduling, Calendly is ideal for simplicity while Acuity offers more customization. The best choice depends on your business complexity."
+  - question: "Is Calendly free for tutors?"
+    answer: "Calendly offers a free tier with basic scheduling for one event type. Paid plans ($12-20/month) add features like multiple event types, payment collection via Stripe, and team scheduling. Most tutors need the paid tier for professional use."
+  - question: "How do I handle timezone differences when booking tutoring students?"
+    answer: "Use booking software with automatic timezone conversion. Calendly, Acuity, and TutorLingua all display your availability in the student's local timezone. This eliminates confusion and scheduling errors, especially important when teaching students across continents."
+  - question: "Should I use Calendly or an all-in-one tutor platform?"
+    answer: "Calendly excels at scheduling but requires separate tools for payments, reminders, and student tracking. All-in-one tutor platforms integrate everything in one system. If you teach fewer than 10 students, Calendly may suffice. For growing businesses, integrated platforms save significant time."
+  - question: "What features should a tutor booking system have?"
+    answer: "Essential features include: real-time calendar sync, automatic timezone conversion, integrated payment processing, automated reminder emails, buffer time between lessons, service/pricing options, and student notes or CRM functionality. Mobile access is also important for managing your schedule on the go."
 ---
 
 # Best Booking Systems for Language Tutors: Calendly vs Acuity vs All-in-One

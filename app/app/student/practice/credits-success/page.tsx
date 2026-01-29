@@ -4,20 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { stripe } from "@/lib/stripe";
-import { CheckCircle, CreditCard, ArrowRight } from "lucide-react";
+import { CheckCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
-  BLOCK_AUDIO_MINUTES,
-  BLOCK_TEXT_TURNS,
-} from "@/lib/practice/constants";
 import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
 import { getStudentDisplayName } from "@/lib/utils/student-name";
 
 export const metadata = {
-  title: "Credits Unlocked | TutorLingua",
-  description: "Your practice credits are ready",
+  title: "Practice Updated | TutorLingua",
+  description: "Your practice access is ready",
 };
 
 interface PageProps {
@@ -94,8 +89,6 @@ export default async function CreditsSuccessPage({ searchParams }: PageProps) {
     getStudentSubscriptionSummary(),
     getStudentAvatarUrl(),
   ]);
-  const blockPriceDollars = (AI_PRACTICE_BLOCK_PRICE_CENTS / 100).toFixed(0);
-
   return (
     <StudentPortalLayout studentName={studentName} avatarUrl={avatarUrl} subscriptionSummary={subscriptionSummary}>
       <div className="mx-auto max-w-lg space-y-6 px-4 py-12 text-center">
@@ -105,24 +98,11 @@ export default async function CreditsSuccessPage({ searchParams }: PageProps) {
 
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Practice credits unlocked
+            Practice updated
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Your ${blockPriceDollars} top-up is ready. Keep practicing and we&apos;ll add a new block
-            whenever you go past your free allowance.
+            You&apos;re all set. If you reach the monthly limit, you&apos;ll see 0 balance remaining. Resets next month.
           </p>
-        </div>
-
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-          <div className="flex items-center justify-center gap-3">
-            <CreditCard className="h-8 w-8 text-primary" />
-            <div className="text-left">
-              <p className="font-semibold text-foreground">Block details</p>
-              <p className="text-sm text-muted-foreground">
-                ${blockPriceDollars} per block adds +{BLOCK_AUDIO_MINUTES} audio minutes + {BLOCK_TEXT_TURNS} text turns.
-              </p>
-            </div>
-          </div>
         </div>
 
         <Button asChild size="lg" className="w-full">

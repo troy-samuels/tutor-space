@@ -1,5 +1,6 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getTutorStudentProgress, getTutorStudentPracticeData } from "@/lib/actions/progress";
 import { getStudentNextBooking } from "@/lib/actions/bookings";
@@ -8,13 +9,26 @@ import { listMessagesForThread, markMessagesReadByTutor, markThreadReadByTutor }
 import { getStudentStripePayments } from "@/lib/actions/stripe-payments";
 import type { StudentDetailData, ConversationMessage, StudentBookingRecord, StudentLessonNoteRecord } from "@/lib/data/types";
 
-export async function getStudentDetailData(studentId: string): Promise<StudentDetailData | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+type StudentDetailOptions = {
+  supabase?: SupabaseClient;
+  userId?: string | null;
+};
 
-  if (!user) {
+export async function getStudentDetailData(
+  studentId: string,
+  options: StudentDetailOptions = {}
+): Promise<StudentDetailData | null> {
+  const supabase = options.supabase ?? await createClient();
+  let userId = options.userId ?? null;
+
+  if (!userId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  }
+
+  if (!userId) {
     return null;
   }
 
@@ -23,7 +37,7 @@ export async function getStudentDetailData(studentId: string): Promise<StudentDe
     .select(
       "id, tutor_id, full_name, email, phone, proficiency_level, learning_goals, native_language, notes, status, labels, created_at, updated_at"
     )
-    .eq("tutor_id", user.id)
+    .eq("tutor_id", userId)
     .eq("id", studentId)
     .single();
 
@@ -36,7 +50,7 @@ export async function getStudentDetailData(studentId: string): Promise<StudentDe
     .select(
       "id, scheduled_at, duration_minutes, status, payment_status, payment_amount, currency, service:services(name)"
     )
-    .eq("tutor_id", user.id)
+    .eq("tutor_id", userId)
     .eq("student_id", student.id)
     .order("scheduled_at", { ascending: false });
 
@@ -45,7 +59,7 @@ export async function getStudentDetailData(studentId: string): Promise<StudentDe
     .select(
       "id, created_at, notes, homework, student_performance, areas_to_focus, topics_covered"
     )
-    .eq("tutor_id", user.id)
+    .eq("tutor_id", userId)
     .eq("student_id", student.id)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -85,7 +99,7 @@ export async function getStudentDetailData(studentId: string): Promise<StudentDe
   }));
 
   return {
-    tutorId: user.id,
+    tutorId: userId,
     student: { ...student, email: student.email ?? "" },
     bookings: bookingRecords,
     lessonNotes: lessonNoteRecords,

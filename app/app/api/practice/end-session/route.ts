@@ -1,32 +1,32 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createPracticeChatCompletion } from "@/lib/practice/openai";
+import { errorResponse } from "@/lib/api/error-responses";
 
 export async function POST(request: Request) {
+  const requestId = randomUUID();
+  const respondError = (message: string, status: number, code: string) =>
+    errorResponse(message, { status, code, extra: { requestId } });
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const { sessionId } = await request.json();
 
     if (!sessionId) {
-      return NextResponse.json(
-        { error: "Session ID is required" },
-        { status: 400 }
-      );
+      return respondError("Session ID is required", 400, "INVALID_REQUEST");
     }
 
     const adminClient = createServiceRoleClient();
     if (!adminClient) {
-      return NextResponse.json(
-        { error: "Service unavailable" },
-        { status: 503 }
-      );
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
     // Get session with messages
@@ -47,10 +47,7 @@ export async function POST(request: Request) {
       .single();
 
     if (!session) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return respondError("Session not found", 404, "SESSION_NOT_FOUND");
     }
 
     // Verify user owns this session
@@ -62,10 +59,7 @@ export async function POST(request: Request) {
       .single();
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
+      return respondError("Unauthorized", 403, "UNAUTHORIZED");
     }
 
     // If already ended, avoid another OpenAI call and return existing feedback
@@ -169,10 +163,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[End Session] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to end session" },
-      { status: 500 }
-    );
+    return respondError("Failed to end session", 500, "INTERNAL_ERROR");
   }
 }
 

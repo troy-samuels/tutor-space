@@ -18,6 +18,17 @@ alternateLocale:
   slug: especializaciones-tutoria-pagan-mas
 publishedAt: '2025-01-15'
 updatedAt: '2025-01-15'
+faqs:
+  - question: "What tutoring specializations pay the highest rates?"
+    answer: "Top-paying specializations: exam preparation (IELTS, TOEFL, Cambridge) at $50-100/hour, business English for executives at $75-150/hour, medical/legal terminology at $80-120/hour, and accent reduction at $60-100/hour. Specialized tutors typically earn 2-3x more than generalist conversation tutors."
+  - question: "Should language tutors specialize in one area?"
+    answer: "Yes, specialization increases earnings and simplifies marketing. A generalist competes with every other tutor; a specialist competes only with others in their niche. You can specialize by student type (kids, professionals), goal (exam prep, conversation), or industry (business, medical)."
+  - question: "How do I choose a tutoring specialization?"
+    answer: "Consider: your background and credentials (business experience suits business English), market demand in your area/online, your genuine interest (you'll need to develop deep expertise), and competition level. Research what specialized tutors in your target niche charge to validate the opportunity."
+  - question: "Can I change my tutoring specialization later?"
+    answer: "Yes, but rebranding takes time. Many tutors start general, identify a niche where they excel, then gradually transition. Keep some general slots while building your specialized reputation. Full transition typically takes 3-6 months as you shift marketing and attract new client types."
+  - question: "Do specialized tutors need additional certifications?"
+    answer: "Not always required, but certifications significantly boost credibility and rates. For exam prep, official examiner training (IELTS, Cambridge) is valuable. For business English, business experience often matters more than teaching certificates. Credentials help justify premium pricing to clients."
 ---
 
 # Niche Down to Scale Up: Specializations That Pay More

@@ -20,6 +20,17 @@ seoKeywords:
 - grow tutor instagram
 - language teacher instagram
 - social media for tutors
+faqs:
+  - question: "How can language tutors grow on Instagram?"
+    answer: "Post consistently (3-5x/week), use Reels for reach (quick teaching tips perform best), engage in language learning hashtags, respond to comments promptly, share student wins, and include clear CTAs linking to your booking page. Quality educational content beats polished aesthetics for tutor accounts."
+  - question: "What should language tutors post on Instagram?"
+    answer: "Best performing content: quick language tips (Reels), common mistakes explained, phrase of the day, behind-the-scenes lesson moments, student transformation stories, and mini-lessons. Mix educational value (80%) with personal content (20%) to build connection. Carousels work well for grammar explanations."
+  - question: "How many followers do tutors need to get students from Instagram?"
+    answer: "You can get students with fewer than 1,000 followers if those followers are your target audience. Engagement quality matters more than follower count. Focus on attracting language learners in your niche rather than general followers. Many tutors report consistent bookings with 500-2,000 engaged followers."
+  - question: "What hashtags should language tutors use on Instagram?"
+    answer: "Mix broad hashtags (#learnspanish) with specific ones (#spanishgrammar #spanishforbeginners) and location tags if relevant. Use 15-25 hashtags per post. Research what successful tutor accounts in your niche use. Create one branded hashtag for your content to build recognition."
+  - question: "How do I convert Instagram followers into tutoring students?"
+    answer: "Include booking link in bio, mention your services in Stories regularly, share testimonials and student results, create posts that demonstrate your teaching style, and use CTAs like 'DM me to learn more' or 'Book link in bio.' Make it easy and low-pressure to take the next step."
 ---
 
 # Instagram for Language Tutors: Building Your Personal Brand

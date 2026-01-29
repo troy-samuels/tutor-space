@@ -1,26 +1,11 @@
 "use server";
 
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireTutor } from "@/lib/auth/guards";
 import { getCalendarEventsWithDetails } from "@/lib/calendar/busy-windows";
-import type { CalendarEvent, PackageType } from "@/lib/types/calendar";
+import type { CalendarEvent, PackageType, CalendarEventType, ExternalBookingSource } from "@/lib/types/calendar";
 import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/classroom-links";
-
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
-
-async function requireTutor() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return { supabase, user: null as null };
-  }
-
-  return { supabase, user };
-}
 
 type GetCalendarEventsParams = {
   start: string;  // ISO date string
@@ -49,17 +34,19 @@ export async function getCalendarEvents({
   const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
 
   // Fetch all event sources in parallel
-  const [bookings, externalEvents, blockedTimes] = await Promise.all([
+  const [bookings, externalEvents, blockedTimes, externalBookings] = await Promise.all([
     // 1. TutorLingua bookings
     fetchTutorLinguaBookings(supabase, user.id, startDate, endDate),
     // 2. External calendar events (Google/Outlook)
     getCalendarEventsWithDetails({ tutorId: user.id, start: startDate, days }),
     // 3. Manually blocked times
     fetchBlockedTimes(supabase, user.id, startDate, endDate),
+    // 4. External marketplace bookings (Preply, iTalki, Verbling)
+    fetchExternalBookings(supabase, user.id, startDate, endDate),
   ]);
 
   // Combine all events
-  const allEvents = [...bookings, ...externalEvents, ...blockedTimes];
+  const allEvents = [...bookings, ...externalEvents, ...blockedTimes, ...externalBookings];
 
   // Sort by start time
   allEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -218,6 +205,98 @@ async function fetchBlockedTimes(
     type: "blocked" as const,
     source: "Blocked Time",
   }));
+}
+
+// Map external booking source to calendar event type
+function mapSourceToEventType(source: string): CalendarEventType {
+  switch (source) {
+    case "preply":
+      return "preply";
+    case "italki":
+      return "italki";
+    case "verbling":
+      return "verbling";
+    default:
+      return "marketplace";
+  }
+}
+
+// Map external booking source to display name
+function mapSourceToDisplayName(source: string): string {
+  switch (source) {
+    case "preply":
+      return "Preply";
+    case "italki":
+      return "iTalki";
+    case "verbling":
+      return "Verbling";
+    default:
+      return "Marketplace";
+  }
+}
+
+// Fetch external marketplace bookings and convert to CalendarEvent format
+async function fetchExternalBookings(
+  supabase: SupabaseClient,
+  tutorId: string,
+  start: Date,
+  end: Date
+): Promise<CalendarEvent[]> {
+  const { data, error } = await supabase
+    .from("external_bookings")
+    .select(`
+      id,
+      source,
+      scheduled_at,
+      duration_minutes,
+      student_name,
+      student_id,
+      notes,
+      status,
+      students (
+        id,
+        full_name
+      )
+    `)
+    .eq("tutor_id", tutorId)
+    .neq("status", "cancelled")
+    .gte("scheduled_at", start.toISOString())
+    .lte("scheduled_at", end.toISOString())
+    .order("scheduled_at", { ascending: true });
+
+  if (error) {
+    // Table might not exist yet - return empty array
+    if (error.code === "42P01") {
+      return [];
+    }
+    console.error("[CalendarEvents] Failed to fetch external bookings", error);
+    return [];
+  }
+
+  return (data ?? []).map((booking: any) => {
+    const startTime = new Date(booking.scheduled_at);
+    const endTime = new Date(startTime.getTime() + booking.duration_minutes * 60 * 1000);
+
+    // Get student name from linked student or direct field
+    const student = Array.isArray(booking.students) ? booking.students[0] : booking.students;
+    const studentName = student?.full_name || booking.student_name;
+
+    return {
+      id: booking.id,
+      title: studentName
+        ? `${studentName} (${mapSourceToDisplayName(booking.source)})`
+        : mapSourceToDisplayName(booking.source),
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
+      type: mapSourceToEventType(booking.source),
+      source: mapSourceToDisplayName(booking.source),
+      studentId: booking.student_id ?? undefined,
+      studentName: studentName ?? undefined,
+      durationMinutes: booking.duration_minutes,
+      // External bookings use the "external" package type for styling
+      packageType: "external" as PackageType,
+    };
+  });
 }
 
 // Get events grouped by day for week view

@@ -29,6 +29,17 @@ alternateLocale:
   locale: "es"
   slug: "italki-vs-preply-vs-verbling-comision"
 position: "authority"
+faqs:
+  - question: "Which tutoring platform has the lowest commission: iTalki, Preply, or Verbling?"
+    answer: "iTalki and Verbling both charge a flat 15% commission. Preply charges 18-33% depending on hours taught. However, Preply takes 100% of trial lessons while iTalki and Verbling let you keep 85% of trials."
+  - question: "How often do tutoring platforms pay tutors?"
+    answer: "Preply pays weekly, while iTalki and Verbling pay twice per month. Minimum payout thresholds are $30 for Preply and iTalki, and $20 for Verbling. All platforms support PayPal and Payoneer."
+  - question: "Which tutoring platform is best for new language tutors?"
+    answer: "iTalki is often recommended for new tutors due to its flat 15% commission and no trial lesson penalty. Preply has higher commissions but larger marketing reach. The best choice depends on your target language and student demographics."
+  - question: "Can I teach on multiple tutoring platforms at once?"
+    answer: "Yes, most tutors teach on multiple platforms simultaneously to maximize student acquisition. There's no exclusivity requirement on iTalki, Preply, or Verbling. Many successful tutors maintain profiles on 2-3 platforms."
+  - question: "What's the difference between iTalki Professional Teachers and Community Tutors?"
+    answer: "iTalki Professional Teachers have verified teaching credentials and can charge higher rates. Community Tutors focus on conversation practice without formal credentials. Both pay the same 15% commission, but Professional Teachers typically earn 30-50% more per lesson."
 ---
 
 ## Introduction

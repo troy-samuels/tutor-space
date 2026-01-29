@@ -29,6 +29,17 @@ alternateLocale:
   locale: es
   slug: manejar-cancelaciones-estudiantes
 position: replacement
+faqs:
+  - question: "What is a fair cancellation policy for tutoring?"
+    answer: "Standard policy: 24-hour notice required for free cancellation/rescheduling. Cancellations under 24 hours: charge 50-100% of lesson fee. No-shows: full charge. Be flexible for genuine emergencies with loyal students, but enforce consistently otherwise to protect your time and income."
+  - question: "How do I reduce last-minute tutoring cancellations?"
+    answer: "Collect payment upfront at booking time, send automatic reminders 24 hours and 1 hour before lessons, require students to actively confirm (not just receive) reminders, and communicate your cancellation policy clearly during onboarding. Upfront payment alone reduces no-shows by 80%."
+  - question: "Should I charge students for missed lessons?"
+    answer: "Yes, for last-minute cancellations and no-shows. You reserved time and turned down other opportunities. Most students expect this and respect tutors who value their time. Communicate the policy before the first lesson and reference it in booking confirmations."
+  - question: "How do I handle a student who frequently cancels?"
+    answer: "Address it directly but professionally: 'I've noticed several last-minute cancellations recently. Is there a scheduling challenge we could address?' Often the issue is poor time fit. If cancellations continue, consider requiring prepaid packages or suggesting a more suitable schedule."
+  - question: "What should I do when a student doesn't show up?"
+    answer: "Wait 10-15 minutes, send a brief message ('I'm here for our lesson—hope everything is okay!'). After 15 minutes, close the session. Send a professional follow-up: 'I missed you today. Per our policy, the session will be charged. Let me know if you'd like to reschedule.' Don't apologize or offer free rebookings."
 publishedAt: '2025-01-18'
 updatedAt: '2025-01-18'
 ---

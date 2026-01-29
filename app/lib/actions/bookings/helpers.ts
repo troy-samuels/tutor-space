@@ -2,32 +2,10 @@
 
 import { differenceInCalendarDays, endOfDay, endOfWeek, startOfDay, startOfWeek } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
-import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { insertConversationThread, countBookingsInRange } from "@/lib/repositories/bookings";
 import type { TutorProfileData } from "./types";
-
-// ============================================================================
-// Authentication
-// ============================================================================
-
-/**
- * Get the authenticated tutor from the current session.
- * Returns both the supabase client and the user if authenticated.
- */
-export async function requireTutor() {
-	const supabase = await createClient();
-	const {
-		data: { user },
-		error,
-	} = await supabase.auth.getUser();
-
-	if (error || !user) {
-		return { supabase, user: null as null };
-	}
-
-	return { supabase, user };
-}
+export { requireTutor } from "@/lib/auth/guards";
 
 // ============================================================================
 // Conversation Thread

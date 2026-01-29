@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -13,6 +14,7 @@ import {
   calculatePracticeAllowance,
   getCurrentPracticePeriod,
 } from "@/lib/practice/access";
+import { errorResponse } from "@/lib/api/error-responses";
 
 export interface PracticeUsageStats {
   audioSecondsUsed: number;
@@ -39,12 +41,16 @@ export interface PracticeUsageStats {
  * FREEMIUM MODEL: Works for both free tier and paid block users
  */
 export async function GET() {
+  const requestId = randomUUID();
+  const respondError = (message: string, status: number, code: string, extra?: Record<string, unknown>) =>
+    errorResponse(message, { status, code, extra: { requestId, ...extra } });
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     // Get the student record
@@ -56,26 +62,17 @@ export async function GET() {
       .maybeSingle();
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Student record not found" },
-        { status: 404 }
-      );
+      return respondError("Student record not found", 404, "STUDENT_NOT_FOUND");
     }
 
     const adminClient = createServiceRoleClient();
     if (!adminClient) {
-      return NextResponse.json(
-        { error: "Service unavailable" },
-        { status: 503 }
-      );
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
     // Check tutor tier (freemium access gate)
     if (!student.tutor_id) {
-      return NextResponse.json(
-        { error: "No tutor assigned", code: "NO_TUTOR" },
-        { status: 403 }
-      );
+      return respondError("No tutor assigned", 403, "NO_TUTOR");
     }
 
     const tutorHasStudio = await getTutorHasPracticeAccess(
@@ -84,13 +81,7 @@ export async function GET() {
     );
 
     if (!tutorHasStudio) {
-      return NextResponse.json(
-        {
-          error: "AI Practice requires tutor Studio subscription",
-          code: "TUTOR_NOT_STUDIO",
-        },
-        { status: 403 }
-      );
+      return respondError("AI Practice requires tutor Studio subscription", 403, "TUTOR_NOT_STUDIO");
     }
 
     // Get or create free usage period
@@ -120,7 +111,7 @@ export async function GET() {
         isFreeUser: true,
         audioSecondsRemaining: FREE_AUDIO_SECONDS,
         textTurnsRemaining: FREE_TEXT_TURNS,
-        canBuyBlocks: true,
+        canBuyBlocks: false,
         blockPriceCents: AI_PRACTICE_BLOCK_PRICE_CENTS,
       };
       return NextResponse.json(stats);
@@ -152,16 +143,13 @@ export async function GET() {
       isFreeUser: allowance.isFreeUser,
       audioSecondsRemaining: allowance.audioSecondsRemaining,
       textTurnsRemaining: allowance.textTurnsRemaining,
-      canBuyBlocks: true, // Students can always buy more blocks
+      canBuyBlocks: false,
       blockPriceCents: AI_PRACTICE_BLOCK_PRICE_CENTS,
     };
 
     return NextResponse.json(stats);
   } catch (error) {
     console.error("[Practice Usage] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch usage stats" },
-      { status: 500 }
-    );
+    return respondError("Failed to fetch usage stats", 500, "INTERNAL_ERROR");
   }
 }

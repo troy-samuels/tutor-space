@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/settings/payments", label: "Payments" },
   { href: "/settings/video", label: "Video" },
   { href: "/settings/calendar", label: "Calendar sync" },
+  { href: "/settings/automations", label: "Automations" },
   { href: "/settings/billing", label: "Billing" },
 ] as const;
 

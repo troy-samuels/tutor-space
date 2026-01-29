@@ -30,6 +30,17 @@ alternateLocale:
   locale: "es"
   slug: "mejores-preguntas-clase-prueba-idiomas"
 position: "complement"
+faqs:
+  - question: "What questions should I ask in a trial language lesson?"
+    answer: "Essential questions: 'What made you decide to start learning now?', 'What's your #1 goal with this language?', 'Have you tried learning before—what worked?', 'What's your biggest frustration?', and 'How much time can you dedicate weekly?' These reveal motivation, goals, and commitment level."
+  - question: "How long should a trial tutoring lesson be?"
+    answer: "Trial lessons work best at 25-30 minutes. This provides enough time for introductions (5 min), discovery questions (10 min), a mini-lesson demonstration (10 min), and next steps discussion (5 min). Longer trials risk overwhelming students before they commit."
+  - question: "How do I convert trial lesson students to paying clients?"
+    answer: "Focus on understanding their goals deeply, demonstrate your teaching style with a relevant mini-lesson, show enthusiasm for their success, and end with a clear call-to-action. Ask: 'Based on your goals, I recommend we start with X sessions focusing on Y. Would you like to book your first regular lesson?'"
+  - question: "What's a good trial lesson conversion rate for tutors?"
+    answer: "Top tutors convert 60-80% of trial students to paying clients. If your conversion is below 40%, review your trial structure: Are you asking enough discovery questions? Demonstrating value clearly? Making booking easy? Often low conversion stems from insufficient personalization."
+  - question: "Should tutors charge for trial lessons?"
+    answer: "Both approaches work: free trials generate more bookings but attract some uncommitted students; paid trials ($5-15) filter for serious learners. Start with free trials to build reviews, then switch to low-cost paid trials once you have established credibility and demand."
 ---
 
 # Best Questions to Ask in a Trial Language Lesson

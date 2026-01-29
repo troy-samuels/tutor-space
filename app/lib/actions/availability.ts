@@ -1,22 +1,8 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireTutor } from "@/lib/auth/guards";
 import { availabilityFormSchema, type AvailabilitySlotInput } from "@/lib/validators/availability";
 import type { AvailabilityRecord } from "@/lib/actions/types";
-
-async function requireTutor() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return { supabase, user: null as null };
-  }
-
-  return { supabase, user };
-}
 
 export async function getAvailability(): Promise<{ slots: AvailabilityRecord[] }> {
   const { supabase, user } = await requireTutor();

@@ -21,7 +21,11 @@ import {
   createRequestLogger,
   withActionLogging,
 } from "@/lib/logger";
-import { normalizeAndValidateUsernameSlug, normalizeUsernameSlug } from "@/lib/utils/username-slug";
+import {
+  findFirstValidUsernameSlug,
+  normalizeAndValidateUsernameSlug,
+  normalizeUsernameSlug,
+} from "@/lib/utils/username-slug";
 
 /**
  * Publish tutor site (make it live)
@@ -42,22 +46,34 @@ export async function publishSite(siteId: string) {
 
   return withActionLogging("publishSite", log, { siteId }, async () => {
     // Ensure the tutor has a clean, canonical username for the public URL.
-  const { data: profileRow } = await getProfileBasicsById(supabase, user.id);
+    const { data: profileRow } = await getProfileBasicsById(supabase, user.id);
 
-  const usernameCandidate =
-    profileRow?.username ||
-    (user.user_metadata as any)?.user_name ||
-    (user.user_metadata as any)?.username ||
-    profileRow?.full_name ||
-    user.email ||
-    "";
+    const explicitUsername =
+      profileRow?.username ||
+      (user.user_metadata as any)?.user_name ||
+      (user.user_metadata as any)?.username ||
+      "";
 
-  const normalizedResult = normalizeAndValidateUsernameSlug(usernameCandidate);
-  if (!normalizedResult.valid) {
-    return { error: normalizedResult.error || "Set a valid username before publishing." };
-  }
+    let canonicalUsername = "";
 
-  const canonicalUsername = normalizedResult.normalized;
+    if (explicitUsername) {
+      const normalizedResult = normalizeAndValidateUsernameSlug(explicitUsername);
+      if (!normalizedResult.valid) {
+        return { error: normalizedResult.error || "Set a valid username before publishing." };
+      }
+      canonicalUsername = normalizedResult.normalized;
+    } else {
+      const fallbackUsername = findFirstValidUsernameSlug([
+        profileRow?.full_name || "",
+        user.email || "",
+      ]);
+
+      if (!fallbackUsername) {
+        return { error: "Set a valid username before publishing." };
+      }
+
+      canonicalUsername = fallbackUsername;
+    }
 
   if (normalizeUsernameSlug(profileRow?.username || "") !== canonicalUsername) {
     const { error: usernameUpdateError } = await updateProfileUsername(

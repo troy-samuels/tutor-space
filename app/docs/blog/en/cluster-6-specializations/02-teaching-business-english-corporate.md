@@ -18,6 +18,17 @@ alternateLocale:
   slug: ensenando-ingles-negocios-corporativo
 publishedAt: '2025-01-16'
 updatedAt: '2025-01-16'
+faqs:
+  - question: "How do I get corporate clients for business English tutoring?"
+    answer: "Approach HR departments and training managers directly via LinkedIn. Offer free workshops or assessments to demonstrate value. Build relationships with corporate training agencies who subcontract tutors. Create case studies showing business outcomes from your training. Network at business events in your area."
+  - question: "How much can business English tutors charge corporate clients?"
+    answer: "Corporate rates typically range from $75-150/hour for individual lessons, with some senior executive coaching exceeding $200/hour. Group training often commands $150-300/hour. Companies pay premium rates because they budget training as a business expense with measurable ROI expectations."
+  - question: "What qualifications do I need to teach business English?"
+    answer: "Business experience is often more valuable than teaching credentials for corporate clients. Relevant background in their industry (finance, tech, legal) is highly valued. CELTA/DELTA plus business English certificates like FTBE help. Most importantly: demonstrate understanding of their business communication challenges."
+  - question: "How is teaching business English different from general English?"
+    answer: "Business English focuses on professional contexts: presentations, negotiations, meetings, emails, and industry-specific terminology. Lessons are outcome-focused (e.g., 'confidently lead client calls') rather than grammar-focused. Corporate clients expect professional demeanor, flexibility, and measurable progress reports."
+  - question: "Should I target individual professionals or company contracts?"
+    answer: "Both work but require different approaches. Individual professionals are easier to acquire but pay personal rates. Company contracts are harder to win but offer higher rates, multiple students, and longer-term stability. Many business English tutors start with individuals then leverage testimonials to approach companies."
 ---
 
 # Teaching Business English: How to Attract Corporate Clients

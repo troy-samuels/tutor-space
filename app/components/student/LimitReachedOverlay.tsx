@@ -2,14 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Coffee, MessageSquare, Mic } from "lucide-react";
-import Link from "next/link";
 import type { PracticeMode } from "./AIPracticeChat";
 
 interface LimitReachedOverlayProps {
   mode: PracticeMode;
   otherModeAvailable: boolean;
   otherModePercentUsed: number;
-  upgradeUrl?: string | null;
   onSwitchMode?: () => void;
   onDismiss?: () => void;
 }
@@ -18,7 +16,6 @@ export function LimitReachedOverlay({
   mode,
   otherModeAvailable,
   otherModePercentUsed,
-  upgradeUrl,
   onSwitchMode,
   onDismiss,
 }: LimitReachedOverlayProps) {
@@ -43,10 +40,10 @@ export function LimitReachedOverlay({
           You've been practicing hard!{" "}
           {otherModeAvailable && otherModeRemaining > 0
             ? `Keep the momentum going with ${otherMode === "text" ? "written" : "spoken"} practice.`
-            : "Practice refreshes next month."}
+            : "0 balance remaining. Resets next month."}
         </p>
 
-        {/* Actions - free option first, paid option second */}
+        {/* Actions */}
         <div className="space-y-3">
           {/* Switch mode option (free) - shown first */}
           {otherModeAvailable && otherModeRemaining > 0 && onSwitchMode && (
@@ -62,13 +59,6 @@ export function LimitReachedOverlay({
                 )}
                 Continue with {otherMode === "text" ? "written" : "spoken"} practice
               </span>
-            </Button>
-          )}
-
-          {/* Get more practice (paid) - shown second */}
-          {upgradeUrl && (
-            <Button asChild variant="outline" className="w-full">
-              <Link href={upgradeUrl}>Get more practice time</Link>
             </Button>
           )}
 

@@ -55,3 +55,10 @@ export { importStudentsBatch } from "./import";
 
 // Email Operations
 export { sendQuickInviteEmail } from "./email";
+
+// Student Portal Actions
+export * from "./auth";
+export * from "./connections";
+export * from "./billing";
+export * from "./lessons";
+export * from "./settings";

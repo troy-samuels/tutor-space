@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { CopyLinkButton } from "@/components/blog/CopyLinkButton";
+import { BlogFAQSection } from "@/components/blog/BlogFAQSection";
 import {
   getBlogPost,
   getAllBlogPosts,
@@ -10,6 +11,7 @@ import {
   generateBlogPostSchema,
   generateBreadcrumbSchema,
 } from "@/lib/blog";
+import { generateFAQSchema } from "@/lib/utils/structured-data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -90,6 +92,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   const articleSchema = generateBlogPostSchema(post, baseUrl);
   const breadcrumbSchema = generateBreadcrumbSchema(post, baseUrl);
 
+  // Generate FAQ schema if the post has FAQs
+  const hasFAQs = post.faqs && post.faqs.length > 0;
+  const faqSchema = hasFAQs ? generateFAQSchema(post.faqs!) : null;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -105,6 +111,14 @@ export default async function BlogPostPage({ params }: PageProps) {
           __html: JSON.stringify(breadcrumbSchema),
         }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqSchema),
+          }}
+        />
+      )}
       <ReadingProgress />
 
       {/* Article Header */}
@@ -253,6 +267,11 @@ export default async function BlogPostPage({ params }: PageProps) {
               prose-hr:border-gray-200 prose-hr:my-12"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
+
+          {/* FAQ Section */}
+          {hasFAQs && (
+            <BlogFAQSection faqs={post.faqs!} articleTitle={post.title} />
+          )}
 
           {/* Article Footer */}
           <footer className="mt-16 pt-8 border-t border-gray-200">

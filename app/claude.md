@@ -451,6 +451,40 @@ app/
     - conversation_starters (TEXT[]) - Opening conversation prompts
     - generated_at timestamp
 
+55. **automation_rules**
+    - Tutor automation rule configurations
+    - `trigger_type` - lesson_completed, student_inactive, package_low_balance, trial_completed_no_purchase
+    - `trigger_settings` (JSONB) - Type-specific configuration (days_inactive, balance_threshold, etc.)
+    - `audience_type` - all_students or specific_student
+    - `email_subject`, `email_body` - Message templates with variable placeholders
+    - `is_active` - Toggle for enabling/disabling rule
+    - `cooldown_hours` - Minimum hours between sends per student
+
+56. **automation_events**
+    - Event queue for pending automations
+    - `rule_id` (FK to automation_rules)
+    - `student_id` (FK to students)
+    - `scheduled_for` - When to process the event
+    - `requires_condition_check` - Re-verify conditions at send time
+    - `condition_check_data` (JSONB) - Data for condition verification
+    - `retry_count`, `max_retries`, `next_retry_at` - Retry logic
+    - `status` - pending, processing, sent, skipped, failed
+
+57. **automation_cooldowns**
+    - Prevents duplicate sends within cooldown period
+    - `tutor_id`, `student_id`, `rule_id` - Core identifiers
+    - `context_key` - Package-specific cooldowns (e.g., package ID)
+    - `last_sent_at` - Timestamp of last send
+    - Primary key: (tutor_id, student_id, rule_id, context_key)
+
+58. **automation_health_stats** (VIEW)
+    - Health monitoring aggregates for automation system
+    - `pending_count` - Events awaiting processing
+    - `sent_24h` - Events sent in last 24 hours
+    - `skipped_24h` - Events skipped in last 24 hours
+    - `failed_24h` - Events failed in last 24 hours
+    - `avg_processing_seconds` - Average processing time
+
 ---
 
 ## 3. CORE FEATURES (Working & Functional)
@@ -1159,6 +1193,55 @@ booking_new, booking_confirmed, booking_cancelled, booking_reminder, payment_rec
 
 ---
 
+### Feature: Automation Rules
+
+**What it does**: Automated messaging system with 4 trigger types for student engagement and retention.
+
+**Where the code lives**:
+- Pages: `/app/(dashboard)/settings/automations/`
+- Actions: `/lib/actions/automations.ts`
+- Components: `/components/automations/`
+- Cron routes: `/app/api/cron/process-automations/`, `scan-inactive-students/`, `scan-package-balances/`
+
+**How it works**:
+1. Tutor configures automation rules in settings
+2. Events trigger automation creation (lesson completed, trial conversion, etc.)
+3. Events queued in `automation_events` with `scheduled_for` timestamp
+4. Cron jobs process pending events and perform daily scans
+5. Condition checking at send time (e.g., verify student hasn't purchased)
+6. Messages sent via email with template variable substitution
+7. Cooldowns prevent duplicate sends per student/rule/context
+
+**Trigger Types**:
+- `lesson_completed` - Post-lesson follow-up (immediate)
+- `student_inactive` - Re-engagement for inactive students (scanned daily)
+- `package_low_balance` - Low balance alerts (scanned daily)
+- `trial_completed_no_purchase` - Trial conversion nudge (delayed 24h)
+
+**Features**:
+- Scheduled execution with `scheduled_for` support
+- Condition checking at send time (e.g., verify student hasn't purchased)
+- Retry logic with exponential backoff (5, 10, 20 min intervals, max 3 retries)
+- Email suppression (opt-out) checking
+- Configurable cooldowns per trigger type
+- Context-aware cooldowns (e.g., per-package for low balance alerts)
+
+**Template Variables**:
+- `{{student_name}}` - Student's full name
+- `{{tutor_name}}` - Tutor's full name
+- `{{package_remaining}}` - Remaining package minutes/lessons
+- `{{booking_link}}` - Tutor's booking page URL
+
+**Key actions**:
+- `getAllAutomationRules()` - Fetch all tutor's rules
+- `activateAutomationRule(triggerType)` - One-click activation with defaults
+- `updateAutomationRuleById(ruleId, input)` - Update rule settings
+- `toggleAutomationRuleById(ruleId)` - Pause/resume rule
+- `processAutomationEvents()` - Process pending events (cron)
+- `getAutomationActivity(limit)` - Recent event history
+
+---
+
 ### Feature: Marketplace Sales Dashboard
 
 **What it does**: Real-time sales dashboard for digital products with tiered commission tracking.
@@ -1777,6 +1860,9 @@ English, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese,
 - `POST /api/cron/homework-reminders` - Send homework reminders
 - `POST /api/cron/lesson-analysis` - Analyze recordings and generate AI insights (Studio)
 - `POST /api/cron/generate-briefings` - Generate AI lesson briefings for upcoming lessons
+- `POST /api/cron/process-automations` - Process pending automation events (every 5 min)
+- `POST /api/cron/scan-inactive-students` - Scan for inactive students (daily 9am)
+- `POST /api/cron/scan-package-balances` - Scan for low package balances (daily 9am)
 
 **AI Practice**:
 - `POST /api/practice/chat` - AI conversation with grammar corrections
@@ -2139,6 +2225,17 @@ Located in `/lib/actions/`:
 - `generateLessonBriefing(bookingId)` - Generate AI briefing
 - `getStudentContext(studentId)` - Aggregate student data for briefing
 - `getUpcomingLessonsWithBriefings()` - Dashboard widget data
+
+**Automations** (`automations.ts`):
+- `getAllAutomationRules()` - Fetch all tutor's automation rules
+- `getAutomationRule(triggerType)` - Fetch specific rule by trigger
+- `activateAutomationRule(triggerType)` - Create and activate with defaults
+- `updateAutomationRuleById(ruleId, input)` - Update rule configuration
+- `toggleAutomationRuleById(ruleId)` - Toggle active status
+- `deleteAutomationRuleById(ruleId)` - Delete rule
+- `getAutomationActivity(limit)` - Get recent automation events
+- `processAutomationEvents()` - Process pending events (cron-only)
+- `getStudentsForSelector()` - Get students for audience selector
 
 ### SEO Utilities
 
@@ -2594,6 +2691,30 @@ TutorLingua is positioned as **complementary to marketplaces**, not competitive:
 ---
 
 ## IMPLEMENTATION LOG
+
+### 24 January 2026: Automation Feature Expansion
+
+**Automation Rules System**:
+- Added 4 trigger types: lesson_completed, student_inactive, package_low_balance, trial_completed_no_purchase
+- New settings page at `/settings/automations` for managing rules
+- 3 new cron jobs for event processing and daily scans
+- Retry logic with exponential backoff (max 3 retries)
+- Configurable cooldowns per trigger type with context_key support
+- Condition checking at send time (e.g., verify trial student hasn't purchased)
+- Email suppression checking for opt-out compliance
+- Template variables for personalized messages
+- Health monitoring view `automation_health_stats`
+
+**Files Created**:
+- `app/api/cron/process-automations/route.ts` - Event processor (5-min cron)
+- `app/api/cron/scan-inactive-students/route.ts` - Inactive student scanner
+- `app/api/cron/scan-package-balances/route.ts` - Low balance scanner
+- `components/automations/AutomationTemplateCard.tsx` - Template cards for all triggers
+- `lib/actions/automations.ts` - Server actions with full CRUD
+
+**Migration**: `20260125200000_automations.sql`
+
+---
 
 ### 14 January 2026: Webhook Observability & Support System
 

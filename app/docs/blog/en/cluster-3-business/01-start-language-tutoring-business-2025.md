@@ -31,6 +31,17 @@ alternateLocale:
   locale: es
   slug: empezar-negocio-tutoria-idiomas-2025
 position: authority
+faqs:
+  - question: "How much money can you make as a private language tutor?"
+    answer: "Full-time language tutors typically earn $40,000-80,000/year depending on specialization, location, and hours taught. Part-time tutors (15-20 hours/week) average $20,000-35,000. Specialized tutors (IELTS prep, business language) can earn $80-150/hour, significantly increasing earning potential."
+  - question: "What do I need to start a language tutoring business?"
+    answer: "Essential requirements: native or advanced language proficiency, reliable internet, good webcam and microphone, a booking system, and payment processing. Optional but helpful: TEFL certification, teaching experience, and a professional website. You can start with under $500 in equipment."
+  - question: "Do I need a TEFL certificate to start tutoring languages?"
+    answer: "TEFL certification isn't legally required for private tutoring, but it increases credibility and allows you to charge 20-40% higher rates. A TEFL also helps you develop structured teaching methods. For conversation practice focused tutoring, passion and fluency matter more than credentials."
+  - question: "Should I use tutoring platforms like Preply or teach independently?"
+    answer: "Most successful tutors do both: use platforms for student discovery (accepting the 15-33% commission) while building independent infrastructure for direct bookings. This hybrid approach maximizes both reach and earnings over time."
+  - question: "How long does it take to build a profitable tutoring business?"
+    answer: "Expect 3-6 months to establish consistent income with 10-15 regular students. The first month focuses on setup and initial student acquisition. Months 2-3 bring your first repeat students. By month 6, most tutors have stable weekly schedules and can predict monthly income."
 ---
 
 You've been teaching languages, helping friends practice conversation, or watching established tutors on social media and thinking: *I could do this.* You absolutely can. The private language tutoring industry is projected to reach $12.3 billion globally by 2026, and independent tutors who build their own businesses keep 85-100% of their revenue instead of the 40-60% that platform-based tutors typically earn.

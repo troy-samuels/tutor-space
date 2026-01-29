@@ -132,10 +132,14 @@ export function CalendarEventChip({
 export function CalendarColorLegend() {
   const items = [
     { type: "tutorlingua" as const, label: "TutorLingua" },
+    { type: "preply" as const, label: "Preply" },
+    { type: "italki" as const, label: "iTalki" },
+    { type: "verbling" as const, label: "Verbling" },
+    { type: "marketplace" as const, label: "Other" },
     { type: "google" as const, label: "Google" },
     { type: "outlook" as const, label: "Outlook" },
     { type: "blocked" as const, label: "Blocked" },
-    { type: "conflict" as const, label: "External conflict" },
+    { type: "conflict" as const, label: "Conflict" },
   ];
 
   return (

@@ -65,3 +65,16 @@ export function normalizeAndValidateUsernameSlug(input: string): {
   const result = validateNormalizedUsernameSlug(normalized);
   return { normalized, ...result };
 }
+
+export function findFirstValidUsernameSlug(
+  candidates: Array<string | null | undefined>
+): string | null {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const result = normalizeAndValidateUsernameSlug(candidate);
+    if (result.valid) {
+      return result.normalized;
+    }
+  }
+  return null;
+}

@@ -28,6 +28,17 @@ alternateLocale:
   locale: "es"
   slug: "comisiones-preply-explicadas"
 position: "authority"
+faqs:
+  - question: "How much commission does Preply take from tutors in 2025?"
+    answer: "Preply uses a tiered commission system: new tutors pay 33%, which decreases to 25% after 50 hours, 22% after 200 hours, and 18% after 400+ hours taught. Additionally, Preply takes 100% of your first trial lesson with each new student."
+  - question: "Does Preply take money from trial lessons?"
+    answer: "Yes, Preply takes 100% of the trial lesson fee. If you charge $30 for a trial, you receive $0 from that lesson. Preply considers this their customer acquisition cost for connecting you with the new student."
+  - question: "How do I reach the lowest Preply commission tier?"
+    answer: "To reach Preply's lowest commission rate of 18%, you need to complete 400+ teaching hours on the platform. At 20 hours per week, this takes approximately 5 months of consistent teaching."
+  - question: "What's the minimum payout on Preply?"
+    answer: "Preply has a $30 minimum payout threshold and processes payments weekly. You can withdraw earnings via PayPal, Payoneer, or Skrill once your balance exceeds the minimum."
+  - question: "Is Preply worth it for new tutors despite the high commission?"
+    answer: "Preply can be valuable for new tutors seeking student discovery, but the 33% starting commission plus 100% trial fee means you keep less than $14 of every $20 earned initially. Many tutors use Preply for student acquisition while building direct booking systems for repeat students."
 ---
 
 ## Introduction

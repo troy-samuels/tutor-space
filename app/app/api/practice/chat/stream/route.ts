@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { stripe } from "@/lib/stripe";
 import { FREE_TEXT_TURNS, BLOCK_TEXT_TURNS } from "@/lib/practice/constants";
 import { createPracticeChatStream, isPracticeOpenAIConfigured } from "@/lib/practice/openai";
 import {
@@ -88,6 +87,12 @@ export async function POST(request: Request) {
     sessionIdValue = sessionIdValueLocal;
     const sanitizedMessage = message.replace(/\u0000/g, "");
     const trimmedMessage = sanitizedMessage.trim();
+    if (!trimmedMessage) {
+      return new Response(
+        JSON.stringify({ error: "Message is required", code: "INVALID_INPUT", requestId }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     adminClient = createServiceRoleClient();
     if (!adminClient) {
@@ -194,30 +199,56 @@ export async function POST(request: Request) {
     }
 
     const scenario = Array.isArray(session.scenario) ? session.scenario[0] : session.scenario;
-    const maxMessages = scenario?.max_messages || 20;
-    if ((session.message_count || 0) + 2 > maxMessages) {
-      return new Response(
-        JSON.stringify({ error: "Message limit reached", code: "MESSAGE_LIMIT_REACHED", requestId }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
+    const { data: reservation, error: reserveError } = await adminClient.rpc(
+      "reserve_practice_message_slots",
+      { p_session_id: sessionIdValueLocal, p_increment: 2 }
+    );
 
-    // Reserve message slots atomically
-    const { data: reservedSession, error: reserveError } = await adminClient
-      .from("student_practice_sessions")
-      .update({ message_count: (session.message_count || 0) + 2 })
-      .eq("id", sessionIdValueLocal)
-      .eq("message_count", session.message_count || 0)
-      .select("message_count")
-      .maybeSingle();
+    const reservationResult = reservation as {
+      success?: boolean;
+      error?: string;
+      message_count?: number;
+      max_messages?: number;
+    } | null;
 
-    if (reserveError || !reservedSession) {
+    if (reserveError || !reservationResult?.success) {
+      const reservationError = reservationResult?.error;
+
+      if (reservationError === "MESSAGE_LIMIT_REACHED") {
+        return new Response(
+          JSON.stringify({ error: "Message limit reached", code: "MESSAGE_LIMIT_REACHED", requestId }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (reservationError === "SESSION_ENDED") {
+        return new Response(
+          JSON.stringify({ error: "Session has ended", code: "SESSION_ENDED", requestId }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (reservationError === "SESSION_NOT_FOUND") {
+        return new Response(
+          JSON.stringify({ error: "Session not found", code: "SESSION_NOT_FOUND", requestId }),
+          { status: 404, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: "Session busy, please retry", code: "SESSION_BUSY", requestId }),
         { status: 409, headers: { "Content-Type": "application/json" } }
       );
     }
-    reservedMessageCount = reservedSession.message_count;
+
+    if (typeof reservationResult.message_count !== "number") {
+      return new Response(
+        JSON.stringify({ error: "Session busy, please retry", code: "SESSION_BUSY", requestId }),
+        { status: 409, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    reservedMessageCount = reservationResult.message_count;
     initialMessageCount = session.message_count || 0;
 
     // Get usage period and context messages in parallel
@@ -252,35 +283,32 @@ export async function POST(request: Request) {
     const currentTextAllowance = freeTextTurns + (usagePeriod.blocks_consumed * BLOCK_TEXT_TURNS);
 
     if (usagePeriod.text_turns_used >= currentTextAllowance) {
-      if (!student.ai_practice_block_subscription_item_id) {
-        await rollbackReservedMessageCount({
-          adminClient,
-          sessionId: sessionIdValue,
-          reservedMessageCount,
-          initialMessageCount,
-        });
-        return new Response(
-          JSON.stringify({
-            error: "Free allowance exhausted",
-            code: "FREE_TIER_EXHAUSTED",
-            usage: {
-              text_turns_used: usagePeriod.text_turns_used,
-              text_turns_allowance: currentTextAllowance,
-              blocks_consumed: usagePeriod.blocks_consumed,
-            },
-            upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
-            requestId,
-          }),
-          { status: 402, headers: { "Content-Type": "application/json" } }
-        );
-      }
+      await rollbackReservedMessageCount({
+        adminClient,
+        sessionId: sessionIdValue,
+        reservedMessageCount,
+        initialMessageCount,
+      });
+      return new Response(
+        JSON.stringify({
+          error: "Free allowance exhausted",
+          code: "FREE_TIER_EXHAUSTED",
+          usage: {
+            text_turns_used: usagePeriod.text_turns_used,
+            text_turns_allowance: currentTextAllowance,
+            blocks_consumed: usagePeriod.blocks_consumed,
+          },
+          requestId,
+        }),
+        { status: 402, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const { data: incrementResult, error: incrementError } = await adminClient.rpc(
       "increment_text_turn_freemium",
       {
         p_usage_period_id: usagePeriod.id,
-        p_allow_block_overage: !!student.ai_practice_block_subscription_item_id,
+        p_allow_block_overage: false,
       }
     );
 
@@ -309,32 +337,10 @@ export async function POST(request: Request) {
           error: isBlockRequired ? "Free allowance exhausted" : "Unable to track usage",
           code: isBlockRequired ? "FREE_TIER_EXHAUSTED" : "USAGE_PERIOD_ERROR",
           usage,
-          upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
           requestId,
         }),
         { status: isBlockRequired ? 402 : 409, headers: { "Content-Type": "application/json" } }
       );
-    }
-
-    if (incrementResult?.needs_block && student.ai_practice_block_subscription_item_id) {
-      try {
-        const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
-          student.ai_practice_block_subscription_item_id,
-          {
-            quantity: 1,
-            timestamp: Math.floor(Date.now() / 1000),
-            action: "increment",
-          }
-        );
-
-        await adminClient.rpc("record_block_purchase", {
-          p_usage_period_id: usagePeriod.id,
-          p_trigger_type: "text_overflow",
-          p_stripe_usage_record_id: usageRecord.id,
-        });
-      } catch (stripeError) {
-        console.error("[Stream] Stripe usage record failed:", stripeError);
-      }
     }
 
     // Build OpenAI messages
@@ -454,7 +460,7 @@ export async function POST(request: Request) {
               finalData,
               tokensUsed,
               vocabularyFocus,
-              reservedMessageCount: reservedSession.message_count,
+              reservedMessageCount: reservedMessageCount ?? (session.message_count || 0),
             });
           }
 

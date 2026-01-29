@@ -19,6 +19,17 @@ seoKeywords:
 - tutor marketing strategies
 - attract language students
 - grow tutoring business
+faqs:
+  - question: "How can language tutors market themselves in 2025?"
+    answer: "Effective marketing combines social media (Instagram, TikTok for educational content), SEO (ranking for 'Spanish tutor [city]'), platform optimization (Preply/iTalki profiles), and referral systems. Focus on 2-3 channels rather than spreading thin. Content demonstrating teaching ability converts best."
+  - question: "What social media platform is best for language tutors?"
+    answer: "Instagram and TikTok work best for most tutors due to their visual format and educational content performance. LinkedIn excels for business English tutors. YouTube builds long-term authority. Choose platforms where your ideal students spend time and that match your content creation strengths."
+  - question: "How do I get more students without spending on ads?"
+    answer: "Organic strategies: create valuable educational content on social media, optimize your profile for platform search, actively engage in language learning communities, ask satisfied students for referrals, and build SEO through a website or blog. Consistency over 3-6 months beats paid ads for sustainable growth."
+  - question: "Should tutors have their own website?"
+    answer: "Yes, for serious tutoring businesses. A website helps you rank in Google searches, accept direct bookings (avoiding platform commissions), build credibility, and own your online presence. Modern tools like TutorLingua or Squarespace make professional websites achievable in hours, not weeks."
+  - question: "How long does it take to build a personal brand as a tutor?"
+    answer: "Expect 3-6 months of consistent content to build meaningful visibility. The compound effect takes time: early posts reach few people, but consistent valuable content builds audience and trust. After 6-12 months, many tutors have enough organic reach to fill their schedules without platform dependency."
 ---
 
 # Marketing for Language Tutors: How to Get Found by Students in 2025

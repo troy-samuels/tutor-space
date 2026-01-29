@@ -19,6 +19,17 @@ seoKeywords:
 - rank on Google tutors
 - local SEO tutors
 - language tutor SEO
+faqs:
+  - question: "How can language tutors rank on Google?"
+    answer: "Create a website targeting keywords like 'Spanish tutor [city]' or 'online French lessons.' Include your name + 'tutor' in page titles. Write helpful blog content answering common language learning questions. Collect Google reviews from students. Ensure your site is mobile-friendly and fast-loading."
+  - question: "Do tutors need their own website for SEO?"
+    answer: "Yes, your own website is essential for SEO. Platform profiles (Preply, iTalki) compete against thousands of tutors. Your website can rank for specific searches like 'business English tutor Boston' with far less competition. Even a simple one-page site can rank well with proper optimization."
+  - question: "What keywords should language tutors target?"
+    answer: "Target local terms ('French tutor Chicago'), service-specific terms ('IELTS preparation online'), and problem-solving terms ('learn Spanish fast'). Use Google's 'People also ask' for keyword ideas. Start with lower competition long-tail keywords before targeting broad terms."
+  - question: "How long does it take for tutors to rank on Google?"
+    answer: "Expect 3-6 months for new websites to rank for low-competition keywords, 6-12 months for moderate competition. Consistent content publishing and building backlinks accelerates results. Local SEO typically shows faster results than competing for broad national/international terms."
+  - question: "Is local SEO or general SEO better for tutors?"
+    answer: "Both matter, but local SEO often delivers faster results. Target 'tutor + your city' even for online services—people often search locally first. Google Business Profile helps local rankings. For purely online tutoring, focus on language-specific and service-specific keywords instead of geographic terms."
 ---
 
 # SEO for Tutors: How to Rank Your Tutor Website on Google

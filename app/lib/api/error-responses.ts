@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 export type ApiErrorCode =
@@ -8,12 +9,15 @@ export type ApiErrorCode =
   | "rate_limited"
   | "service_unavailable"
   | "conflict"
-  | "internal_error";
+  | "internal_error"
+  | (string & {});
 
 export type ApiErrorResponse = {
+  success: false;
   error: string;
   message: string;
   code: ApiErrorCode;
+  requestId: string;
   details?: Record<string, unknown>;
 };
 
@@ -22,13 +26,22 @@ type ErrorResponseOptions = {
   code?: ApiErrorCode;
   details?: Record<string, unknown>;
   extra?: Record<string, unknown>;
+  requestId?: string;
+  headers?: HeadersInit;
 };
 
 export function errorResponse(message: string, options: ErrorResponseOptions = {}) {
+  const resolvedRequestId =
+    options.requestId ??
+    (typeof options.extra?.requestId === "string" ? options.extra.requestId : undefined) ??
+    randomUUID();
+
   const payload: ApiErrorResponse & Record<string, unknown> = {
+    success: false,
     error: message,
     message,
     code: options.code ?? "internal_error",
+    requestId: resolvedRequestId,
   };
 
   if (options.details) {
@@ -36,10 +49,18 @@ export function errorResponse(message: string, options: ErrorResponseOptions = {
   }
 
   if (options.extra) {
-    Object.assign(payload, options.extra);
+    const {
+      requestId: _requestId,
+      success: _success,
+      error: _error,
+      message: _message,
+      code: _code,
+      ...extra
+    } = options.extra;
+    Object.assign(payload, extra);
   }
 
-  return NextResponse.json(payload, { status: options.status ?? 500 });
+  return NextResponse.json(payload, { status: options.status ?? 500, headers: options.headers });
 }
 
 export function badRequest(message: string, options?: Omit<ErrorResponseOptions, "code" | "status">) {

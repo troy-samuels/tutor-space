@@ -15,6 +15,8 @@ import { ControlBar } from "./ControlBar";
 import { cn } from "@/lib/utils";
 import { User, Mic, MicOff, SignalLow, SignalMedium, SignalHigh } from "lucide-react";
 import { useLiveKitQualityMonitor, type QualityMetrics } from "@/lib/hooks/useLiveKitQualityMonitor";
+import { ConnectionQualityIndicator } from "./ConnectionQualityIndicator";
+import { ReconnectionToast } from "./ReconnectionOverlay";
 
 export interface VideoStageProps {
   roomName: string;
@@ -57,7 +59,15 @@ export function VideoStage({ roomName, isTutor, recordingEnabled, onLeave }: Vid
 
   return (
     <div className="h-full relative bg-slate-950 overflow-hidden">
-      {/* Quality overlay */}
+      {/* Reconnection toast notification */}
+      <ReconnectionToast />
+
+      {/* Connection quality indicator (top-left) */}
+      <div className="absolute top-4 left-4 z-20">
+        <ConnectionQualityIndicator showTips={true} />
+      </div>
+
+      {/* Quality overlay (top-right) */}
       <QualityOverlay metrics={metrics} isDegraded={isDegraded} />
 
       <div className="flex h-full flex-col p-2 sm:p-4 pb-20 sm:pb-24">
@@ -109,7 +119,9 @@ interface ParticipantVideoTileProps {
 function ParticipantVideoTile({ compact = false }: ParticipantVideoTileProps) {
   const trackRef = useMaybeTrackRefContext();
   const { identity, name } = useParticipantInfo();
-  const { quality } = useConnectionQualityIndicator();
+  const { quality } = useConnectionQualityIndicator({
+    participant: trackRef?.participant,
+  });
   const isSpeaking = useIsSpeaking();
 
   if (!trackRef) return null;

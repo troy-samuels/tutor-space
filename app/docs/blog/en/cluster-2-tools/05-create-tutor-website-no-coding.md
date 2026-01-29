@@ -16,6 +16,17 @@ alternateLocale:
   locale: "es"
   slug: "crear-web-tutor-sin-programar"
 position: "replacement"
+faqs:
+  - question: "Do I need a website as a language tutor?"
+    answer: "A website isn't essential if you rely entirely on marketplace platforms, but it's crucial for accepting direct bookings, appearing in Google searches, and building credibility. Tutors with professional websites typically earn 25-40% more than those without due to increased trust and discoverability."
+  - question: "What's the easiest way to create a tutor website without coding?"
+    answer: "Purpose-built tutor platforms like TutorLingua create professional tutor sites automatically with booking integration. For DIY, Wix and Squarespace offer drag-and-drop builders with templates. Expect 2-4 hours setup for DIY builders vs. 15-30 minutes for tutor-specific platforms."
+  - question: "How much does a professional tutor website cost?"
+    answer: "DIY options: Wix ($14-23/month), Squarespace ($16-27/month), WordPress ($4-45/month plus hosting). Tutor-specific platforms often include websites with booking systems for $0-29/month. Custom development typically costs $2,000-10,000 and is rarely necessary for tutors."
+  - question: "What pages should a language tutor website include?"
+    answer: "Essential pages: Home (hero with clear value proposition), About (your story and credentials), Services (lesson types with pricing), Testimonials, and a Booking page. Optional but helpful: Blog, FAQ, and Resources pages for SEO and student engagement."
+  - question: "Will my tutor website help me appear in Google searches?"
+    answer: "Yes, a well-optimized website helps you rank for searches like 'Spanish tutor [city]' or 'online French lessons.' Include your target keywords in page titles, headers, and content. Collect Google reviews and ensure your site is mobile-friendly for best SEO results."
 ---
 
 # How to Create a Professional Tutor Website Without Coding

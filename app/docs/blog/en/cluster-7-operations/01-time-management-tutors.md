@@ -17,6 +17,17 @@ lang: en
 featured: true
 publishedAt: '2025-01-15'
 updatedAt: '2025-01-15'
+faqs:
+  - question: "How many hours should tutors teach per week to avoid burnout?"
+    answer: "Most full-time tutors sustain 20-30 teaching hours weekly. Beyond 30 hours, quality often suffers and burnout risk increases significantly. Remember: teaching hours don't include prep, admin, and marketing time. A sustainable business typically means 25 teaching hours = 40+ total work hours."
+  - question: "How can tutors reduce time spent on admin tasks?"
+    answer: "Use booking software with integrated payments and automatic reminders. Create templates for common emails and lesson summaries. Batch administrative tasks (e.g., all invoicing on Fridays). Consider all-in-one platforms like TutorLingua that combine scheduling, payments, and student management."
+  - question: "What's the best schedule structure for online tutors?"
+    answer: "Block similar tasks together: morning teaching blocks, afternoon prep time, admin batched to specific days. Leave buffers between lessons (15-30 min) for notes and transitions. Avoid scattered single lessons throughout the day—they fragment focus and multiply transition time."
+  - question: "How do tutors balance multiple time zones?"
+    answer: "Define your available hours clearly and let booking software handle timezone conversion. Consider concentrating different regions on different days (Americas on Tues/Thurs, Europe/Asia on Mon/Wed). Always confirm timezone in booking confirmations. Be mindful of daylight saving changes."
+  - question: "How do I prevent tutoring burnout?"
+    answer: "Set clear boundaries: maximum teaching hours, no same-day bookings, protected personal time. Schedule regular breaks between lessons. Take vacations without guilt (students understand). Diversify income with passive products or group classes. Signs of burnout: dreading lessons, declining quality, chronic fatigue."
 ---
 
 # Time Management for Tutors: How to Teach More Without Burning Out

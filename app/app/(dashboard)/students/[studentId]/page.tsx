@@ -20,7 +20,7 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     notFound();
   }
 
-  const detail = await getStudentDetailData(studentId);
+  const detail = await getStudentDetailData(studentId, { supabase, userId: user.id });
   if (!detail) {
     notFound();
   }

@@ -80,6 +80,12 @@ function getBlogPath(locale: BlogLocale): string {
   return locale === "en" ? "/blog" : `/${locale}/blog`;
 }
 
+// FAQ item for AEO (Answer Engine Optimization)
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
 export interface BlogPostMeta {
   slug: string;
   title: string;
@@ -101,6 +107,10 @@ export interface BlogPostMeta {
   };
   cluster: string;
   position: "complement" | "replacement" | "authority";
+  // AEO (Answer Engine Optimization) fields
+  quickAnswer?: string; // One-sentence answer for AI extraction
+  keyTakeaways?: string[]; // Bullet-point summaries for AI
+  faqs?: FAQItem[]; // Related questions for FAQ schema
 }
 
 export interface BlogPost extends BlogPostMeta {
@@ -158,6 +168,10 @@ export function getAllBlogPosts(locale: BlogLocale = "en"): BlogPostMeta[] {
         alternateLocale: data.alternateLocale,
         cluster: cluster,
         position: data.position || "authority",
+        // AEO fields
+        quickAnswer: data.quickAnswer,
+        keyTakeaways: data.keyTakeaways || [],
+        faqs: data.faqs || [],
       });
     }
   }
@@ -228,6 +242,10 @@ export async function getBlogPost(
           alternateLocale: data.alternateLocale,
           cluster: cluster,
           position: data.position || "authority",
+          // AEO fields
+          quickAnswer: data.quickAnswer,
+          keyTakeaways: data.keyTakeaways || [],
+          faqs: data.faqs || [],
           content: contentHtml,
           rawContent: content,
         };

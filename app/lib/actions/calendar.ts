@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { requireTutor } from "@/lib/auth/guards";
 import {
   SUPPORTED_CALENDAR_PROVIDERS,
   getProviderConfigStatus,
@@ -19,20 +19,6 @@ type CalendarConnectionRow = {
   sync_status: string;
   error_message: string | null;
 };
-
-async function requireTutor() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return { supabase, user: null as null };
-  }
-
-  return { supabase, user };
-}
 
 export async function listCalendarConnections(): Promise<CalendarConnectionStatus[]> {
   const { supabase, user } = await requireTutor();

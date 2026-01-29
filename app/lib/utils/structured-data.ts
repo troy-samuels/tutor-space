@@ -552,3 +552,390 @@ export function generateAggregateRatingSchema(
   };
 }
 
+/**
+ * Generate SpeakableSpecification schema for voice search optimization
+ * Helps voice assistants identify speakable content on pages
+ */
+export function generateSpeakableSchema(
+  contentSelectors: string[],
+  pageUrl: string
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "url": pageUrl,
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": contentSelectors,
+    },
+  };
+}
+
+/**
+ * Generate HowTo schema for tutorial blog posts
+ * Ideal for step-by-step guides
+ */
+export function generateHowToSchema(
+  title: string,
+  description: string,
+  steps: Array<{
+    name: string;
+    text: string;
+    image?: string;
+    url?: string;
+  }>,
+  options?: {
+    totalTime?: string; // ISO 8601 duration, e.g., "PT30M"
+    estimatedCost?: { value: number; currency: string };
+    supply?: string[];
+    tool?: string[];
+    image?: string;
+  }
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": title,
+    "description": description,
+    ...(options?.totalTime && { "totalTime": options.totalTime }),
+    ...(options?.estimatedCost && {
+      "estimatedCost": {
+        "@type": "MonetaryAmount",
+        "value": options.estimatedCost.value,
+        "currency": options.estimatedCost.currency,
+      },
+    }),
+    ...(options?.supply && {
+      "supply": options.supply.map(item => ({
+        "@type": "HowToSupply",
+        "name": item,
+      })),
+    }),
+    ...(options?.tool && {
+      "tool": options.tool.map(item => ({
+        "@type": "HowToTool",
+        "name": item,
+      })),
+    }),
+    ...(options?.image && { "image": options.image }),
+    "step": steps.map((step, index) => ({
+      "@type": "HowToStep",
+      "position": index + 1,
+      "name": step.name,
+      "text": step.text,
+      ...(step.image && { "image": step.image }),
+      ...(step.url && { "url": step.url }),
+    })),
+  };
+}
+
+/**
+ * Generate Course schema for tutor lesson packages
+ * Represents structured learning offerings
+ */
+export function generateCourseSchema(
+  course: {
+    name: string;
+    description: string;
+    language: string;
+    duration?: string; // e.g., "10 sessions"
+    price?: number; // in cents
+    currency?: string;
+    level?: "Beginner" | "Intermediate" | "Advanced" | "All Levels";
+    topics?: string[];
+  },
+  provider: Pick<TutorProfile, "username" | "full_name">
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": course.name,
+    "description": course.description,
+    "inLanguage": course.language,
+    "provider": {
+      "@type": "Person",
+      "@id": `${baseUrl}/profile/${provider.username}`,
+      "name": provider.full_name || provider.username,
+    },
+    "isAccessibleForFree": false,
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "Online",
+      "courseWorkload": course.duration || "Varies",
+      ...(course.level && {
+        "educationalLevel": course.level,
+      }),
+    },
+    ...(course.price && course.currency && {
+      "offers": {
+        "@type": "Offer",
+        "price": course.price / 100,
+        "priceCurrency": course.currency.toUpperCase(),
+        "availability": "https://schema.org/InStock",
+        "url": `${baseUrl}/book/${provider.username}`,
+      },
+    }),
+    ...(course.topics && course.topics.length > 0 && {
+      "about": course.topics.map(topic => ({
+        "@type": "Thing",
+        "name": topic,
+      })),
+    }),
+    "audience": {
+      "@type": "EducationalAudience",
+      "educationalRole": "student",
+      "audienceType": "Language Learners",
+    },
+  };
+}
+
+/**
+ * Generate LocalBusiness schema for location-based tutor pages
+ * Helps with local SEO for city-specific landing pages
+ */
+export function generateLocalBusinessSchema(
+  location: {
+    city: string;
+    country: string;
+    region?: string;
+    latitude?: number;
+    longitude?: number;
+  },
+  service: {
+    language: string;
+    tutorCount?: number;
+    priceRange?: string; // e.g., "$$" or "$25-$75"
+  }
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+  const slug = `${service.language.toLowerCase()}-tutors-${location.city.toLowerCase().replace(/\s+/g, "-")}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    "name": `${service.language} Tutors in ${location.city}`,
+    "description": `Find independent ${service.language} language tutors in ${location.city}, ${location.country}. Book online lessons with professional tutors.`,
+    "url": `${baseUrl}/tutors/${service.language.toLowerCase()}/${location.city.toLowerCase().replace(/\s+/g, "-")}`,
+    "areaServed": {
+      "@type": "City",
+      "name": location.city,
+      ...(location.region && { "containedInPlace": { "@type": "AdministrativeArea", "name": location.region } }),
+      "containedInPlace": {
+        "@type": "Country",
+        "name": location.country,
+      },
+      ...(location.latitude && location.longitude && {
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": location.latitude,
+          "longitude": location.longitude,
+        },
+      }),
+    },
+    "serviceType": "Language Tutoring",
+    ...(service.priceRange && { "priceRange": service.priceRange }),
+    ...(service.tutorCount && {
+      "numberOfEmployees": {
+        "@type": "QuantitativeValue",
+        "value": service.tutorCount,
+        "unitText": "tutors",
+      },
+    }),
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": `${baseUrl}/tutors/${service.language.toLowerCase()}?city=${encodeURIComponent(location.city)}`,
+      },
+      "query-input": "required name=city",
+    },
+    "parentOrganization": {
+      "@type": "Organization",
+      "name": "TutorLingua",
+      "url": baseUrl,
+    },
+  };
+}
+
+/**
+ * Generate VideoObject schema for lesson recordings or promotional videos
+ */
+export function generateVideoSchema(
+  video: {
+    name: string;
+    description: string;
+    thumbnailUrl: string;
+    uploadDate: string;
+    duration?: string; // ISO 8601, e.g., "PT5M30S"
+    contentUrl?: string;
+    embedUrl?: string;
+  }
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    "name": video.name,
+    "description": video.description,
+    "thumbnailUrl": video.thumbnailUrl,
+    "uploadDate": video.uploadDate,
+    ...(video.duration && { "duration": video.duration }),
+    ...(video.contentUrl && { "contentUrl": video.contentUrl }),
+    ...(video.embedUrl && { "embedUrl": video.embedUrl }),
+  };
+}
+
+/**
+ * Generate EducationalOccupationalCredential schema for tutor certifications
+ */
+export function generateCredentialSchema(
+  credential: {
+    name: string;
+    description?: string;
+    credentialCategory: string; // e.g., "TEFL", "CELTA", "Native Speaker"
+    recognizedBy?: string; // e.g., "Cambridge Assessment English"
+    validFor?: string; // ISO 8601 duration
+  },
+  holder: Pick<TutorProfile, "username" | "full_name">
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "EducationalOccupationalCredential",
+    "name": credential.name,
+    ...(credential.description && { "description": credential.description }),
+    "credentialCategory": credential.credentialCategory,
+    ...(credential.recognizedBy && {
+      "recognizedBy": {
+        "@type": "Organization",
+        "name": credential.recognizedBy,
+      },
+    }),
+    ...(credential.validFor && { "validFor": credential.validFor }),
+    "credentialHolder": {
+      "@type": "Person",
+      "@id": `${baseUrl}/profile/${holder.username}`,
+      "name": holder.full_name || holder.username,
+    },
+  };
+}
+
+/**
+ * Generate Event schema for live tutoring sessions or group classes
+ */
+export function generateEventSchema(
+  event: {
+    name: string;
+    description: string;
+    startDate: string; // ISO 8601
+    endDate?: string;
+    location?: "Online" | { name: string; address: string };
+    price?: number;
+    currency?: string;
+    maxAttendees?: number;
+    remainingSeats?: number;
+  },
+  organizer: Pick<TutorProfile, "username" | "full_name">
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "EducationEvent",
+    "name": event.name,
+    "description": event.description,
+    "startDate": event.startDate,
+    ...(event.endDate && { "endDate": event.endDate }),
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": event.location === "Online"
+      ? "https://schema.org/OnlineEventAttendanceMode"
+      : "https://schema.org/OfflineEventAttendanceMode",
+    "location": event.location === "Online"
+      ? {
+          "@type": "VirtualLocation",
+          "url": `${baseUrl}/book/${organizer.username}`,
+        }
+      : {
+          "@type": "Place",
+          "name": event.location?.name,
+          "address": event.location?.address,
+        },
+    "organizer": {
+      "@type": "Person",
+      "@id": `${baseUrl}/profile/${organizer.username}`,
+      "name": organizer.full_name || organizer.username,
+    },
+    ...(event.price !== undefined && event.currency && {
+      "offers": {
+        "@type": "Offer",
+        "price": event.price / 100,
+        "priceCurrency": event.currency.toUpperCase(),
+        "availability": event.remainingSeats && event.remainingSeats > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/SoldOut",
+        "url": `${baseUrl}/book/${organizer.username}`,
+        ...(event.maxAttendees && {
+          "inventoryLevel": {
+            "@type": "QuantitativeValue",
+            "value": event.remainingSeats || 0,
+            "maxValue": event.maxAttendees,
+          },
+        }),
+      },
+    }),
+  };
+}
+
+/**
+ * Generate ItemList schema for tutor directory pages
+ */
+export function generateTutorDirectorySchema(
+  tutors: Array<Pick<TutorProfile, "username" | "full_name" | "languages_taught" | "average_rating">>,
+  options?: {
+    language?: string;
+    location?: string;
+    pageUrl?: string;
+  }
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+  const listName = options?.language
+    ? options.location
+      ? `${options.language} Tutors in ${options.location}`
+      : `${options.language} Tutors`
+    : "Language Tutors";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": listName,
+    "description": `Browse ${tutors.length} professional ${listName.toLowerCase()} on TutorLingua`,
+    "url": options?.pageUrl || `${baseUrl}/tutors`,
+    "numberOfItems": tutors.length,
+    "itemListElement": tutors.slice(0, 10).map((tutor, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Person",
+        "@id": `${baseUrl}/profile/${tutor.username}`,
+        "name": tutor.full_name || tutor.username,
+        "url": `${baseUrl}/profile/${tutor.username}`,
+        "knowsLanguage": tutor.languages_taught?.map(lang => ({
+          "@type": "Language",
+          "name": lang,
+        })),
+        ...(tutor.average_rating && {
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": tutor.average_rating,
+            "bestRating": 5,
+          },
+        }),
+      },
+    })),
+  };
+}
+

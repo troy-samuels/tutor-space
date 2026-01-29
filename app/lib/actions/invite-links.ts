@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireTutor } from "@/lib/auth/guards";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
@@ -18,23 +18,6 @@ function generateSecureToken(): string {
   return randomBytes(16).toString("base64url");
 }
 
-/**
- * Get authenticated tutor or throw error
- */
-async function requireTutor() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw new Error("Not authenticated");
-  }
-
-  return { supabase, user };
-}
-
 // =============================================================================
 // SERVER ACTIONS
 // =============================================================================
@@ -47,7 +30,7 @@ export async function createInviteLink(params: {
   serviceIds?: string[];
 }): Promise<{ success: boolean; link?: InviteLink; error?: string }> {
   try {
-    const { supabase, user } = await requireTutor();
+    const { supabase, user } = await requireTutor({ strict: true });
 
     const token = generateSecureToken();
 
@@ -99,7 +82,7 @@ export async function listInviteLinks(): Promise<{
   error?: string;
 }> {
   try {
-    const { supabase, user } = await requireTutor();
+    const { supabase, user } = await requireTutor({ strict: true });
 
     // Fetch invite links
     const { data: links, error: linksError } = await supabase
@@ -162,7 +145,7 @@ export async function deleteInviteLink(
   linkId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase, user } = await requireTutor();
+    const { supabase, user } = await requireTutor({ strict: true });
 
     const { error } = await supabase
       .from("tutor_invite_links")
@@ -192,7 +175,7 @@ export async function toggleInviteLinkActive(
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { supabase, user } = await requireTutor();
+    const { supabase, user } = await requireTutor({ strict: true });
 
     const { error } = await supabase
       .from("tutor_invite_links")

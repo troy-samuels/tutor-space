@@ -5,12 +5,12 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import {
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
   FREE_TEXT_TURNS,
   FREE_AUDIO_SECONDS,
   BLOCK_TEXT_TURNS,
   BLOCK_AUDIO_SECONDS,
 } from "@/lib/practice/constants";
+import { errorResponse } from "@/lib/api/error-responses";
 import { createPracticeChatCompletion, isPracticeOpenAIConfigured } from "@/lib/practice/openai";
 import {
   GRAMMAR_CATEGORY_SLUGS,
@@ -24,9 +24,6 @@ import {
   checkMonthlyUsageCap,
   rateLimitHeaders,
 } from "@/lib/security/limiter";
-
-// Usage allowance constants
-const BLOCK_PRICE_CENTS = AI_PRACTICE_BLOCK_PRICE_CENTS;
 
 interface StructuredCorrection {
   original: string;
@@ -53,6 +50,33 @@ type PracticeChatRequest = {
   message?: string;
 };
 
+type PracticeUsage = {
+  text_turns_used?: number;
+  text_turns_allowance?: number;
+  audio_seconds_used?: number;
+  audio_seconds_allowance?: number;
+  blocks_consumed?: number;
+};
+
+type PracticeError = Error & {
+  code?: string;
+  retryable?: boolean;
+  usage?: PracticeUsage;
+};
+
+function getPracticeErrorMeta(error: unknown): { code?: string; retryable?: boolean; usage?: PracticeUsage } {
+  if (!error || typeof error !== "object") {
+    return {};
+  }
+
+  const metadata = error as { code?: unknown; retryable?: unknown; usage?: unknown };
+  const code = typeof metadata.code === "string" ? metadata.code : undefined;
+  const retryable = typeof metadata.retryable === "boolean" ? metadata.retryable : undefined;
+  const usage = metadata.usage && typeof metadata.usage === "object" ? (metadata.usage as PracticeUsage) : undefined;
+
+  return { code, retryable, usage };
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -71,45 +95,53 @@ export async function POST(request: Request) {
   let initialMessageCount = 0;
   let sessionIdForCleanup: string | null = null;
   const requestId = randomUUID();
+  const respondError = (
+    message: string,
+    status: number,
+    code: string,
+    options: {
+      details?: Record<string, unknown>;
+      headers?: HeadersInit;
+      extra?: Record<string, unknown>;
+    } = {}
+  ) =>
+    errorResponse(message, {
+      status,
+      code,
+      details: options.details,
+      headers: options.headers,
+      extra: { requestId, ...options.extra },
+    });
 
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "UNAUTHORIZED", requestId },
-        { status: 401 }
-      );
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const body = await parseSanitizedJson<PracticeChatRequest>(request);
     if (!body) {
-      return NextResponse.json(
-        { error: "Invalid request", code: "INVALID_REQUEST", requestId },
-        { status: 400 }
-      );
+      return respondError("Invalid request", 400, "INVALID_REQUEST");
     }
 
     const { sessionId, message } = body;
 
     if (!isNonEmptyString(sessionId) || !isNonEmptyString(message)) {
-      return NextResponse.json(
-        { error: "Session ID and message are required", code: "INVALID_INPUT", requestId },
-        { status: 400 }
-      );
+      return respondError("Session ID and message are required", 400, "INVALID_INPUT");
     }
 
     const sessionIdValue = sessionId.trim();
     const sanitizedMessage = message.replace(/\u0000/g, "");
     const trimmedMessage = sanitizedMessage.trim();
+    if (!trimmedMessage) {
+      return respondError("Message is required", 400, "INVALID_INPUT");
+    }
 
     adminClient = createServiceRoleClient();
     if (!adminClient) {
-      return NextResponse.json(
-        { error: "Service unavailable", code: "SERVICE_UNAVAILABLE", requestId },
-        { status: 503 }
-      );
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
     // Verify session exists and user has access
@@ -131,32 +163,26 @@ export async function POST(request: Request) {
           vocabulary_focus,
           grammar_focus,
           max_messages
-        )
+        ),
+        tokens_used,
+        grammar_errors_count,
+        phonetic_errors_count
       `)
       .eq("id", sessionIdValue)
       .single();
 
     if (sessionError || !session) {
-      return NextResponse.json(
-        { error: "Session not found", code: "SESSION_NOT_FOUND", requestId },
-        { status: 404 }
-      );
+      return respondError("Session not found", 404, "SESSION_NOT_FOUND");
     }
 
     if (session.ended_at) {
-      return NextResponse.json(
-        { error: "Session has ended", code: "SESSION_ENDED", requestId },
-        { status: 400 }
-      );
+      return respondError("Session has ended", 400, "SESSION_ENDED");
     }
 
     // MODE ENFORCEMENT: This endpoint only accepts text mode sessions
     // Audio mode sessions must use /api/practice/audio for speech input
     if (session.mode === "audio") {
-      return NextResponse.json(
-        { error: "This session is audio-only. Use the microphone to speak.", code: "MODE_MISMATCH", requestId },
-        { status: 400 }
-      );
+      return respondError("This session is audio-only. Use the microphone to speak.", 400, "MODE_MISMATCH");
     }
 
     sessionIdForCleanup = sessionIdValue;
@@ -173,98 +199,82 @@ export async function POST(request: Request) {
     studentId = student?.id ?? null;
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "UNAUTHORIZED", requestId },
-        { status: 403 }
-      );
+      return respondError("Unauthorized", 403, "UNAUTHORIZED");
     }
 
     // Check if student has AI practice enabled (either free tier or legacy subscription)
     if (!student.ai_practice_enabled && !student.ai_practice_free_tier_enabled) {
-      return NextResponse.json(
-        { error: "AI Practice not enabled. Please enable it first.", code: "PRACTICE_DISABLED", requestId },
-        { status: 403 }
-      );
+      return respondError("AI Practice not enabled. Please enable it first.", 403, "PRACTICE_DISABLED");
     }
 
     // FREEMIUM MODEL: Check if tutor has Studio tier (access gate)
     if (!student.tutor_id) {
-      return NextResponse.json(
-        { error: "No tutor assigned", code: "NO_TUTOR", requestId },
-        { status: 403 }
-      );
+      return respondError("No tutor assigned", 403, "NO_TUTOR");
     }
 
     const tutorHasStudio = await getTutorHasPracticeAccess(adminClient, student.tutor_id);
     if (!tutorHasStudio) {
-      return NextResponse.json(
-        { error: "AI Practice requires tutor Studio subscription", code: "TUTOR_NOT_STUDIO", requestId },
-        { status: 403 }
-      );
+      return respondError("AI Practice requires tutor Studio subscription", 403, "TUTOR_NOT_STUDIO");
     }
 
     if (!await isPracticeOpenAIConfigured()) {
-      return NextResponse.json(
-        {
-          error: "AI practice is temporarily unavailable. Please try again later.",
-          code: "OPENAI_NOT_CONFIGURED",
-          retryable: false,
-          requestId,
-        },
-        { status: 503 }
-      );
+      return respondError("AI practice is temporarily unavailable. Please try again later.", 503, "OPENAI_NOT_CONFIGURED", {
+        extra: { retryable: false },
+      });
     }
 
     // RATE LIMITING: Check monthly cap (Margin Guard)
     const usageCap = await checkMonthlyUsageCap(adminClient, student.id, student.tutor_id);
     if (!usageCap.allowed) {
-      return NextResponse.json(
-        {
-          error: "Monthly practice limit reached. Contact your tutor to upgrade your plan.",
-          code: "MONTHLY_LIMIT_EXCEEDED",
-          usage: { used: usageCap.used, cap: usageCap.cap },
-          requestId,
-        },
-        { status: 403 }
-      );
+      return respondError("Monthly practice limit reached. Contact your tutor to upgrade your plan.", 403, "MONTHLY_LIMIT_EXCEEDED", {
+        extra: { usage: { used: usageCap.used, cap: usageCap.cap } },
+      });
     }
 
     // RATE LIMITING: Check per-minute rate limit (tier-based)
     const rateLimit = await checkAIPracticeRateLimit(student.id, tutorHasStudio);
     if (!rateLimit.success) {
-      return NextResponse.json(
-        { error: "Rate limit exceeded. Please wait before sending more messages.", code: "RATE_LIMIT_EXCEEDED", requestId },
-        { status: 429, headers: rateLimitHeaders(rateLimit) }
-      );
+      return respondError("Rate limit exceeded. Please wait before sending more messages.", 429, "RATE_LIMIT_EXCEEDED", {
+        headers: rateLimitHeaders(rateLimit),
+      });
     }
 
-    // Guard: stay within message limits per session
     const scenario = Array.isArray(session.scenario) ? session.scenario[0] : session.scenario;
-    const maxMessages = scenario?.max_messages || 20;
-    if ((session.message_count || 0) + 2 > maxMessages) {
-      return NextResponse.json(
-        { error: "Message limit reached for this practice session", code: "MESSAGE_LIMIT_REACHED", requestId },
-        { status: 400 }
-      );
+    const { data: reservation, error: reserveError } = await adminClient.rpc(
+      "reserve_practice_message_slots",
+      { p_session_id: sessionIdValue, p_increment: 2 }
+    );
+
+    const reservationResult = reservation as {
+      success?: boolean;
+      error?: string;
+      message_count?: number;
+      max_messages?: number;
+    } | null;
+
+    if (reserveError || !reservationResult?.success) {
+      const reservationError = reservationResult?.error;
+
+      if (reservationError === "MESSAGE_LIMIT_REACHED") {
+        return respondError("Message limit reached for this practice session", 400, "MESSAGE_LIMIT_REACHED");
+      }
+
+      if (reservationError === "SESSION_ENDED") {
+        return respondError("Session has ended", 400, "SESSION_ENDED");
+      }
+
+      if (reservationError === "SESSION_NOT_FOUND") {
+        return respondError("Session not found", 404, "SESSION_NOT_FOUND");
+      }
+
+      return respondError("Message limit reached or session is busy, please retry", 409, "SESSION_BUSY");
     }
 
-    // Atomically reserve two message slots to prevent concurrent overruns
-    const { data: reservedSession, error: reserveError } = await adminClient
-      .from("student_practice_sessions")
-      .update({ message_count: (session.message_count || 0) + 2 })
-      .eq("id", sessionIdValue)
-      .eq("message_count", session.message_count || 0)
-      .select("message_count")
-      .maybeSingle();
-
-    if (reserveError || !reservedSession) {
-      return NextResponse.json(
-        { error: "Message limit reached or session is busy, please retry", code: "SESSION_BUSY", requestId },
-        { status: 409 }
-      );
+    if (typeof reservationResult.message_count !== "number") {
+      return respondError("Unable to reserve message slots", 409, "SESSION_BUSY");
     }
 
-    reservedMessageCount = reservedSession.message_count;
+    reservedMessageCount = reservationResult.message_count;
 
     // FREEMIUM MODEL: Get or create FREE usage period (no Stripe subscription required)
     const { data: usagePeriod, error: periodError } = await adminClient.rpc(
@@ -277,10 +287,7 @@ export async function POST(request: Request) {
 
     if (periodError || !usagePeriod) {
       console.error("[Practice Chat] Failed to get/create usage period:", periodError);
-      return NextResponse.json(
-        { error: "Unable to track usage. Please try again or contact support.", code: "USAGE_PERIOD_ERROR", requestId },
-        { status: 500 }
-      );
+      return respondError("Unable to track usage. Please try again or contact support.", 500, "USAGE_PERIOD_ERROR");
     }
 
     // Calculate current allowance (free tier + any purchased blocks)
@@ -290,24 +297,15 @@ export async function POST(request: Request) {
 
     // FREEMIUM MODEL: Check if free allowance is exhausted
     if (usagePeriod.text_turns_used >= currentTextAllowance) {
-      // Free tier exhausted - check if they have Stripe subscription for blocks
-      if (!student.ai_practice_block_subscription_item_id) {
-        return NextResponse.json(
-          {
-            error: "Free allowance exhausted",
-            code: "FREE_TIER_EXHAUSTED",
-            usage: {
-              text_turns_used: usagePeriod.text_turns_used,
-              text_turns_allowance: currentTextAllowance,
-              blocks_consumed: usagePeriod.blocks_consumed,
-            },
-            upgradeUrl: `/student/practice/buy-credits?student=${student.id}`,
-            requestId,
+      return respondError("Free allowance exhausted", 402, "FREE_TIER_EXHAUSTED", {
+        extra: {
+          usage: {
+            text_turns_used: usagePeriod.text_turns_used,
+            text_turns_allowance: currentTextAllowance,
+            blocks_consumed: usagePeriod.blocks_consumed,
           },
-          { status: 402 } // Payment Required
-        );
-      }
-      // Has block subscription - will auto-purchase below
+        },
+      });
     }
 
     // Track usage updates
@@ -365,9 +363,10 @@ export async function POST(request: Request) {
 
     if (userMsgError) {
       console.error("[Practice Chat] Failed to save user message:", userMsgError);
-      const err = new Error("Failed to save message");
-      (err as any).code = "DATABASE_ERROR";
-      (err as any).retryable = true;
+      const err: PracticeError = Object.assign(new Error("Failed to save message"), {
+        code: "DATABASE_ERROR",
+        retryable: true,
+      });
       throw err;
     }
 
@@ -387,9 +386,10 @@ export async function POST(request: Request) {
       });
     } catch (openaiError) {
       console.error("[Practice Chat] OpenAI API error:", openaiError);
-      const err = new Error("AI service temporarily unavailable");
-      (err as any).code = "OPENAI_ERROR";
-      (err as any).retryable = true;
+      const err: PracticeError = Object.assign(new Error("AI service temporarily unavailable"), {
+        code: "OPENAI_ERROR",
+        retryable: true,
+      });
       throw err;
     }
 
@@ -397,9 +397,10 @@ export async function POST(request: Request) {
       ? completion.choices[0]?.message?.content
       : null;
     if (!rawContent) {
-      const err = new Error("AI service returned an empty response");
-      (err as any).code = "OPENAI_EMPTY_RESPONSE";
-      (err as any).retryable = true;
+      const err: PracticeError = Object.assign(new Error("AI service returned an empty response"), {
+        code: "OPENAI_EMPTY_RESPONSE",
+        retryable: true,
+      });
       throw err;
     }
     const tokensUsed = completion.usage?.total_tokens || 0;
@@ -426,9 +427,10 @@ export async function POST(request: Request) {
 
     if (assistantMsgError) {
       console.error("[Practice Chat] Failed to save assistant message:", assistantMsgError);
-      const err = new Error("Failed to save AI response");
-      (err as any).code = "DATABASE_ERROR";
-      (err as any).retryable = true;
+      const err: PracticeError = Object.assign(new Error("Failed to save AI response"), {
+        code: "DATABASE_ERROR",
+        retryable: true,
+      });
       throw err;
     }
 
@@ -474,14 +476,14 @@ export async function POST(request: Request) {
     }
 
     // Update session stats including error counts
-    const currentTokens = (session as any).tokens_used || 0;
-    const currentGrammar = (session as any).grammar_errors_count || 0;
-    const currentPhonetic = (session as any).phonetic_errors_count || 0;
+    const currentTokens = session.tokens_used ?? 0;
+    const currentGrammar = session.grammar_errors_count ?? 0;
+    const currentPhonetic = session.phonetic_errors_count ?? 0;
 
     await adminClient
       .from("student_practice_sessions")
       .update({
-        message_count: reservedSession.message_count,
+        message_count: reservedMessageCount ?? (session.message_count || 0),
         tokens_used: currentTokens + tokensUsed,
         grammar_errors_count: currentGrammar + corrections.length,
         phonetic_errors_count: currentPhonetic + phoneticErrors.length,
@@ -491,7 +493,7 @@ export async function POST(request: Request) {
     const incrementResult = await incrementTextTurnWithBillingFreemium({
       adminClient,
       usagePeriodId: usagePeriod.id,
-      blockSubscriptionItemId: student.ai_practice_block_subscription_item_id,
+      blockSubscriptionItemId: null,
       freeTextTurns,
       freeAudioSeconds,
     });
@@ -521,8 +523,7 @@ export async function POST(request: Request) {
         block_purchased: blockPurchased,
         // Freemium model additions
         isFreeUser: updatedUsage.blocks_consumed === 0,
-        canBuyBlocks: true,
-        blockPriceCents: BLOCK_PRICE_CENTS,
+        canBuyBlocks: false,
       },
     });
   } catch (error) {
@@ -545,104 +546,59 @@ export async function POST(request: Request) {
       }
     }
 
-    const errorCode = (error as any)?.code;
-    const isRetryable = (error as any)?.retryable ?? false;
+    const { code: errorCode, retryable: isRetryable = false, usage } = getPracticeErrorMeta(error);
 
     if (errorCode === "OPENAI_ERROR") {
-      return NextResponse.json(
-        {
-          error: "AI service temporarily unavailable",
-          code: "OPENAI_ERROR",
-          retryable: true,
-          requestId,
-        },
-        { status: 503 }
-      );
+      return respondError("AI service temporarily unavailable", 503, "OPENAI_ERROR", {
+        extra: { retryable: true },
+      });
     }
 
     if (errorCode === "OPENAI_EMPTY_RESPONSE") {
-      return NextResponse.json(
-        {
-          error: "AI service temporarily unavailable",
-          code: "OPENAI_EMPTY_RESPONSE",
-          retryable: true,
-          requestId,
-        },
-        { status: 503 }
-      );
+      return respondError("AI service temporarily unavailable", 503, "OPENAI_EMPTY_RESPONSE", {
+        extra: { retryable: true },
+      });
     }
 
     if (errorCode === "DATABASE_ERROR") {
-      return NextResponse.json(
-        {
-          error: "Failed to save message. Please try again.",
-          code: "DATABASE_ERROR",
-          retryable: true,
-          requestId,
-        },
-        { status: 500 }
-      );
+      return respondError("Failed to save message. Please try again.", 500, "DATABASE_ERROR", {
+        extra: { retryable: true },
+      });
     }
 
     if (errorCode === "BLOCK_SUBSCRIPTION_ITEM_MISSING") {
-      return NextResponse.json(
-        {
-          error: "Subscription is missing a metered block item. Please re-subscribe to continue.",
-          code: "BLOCK_SUBSCRIPTION_ITEM_MISSING",
-          retryable: false,
-          requestId,
-        },
-        { status: 400 }
+      return respondError(
+        "Subscription is missing a metered block item. Please re-subscribe to continue.",
+        400,
+        "BLOCK_SUBSCRIPTION_ITEM_MISSING",
+        { extra: { retryable: false } }
       );
     }
 
     if (errorCode === "STRIPE_USAGE_FAILED") {
-      return NextResponse.json(
-        {
-          error: "Unable to bill the add-on block right now. Please try again.",
-          code: "STRIPE_USAGE_FAILED",
-          retryable: true,
-          requestId,
-        },
-        { status: 502 }
-      );
+      return respondError("Unable to bill the add-on block right now. Please try again.", 502, "STRIPE_USAGE_FAILED", {
+        extra: { retryable: true },
+      });
     }
 
     if (errorCode === "TEXT_INCREMENT_FAILED") {
-      return NextResponse.json(
-        {
-          error: "Unable to track usage at the moment. Please retry.",
-          code: "TEXT_INCREMENT_FAILED",
-          retryable: true,
-          requestId,
-        },
-        { status: 409 }
-      );
+      return respondError("Unable to track usage at the moment. Please retry.", 409, "TEXT_INCREMENT_FAILED", {
+        extra: { retryable: true },
+      });
     }
 
     if (errorCode === "BLOCK_REQUIRED") {
-      return NextResponse.json(
-        {
-          error: "Free allowance exhausted",
-          code: "FREE_TIER_EXHAUSTED",
-          usage: (error as any).usage,
-          upgradeUrl: `/student/practice/buy-credits?student=${studentId ?? ""}`,
-          retryable: false,
-          requestId,
-        },
-        { status: 402 }
-      );
+      return respondError("Free allowance exhausted", 402, "FREE_TIER_EXHAUSTED", {
+        extra: { usage, retryable: false },
+      });
     }
 
     // Generic fallback with retryable context preserved
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to process message",
-        code: errorCode || "UNKNOWN_ERROR",
-        retryable: isRetryable,
-        requestId,
-      },
-      { status: 500 }
+    return respondError(
+      error instanceof Error ? error.message : "Failed to process message",
+      500,
+      errorCode || "UNKNOWN_ERROR",
+      { extra: { retryable: isRetryable } }
     );
   }
 }
@@ -838,18 +794,20 @@ async function incrementTextTurnWithBillingFreemium(params: {
 
     // If the RPC explicitly signals block required, bubble a typed error
     if (incrementResult?.error === "BLOCK_REQUIRED") {
-      const err = new Error("Block required");
-      (err as any).code = "BLOCK_REQUIRED";
-      (err as any).usage = {
-        text_turns_used: incrementResult.text_turns_used,
-        text_turns_allowance: incrementResult.text_turns_allowance,
-        blocks_consumed: incrementResult.blocks_consumed,
-      };
+      const err: PracticeError = Object.assign(new Error("Block required"), {
+        code: "BLOCK_REQUIRED",
+        usage: {
+          text_turns_used: incrementResult.text_turns_used,
+          text_turns_allowance: incrementResult.text_turns_allowance,
+          blocks_consumed: incrementResult.blocks_consumed,
+        },
+      });
       throw err;
     }
 
-    const err = new Error("Failed to increment text turn");
-    (err as any).code = "TEXT_INCREMENT_FAILED";
+    const err: PracticeError = Object.assign(new Error("Failed to increment text turn"), {
+      code: "TEXT_INCREMENT_FAILED",
+    });
     throw err;
   }
 
@@ -864,7 +822,7 @@ async function incrementTextTurnWithBillingFreemium(params: {
 
     try {
       // Record metered usage on Stripe
-      const usageRecord = await (stripe.subscriptionItems as any).createUsageRecord(
+      const usageRecord = await stripe.subscriptionItems.createUsageRecord(
         blockSubscriptionItemId,
         {
           quantity: 1,
@@ -900,8 +858,9 @@ async function incrementTextTurnWithBillingFreemium(params: {
     .single();
 
   if (fetchError || !updatedUsage) {
-    const err = new Error("Failed to fetch updated usage");
-    (err as any).code = "TEXT_INCREMENT_FAILED";
+    const err: PracticeError = Object.assign(new Error("Failed to fetch updated usage"), {
+      code: "TEXT_INCREMENT_FAILED",
+    });
     throw err;
   }
 

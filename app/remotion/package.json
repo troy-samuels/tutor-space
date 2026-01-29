@@ -1,0 +1,25 @@
+{
+  "name": "remotion-videos",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "ts-node scripts/render.ts",
+    "generate": "ts-node scripts/generate-video.ts",
+    "batch": "ts-node scripts/batch-generate.ts",
+    "build": "remotion bundle"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.242",
+    "@remotion/cli": "^4.0.242",
+    "@remotion/google-fonts": "^4.0.409",
+    "@remotion/renderer": "^4.0.242",
+    "gray-matter": "^4.0.3",
+    "remotion": "^4.0.242"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}

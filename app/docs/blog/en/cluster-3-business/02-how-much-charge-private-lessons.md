@@ -30,6 +30,17 @@ alternateLocale:
   locale: es
   slug: cuanto-cobrar-clases-particulares
 position: authority
+faqs:
+  - question: "How much should a new language tutor charge per hour?"
+    answer: "New tutors typically start at $15-25/hour to build reviews and experience. After 3-6 months with positive testimonials, increase to $30-45/hour. Avoid pricing below $15 as it signals low quality and attracts uncommitted students who frequently cancel."
+  - question: "How much do professional language tutors charge?"
+    answer: "Experienced tutors charge $30-50/hour for general language instruction. Specialized tutors (IELTS prep, business language, medical terminology) command $50-100+/hour. Native speakers from target-language countries typically charge 15-25% more than non-native tutors."
+  - question: "Should I charge different rates for different types of lessons?"
+    answer: "Yes, vary pricing by lesson type: trial lessons at $0-15 for 30 minutes, standard lessons at your base rate, and specialized lessons (exam prep, business) at 30-50% premium. This allows flexibility while capturing higher value from specialized work."
+  - question: "When should I raise my tutoring rates?"
+    answer: "Raise rates when you're consistently booked 80%+ of your available slots, have 20+ positive reviews, or after gaining new credentials. Give existing students 2-4 weeks notice and consider grandfathering loyal students briefly. Most students accept reasonable 10-20% increases."
+  - question: "Is it better to charge per lesson or offer packages?"
+    answer: "Offer both: per-lesson pricing for new students testing your services, and packages (5, 10, 20 lessons) with a 10-15% discount for committed learners. Package buyers complete 80% more total lessons and provide predictable monthly income."
 ---
 
 You're staring at the "Set Your Hourly Rate" field and feeling paralyzed. Too high and nobody books. Too low and you can't pay rent. The psychology of pricing makes this decision feel massive.

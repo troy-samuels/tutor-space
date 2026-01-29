@@ -11,16 +11,11 @@ import {
   ArrowLeft,
   Loader2,
   Mic,
-  Zap,
   Gift,
-  CreditCard,
 } from "lucide-react";
 import {
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
   FREE_AUDIO_MINUTES,
   FREE_TEXT_TURNS,
-  BLOCK_AUDIO_MINUTES,
-  BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
 
 interface SubscribeClientProps {
@@ -38,7 +33,6 @@ interface SubscriptionStatus {
 
 export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClientProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [isEnabling, setIsEnabling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
@@ -94,50 +88,12 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
     }
   };
 
-  // Buy credits (set up block subscription)
-  const handleBuyCredits = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/practice/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.code === "ALREADY_SUBSCRIBED") {
-          setError("You already have credits billing set up. You'll be charged automatically when you exceed your free allowance.");
-        } else if (data.code === "TUTOR_NOT_STUDIO") {
-          setError(`Your tutor (${tutorName}) needs a Studio subscription for AI Practice.`);
-        } else {
-          setError(data.error || "Failed to set up credits");
-        }
-        return;
-      }
-
-      // Redirect to Stripe checkout
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const features = [
     "Real-time grammar corrections",
     "Vocabulary tracking & feedback",
     "Chat topics from your tutor",
     "Session summaries with tips",
   ];
-
-  const blockPriceDollars = (AI_PRACTICE_BLOCK_PRICE_CENTS / 100).toFixed(0);
 
   // Show loading state
   if (isLoadingStatus) {
@@ -148,7 +104,7 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
     );
   }
 
-  // Already has access - show usage info and buy credits option
+  // Already has access - show usage info
   if (status?.hasAccess || status?.isFreeUser) {
     return (
       <div className="mx-auto max-w-lg space-y-6 px-4 py-8">
@@ -172,12 +128,12 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
           </p>
         </div>
 
-        {/* Current plan info */}
+        {/* Current allowance info */}
         <div className="rounded-xl border border-border/50 bg-background p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Gift className="h-5 w-5 text-primary" />
             <span className="font-medium text-foreground">
-              {status?.isFreeUser ? "Free Tier" : "Active Plan"}
+              Monthly allowance
             </span>
           </div>
 
@@ -194,52 +150,11 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
             </div>
           </div>
 
-          {/* Buy more credits option */}
-          {!status?.hasBlockSubscription && (
-            <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">Need more practice?</span>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Set up automatic credits billing. When you exceed your free allowance,
-                blocks will be added automatically at ${blockPriceDollars} each:
-              </p>
-              <p className="text-xs text-muted-foreground mb-3">
-                Each block adds +{BLOCK_AUDIO_MINUTES} audio minutes + {BLOCK_TEXT_TURNS} text turns.
-              </p>
-              <Button
-                onClick={handleBuyCredits}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Setting up...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Unlock more practice ($${blockPriceDollars})
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {status?.hasBlockSubscription && (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm font-medium text-foreground">Auto-billing enabled</span>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                When you exceed your free allowance, credits will be added at ${blockPriceDollars}/block.
-              </p>
-            </div>
-          )}
+          <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
+            <p className="text-sm text-muted-foreground">
+              If you use up your allowance, you&apos;ll see 0 balance remaining. Resets next month.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -313,15 +228,9 @@ export function SubscribeClient({ studentId, tutorId, tutorName }: SubscribeClie
           </div>
         </div>
 
-        {/* Add-on blocks info */}
         <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">Need more?</span>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            If you use up your free allowance, you can buy credit blocks at ${blockPriceDollars} each:
-            +{BLOCK_AUDIO_MINUTES} audio min + {BLOCK_TEXT_TURNS} text turns.
+          <p className="text-xs text-muted-foreground">
+            If you use up your allowance, you&apos;ll see 0 balance remaining. Resets next month.
           </p>
         </div>
 

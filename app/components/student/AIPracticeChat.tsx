@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import {
   Bot,
   Send,
@@ -22,10 +21,6 @@ import { AudioInputButton, type PronunciationAssessment } from "./AudioInputButt
 import { PronunciationFeedback } from "./PronunciationFeedback";
 import { LimitReachedOverlay } from "./LimitReachedOverlay";
 import type { PracticeUsage } from "@/lib/actions/progress";
-import {
-  AI_PRACTICE_BASE_PRICE_CENTS,
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
-} from "@/lib/practice/constants";
 
 export interface ChatMessage {
   id: string;
@@ -110,7 +105,6 @@ export function AIPracticeChat({
     content: string;
     retryable: boolean;
   } | null>(null);
-  const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
   const [endSessionError, setEndSessionError] = useState<string | null>(null);
   const [showLimitOverlay, setShowLimitOverlay] = useState(false);
 
@@ -228,7 +222,6 @@ export function AIPracticeChat({
 
     setError(null);
     setFailedMessage(null);
-    setUpgradeUrl(null);
     setIsLoading(true);
     setIsStreaming(true);
     setStreamingContent("");
@@ -261,7 +254,6 @@ export function AIPracticeChat({
 
         // Handle specific error codes
         if (data.code === "FREE_TIER_EXHAUSTED") {
-          setUpgradeUrl(data.upgradeUrl || null);
           setShowLimitOverlay(true);
           setFailedMessage({ content, retryable: false });
           setIsStreaming(false);
@@ -430,7 +422,6 @@ export function AIPracticeChat({
           mode={mode}
           otherModeAvailable={otherModeAvailable && !!onSwitchMode}
           otherModePercentUsed={otherModePercentUsed}
-          upgradeUrl={upgradeUrl}
           onSwitchMode={onSwitchMode ? handleSwitchMode : undefined}
           onDismiss={onBack}
         />
@@ -664,11 +655,6 @@ export function AIPracticeChat({
                 >
                   <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                   Try Again
-                </Button>
-              )}
-              {upgradeUrl && (
-                <Button asChild size="sm" className="mt-3 w-full">
-                  <Link href={upgradeUrl}>Get more practice credits</Link>
                 </Button>
               )}
             </div>

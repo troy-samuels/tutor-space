@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireTutor } from "@/lib/auth/guards";
 import type {
   SchedulingPreferences,
   RecurringBlockedTime,
@@ -10,20 +10,6 @@ import type {
   TimeOffPeriodInput,
   ExpandedRecurringBlock,
 } from "@/lib/actions/types";
-
-async function requireTutor() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return { supabase, user: null as null };
-  }
-
-  return { supabase, user };
-}
 
 // ============================================
 // SCHEDULING PREFERENCES

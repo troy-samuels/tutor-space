@@ -46,6 +46,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    return NextResponse.json(
+      {
+        error: "Additional practice credits are no longer available. Please wait until next month for your allowance to reset.",
+        code: "PRACTICE_CREDITS_DISABLED",
+      },
+      { status: 410 }
+    );
+
     const rateLimitResult = await enforceCheckoutRateLimit({
       supabaseAdmin,
       userId: user.id,
@@ -92,7 +100,7 @@ export async function POST(request: Request) {
         {
           error: "Already has block subscription",
           code: "ALREADY_SUBSCRIBED",
-          message: "You already have a credits subscription set up. Blocks will be charged automatically when you exceed your free allowance.",
+          message: "Additional practice access is already set up for this account.",
         },
         { status: 400 }
       );
@@ -102,7 +110,7 @@ export async function POST(request: Request) {
     const assignedTutorId = student.tutor_id;
     if (!assignedTutorId) {
       return NextResponse.json(
-        { error: "Student must have an assigned tutor to buy credits" },
+        { error: "Student must have an assigned tutor to continue" },
         { status: 400 }
       );
     }

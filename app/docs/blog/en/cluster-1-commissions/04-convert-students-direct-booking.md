@@ -28,6 +28,17 @@ alternateLocale:
   locale: "es"
   slug: "convertir-estudiantes-reservas-directas"
 position: "complement"
+faqs:
+  - question: "Is it ethical to take students off tutoring platforms for direct booking?"
+    answer: "It depends on how you do it. Actively soliciting students within the platform violates terms of service. However, having your own booking system for students who find you independently through Google, social media, or referrals is completely legitimate and common practice."
+  - question: "When should I offer direct booking to my tutoring students?"
+    answer: "Wait until you've established a strong relationship, typically after 10-20 lessons. At that point, if a student searches for you online and finds your booking page, they can choose where to book. Never actively solicit platform students to leave."
+  - question: "How much should I discount for direct bookings vs marketplace?"
+    answer: "A good formula: charge your marketplace price minus about half the commission difference. If you earn $24 on a $30 Preply lesson (after 20% commission), charge $27-28 direct. Students save money, you earn more, and both parties win."
+  - question: "What do I need to start accepting direct tutoring bookings?"
+    answer: "You need a booking calendar, payment processing (Stripe or PayPal), automated lesson reminders, and a professional landing page. All-in-one platforms like TutorLingua combine these features specifically for tutors, or you can piece together tools like Calendly + Stripe."
+  - question: "Will I lose students if I offer direct booking?"
+    answer: "Students who've been with you for months are loyal to you, not the platform. Most appreciate having a lower-cost option. The key is making it easy for them to find you independently without soliciting inside the marketplace."
 ---
 
 ## Introduction

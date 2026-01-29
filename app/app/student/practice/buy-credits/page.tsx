@@ -6,8 +6,8 @@ import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
 
 export const metadata = {
-  title: "Practice Credits | TutorLingua",
-  description: "Unlock more practice credits",
+  title: "Practice Access | TutorLingua",
+  description: "View your practice access",
 };
 
 export default async function BuyCreditsPage() {

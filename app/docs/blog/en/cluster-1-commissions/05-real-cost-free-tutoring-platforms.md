@@ -28,6 +28,17 @@ alternateLocale:
   locale: "es"
   slug: "costo-real-plataformas-gratuitas"
 position: "authority"
+faqs:
+  - question: "Are tutoring platforms like Preply and iTalki really free to use?"
+    answer: "They're free to join, but charge 15-33% commission on every lesson. On Preply, you also lose 100% of trial lessons. A tutor teaching $2,000/month in lessons may pay $400-600 in commissions. 'Free' platforms have significant ongoing costs."
+  - question: "What are the hidden costs of tutoring marketplaces?"
+    answer: "Beyond commissions, hidden costs include: time spent competing for visibility, lower prices to stay competitive, platform dependency, no direct student relationships, currency conversion fees (2-3%), and opportunity cost of not building your own brand."
+  - question: "How much do tutors really lose to platform commissions per year?"
+    answer: "A full-time tutor earning $40,000 gross on Preply (25% average commission) loses approximately $10,000/year to platform fees. Even on iTalki's 15% rate, that's $6,000/year. These fees continue indefinitely on all students, including long-term repeat clients."
+  - question: "Is it worth using tutoring platforms if the commissions are so high?"
+    answer: "Platforms excel at student discovery and can be worth the commission for acquiring new students. The strategy many successful tutors use: leverage platforms for student acquisition, then build direct booking infrastructure for repeat students."
+  - question: "What's the alternative to paying high tutoring platform fees?"
+    answer: "Build your own booking system for direct student inquiries from social media, referrals, and Google searches. Keep 100% of direct bookings while still using marketplaces for new student discovery. This hybrid approach maximizes both reach and earnings."
 ---
 
 ## Introduction
