@@ -5,7 +5,6 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { insertConversationThread, countBookingsInRange } from "@/lib/repositories/bookings";
 import type { TutorProfileData } from "./types";
-export { requireTutor } from "@/lib/auth/guards";
 
 // ============================================================================
 // Conversation Thread

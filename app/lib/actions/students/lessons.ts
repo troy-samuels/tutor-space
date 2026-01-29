@@ -1,5 +1,3 @@
-"use server";
-
 export * from "./lessons/bookings";
 export * from "./lessons/lessons";
 export * from "./lessons/schedule";
