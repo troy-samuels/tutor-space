@@ -109,14 +109,13 @@ export function EarningsCalculator() {
           <div className="lg:col-span-5 bg-muted/30 p-8 lg:p-10 border-b lg:border-b-0 lg:border-r border-border/40 flex flex-col justify-between relative">
             
             <div className="space-y-10">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg text-foreground/80 tracking-tight">Configuration</h3>
-                <div className="w-24">
+              <div className="flex items-center justify-end">
+                <div className="w-28">
                   <Select
                     value={state.currency}
                     onValueChange={(value) => setState((s) => ({ ...s, currency: value }))}
                   >
-                    <SelectTrigger className="h-8 text-xs font-medium bg-white border-border/60 shadow-sm rounded-full">
+                    <SelectTrigger className="h-9 text-sm font-medium bg-white border border-border shadow-sm rounded-lg px-3">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
