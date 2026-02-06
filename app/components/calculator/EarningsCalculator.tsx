@@ -18,6 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 
+const TUTORLINGUA_MONTHLY_COST = 29; // Pro plan subscription
+
 function formatCurrency(amount: number, currency: string): string {
   const currencyData = SUPPORTED_CURRENCIES.find((c) => c.code === currency);
   const symbol = currencyData?.symbol || "$";
@@ -41,6 +43,7 @@ type EarningsResult = {
   platformFees: number;
   netOnPlatform: number;
   netOnTutorLingua: number;
+  tutorLinguaCost: number;
   monthlySavings: number;
   annualSavings: number;
   commissionRate: number;
@@ -54,18 +57,23 @@ function calculateEarnings(state: CalculatorState): EarningsResult {
 
   const effectiveRate = platformData.rate;
 
+  const tutorLinguaCost = TUTORLINGUA_MONTHLY_COST;
+
   // Special handling for Cambly (fixed hourly rate)
   if (state.platform === "cambly") {
     const camblyHourlyRate = 10.2;
     const camblyEarnings = hoursPerMonth * camblyHourlyRate;
     const platformFees = grossMonthly - camblyEarnings;
+    const netOnTutorLingua = grossMonthly - tutorLinguaCost;
+    const monthlySavings = netOnTutorLingua - camblyEarnings;
     return {
       grossMonthly,
       platformFees: Math.max(0, platformFees),
       netOnPlatform: camblyEarnings,
-      netOnTutorLingua: grossMonthly,
-      monthlySavings: Math.max(0, platformFees),
-      annualSavings: Math.max(0, platformFees * 12),
+      netOnTutorLingua,
+      tutorLinguaCost,
+      monthlySavings: Math.max(0, monthlySavings),
+      annualSavings: Math.max(0, monthlySavings * 12),
       commissionRate: Math.max(0, platformFees / grossMonthly),
       platformData,
     };
@@ -73,7 +81,7 @@ function calculateEarnings(state: CalculatorState): EarningsResult {
 
   const platformFees = grossMonthly * effectiveRate;
   const netOnPlatform = grossMonthly - platformFees;
-  const netOnTutorLingua = grossMonthly; // 0% commission
+  const netOnTutorLingua = grossMonthly - tutorLinguaCost; // After subscription cost
   const monthlySavings = netOnTutorLingua - netOnPlatform;
   const annualSavings = monthlySavings * 12;
 
@@ -82,6 +90,7 @@ function calculateEarnings(state: CalculatorState): EarningsResult {
     platformFees,
     netOnPlatform,
     netOnTutorLingua,
+    tutorLinguaCost,
     monthlySavings,
     annualSavings,
     commissionRate: effectiveRate,
@@ -247,7 +256,7 @@ export function EarningsCalculator() {
                   </AnimatePresence>
                 </div>
                 <p className="text-foreground/60 text-lg">
-                  extra in your pocket every year by switching to direct bookings.
+                  extra per year (after TutorLingua&apos;s {formatCurrency(TUTORLINGUA_MONTHLY_COST, state.currency)}/mo subscription)
                 </p>
               </div>
 
@@ -290,15 +299,18 @@ export function EarningsCalculator() {
                              {formatCurrency(results.netOnTutorLingua, state.currency)} net
                         </span>
                     </div>
-                    <div className="h-4 w-full bg-muted rounded-full overflow-hidden flex relative">
-                        <div 
-                           className="h-full bg-primary" 
-                           style={{ width: '100%' }} 
+                    <div className="h-4 w-full bg-muted rounded-full overflow-hidden flex">
+                        <div
+                           className="h-full bg-primary"
+                           style={{ width: `${(results.netOnTutorLingua / results.grossMonthly) * 100}%` }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20" />
+                        <div
+                           className="h-full bg-amber-400"
+                           style={{ width: `${(results.tutorLinguaCost / results.grossMonthly) * 100}%` }}
+                        />
                     </div>
-                     <div className="flex justify-end text-xs text-primary font-medium">
-                        0% fees
+                     <div className="flex justify-end text-xs text-amber-600 font-medium">
+                        -{formatCurrency(results.tutorLinguaCost, state.currency)}/mo subscription
                      </div>
                  </div>
               </div>
