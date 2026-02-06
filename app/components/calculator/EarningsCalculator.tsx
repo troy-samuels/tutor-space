@@ -138,9 +138,7 @@ export function EarningsCalculator() {
                     onValueChange={(value) => setState((s) => ({ ...s, platform: value }))}
                   >
                     <SelectTrigger className="h-12 bg-white border-border/60 text-base shadow-sm rounded-xl">
-                      <SelectValue>
-                        {PLATFORM_COMMISSIONS[state.platform]?.name || "Select platform"}
-                      </SelectValue>
+                      <span>{PLATFORM_COMMISSIONS[state.platform]?.name || "Select platform"}</span>
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(PLATFORM_COMMISSIONS)
