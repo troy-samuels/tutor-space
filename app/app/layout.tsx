@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Geist_Mono,
   Manrope,
@@ -11,6 +11,8 @@ import { PageViewTracker } from "@/components/providers/PageViewTracker";
 import { GoogleAnalytics } from "@/components/providers/GoogleAnalytics";
 import { defaultLocale, locales } from "@/lib/i18n/config";
 import { CampaignBannerSlot } from "@/components/marketing/CampaignBannerSlot";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -84,11 +86,27 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/brand/logo-icon.svg",
+    icon: [
+      { url: "/brand/logo-icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
     shortcut: "/brand/logo-icon.svg",
-    apple: "/brand/logo-icon.svg",
+    apple: [
+      { url: "/icons/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
   },
-  manifest: "/site.webmanifest",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TutorLingua",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1A1917",
 };
 
 export default async function RootLayout({
@@ -127,6 +145,8 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PageViewTracker />
           {children}
+          <ServiceWorkerRegistration />
+          <InstallPrompt />
         </NextIntlClientProvider>
       </body>
     </html>

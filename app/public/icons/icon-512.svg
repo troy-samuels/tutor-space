@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title>TutorLingua App Icon</title>
+  <desc>Rounded square icon with TutorLingua monogram.</desc>
+  <rect width="512" height="512" rx="112" fill="#1A1917" />
+  <circle cx="256" cy="256" r="186" fill="#E8784D" />
+  <path d="M193 156h126v47h-39v154h-49V203h-38z" fill="#1A1917" />
+  <rect x="175" y="368" width="162" height="20" rx="10" fill="#1A1917" opacity="0.35" />
+</svg>
