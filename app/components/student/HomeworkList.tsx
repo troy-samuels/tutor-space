@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Bot,
   BookOpen,
   CheckCircle,
   FileText,
@@ -31,7 +32,6 @@ import {
   type StudentPracticeData,
   markHomeworkCompleted,
 } from "@/lib/actions/progress";
-import { HomeworkPracticeButton } from "@/components/student/HomeworkPracticeButton";
 import { HomeworkSubmissionForm } from "@/components/student/HomeworkSubmissionForm";
 import { DrillMiniCard } from "@/components/student-auth/DrillMiniCard";
 
@@ -171,6 +171,9 @@ export function HomeworkList({
                 label: item.status,
                 className: "bg-muted text-foreground",
               };
+              const practiceAssignmentId =
+                item.practice_assignment?.id ?? item.practice_assignment_id;
+              const hasPracticeExercises = Boolean(practiceAssignmentId);
               const latestSubmission = item.latest_submission ?? null;
               const reviewBadge = latestSubmission
                 ? reviewStatusStyles[latestSubmission.review_status]
@@ -190,7 +193,7 @@ export function HomeworkList({
                   <CardContent className="p-6">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-foreground">{item.title}</p>
                         <Badge className={`text-xs ${status.className}`}>{status.label}</Badge>
                         {reviewBadge ? (
@@ -198,6 +201,16 @@ export function HomeworkList({
                             {reviewBadge.label}
                           </Badge>
                         ) : null}
+                        <Badge
+                          variant={hasPracticeExercises ? "default" : "outline"}
+                          className={
+                            hasPracticeExercises
+                              ? "border-[#E8784D]/30 bg-[#E8784D]/15 text-[#E8784D]"
+                              : ""
+                          }
+                        >
+                          {hasPracticeExercises ? "Practice available" : "Practice unavailable"}
+                        </Badge>
                       </div>
                       {item.instructions ? (
                         <p className="text-sm text-muted-foreground">{item.instructions}</p>
@@ -273,14 +286,21 @@ export function HomeworkList({
                         {dueLabel}
                       </span>
                       <div className="flex items-center gap-2">
-                        {item.practice_assignment && practiceData?.isSubscribed && (
-                          <HomeworkPracticeButton
-                            practiceAssignmentId={item.practice_assignment.id}
-                            status={item.practice_assignment.status}
-                            sessionsCompleted={item.practice_assignment.sessions_completed}
-                          />
-                        )}
-                        {!practiceData?.isSubscribed && item.practice_assignment && practiceData && (
+                        {practiceAssignmentId ? (
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-[#E8784D] text-[#1A1917] hover:bg-[#E8784D]/90"
+                          >
+                            <Link
+                              href={`/practice/start/${practiceAssignmentId}?source=homework&homeworkId=${item.id}`}
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Start Practice
+                            </Link>
+                          </Button>
+                        ) : null}
+                        {!practiceData?.isSubscribed && practiceAssignmentId && practiceData && (
                           <Link
                             href={`/student/practice/subscribe?student=${practiceData.studentId ?? ""}`}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
@@ -367,6 +387,9 @@ export function HomeworkList({
                 const reviewBadge = latestSubmission
                   ? reviewStatusStyles[latestSubmission.review_status]
                   : null;
+                const hasPracticeExercises = Boolean(
+                  item.practice_assignment?.id ?? item.practice_assignment_id
+                );
                 const completedStatus = homeworkStatusStyles.completed;
 
                 return (
@@ -384,6 +407,17 @@ export function HomeworkList({
                               {reviewBadge.label}
                             </Badge>
                           ) : null}
+                          <Badge
+                            variant={hasPracticeExercises ? "default" : "outline"}
+                            className={
+                              hasPracticeExercises
+                                ? "border-[#E8784D]/30 bg-[#E8784D]/15 text-[#E8784D]"
+                                : ""
+                            }
+                          >
+                            <Bot className="mr-1 h-3 w-3" />
+                            {hasPracticeExercises ? "Practice linked" : "No practice"}
+                          </Badge>
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {item.completed_at

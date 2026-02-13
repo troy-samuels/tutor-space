@@ -604,6 +604,7 @@ export async function listPracticeAssignmentsForStudent(
 				instructions,
 				status,
 				due_date,
+				homework_assignment_id,
 				sessions_completed,
 				created_at,
 				scenario:practice_scenarios (

@@ -71,6 +71,7 @@ export interface CreateHomeworkInput {
 	readonly tutorId: string;
 	readonly title: string;
 	readonly instructions?: string | null;
+	readonly topic?: string | null;
 	readonly dueDate?: string | null;
 	readonly bookingId?: string | null;
 	readonly attachments?: HomeworkAttachment[];
@@ -169,6 +170,7 @@ export async function createHomeworkAssignment(
 		booking_id: input.bookingId ?? null,
 		title: input.title.trim(),
 		instructions: input.instructions ?? null,
+		topic: input.topic?.trim() || null,
 		due_date: input.dueDate ?? null,
 		status: input.status ?? "assigned",
 		attachments: normalizeAttachments(input.attachments),
@@ -293,6 +295,47 @@ export async function setHomeworkNotificationSent(
 	}
 }
 
+function normalizePracticeStatus(status: unknown): PracticeAssignmentRef["status"] {
+	if (status === "completed") return "completed";
+	if (status === "in_progress") return "in_progress";
+	return "assigned";
+}
+
+async function getPracticeAssignmentRefsByIds(
+	client: SupabaseClient,
+	assignmentIds: string[]
+): Promise<Map<string, PracticeAssignmentRef>> {
+	const uniqueAssignmentIds = Array.from(new Set(assignmentIds));
+	if (uniqueAssignmentIds.length === 0) {
+		return new Map<string, PracticeAssignmentRef>();
+	}
+
+	const { data, error } = await client
+		.from("practice_assignments")
+		.select("id, status, sessions_completed")
+		.in("id", uniqueAssignmentIds);
+
+	if (error) {
+		throw error;
+	}
+
+	const practiceMap = new Map<string, PracticeAssignmentRef>();
+	(data ?? []).forEach((practice) => {
+		if (!practice?.id || typeof practice.id !== "string") {
+			return;
+		}
+
+		practiceMap.set(practice.id, {
+			id: practice.id,
+			status: normalizePracticeStatus(practice.status),
+			sessions_completed:
+				typeof practice.sessions_completed === "number" ? practice.sessions_completed : 0,
+		});
+	});
+
+	return practiceMap;
+}
+
 /**
  * Get homework assignments for a student (with optional practice assignment join).
  */
@@ -326,13 +369,30 @@ export async function getHomeworkForStudent(
 		throw error;
 	}
 
-	return (data ?? []).map((assignment: Record<string, unknown>) => {
+	const homeworkRows = (data ?? []) as Array<Record<string, unknown>>;
+	const practiceAssignmentIds = homeworkRows
+		.map((assignment) => assignment.practice_assignment_id)
+		.filter((id): id is string => typeof id === "string" && id.length > 0);
+
+	const practiceAssignmentsById = await getPracticeAssignmentRefsByIds(
+		client,
+		practiceAssignmentIds
+	);
+
+	return homeworkRows.map((assignment: Record<string, unknown>) => {
+		const practiceAssignmentId =
+			typeof assignment.practice_assignment_id === "string"
+				? assignment.practice_assignment_id
+				: null;
+
 		return {
 			...assignment,
 			attachments: normalizeAttachments(
 				assignment.attachments as HomeworkAttachment[]
 			),
-			practice_assignment: null,
+			practice_assignment: practiceAssignmentId
+				? practiceAssignmentsById.get(practiceAssignmentId) ?? null
+				: null,
 		};
 	}) as HomeworkAssignment[];
 }

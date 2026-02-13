@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/student/calendar", label: "Book", icon: CalendarPlus },
   { href: "/student/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/student/messages", label: "Messages", icon: MessageSquare },
-  { href: "/student/homework", label: "Homework", icon: ClipboardList },
+  { href: "/student/assignments", label: "Assignments", icon: ClipboardList },
 ];
 
 type StudentBottomNavProps = {
@@ -53,7 +53,7 @@ export function StudentBottomNav({ unreadCount, homeworkCount }: StudentBottomNa
             {item.href === "/student/messages" && hasUnread && (
               <span className="absolute right-6 top-2 h-2.5 w-2.5 rounded-full bg-primary" />
             )}
-            {item.href === "/student/homework" && hasHomework && (
+            {item.href === "/student/assignments" && hasHomework && (
               <span className="absolute right-6 top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground">
                 {homeworkCount! > 9 ? "9+" : homeworkCount}
               </span>

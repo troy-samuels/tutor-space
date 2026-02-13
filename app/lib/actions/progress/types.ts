@@ -56,6 +56,7 @@ export interface PracticeAssignment {
 	instructions: string | null;
 	status: "assigned" | "in_progress" | "completed";
 	due_date: string | null;
+	homework_assignment_id?: string | null;
 	sessions_completed: number;
 	scenario?: {
 		id: string;
@@ -200,6 +201,7 @@ export interface AssignHomeworkInput {
 	studentId: string;
 	title: string;
 	instructions?: string | null;
+	topic?: string | null;
 	dueDate?: string | null;
 	bookingId?: string | null;
 	attachments?: import("@/lib/repositories/homework").HomeworkAttachment[];

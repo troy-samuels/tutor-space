@@ -11,6 +11,7 @@ import {
 } from "@/lib/repositories/homework";
 import { recordAudit } from "@/lib/repositories/audit";
 import { sendHomeworkAssignedEmail } from "@/lib/emails/ops-emails";
+import { ensureHomeworkPracticeAssignment } from "@/lib/practice/unified-assignment";
 import { HOMEWORK_STATUSES, type HomeworkStatus as TypeHomeworkStatus } from "@/lib/types/progress";
 import { getStudentContactById, getTutorProfileById } from "@/lib/repositories/progress";
 import {
@@ -73,17 +74,53 @@ export async function assignHomework(
 	}
 
 	try {
-		const homework = await repoCreateHomework(adminClient, {
+		let homework = await repoCreateHomework(adminClient, {
 			studentId: input.studentId,
 			tutorId: user.id,
 			title: input.title,
 			instructions: input.instructions,
+			topic: input.topic,
 			dueDate: input.dueDate,
 			bookingId: input.bookingId,
 			attachments: input.attachments,
 			audioInstructionUrl: input.audioInstructionUrl,
 			status,
 		});
+
+		let linkedPracticeId = homework.practice_assignment_id ?? null;
+
+		// Auto-link topic-based homework to practice so students can launch a single flow.
+		if (homework.topic?.trim()) {
+			try {
+				const linkedPractice = await ensureHomeworkPracticeAssignment(adminClient, {
+					homeworkId: homework.id,
+					tutorId: user.id,
+					studentId: input.studentId,
+					title: homework.title,
+					topic: homework.topic,
+					dueDate: homework.due_date,
+					practiceAssignmentId: homework.practice_assignment_id,
+				});
+
+				if (linkedPractice) {
+					linkedPracticeId = linkedPractice.id;
+					homework = {
+						...homework,
+						practice_assignment_id: linkedPractice.id,
+						practice_assignment: {
+							id: linkedPractice.id,
+							status: linkedPractice.status,
+							sessions_completed: linkedPractice.sessionsCompleted,
+						},
+					};
+				}
+			} catch (practiceLinkError) {
+				// Preserve homework creation even if practice auto-linking fails.
+				logStepError(log, "assignHomework:practice_link_failed", practiceLinkError, {
+					homeworkId: homework.id,
+				});
+			}
+		}
 
 		// Audit Law: Record homework creation
 		await recordAudit(adminClient, {
@@ -125,6 +162,11 @@ export async function assignHomework(
 			// Email the student if we have an address
 			if (studentResult?.email) {
 				const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tutorlingua.co";
+				const normalizedAppUrl = appUrl.replace(/\/+$/, "");
+				const practiceLaunchUrl = linkedPracticeId
+					? `${normalizedAppUrl}/practice/start/${linkedPracticeId}?source=homework&homeworkId=${homework.id}`
+					: undefined;
+
 				await sendHomeworkAssignedEmail({
 					to: studentResult.email,
 					studentName: studentResult.full_name || "Student",
@@ -133,10 +175,8 @@ export async function assignHomework(
 					instructions: input.instructions ?? null,
 					dueDate: input.dueDate ?? null,
 					timezone: null,
-					homeworkUrl: `${appUrl.replace(/\/+$/, "")}/student/library`,
-					practiceUrl: input.bookingId
-						? `${appUrl.replace(/\/+$/, "")}/student/practice`
-						: undefined,
+					homeworkUrl: `${normalizedAppUrl}/student/library`,
+					practiceUrl: practiceLaunchUrl,
 				});
 			}
 		} catch (notificationError) {
@@ -147,6 +187,7 @@ export async function assignHomework(
 		}
 
 		logStep(log, "assignHomework:success", { homeworkId: homework.id });
+		revalidatePath("/student/assignments");
 		return { data: homework };
 	} catch (error) {
 		logStepError(log, "assignHomework:failed", error, { studentId: input.studentId });
@@ -298,6 +339,7 @@ export async function markHomeworkCompleted(
 
 		// Revalidate student progress page
 		revalidatePath("/student/progress");
+		revalidatePath("/student/assignments");
 
 		logStep(log, "markHomeworkCompleted:success", { assignmentId });
 		return { data: homework };

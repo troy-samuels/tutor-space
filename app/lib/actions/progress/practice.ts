@@ -110,6 +110,8 @@ export async function getTutorStudentPracticeData(
 			instructions: a.instructions,
 			status: a.status,
 			due_date: a.due_date,
+			homework_assignment_id:
+				typeof a.homework_assignment_id === "string" ? a.homework_assignment_id : null,
 			sessions_completed: a.sessions_completed || 0,
 			scenario: a.scenario
 				? {
@@ -341,6 +343,8 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
 			instructions: a.instructions,
 			status: a.status,
 			due_date: a.due_date,
+			homework_assignment_id:
+				typeof a.homework_assignment_id === "string" ? a.homework_assignment_id : null,
 			sessions_completed: a.sessions_completed || 0,
 			scenario: a.scenario
 				? {
