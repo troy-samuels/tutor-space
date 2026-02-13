@@ -7,6 +7,7 @@ import {
 } from "@/lib/analysis/lesson-insights";
 import { processEnhancedAnalysis } from "@/lib/analysis/enhanced-processor";
 import { notifyDrillsAssigned } from "@/lib/actions/notifications";
+import { generateExerciseBanksFromLesson } from "@/lib/practice/exercise-generator";
 
 type AdminClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 type TutorApprovalPreference = "require_approval" | "auto_send";
@@ -40,6 +41,23 @@ async function logProcessing(client: ReturnType<typeof createServiceRoleClient>,
     message: params.message,
     meta: params.meta ?? {},
   });
+}
+
+function normalizeExerciseStrings(values: string[], maxItems: number): string[] {
+  const deduped = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const rawValue of values) {
+    const value = rawValue.replace(/\s+/g, " ").trim();
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (deduped.has(key)) continue;
+    deduped.add(key);
+    normalized.push(value);
+    if (normalized.length >= maxItems) break;
+  }
+
+  return normalized;
 }
 
 async function upsertDrills(
@@ -378,10 +396,14 @@ export async function processLessonRecording(
       ? storedApprovalPreference
       : "require_approval";
     const tutorName = tutorProfile?.full_name || undefined;
+    const transcriptText = extractPlainText(recording.transcript_json, {
+      role: "student",
+      tutorName,
+    });
 
     // Try enhanced analysis first
     let useEnhancedAnalysis = true;
-    let enhancedResult = null;
+    let enhancedResult: Awaited<ReturnType<typeof processEnhancedAnalysis>> | null = null;
 
     try {
       enhancedResult = await processEnhancedAnalysis({
@@ -426,6 +448,9 @@ export async function processLessonRecording(
       source_timestamp_seconds?: number | null;
       drill_type?: string;
     }>;
+    let extractedTopics: string[] = [];
+    let extractedGrammarFocus: string[] = [];
+    let extractedVocabulary: string[] = [];
 
     if (useEnhancedAnalysis && enhancedResult) {
       // Use enhanced analysis results
@@ -439,13 +464,22 @@ export async function processLessonRecording(
         l1_interference_level: enhancedResult.l1InterferenceAnalysis.overallLevel,
       };
       allDrills = enhancedResult.legacyDrills;
+      extractedTopics = [
+        ...enhancedResult.lessonObjectives.map((objective) => objective.topic),
+        ...enhancedResult.tutorAnalysis.focusTopics,
+        ...enhancedResult.keyPoints,
+      ];
+      extractedGrammarFocus = [
+        ...enhancedResult.tutorAnalysis.focusGrammar,
+        ...enhancedResult.drillPackage.metadata.grammarFocus,
+      ];
+      extractedVocabulary = [
+        ...enhancedResult.tutorAnalysis.focusVocabulary,
+        ...enhancedResult.drillPackage.metadata.vocabularyFocus,
+      ];
     } else {
       // Fall back to basic analysis
       const basicAnalysis = analyzeTranscript(recording.transcript_json, {
-        role: "student",
-        tutorName,
-      });
-      const transcriptText = extractPlainText(recording.transcript_json, {
         role: "student",
         tutorName,
       });
@@ -464,7 +498,15 @@ export async function processLessonRecording(
       finalSummary = aiSummary && aiSummary.length > 0
         ? `### AI Analysis\n${aiSummary}\n\n${basicAnalysis.summaryMd}`
         : basicAnalysis.summaryMd;
+
+      extractedTopics = basicAnalysis.keyPoints.map((kp) => kp.text);
+      extractedGrammarFocus = grammarErrors.map((error) => error.type);
+      extractedVocabulary = vocabGaps.flatMap((gap) => [gap.target_word, gap.suggestion]);
     }
+
+    const topicsForExercises = normalizeExerciseStrings(extractedTopics, 8);
+    const grammarForExercises = normalizeExerciseStrings(extractedGrammarFocus, 12);
+    const vocabularyForExercises = normalizeExerciseStrings(extractedVocabulary, 20);
 
     await client
       .from("lesson_recordings")
@@ -478,6 +520,52 @@ export async function processLessonRecording(
       .eq("id", recordingId);
 
     const drillResult = await upsertDrills(client, recording, allDrills, approvalPreference);
+
+    // Fire-and-forget: exercise generation failures must not block lesson analysis completion.
+    void generateExerciseBanksFromLesson({
+      recordingId,
+      tutorId: recording.tutor_id,
+      studentId: recording.student_id,
+      bookingId: recording.booking_id ?? null,
+      transcript: transcriptText,
+      topics: topicsForExercises,
+      grammarFocus: grammarForExercises,
+      vocabulary: vocabularyForExercises,
+      homeworkAssignmentId: drillResult?.homeworkId ?? null,
+      practiceAssignmentId: drillResult?.practiceAssignmentId ?? null,
+    })
+      .then((exerciseResult) => {
+        void logProcessing(client, {
+          entityType: "lesson_recording",
+          entityId: recordingId,
+          level: "info",
+          message: "Exercise generation queued from lesson analysis",
+          meta: {
+            generation_status: exerciseResult.status,
+            scenario_id: exerciseResult.scenarioId,
+            practice_assignment_id: exerciseResult.practiceAssignmentId,
+            topic_count: topicsForExercises.length,
+            grammar_focus_count: grammarForExercises.length,
+            vocabulary_count: vocabularyForExercises.length,
+          },
+        }).catch((logError) => {
+          console.error("[Lesson Analysis] Failed to log exercise generation success:", logError);
+        });
+      })
+      .catch((exerciseError) => {
+        console.error("[Lesson Analysis] Exercise generation failed:", exerciseError);
+        void logProcessing(client, {
+          entityType: "lesson_recording",
+          entityId: recordingId,
+          level: "error",
+          message: "Exercise generation failed",
+          meta: {
+            error: exerciseError instanceof Error ? exerciseError.message : String(exerciseError),
+          },
+        }).catch((logError) => {
+          console.error("[Lesson Analysis] Failed to log exercise generation error:", logError);
+        });
+      });
 
     const allowAutoSend = AUTO_SEND_ENABLED && storedApprovalPreference === "auto_send";
     if (drillResult && drillResult.drillsInserted && drillResult.studentUserId && allowAutoSend) {
