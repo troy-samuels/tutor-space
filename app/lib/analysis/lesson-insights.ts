@@ -11,8 +11,8 @@
  * - See: lib/ai/google-compliance.ts
  */
 
-import OpenAI from "openai";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
+import { routedChatCompletion } from "@/lib/ai/model-router";
 import { identifyTutorSpeaker, parseDiarization, separateSpeakers } from "./speaker-diarization";
 
 type TranscriptSegment = {
@@ -333,14 +333,13 @@ export async function analyzeWithOpenAI(transcript: string): Promise<OpenAIAnaly
       sources: ["lesson_recordings.transcript_json"],
     });
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a language learning analyst. Analyze this lesson transcript and identify:
+    const response = await routedChatCompletion(
+      { task: "lesson_analysis" },
+      {
+        messages: [
+          {
+            role: "system",
+            content: `You are a language learning analyst. Analyze this lesson transcript and identify:
 
 1. Grammar errors: Find 0-5 grammar mistakes the student made. For each error, provide:
    - type: one of "subject_verb", "tense", "article", "preposition", "word_order", "conjugation", "other"
@@ -367,16 +366,17 @@ Rules:
 - Use ONLY information that appears in the transcript text. Do not infer or invent mistakes.
 - If you cannot provide an exact verbatim quote for an item, omit that item.
 - If the transcript is mostly from the tutor or there are no clear errors, return empty arrays.`,
-        },
-        {
-          role: "user",
-          content: transcript.slice(0, 8000), // Limit to ~8000 chars to control costs
-        },
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 1500,
-      temperature: 0.3,
-    });
+          },
+          {
+            role: "user",
+            content: transcript.slice(0, 8000), // Limit to ~8000 chars to control costs
+          },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1500,
+        temperature: 0.3,
+      }
+    );
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

@@ -9,7 +9,6 @@ import { resolveBookingMeetingUrl, tutorHasStudioAccess } from "@/lib/utils/clas
 import { getTutorForBooking, getTutorBookings } from "../connections";
 import { getStudentSubscription } from "@/lib/actions/subscriptions";
 import { generateBookableSlots, filterFutureSlots } from "@/lib/utils/slots";
-import type { SubscriptionWithDetails } from "@/lib/subscription";
 import type {
   StudentPackage,
   TutorBookingDetails,

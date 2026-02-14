@@ -174,10 +174,10 @@ export function AssignmentsPageClient({
 
 	return (
 		<div className="space-y-6">
-			<Card className="border-[#2D2B27] bg-[#1A1917] text-[#F5ECE3]">
+			<Card className="border-[#2D2B27] bg-card text-[#F5ECE3]">
 				<CardHeader className="space-y-3">
 					<CardTitle className="flex items-center gap-2 text-xl">
-						<Sparkles className="h-5 w-5 text-[#E8784D]" />
+						<Sparkles className="h-5 w-5 text-primary" />
 						Assignments
 					</CardTitle>
 					<CardDescription className="text-[#C5B9AB]">
@@ -197,7 +197,7 @@ export function AssignmentsPageClient({
 									onClick={() => setActiveTab(tab.id)}
 									className={
 										isActive
-											? "bg-[#E8784D] text-[#1A1917] hover:bg-[#E8784D]/90"
+											? "bg-primary text-background hover:bg-primary/90"
 											: "border border-[#3A3732] text-[#DDD2C6] hover:bg-[#2A2723]"
 									}
 								>
@@ -220,7 +220,7 @@ export function AssignmentsPageClient({
 					className="space-y-3"
 				>
 					{filteredAssignments.length === 0 ? (
-						<Card className="border-dashed border-[#3A3732] bg-[#1A1917] text-[#DDD2C6]">
+						<Card className="border-dashed border-[#3A3732] bg-card text-[#DDD2C6]">
 							<CardContent className="py-10 text-center text-sm">
 								No assignments in this tab yet.
 							</CardContent>
@@ -233,7 +233,7 @@ export function AssignmentsPageClient({
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: index * 0.03, duration: 0.18 }}
 							>
-								<Card className="border-[#2D2B27] bg-[#1A1917] text-[#F5ECE3]">
+								<Card className="border-[#2D2B27] bg-card text-[#F5ECE3]">
 									<CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
 										<div className="space-y-2">
 											<div className="flex flex-wrap items-center gap-2">
@@ -248,7 +248,7 @@ export function AssignmentsPageClient({
 													<Badge
 														className={
 															item.hasPracticeExercises
-																? "border border-[#E8784D]/30 bg-[#E8784D]/15 text-[#E8784D]"
+																? "border border-primary/30 bg-primary/15 text-primary"
 																: "border border-[#3A3732] bg-transparent text-[#BDAF9F]"
 														}
 													>
@@ -275,7 +275,7 @@ export function AssignmentsPageClient({
 												<Button
 													asChild
 													size="sm"
-													className="bg-[#E8784D] text-[#1A1917] hover:bg-[#E8784D]/90"
+													className="bg-primary text-background hover:bg-primary/90"
 												>
 													<Link
 														href={
@@ -306,7 +306,7 @@ export function AssignmentsPageClient({
 													asChild
 													size="sm"
 													variant="outline"
-													className="border-[#E8784D]/40 bg-transparent text-[#E8784D] hover:bg-[#E8784D]/10"
+													className="border-primary/40 bg-transparent text-primary hover:bg-primary/10"
 												>
 													<Link href="/student/practice/subscribe">Unlock Practice</Link>
 												</Button>

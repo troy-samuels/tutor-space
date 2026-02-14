@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { AlertCircle, ArrowLeft } from "lucide-react";
+import { setServerAttributionCookie } from "@/lib/practice/attribution";
 
 interface JoinPageProps {
   params: Promise<{ token: string }>;
@@ -56,6 +57,12 @@ export default async function JoinPage({ params }: JoinPageProps) {
   }
 
   const { tutorUsername, tutorFullName, tutorAvatarUrl, serviceIds } = result.data;
+
+  await setServerAttributionCookie({
+    tutorId: result.data.tutorId,
+    tutorUsername,
+    source: "invite_link",
+  });
 
   // If already logged in, redirect to booking page
   if (user) {

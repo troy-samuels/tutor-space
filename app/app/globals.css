@@ -8,6 +8,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-manrope);
   --font-heading: var(--font-heading);
+  --font-logo: var(--font-logo);
   --font-body: var(--font-body);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -50,6 +51,8 @@
   --color-brand-black: var(--brand-black);
   --color-brand-white: var(--brand-white);
   --color-background-alt: var(--background-alt);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --radius-card: var(--radius-card);
   --bg-page: var(--bg-page);
   --accent-color: var(--accent-color);
@@ -70,13 +73,14 @@ html {
   --radius: 0.625rem;
   --radius-card: 1rem;
 
-  --font-heading: var(--font-manrope);
+  --font-heading: var(--font-mansalva);
+  --font-logo: var(--font-mansalva);
   --font-body: var(--font-manrope);
 
   --bg-page: #FDF8F5;
   --accent-color: #D36135;
 
-  /* New Warm Earthy Palette */
+  /* Warm Earthy Palette */
   --background: #FDF8F5;
   --background-alt: #F5EDE8;
   --foreground: #2D2A26;
@@ -107,6 +111,10 @@ html {
   --destructive: #A24936;
   --destructive-foreground: #ffffff;
 
+  /* Status Colors */
+  --success: #10B981;
+  --warning: #F59E0B;
+
   /* Borderless: Ultra-subtle borders */
   --border: rgba(45, 42, 38, 0.06);
   --input: rgba(45, 42, 38, 0.08);
@@ -129,7 +137,7 @@ html {
   --sidebar-border: rgba(45, 42, 38, 0.06);
   --sidebar-ring: #D36135;
 
-  /* Brand colors (updated) */
+  /* Brand colors */
   --brand-primary: #D36135;
   --brand-secondary: #A24936;
   --brand-accent: #3E5641;
@@ -173,6 +181,10 @@ html {
   --destructive: #C4563F;
   --destructive-foreground: #F5F2EF;
 
+  /* Status Colors */
+  --success: #34D399;
+  --warning: #FBBF24;
+
   /* Borderless: Ultra-subtle borders */
   --border: rgba(245, 242, 239, 0.08);
   --input: rgba(245, 242, 239, 0.1);
@@ -202,6 +214,9 @@ html {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-heading);
   }
 }
 

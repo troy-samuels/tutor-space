@@ -26,6 +26,9 @@ import { createLifetimeCheckoutSession } from "@/lib/payments/lifetime-checkout"
 import { getAppUrl } from "@/lib/auth/redirects";
 import { normalizeSignupUsername } from "@/lib/utils/username-slug";
 import { getTrialDays } from "@/lib/utils/stripe-config";
+import { getServerAttributionCookie } from "@/lib/practice/attribution";
+import { resolveAttributedTutor } from "@/lib/practice/attribution-resolver";
+import { recordTutorReferral } from "@/lib/actions/referrals";
 import type { User } from "@supabase/supabase-js";
 import type { ServiceRoleClient } from "@/lib/supabase/admin";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
@@ -175,6 +178,20 @@ export async function signUp(
 		(formData.get("session_id") as string | null) ??
 		"";
 	const checkoutSessionId = checkoutSessionIdRaw.trim();
+	const referralUsernameFromQuery = (() => {
+		const referer = headersList.get("referer");
+		if (!referer) {
+			return null;
+		}
+
+		try {
+			const refererUrl = new URL(referer, getAppUrl());
+			const ref = refererUrl.searchParams.get("ref")?.trim().toLowerCase();
+			return ref && ref.length > 0 ? ref : null;
+		} catch {
+			return null;
+		}
+	})();
 
 	const log = createRequestLogger(traceId, email);
 	logStep(log, "signUp:start", { email, ip: clientIp, hasCheckoutSession: !!checkoutSessionId });
@@ -499,6 +516,59 @@ export async function signUp(
 	if (!createdUser) {
 		logStep(log, "signUp:no_user_created", { email });
 		return { error: "We couldn't create your account. Please try again." };
+	}
+
+	// Wire tutor referral attribution after profile creation.
+	if (isTutorRole && adminClient) {
+		try {
+			let referrerTutorId: string | null = null;
+			const attribution = await getServerAttributionCookie();
+
+			if (attribution?.source === "referral") {
+				const resolvedAttribution = await resolveAttributedTutor(adminClient, attribution);
+				referrerTutorId = resolvedAttribution?.tutorId ?? null;
+			}
+
+			if (!referrerTutorId && referralUsernameFromQuery) {
+				const { data: referrerProfile } = await adminClient
+					.from("profiles")
+					.select("id")
+					.eq("username", referralUsernameFromQuery)
+					.eq("role", "tutor")
+					.limit(1)
+					.maybeSingle();
+
+				referrerTutorId = referrerProfile?.id ?? null;
+			}
+
+			if (referrerTutorId && referrerTutorId !== createdUser.id) {
+				const { error: updateReferralError } = await adminClient
+					.from("profiles")
+					.update({ referred_by_tutor_id: referrerTutorId })
+					.eq("id", createdUser.id);
+
+				if (updateReferralError) {
+					logStepError(log, "signUp:referral_profile_update_error", updateReferralError, {
+						userId: createdUser.id,
+						referrerTutorId,
+					});
+				} else {
+					await recordTutorReferral({
+						referrerTutorId,
+						referredTutorId: createdUser.id,
+					});
+
+					logStep(log, "signUp:referral_recorded", {
+						userId: createdUser.id,
+						referrerTutorId,
+					});
+				}
+			}
+		} catch (error) {
+			logStepError(log, "signUp:referral_wiring_error", error, {
+				userId: createdUser.id,
+			});
+		}
 	}
 
 	// Claim lifetime purchase using repository

@@ -55,11 +55,11 @@ export function HowItWorks({ howItWorks }: HowItWorksProps) {
                   </div>
 
                   {/* Step content */}
-                  <div className="flex-1 rounded-2xl bg-brand-white p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] md:p-8">
+                  <div className="flex-1 rounded-2xl bg-background p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] md:p-8">
                     <h3 className="mb-3 text-xl font-semibold text-foreground md:text-2xl">
                       {step.title}
                     </h3>
-                    <p className="text-base leading-relaxed text-gray-700 md:text-lg">
+                    <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
                       {step.description}
                     </p>
                   </div>

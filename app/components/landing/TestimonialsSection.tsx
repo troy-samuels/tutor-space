@@ -14,7 +14,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground lg:text-4xl">
             {testimonials.headline}
           </h2>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600">
+          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground">
             {testimonials.subheadline}
           </p>
         </div>
@@ -33,7 +33,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
                 <div className="font-semibold text-foreground text-sm sm:text-base">
                   {testimonials.featured.author}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   {testimonials.featured.role}
                 </div>
               </div>
@@ -59,7 +59,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
                   <div className="font-semibold text-foreground text-xs sm:text-sm">
                     {testimonial.author}
                   </div>
-                  <div className="text-[10px] sm:text-xs text-gray-600">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">
                     {testimonial.role}
                   </div>
                 </div>

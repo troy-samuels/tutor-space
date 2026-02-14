@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Input } from "./input";
 import { Label } from "./label";
-import { Search as SearchIcon, Mail, Eye } from "lucide-react";
+import { Search as SearchIcon, Mail } from "lucide-react";
 
 const meta: Meta<typeof Input> = {
   title: "UI/Input",

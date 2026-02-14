@@ -16,8 +16,8 @@ type RetryOptions = {
   maxDelayMs?: number;
 };
 
-type ChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParamsNonStreaming;
-type ChatCompletionStreamParams = OpenAI.Chat.ChatCompletionCreateParamsStreaming;
+export type ChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParamsNonStreaming;
+export type ChatCompletionStreamParams = OpenAI.Chat.ChatCompletionCreateParamsStreaming;
 
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_BASE_DELAY_MS = 500;
@@ -132,4 +132,28 @@ export async function createPracticeChatStream(
     ...params,
     stream: true,
   });
+}
+
+/**
+ * Routed non-streaming completion helper.
+ * Kept here so existing practice imports can migrate incrementally.
+ */
+export async function routedChatCompletion(
+  config: import("@/lib/ai/model-router").ModelRouterConfig,
+  params: Omit<ChatCompletionParams, "model">
+): Promise<ChatCompletion> {
+  const { routedChatCompletion: routedCall } = await import("@/lib/ai/model-router");
+  return routedCall(config, params);
+}
+
+/**
+ * Routed streaming completion helper.
+ * Kept here so existing practice imports can migrate incrementally.
+ */
+export async function routedChatStream(
+  config: import("@/lib/ai/model-router").ModelRouterConfig,
+  params: Omit<ChatCompletionStreamParams, "model" | "stream">
+): Promise<Stream<ChatCompletionChunk>> {
+  const { routedChatStream: routedStreamCall } = await import("@/lib/ai/model-router");
+  return routedStreamCall(config, params);
 }

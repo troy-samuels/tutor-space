@@ -1,330 +1,410 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import type Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
-import { stripe } from "@/lib/stripe";
-import {
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
-  BLOCK_AUDIO_MINUTES,
-  BLOCK_TEXT_TURNS,
-  FREE_AUDIO_MINUTES,
-  FREE_TEXT_TURNS,
-} from "@/lib/practice/constants";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { stripe } from "@/lib/stripe";
+import { errorResponse } from "@/lib/api/error-responses";
 import { enforceCheckoutRateLimit } from "@/lib/payments/checkout-rate-limit";
-import { getTutorHasPracticeAccess } from "@/lib/practice/access";
+import { getStudentPracticeAccess } from "@/lib/practice/access";
+import {
+  resolveCheckoutPlan,
+  type PracticeCheckoutPlan,
+} from "@/lib/practice/checkout-plans";
 
-// Platform fees for block purchases
-// With $5/block, we take ~38.5% ($1.93) for platform, tutor gets ~61.5% ($3.07)
-const PLATFORM_FIXED_FEE_CENTS = 193; // ~$1.93 platform fee on $5 block
-const PLATFORM_VARIABLE_FEE_PERCENT = 0;
-const APPLICATION_FEE_PERCENT =
-  (PLATFORM_FIXED_FEE_CENTS / AI_PRACTICE_BLOCK_PRICE_CENTS) * 100 + PLATFORM_VARIABLE_FEE_PERCENT; // ~38.6%
+type SubscribeRequestBody = {
+  studentId?: string;
+};
+
+type StudentCheckoutRow = {
+  id: string;
+  user_id: string | null;
+  tutor_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  ai_practice_customer_id: string | null;
+  practice_tier: string | null;
+  practice_subscription_id: string | null;
+};
+
+const SUBSCRIBE_BODY_SCHEMA = z
+  .object({
+    studentId: z.string().uuid().optional(),
+  })
+  .strict();
 
 /**
- * FREEMIUM MODEL: Buy Credits Flow
+ * Creates a student practice checkout session.
  *
- * POST /api/practice/subscribe (or /api/practice/buy-credits)
- *
- * Creates a metered subscription for blocks ONLY (no base subscription).
- * This is optional - students can use the free tier (45 min audio + 600 text)
- * without ever setting up this subscription.
- *
- * When free tier is exhausted and student continues using the service,
- * blocks are auto-charged via Stripe metered billing.
+ * Tutor-linked students are routed to the Unlimited plan ($4.99/mo).
+ * Solo students are routed to the Solo plan ($9.99/mo).
  */
 export async function POST(request: Request) {
+  const requestId = randomUUID();
+  const respondError = (
+    message: string,
+    status: number,
+    code: string,
+    extra?: Record<string, unknown>
+  ) =>
+    errorResponse(message, {
+      status,
+      code,
+      extra: {
+        requestId,
+        ...extra,
+      },
+    });
+
   try {
     const supabase = await createClient();
     const supabaseAdmin = createServiceRoleClient();
 
     if (!supabaseAdmin) {
-      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    return NextResponse.json(
-      {
-        error: "Additional practice credits are no longer available. Please wait until next month for your allowance to reset.",
-        code: "PRACTICE_CREDITS_DISABLED",
-      },
-      { status: 410 }
-    );
+    const parsedBody = await parseSubscribeBody(request);
+    if (!parsedBody.success) {
+      return respondError("Invalid request body", 400, "INVALID_INPUT", {
+        details: parsedBody.error.flatten(),
+      });
+    }
+
+    const student = await loadStudentForCheckout(supabaseAdmin, user.id, parsedBody.data.studentId);
+    if (!student) {
+      return respondError("Student not found", 404, "STUDENT_NOT_FOUND");
+    }
 
     const rateLimitResult = await enforceCheckoutRateLimit({
       supabaseAdmin,
       userId: user.id,
       req: request,
-      keyPrefix: "checkout:ai_practice_blocks",
+      keyPrefix: "checkout:practice_subscription",
       limit: 5,
       windowSeconds: 60,
     });
 
     if (!rateLimitResult.ok) {
-      return NextResponse.json(
-        { error: rateLimitResult.error || "Too many requests" },
-        { status: rateLimitResult.status ?? 429 }
+      return respondError(
+        rateLimitResult.error || "Too many requests",
+        rateLimitResult.status ?? 429,
+        "RATE_LIMITED"
       );
     }
 
-    const { studentId } = await request.json();
-
-    if (!studentId) {
-      return NextResponse.json(
-        { error: "Student ID is required" },
-        { status: 400 }
-      );
+    const access = await getStudentPracticeAccess(supabaseAdmin, student.id);
+    if (!access.hasAccess) {
+      const status = access.reason === "student_not_found" ? 404 : 500;
+      return respondError(access.message, status, access.reason.toUpperCase());
     }
 
-    // Verify student belongs to user and fetch assigned tutor
-    const { data: student } = await supabase
-      .from("students")
-      .select("*")
-      .eq("id", studentId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!student) {
-      return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if already has block subscription
-    if (student.ai_practice_block_subscription_item_id) {
-      return NextResponse.json(
-        {
-          error: "Already has block subscription",
-          code: "ALREADY_SUBSCRIBED",
-          message: "Additional practice access is already set up for this account.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // FREEMIUM: Require assigned tutor with Studio tier
-    const assignedTutorId = student.tutor_id;
-    if (!assignedTutorId) {
-      return NextResponse.json(
-        { error: "Student must have an assigned tutor to continue" },
-        { status: 400 }
-      );
-    }
-
-    // Check tutor has Studio tier
-    const tutorHasStudio = await getTutorHasPracticeAccess(supabaseAdmin, assignedTutorId);
-    if (!tutorHasStudio) {
-      return NextResponse.json(
-        {
-          error: "Your tutor needs a Studio subscription for AI Practice",
-          code: "TUTOR_NOT_STUDIO",
-        },
-        { status: 403 }
-      );
-    }
-
-    // Get tutor's Stripe Connect account
-    const { data: tutor } = await supabase
-      .from("profiles")
-      .select("stripe_account_id, stripe_charges_enabled, full_name")
-      .eq("id", assignedTutorId)
-      .single();
-
-    if (!tutor?.stripe_account_id || !tutor?.stripe_charges_enabled) {
-      return NextResponse.json(
-        { error: "Tutor has not set up payments yet" },
-        { status: 400 }
-      );
-    }
-
-    // Get or create Stripe customer for student
-    let customerId = student.ai_practice_customer_id;
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email || student.email,
-        name: student.full_name || undefined,
-        metadata: {
-          studentId: student.id,
-          userId: user.id,
-          tutorId: assignedTutorId,
-        },
+    if (access.tier === "unlimited" || access.tier === "solo") {
+      return respondError("Practice subscription is already active", 409, "ALREADY_SUBSCRIBED", {
+        tier: access.tier,
       });
-      customerId = customer.id;
-
-      // Save customer ID
-      await supabase
-        .from("students")
-        .update({ ai_practice_customer_id: customerId })
-        .eq("id", studentId);
     }
 
-    // Get or create AI Practice BLOCK product and price (no base product needed)
-    const blockProduct = await getOrCreateBlockProduct();
-    const blockPrice = await getOrCreateBlockPrice(blockProduct.id);
+    const checkoutPlan = resolveCheckoutPlan(student.tutor_id);
+    const customerId = await getOrCreatePracticeCustomer({
+      student,
+      userId: user.id,
+      userEmail: user.email ?? null,
+    });
 
-    // FREEMIUM: Create checkout session with BLOCKS ONLY (no base subscription)
-    const idempotencyKey = `ai-practice-blocks:${studentId}:${assignedTutorId}:${blockPrice.id}`;
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      allow_promotion_codes: true,
-      line_items: [
-        {
-          price: blockPrice.id,
-          // Metered prices don't need quantity - usage is reported separately
-        },
-      ],
-      subscription_data: {
-        // Charge on behalf of the tutor so Stripe fees are taken from the tutor payout
-        on_behalf_of: tutor.stripe_account_id,
-        application_fee_percent: APPLICATION_FEE_PERCENT,
-        transfer_data: {
-          destination: tutor.stripe_account_id,
-        },
+    const stripePrice = await getOrCreatePracticeStripePrice(checkoutPlan);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      return respondError("App URL is not configured", 503, "SERVICE_UNAVAILABLE");
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create(
+      {
+        mode: "subscription",
+        customer: customerId,
+        allow_promotion_codes: true,
+        line_items: [{ price: stripePrice.id, quantity: 1 }],
+        success_url: `${appUrl}${checkoutPlan.successPath}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}${checkoutPlan.cancelPath}`,
         metadata: {
-          studentId,
-          tutorId: assignedTutorId,
-          type: "ai_practice_blocks", // NEW: blocks-only subscription
-          is_blocks_only: "true",
-          block_price_cents: String(AI_PRACTICE_BLOCK_PRICE_CENTS),
-          block_audio_minutes: String(BLOCK_AUDIO_MINUTES),
-          block_text_turns: String(BLOCK_TEXT_TURNS),
-          free_audio_minutes: String(FREE_AUDIO_MINUTES),
-          free_text_turns: String(FREE_TEXT_TURNS),
+          type: "student_practice_subscription",
+          studentId: student.id,
+          tutorId: student.tutor_id ?? "",
+          practice_tier: checkoutPlan.subscription,
+          practice_price_cents: String(checkoutPlan.priceCents),
+        },
+        subscription_data: {
+          metadata: {
+            type: "student_practice_subscription",
+            studentId: student.id,
+            tutorId: student.tutor_id ?? "",
+            practice_tier: checkoutPlan.subscription,
+            practice_price_cents: String(checkoutPlan.priceCents),
+          },
         },
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/credits-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/practice/buy-credits`,
-      metadata: {
-        studentId,
-        tutorId: assignedTutorId,
-        type: "ai_practice_blocks",
-      },
-    }, { idempotencyKey });
+      {
+        idempotencyKey: `practice-checkout:${student.id}:${checkoutPlan.subscription}`,
+      }
+    );
 
     return NextResponse.json({
-      checkoutUrl: session.url,
-      message: "Set up automatic credits billing. You'll only be charged ($5/block) when you exceed your free allowance.",
+      checkoutUrl: checkoutSession.url,
+      tier: checkoutPlan.subscription,
+      priceCents: checkoutPlan.priceCents,
+      message:
+        checkoutPlan.subscription === "unlimited"
+          ? "Redirecting to Unlimited Practice checkout."
+          : "Redirecting to Solo Practice checkout.",
     });
   } catch (error) {
-    console.error("[Practice Buy Credits] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to create checkout session" },
-      { status: 500 }
-    );
+    console.error("[Practice Subscribe] Error:", error);
+    return respondError("Failed to create checkout session", 500, "INTERNAL_ERROR");
   }
 }
 
 /**
- * GET /api/practice/subscribe
- * Returns current subscription status for the student
+ * Returns the authenticated student's current practice subscription state.
  */
 export async function GET() {
+  const requestId = randomUUID();
+  const respondError = (message: string, status: number, code: string) =>
+    errorResponse(message, { status, code, extra: { requestId } });
+
   try {
     const supabase = await createClient();
+    const supabaseAdmin = createServiceRoleClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!supabaseAdmin) {
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
-    // Get student record
-    const { data: student } = await supabase
-      .from("students")
-      .select("*")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
+    if (!user) {
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
+    }
+
+    const student = await loadStudentForCheckout(supabaseAdmin, user.id);
     if (!student) {
-      return NextResponse.json({
-        hasAccess: false,
-        isFreeUser: false,
-        hasBlockSubscription: false,
-      });
+      return respondError("Student not found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    const access = await getStudentPracticeAccess(supabaseAdmin, student.id);
+    if (!access.hasAccess) {
+      const status = access.reason === "student_not_found" ? 404 : 500;
+      return respondError(access.message, status, access.reason.toUpperCase());
     }
 
     return NextResponse.json({
-      hasAccess: Boolean(student.ai_practice_enabled || student.ai_practice_free_tier_enabled),
-      isFreeUser: student.ai_practice_free_tier_enabled === true,
-      hasBlockSubscription: !!student.ai_practice_block_subscription_item_id,
-      // Legacy subscription (for backwards compatibility)
-      hasLegacySubscription: !!student.ai_practice_subscription_id,
+      hasAccess: true,
+      tier: access.tier,
+      sessionsPerMonth: access.sessionsPerMonth,
+      textTurnsPerSession: access.textTurnsPerSession,
+      audioEnabled: access.audioEnabled,
+      adaptiveEnabled: access.adaptiveEnabled,
+      voiceInputEnabled: access.voiceInputEnabled,
+      showUpgradePrompt: access.showUpgradePrompt,
+      upgradePrice: access.upgradePrice,
+      practiceSubscription:
+        access.tier === "unlimited" || access.tier === "solo" ? access.tier : null,
+      isFreeUser: access.isFreeUser,
+      hasBlockSubscription: false,
+      hasLegacySubscription: Boolean(student.practice_subscription_id),
     });
   } catch (error) {
-    console.error("[Practice Subscription Status] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to get subscription status" },
-      { status: 500 }
-    );
+    console.error("[Practice Subscribe Status] Error:", error);
+    return respondError("Failed to get subscription status", 500, "INTERNAL_ERROR");
   }
 }
 
-// Note: getOrCreateBaseProduct and getOrCreateBasePrice removed for freemium model
-// Base subscription ($8/month) is no longer used
+/**
+ * Parses and validates the subscription request body.
+ *
+ * @param request - Incoming POST request.
+ * @returns Validated payload or a schema error.
+ */
+async function parseSubscribeBody(request: Request) {
+  try {
+    const json = (await request.json()) as SubscribeRequestBody;
+    return SUBSCRIBE_BODY_SCHEMA.safeParse(json);
+  } catch {
+    return SUBSCRIBE_BODY_SCHEMA.safeParse({});
+  }
+}
 
-async function getOrCreateBlockProduct() {
+/**
+ * Loads the authenticated student's billing row.
+ *
+ * @param supabaseAdmin - Service-role Supabase client.
+ * @param userId - Authenticated user ID.
+ * @param studentId - Optional explicit student ID.
+ * @returns Student row for checkout decisions.
+ */
+async function loadStudentForCheckout(
+  supabaseAdmin: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  userId: string,
+  studentId?: string
+): Promise<StudentCheckoutRow | null> {
+  const query = supabaseAdmin
+    .from("students")
+    .select(
+      "id, user_id, tutor_id, full_name, email, ai_practice_customer_id, practice_tier, practice_subscription_id"
+    )
+    .eq("user_id", userId);
+
+  if (studentId) {
+    const { data, error } = await query.eq("id", studentId).maybeSingle();
+    if (error) {
+      console.error("[Practice Subscribe] Failed to load student by id:", error);
+      return null;
+    }
+    return (data as StudentCheckoutRow | null) ?? null;
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
+  if (error) {
+    console.error("[Practice Subscribe] Failed to load student:", error);
+    return null;
+  }
+  return (data as StudentCheckoutRow | null) ?? null;
+}
+
+/**
+ * Gets or creates the Stripe customer for a student practice subscription.
+ *
+ * @param params - Customer identity and metadata payload.
+ * @returns Stripe customer ID.
+ */
+async function getOrCreatePracticeCustomer(params: {
+  student: StudentCheckoutRow;
+  userId: string;
+  userEmail: string | null;
+}): Promise<string> {
+  const { student, userId, userEmail } = params;
+
+  if (student.ai_practice_customer_id) {
+    return student.ai_practice_customer_id;
+  }
+
+  const customer = await stripe.customers.create(
+    {
+      email: userEmail || student.email || undefined,
+      name: student.full_name || undefined,
+      metadata: {
+        userId,
+        studentId: student.id,
+        tutorId: student.tutor_id || "",
+        source: "student_practice",
+      },
+    },
+    { idempotencyKey: `practice-customer:${student.id}` }
+  );
+
+  const supabaseAdmin = createServiceRoleClient();
+  if (supabaseAdmin) {
+    const { error } = await supabaseAdmin
+      .from("students")
+      .update({ ai_practice_customer_id: customer.id })
+      .eq("id", student.id);
+
+    if (error) {
+      console.error("[Practice Subscribe] Failed to persist customer ID:", error);
+    }
+  }
+
+  return customer.id;
+}
+
+/**
+ * Gets or creates the recurring Stripe price used for the selected practice plan.
+ *
+ * @param plan - Target checkout plan.
+ * @returns Active recurring Stripe price.
+ */
+async function getOrCreatePracticeStripePrice(plan: PracticeCheckoutPlan): Promise<Stripe.Price> {
+  const product = await getOrCreatePracticeProduct(plan);
+
+  const existingPrices = await stripe.prices.list({
+    product: product.id,
+    active: true,
+    limit: 20,
+  });
+
+  const recurringPrice = existingPrices.data.find(
+    (price) =>
+      price.unit_amount === plan.priceCents &&
+      price.currency === "usd" &&
+      price.recurring?.interval === "month" &&
+      price.type === "recurring"
+  );
+
+  if (recurringPrice) {
+    return recurringPrice;
+  }
+
+  return stripe.prices.create(
+    {
+      product: product.id,
+      unit_amount: plan.priceCents,
+      currency: "usd",
+      recurring: { interval: "month" },
+      metadata: {
+        type: "student_practice_subscription",
+        practice_tier: plan.subscription,
+        practice_price_cents: String(plan.priceCents),
+      },
+    },
+    {
+      idempotencyKey: `practice-price:${plan.subscription}:${plan.priceCents}`,
+    }
+  );
+}
+
+/**
+ * Gets or creates the Stripe product for the selected practice subscription tier.
+ *
+ * @param plan - Target checkout plan.
+ * @returns Active Stripe product.
+ */
+async function getOrCreatePracticeProduct(plan: PracticeCheckoutPlan): Promise<Stripe.Product> {
   const existingProducts = await stripe.products.list({
-    limit: 10,
+    limit: 50,
     active: true,
   });
 
   const product = existingProducts.data.find(
-    (p) => p.metadata?.type === "ai_practice_block"
+    (item) =>
+      item.metadata?.type === "student_practice_subscription" &&
+      item.metadata?.practice_tier === plan.subscription
   );
 
   if (product) {
     return product;
   }
 
-  return stripe.products.create({
-    name: "AI Practice Credits",
-    description: `Additional practice credits - $${AI_PRACTICE_BLOCK_PRICE_CENTS / 100} adds ${BLOCK_AUDIO_MINUTES} audio minutes + ${BLOCK_TEXT_TURNS} text turns`,
-    metadata: {
-      type: "ai_practice_block",
-      audio_minutes: String(BLOCK_AUDIO_MINUTES),
-      text_turns: String(BLOCK_TEXT_TURNS),
-      price_cents: String(AI_PRACTICE_BLOCK_PRICE_CENTS),
+  return stripe.products.create(
+    {
+      name: plan.productName,
+      description: plan.productDescription,
+      metadata: {
+        type: "student_practice_subscription",
+        practice_tier: plan.subscription,
+      },
     },
-  });
-}
-
-async function getOrCreateBlockPrice(productId: string) {
-  const existingPrices = await stripe.prices.list({
-    product: productId,
-    active: true,
-    limit: 10,
-  });
-
-  // Look for metered price
-  const price = existingPrices.data.find(
-    (p) =>
-      p.unit_amount === AI_PRACTICE_BLOCK_PRICE_CENTS &&
-      p.recurring?.interval === "month" &&
-      p.recurring?.usage_type === "metered"
+    {
+      idempotencyKey: `practice-product:${plan.subscription}`,
+    }
   );
-
-  if (price) {
-    return price;
-  }
-
-  return (stripe.prices as any).create({
-    product: productId,
-    unit_amount: AI_PRACTICE_BLOCK_PRICE_CENTS,
-    currency: "usd",
-    recurring: {
-      interval: "month",
-      usage_type: "metered",
-      aggregate_usage: "sum",
-    },
-    metadata: {
-      type: "ai_practice_block",
-    },
-  });
 }

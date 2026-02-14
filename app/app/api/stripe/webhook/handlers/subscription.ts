@@ -24,6 +24,12 @@ export async function handleSubscriptionUpdate(
 ): Promise<void> {
   const customerId = subscription.customer as string;
 
+  // New student practice subscription model (Unlimited/Solo)
+  if (subscription.metadata?.type === "student_practice_subscription") {
+    await handleStudentPracticeSubscriptionUpdate(subscription, supabase);
+    return;
+  }
+
   // Check if this is an AI Practice subscription (student subscription)
   if (subscription.metadata?.type === "ai_practice" || subscription.metadata?.type === "ai_practice_blocks") {
     await handleAIPracticeSubscriptionUpdate(subscription, supabase);
@@ -119,6 +125,12 @@ export async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription,
   supabase: ServiceRoleClient
 ): Promise<void> {
+  // New student practice subscription model (Unlimited/Solo)
+  if (subscription.metadata?.type === "student_practice_subscription") {
+    await handleStudentPracticeSubscriptionDeleted(subscription, supabase);
+    return;
+  }
+
   // Check if this is an AI Practice subscription
   if (subscription.metadata?.type === "ai_practice" || subscription.metadata?.type === "ai_practice_blocks") {
     await handleAIPracticeSubscriptionDeleted(subscription, supabase);
@@ -304,6 +316,12 @@ export async function handleInvoicePaymentFailed(
   const customerId = invoice.customer as string;
   if (!customerId) {
     console.log("No customer ID in invoice, skipping");
+    return;
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  if (subscription.metadata?.type === "student_practice_subscription") {
+    await handleStudentPracticePaymentFailed(subscription, supabase);
     return;
   }
 
@@ -526,6 +544,173 @@ export async function handleAccountDeauthorized(
 // ==========================================
 // AI PRACTICE SUBSCRIPTION HANDLERS
 // ==========================================
+
+type StudentPracticeTier = "unlimited" | "solo";
+
+/**
+ * Parses and validates student practice tier metadata.
+ *
+ * @param value - Raw Stripe metadata value.
+ * @returns Normalized tier token or `null`.
+ */
+function parseStudentPracticeTier(value: string | undefined): StudentPracticeTier | null {
+  if (value === "unlimited" || value === "solo") {
+    return value;
+  }
+
+  return null;
+}
+
+/**
+ * Handles updates for the new student practice subscriptions (Unlimited/Solo).
+ *
+ * @param subscription - Stripe subscription payload.
+ * @param supabase - Service-role Supabase client.
+ */
+async function handleStudentPracticeSubscriptionUpdate(
+  subscription: StripeSubscriptionPayload,
+  supabase: ServiceRoleClient
+): Promise<void> {
+  const studentId = subscription.metadata?.studentId;
+  const practiceTier = parseStudentPracticeTier(subscription.metadata?.practice_tier);
+
+  if (!studentId || !practiceTier) {
+    console.error("Missing student practice metadata:", subscription.metadata);
+    return;
+  }
+
+  const isActive = subscription.status === "active" || subscription.status === "trialing";
+  const periodStartIso = new Date(subscription.current_period_start * 1000).toISOString();
+  const periodEndIso = new Date(subscription.current_period_end * 1000).toISOString();
+
+  const { data: existingStudent, error: loadError } = await supabase
+    .from("students")
+    .select("practice_period_start")
+    .eq("id", studentId)
+    .maybeSingle();
+
+  if (loadError) {
+    console.error("Failed to load student for practice subscription:", loadError);
+  }
+
+  const shouldResetSessionUsage = existingStudent?.practice_period_start !== periodStartIso;
+
+  const activePayload: Record<string, unknown> = {
+    practice_tier: practiceTier,
+    practice_subscription_id: subscription.id,
+    practice_period_start: periodStartIso,
+    ai_practice_subscription_id: subscription.id,
+    ai_practice_current_period_end: periodEndIso,
+    ai_practice_enabled: true,
+    ai_practice_free_tier_enabled: true,
+  };
+
+  if (shouldResetSessionUsage) {
+    activePayload.practice_sessions_used = 0;
+  }
+
+  const inactivePayload = {
+    practice_tier: null,
+    practice_subscription_id: null,
+    practice_period_start: null,
+    ai_practice_subscription_id: null,
+    ai_practice_current_period_end: null,
+    ai_practice_enabled: true,
+    ai_practice_free_tier_enabled: true,
+  };
+
+  const { error } = await supabase
+    .from("students")
+    .update(isActive ? activePayload : inactivePayload)
+    .eq("id", studentId);
+
+  if (error) {
+    console.error("Failed to update student practice subscription:", error);
+    throw error;
+  }
+
+  console.log(
+    `✅ Student practice subscription updated for ${studentId}: status=${subscription.status}, tier=${isActive ? practiceTier : "free"}`
+  );
+}
+
+/**
+ * Handles cancellation for the new student practice subscriptions.
+ *
+ * @param subscription - Stripe subscription payload.
+ * @param supabase - Service-role Supabase client.
+ */
+async function handleStudentPracticeSubscriptionDeleted(
+  subscription: Stripe.Subscription,
+  supabase: ServiceRoleClient
+): Promise<void> {
+  const studentId = subscription.metadata?.studentId;
+
+  if (!studentId) {
+    console.error("No studentId in student practice cancellation metadata");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      practice_tier: null,
+      practice_subscription_id: null,
+      practice_period_start: null,
+      ai_practice_subscription_id: null,
+      ai_practice_current_period_end: null,
+      ai_practice_enabled: true,
+      ai_practice_free_tier_enabled: true,
+    })
+    .eq("id", studentId);
+
+  if (error) {
+    console.error("Failed to clear student practice subscription:", error);
+    throw error;
+  }
+
+  console.log(`✅ Student practice subscription canceled for student ${studentId}`);
+}
+
+/**
+ * Handles payment failure for the new student practice subscriptions.
+ *
+ * Payment failures immediately downgrade the student back to free tier.
+ *
+ * @param subscription - Stripe subscription payload.
+ * @param supabase - Service-role Supabase client.
+ */
+async function handleStudentPracticePaymentFailed(
+  subscription: Stripe.Subscription,
+  supabase: ServiceRoleClient
+): Promise<void> {
+  const studentId = subscription.metadata?.studentId;
+
+  if (!studentId) {
+    console.error("No studentId in student practice payment_failed metadata");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      practice_tier: null,
+      practice_subscription_id: null,
+      practice_period_start: null,
+      ai_practice_subscription_id: null,
+      ai_practice_current_period_end: null,
+      ai_practice_enabled: true,
+      ai_practice_free_tier_enabled: true,
+    })
+    .eq("id", studentId);
+
+  if (error) {
+    console.error("Failed to downgrade student after payment failure:", error);
+    throw error;
+  }
+
+  console.log(`✅ Student practice payment failed, reverted to free tier for ${studentId}`);
+}
 
 /**
  * Handle AI Practice subscription updates (student subscriptions).

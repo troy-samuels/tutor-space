@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import {
   Geist_Mono,
   Manrope,
+  Mansalva,
 } from "next/font/google";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
@@ -16,6 +17,12 @@ import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistr
 
 const manrope = Manrope({
   variable: "--font-manrope",
+  subsets: ["latin"],
+});
+
+const mansalva = Mansalva({
+  variable: "--font-mansalva",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -132,6 +139,7 @@ export default async function RootLayout({
       <body
         className={[
           manrope.variable,
+          mansalva.variable,
           geistMono.variable,
           "antialiased",
         ].join(" ")}

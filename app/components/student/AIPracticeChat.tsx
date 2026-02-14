@@ -253,15 +253,13 @@ export function AIPracticeChat({
         }
 
         // Handle specific error codes
-        if (data.code === "FREE_TIER_EXHAUSTED") {
+        if (
+          data.code === "FREE_TIER_EXHAUSTED" ||
+          data.code === "SESSION_TEXT_LIMIT_REACHED" ||
+          data.code === "SESSION_LIMIT_REACHED" ||
+          data.code === "FEATURE_LOCKED"
+        ) {
           setShowLimitOverlay(true);
-          setFailedMessage({ content, retryable: false });
-          setIsStreaming(false);
-          return;
-        }
-
-        if (data.code === "TUTOR_NOT_STUDIO") {
-          setError("Your tutor needs to upgrade to enable AI Practice");
           setFailedMessage({ content, retryable: false });
           setIsStreaming(false);
           return;

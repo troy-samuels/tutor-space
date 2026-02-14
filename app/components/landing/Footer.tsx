@@ -16,7 +16,7 @@ export function Footer({ footer }: FooterProps) {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Logo href="/" variant="wordmark" className="brightness-0 invert" />
-            <p className="mt-4 text-sm text-gray-400 leading-relaxed">
+            <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
               {footer.tagline}
             </p>
           </div>
@@ -32,7 +32,7 @@ export function Footer({ footer }: FooterProps) {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-gray-400 hover:text-brand-white transition-colors"
+                      className="text-sm text-muted-foreground hover:text-brand-white transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -45,13 +45,13 @@ export function Footer({ footer }: FooterProps) {
 
         {/* Bottom section */}
         <div className="mt-12 border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-400">{footer.copyright}</p>
+          <p className="text-sm text-muted-foreground">{footer.copyright}</p>
 
           {/* Social links */}
           <div className="flex gap-x-6 items-center">
             <Link
               href="mailto:hello@tutorlingua.co"
-              className="text-gray-400 hover:text-brand-white transition-colors"
+              className="text-muted-foreground hover:text-brand-white transition-colors"
               aria-label="Email us"
             >
               <span className="sr-only">Email</span>
@@ -61,7 +61,7 @@ export function Footer({ footer }: FooterProps) {
             </Link>
             <Link
               href="https://instagram.com/tutorlingua.co"
-              className="text-gray-400 hover:text-brand-white transition-colors"
+              className="text-muted-foreground hover:text-brand-white transition-colors"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Follow us on Instagram"

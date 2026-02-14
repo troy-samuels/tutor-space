@@ -9,7 +9,7 @@ import {
 	BLOCK_AUDIO_SECONDS,
 	BLOCK_TEXT_TURNS,
 } from "@/lib/practice/constants";
-import { getTutorHasPracticeAccess } from "@/lib/practice/access";
+import { getStudentPracticeAccess } from "@/lib/practice/access";
 import { getPendingHomeworkForPractice as repoGetPendingHomework } from "@/lib/repositories/homework";
 import {
 	getStudentByIdForTutor,
@@ -28,7 +28,6 @@ import {
 	logStep,
 	logStepError,
 } from "@/lib/logger";
-import { requireUser } from "./helpers";
 import { isSubscriptionActive } from "./utils";
 import type {
 	StudentPracticeData,
@@ -226,19 +225,17 @@ export async function getStudentPracticeData(tutorId?: string): Promise<StudentP
 		return emptyResponse;
 	}
 
-	// Check subscription status
-	let isSubscribed = isSubscriptionActive(student);
-
-	// Fallback to tutor practice access check
-	if (!isSubscribed) {
-		const tutorHasPracticeAccess = await getTutorHasPracticeAccess(
-			serviceClient,
-			student.tutor_id
-		);
-		if (tutorHasPracticeAccess) {
-			isSubscribed = true;
-		}
+	const practiceAccess = await getStudentPracticeAccess(serviceClient, student.id);
+	if (!practiceAccess.hasAccess) {
+		logStep(log, "getStudentPracticeData:access_denied", {
+			studentId: student.id,
+			reason: practiceAccess.reason,
+		});
+		return emptyResponse;
 	}
+
+	// Hybrid model: all valid students have a practice tier.
+	const isSubscribed = true;
 
 	try {
 		// Fetch assignments with scenarios

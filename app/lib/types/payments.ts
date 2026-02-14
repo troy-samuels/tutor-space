@@ -29,6 +29,16 @@ export type PaidPlan = ProTierPlan | StudioTierPlan | "founder_lifetime" | "all_
 /** Plan tier levels for feature gating */
 export type PlanTier = "free" | "pro" | "studio";
 
+/**
+ * Student-paid practice subscription state.
+ *
+ * `null` means the student is on an included/free tier.
+ */
+export type StudentPracticeSubscription =
+	| null // free tier
+	| "unlimited" // $4.99/mo (tutor-linked student upgrade)
+	| "solo"; // $9.99/mo (solo student, no tutor)
+
 export type PaymentRoute =
 	| "connect_destination" // Destination charge to tutor's connected account
 	| "no_payment_method"; // Tutor cannot accept payments yet (Stripe Connect required)

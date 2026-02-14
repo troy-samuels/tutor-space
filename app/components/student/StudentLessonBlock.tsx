@@ -5,7 +5,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Video, ExternalLink, Clock, User, CheckCircle, Circle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { PACKAGE_COLORS, type PackageType } from "@/lib/types/calendar";
+import { PACKAGE_COLORS } from "@/lib/types/calendar";
 import type { StudentScheduleEvent } from "@/lib/actions/student-schedule";
 import { isClassroomUrl } from "@/lib/utils/classroom-links";
 import { getJoinEarlyMinutes, getJoinGraceMinutes } from "@/lib/utils/lesson-join-window";

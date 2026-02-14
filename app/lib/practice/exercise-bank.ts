@@ -17,6 +17,42 @@ export type StoredExerciseBank = {
   id: string;
 };
 
+/** A single exercise within a bank. */
+export type Exercise = {
+  id: string;
+  type: string;
+  prompt: string;
+  answer?: string;
+  options?: string[];
+  hint?: string;
+  bankId?: string;
+};
+
+/** Result of looking up an exercise bank for a session. */
+export type ExerciseBankResult = {
+  id: string;
+  exercises: Exercise[];
+} | null;
+
+/**
+ * Retrieve exercises for a given practice session from the exercise bank.
+ * Returns null if no bank is linked or the session has no exercises.
+ */
+export async function getExerciseBankForSession(
+  client: SupabaseClient,
+  params: {
+    studentId: string;
+    language: string;
+    level: string;
+    topic?: string;
+  }
+): Promise<ExerciseBankResult> {
+  // For now, return null — exercises are generated dynamically via AI chat.
+  // This function exists for future structured exercise support where
+  // exercise banks can be pre-generated from lesson transcripts.
+  return null;
+}
+
 /**
  * Stores a generated exercise bank.
  *

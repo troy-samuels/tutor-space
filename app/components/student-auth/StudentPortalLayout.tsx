@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, Package } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { StudentBottomNav } from "./StudentBottomNav";
+import { BottomNav } from "@/components/navigation/BottomNav";
 import { studentLogout } from "@/lib/actions/student-auth";
 import { useUnreadMessages } from "@/lib/hooks/useUnreadMessages";
 import { Logo } from "@/components/Logo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { PageTransition } from "@/components/ui/page-transition";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +42,7 @@ export function StudentPortalLayout({
 }: StudentPortalLayoutProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const unreadMessages = useUnreadMessages("student");
+  const unreadCount = useUnreadMessages("student");
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -144,14 +145,14 @@ export function StudentPortalLayout({
           hideNav ? "" : "mx-auto max-w-4xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6"
         }
       >
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
 
       {/* Bottom navigation */}
       {!hideNav && (
-        <StudentBottomNav
-          unreadCount={unreadMessages}
-          homeworkCount={homeworkCount}
+        <BottomNav
+          role="student"
+          badges={{ unreadMessages: unreadCount, homeworkCount }}
         />
       )}
     </div>

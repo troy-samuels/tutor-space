@@ -1,0 +1,3 @@
+import { CatalogueExercise } from '../types';
+
+export const EXERCISES: CatalogueExercise[] = [

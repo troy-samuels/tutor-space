@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import OpenAI from "openai";
 import { extractPlainText } from "@/lib/analysis/lesson-insights";
 import { processLessonRecording } from "@/lib/analysis/lesson-analysis-processor";
+import { routedChatCompletion } from "@/lib/ai/model-router";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { slugifyKebab } from "@/lib/utils/slug";
 
 type AdminClient = NonNullable<ReturnType<typeof createServiceRoleClient>>;
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 const DEEPGRAM_WEBHOOK_SECRET = process.env.DEEPGRAM_WEBHOOK_SECRET?.trim();
 
 export const runtime = "nodejs";
@@ -79,7 +76,7 @@ async function ensureUniqueSlug(client: AdminClient, baseSlug: string): Promise<
 }
 
 async function generateMarketingClip(transcript: string) {
-  if (!openai || !transcript || transcript.length < 50) return null;
+  if (!process.env.OPENAI_API_KEY || !transcript || transcript.length < 50) return null;
 
   try {
     assertGoogleDataIsolation({
@@ -89,14 +86,16 @@ async function generateMarketingClip(transcript: string) {
       sources: ["lesson_recordings.transcript_json"],
     });
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: MARKETING_CLIP_SYSTEM_PROMPT },
-        { role: "user", content: transcript.slice(0, 12000) },
-      ],
-    });
+    const response = await routedChatCompletion(
+      { task: "speech_analysis" },
+      {
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: MARKETING_CLIP_SYSTEM_PROMPT },
+          { role: "user", content: transcript.slice(0, 12000) },
+        ],
+      }
+    );
 
     const content = response.choices[0]?.message?.content;
     if (!content) return null;

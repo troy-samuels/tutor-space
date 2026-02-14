@@ -1,4 +1,4 @@
-import { addDays, format, startOfDay, addMinutes, isBefore, isAfter, areIntervalsOverlapping, parseISO } from "date-fns";
+import { addDays, startOfDay, addMinutes, isBefore, isAfter, areIntervalsOverlapping, parseISO } from "date-fns";
 import { toZonedTime, fromZonedTime, formatInTimeZone } from "date-fns-tz";
 
 export interface AvailabilitySlot {

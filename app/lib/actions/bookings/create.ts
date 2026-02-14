@@ -16,7 +16,6 @@ import {
 import { ServerActionLimiters } from "@/lib/middleware/rate-limit";
 import { createCalendarEventForBooking, getCalendarBusyWindowsWithStatus } from "@/lib/calendar/busy-windows";
 import { buildBookingCalendarDetails } from "@/lib/calendar/booking-calendar-details";
-import { isTableMissing } from "@/lib/utils/supabase-errors";
 import { recordAudit } from "@/lib/repositories/audit";
 import {
 	requireTutor,
@@ -34,7 +33,6 @@ import {
 	enrichError,
 	type Logger,
 } from "@/lib/logger";
-import { withIdempotency } from "@/lib/utils/idempotency";
 import {
 	findBookingsInTimeRange,
 	getTutorProfileBookingSettings,

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTutor } from "@/lib/auth/guards";
+import { createClient } from "@/lib/supabase/server";
 import type {
   OnboardingTemplateItem,
   OnboardingTemplate,

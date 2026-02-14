@@ -1,9 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import type { BriefingData } from "@/lib/copilot/briefing-generator";
 import type { LessonBriefing, PendingBriefingsResult, CopilotSettings } from "@/lib/actions/types";
 
 // =============================================================================

@@ -21,7 +21,7 @@ import {
 	logStep,
 	logStepError,
 } from "@/lib/logger";
-import { requireUser, getStudentForUser, verifyStudentOwnership } from "./helpers";
+import { requireUser, verifyStudentOwnership } from "./helpers";
 import type { StudentProgressResult, HomeworkAssignment } from "./types";
 
 // ============================================================================

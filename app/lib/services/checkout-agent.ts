@@ -6,9 +6,9 @@
  */
 
 import Stripe from "stripe";
-import { stripe, getOrCreateStripeCustomer, createBillingPortalSession } from "@/lib/stripe";
+import { stripe, getOrCreateStripeCustomer } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import type { PlatformBillingPlan, PlanTier } from "@/lib/types/payments";
+import type { PlatformBillingPlan } from "@/lib/types/payments";
 import { getPlanTier, getPlanDbTier, mapPriceIdToPlan } from "@/lib/payments/subscriptions";
 
 // Extended Subscription type that includes period dates

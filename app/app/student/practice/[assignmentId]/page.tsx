@@ -4,15 +4,8 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { StudentPortalLayout } from "@/components/student-auth/StudentPortalLayout";
 import { PracticeSessionClient } from "./PracticeSessionClient";
 import type { PracticeUsage } from "@/lib/actions/progress";
-import {
-  AI_PRACTICE_BASE_PRICE_CENTS,
-  BASE_AUDIO_SECONDS,
-  BASE_TEXT_TURNS,
-  BLOCK_AUDIO_SECONDS,
-  BLOCK_TEXT_TURNS,
-} from "@/lib/practice/constants";
 import { getStudentSubscriptionSummary } from "@/lib/actions/subscriptions";
-import { getTutorHasPracticeAccess } from "@/lib/practice/access";
+import { getStudentPracticeAccess } from "@/lib/practice/access";
 import { getStudentAvatarUrl } from "@/lib/actions/student-avatar";
 
 export const metadata = {
@@ -53,32 +46,9 @@ export default async function PracticeSessionPage({ params }: PageProps) {
 
   const studentName = student.full_name || (user.user_metadata?.full_name as string | undefined) || null;
 
-  // Check subscription
-  const hasPracticeEnabledColumn = Object.prototype.hasOwnProperty.call(
-    student,
-    "ai_practice_enabled"
-  );
-  const hasFreeTierColumn = Object.prototype.hasOwnProperty.call(
-    student,
-    "ai_practice_free_tier_enabled"
-  );
-  const isPaidActive = student.ai_practice_enabled === true &&
-    (!student.ai_practice_current_period_end ||
-      new Date(student.ai_practice_current_period_end) > new Date());
-  const isFreeActive = student.ai_practice_free_tier_enabled === true;
-  let isSubscribed = isPaidActive || isFreeActive;
-
-  if (!hasPracticeEnabledColumn && !hasFreeTierColumn) {
-    const tutorHasPracticeAccess = student.tutor_id
-      ? await getTutorHasPracticeAccess(adminClient, student.tutor_id)
-      : false;
-    if (tutorHasPracticeAccess) {
-      isSubscribed = true;
-    }
-  }
-
-  if (!isSubscribed) {
-    redirect(`/student/practice/subscribe?student=${student.id}`);
+  const practiceAccess = await getStudentPracticeAccess(adminClient, student.id);
+  if (!practiceAccess.hasAccess) {
+    redirect("/student/progress");
   }
 
   // Get assignment
@@ -130,48 +100,7 @@ export default async function PracticeSessionPage({ params }: PageProps) {
     messages = existingMessages || [];
   }
 
-  // Get current usage period
-  let initialUsage: PracticeUsage | null = null;
-  if (student.ai_practice_subscription_id) {
-    const { data: usagePeriod } = await adminClient
-      .from("practice_usage_periods")
-      .select("*")
-      .eq("student_id", student.id)
-      .eq("subscription_id", student.ai_practice_subscription_id)
-      .gte("period_end", new Date().toISOString())
-      .lte("period_start", new Date().toISOString())
-      .maybeSingle();
-
-    if (usagePeriod) {
-      const audioAllowance = BASE_AUDIO_SECONDS + (usagePeriod.blocks_consumed * BLOCK_AUDIO_SECONDS);
-      const textAllowance = BASE_TEXT_TURNS + (usagePeriod.blocks_consumed * BLOCK_TEXT_TURNS);
-
-      initialUsage = {
-        audioSecondsUsed: usagePeriod.audio_seconds_used,
-        audioSecondsAllowance: audioAllowance,
-        textTurnsUsed: usagePeriod.text_turns_used,
-        textTurnsAllowance: textAllowance,
-        blocksConsumed: usagePeriod.blocks_consumed,
-        currentTierPriceCents: usagePeriod.current_tier_price_cents,
-        periodEnd: usagePeriod.period_end,
-        percentAudioUsed: Math.round((usagePeriod.audio_seconds_used / audioAllowance) * 100),
-        percentTextUsed: Math.round((usagePeriod.text_turns_used / textAllowance) * 100),
-      };
-    } else {
-      // Fresh usage period (default)
-      initialUsage = {
-        audioSecondsUsed: 0,
-        audioSecondsAllowance: BASE_AUDIO_SECONDS,
-        textTurnsUsed: 0,
-        textTurnsAllowance: BASE_TEXT_TURNS,
-        blocksConsumed: 0,
-        currentTierPriceCents: AI_PRACTICE_BASE_PRICE_CENTS,
-        periodEnd: student.ai_practice_current_period_end,
-        percentAudioUsed: 0,
-        percentTextUsed: 0,
-      };
-    }
-  }
+  const initialUsage: PracticeUsage | null = null;
 
   const scenario = assignment.scenario as any;
   const [{ data: subscriptionSummary }, avatarUrl] = await Promise.all([

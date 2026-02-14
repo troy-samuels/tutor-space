@@ -83,7 +83,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                         <span
                           className={cn(
                             "font-semibold",
-                            tier.highlighted ? "text-primary-foreground/80" : "text-gray-600"
+                            tier.highlighted ? "text-primary-foreground/80" : "text-muted-foreground"
                           )}
                         >
                           {displayPeriod}
@@ -93,7 +93,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                       <p
                         className={cn(
                           "text-xs sm:text-sm",
-                          tier.highlighted ? "text-primary-foreground/90" : "text-gray-600"
+                          tier.highlighted ? "text-primary-foreground/90" : "text-muted-foreground"
                         )}
                       >
                         {tier.description}
@@ -122,7 +122,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
                               "text-xs sm:text-sm",
                               tier.highlighted
                                 ? "text-primary-foreground/90"
-                                : "text-gray-700"
+                                : "text-muted-foreground"
                             )}
                           >
                             {feature}
@@ -153,7 +153,7 @@ export function PricingSection({ pricing }: PricingSectionProps) {
         </div>
 
         {/* Comparison note */}
-        <p className="mt-8 sm:mt-12 text-center text-xs sm:text-sm text-gray-600 max-w-3xl mx-auto leading-relaxed">
+        <p className="mt-8 sm:mt-12 text-center text-xs sm:text-sm text-muted-foreground max-w-3xl mx-auto leading-relaxed">
           {pricing.comparisonNote}
         </p>
       </div>

@@ -2,8 +2,39 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { createPracticeChatCompletion } from "@/lib/practice/openai";
+import { routedChatCompletion } from "@/lib/ai/model-router";
 import { errorResponse } from "@/lib/api/error-responses";
+import { generateExerciseBanksFromLesson } from "@/lib/practice/exercise-generator";
+
+type SessionRow = {
+  id: string;
+  student_id: string;
+  tutor_id: string | null;
+  language: string;
+  level: string | null;
+  topic: string | null;
+  started_at: string;
+  message_count: number | null;
+  ended_at: string | null;
+  ai_feedback: unknown;
+  scenario:
+    | {
+        grammar_focus: unknown;
+        vocabulary_focus: unknown;
+      }
+    | Array<{
+        grammar_focus: unknown;
+        vocabulary_focus: unknown;
+      }>
+    | null;
+};
+
+function normalizeFocusList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0);
+}
 
 export async function POST(request: Request) {
   const requestId = randomUUID();
@@ -38,10 +69,15 @@ export async function POST(request: Request) {
         tutor_id,
         language,
         level,
+        topic,
         started_at,
         message_count,
         ended_at,
-        ai_feedback
+        ai_feedback,
+        scenario:practice_scenarios (
+          grammar_focus,
+          vocabulary_focus
+        )
       `)
       .eq("id", sessionId)
       .single();
@@ -50,11 +86,13 @@ export async function POST(request: Request) {
       return respondError("Session not found", 404, "SESSION_NOT_FOUND");
     }
 
+    const typedSession = session as SessionRow;
+
     // Verify user owns this session
     const { data: student } = await adminClient
       .from("students")
       .select("id")
-      .eq("id", session.student_id)
+      .eq("id", typedSession.student_id)
       .eq("user_id", user.id)
       .single();
 
@@ -63,10 +101,10 @@ export async function POST(request: Request) {
     }
 
     // If already ended, avoid another OpenAI call and return existing feedback
-    if (session.ended_at) {
+    if (typedSession.ended_at) {
       return NextResponse.json({
         success: true,
-        feedback: session.ai_feedback || {
+        feedback: typedSession.ai_feedback || {
           overall_rating: 3,
           suggestions: ["Session already ended"],
           grammar_issues: [],
@@ -90,7 +128,7 @@ export async function POST(request: Request) {
     // Generate feedback using AI
     const feedback = await generateSessionFeedback(
       session.language,
-      session.level,
+      typedSession.level,
       messages || []
     );
 
@@ -120,9 +158,9 @@ export async function POST(request: Request) {
       for (const [category] of Object.entries(categoryCount)) {
         await adminClient.rpc("increment_grammar_pattern", {
           p_student_id: session.student_id,
-          p_tutor_id: session.tutor_id,
+          p_tutor_id: typedSession.tutor_id,
           p_category_slug: category,
-          p_language: session.language,
+          p_language: typedSession.language,
         });
       }
     }
@@ -130,7 +168,7 @@ export async function POST(request: Request) {
     // Refresh practice summary for tutor dashboard
     await adminClient.rpc("refresh_practice_summary", {
       p_student_id: session.student_id,
-      p_tutor_id: session.tutor_id,
+      p_tutor_id: typedSession.tutor_id,
     });
 
     // Collect all vocabulary used
@@ -151,6 +189,27 @@ export async function POST(request: Request) {
       }
     }
 
+    const scenario = Array.isArray(typedSession.scenario)
+      ? typedSession.scenario[0]
+      : typedSession.scenario;
+
+    const transcript = (messages || [])
+      .map((message) => `${message.role}: ${message.content}`)
+      .join("\n");
+
+    // Fire-and-forget to avoid blocking the student's response path.
+    void generateExerciseBanksFromLesson({
+      recordingId: typedSession.id,
+      tutorId: typedSession.tutor_id || "",
+      studentId: typedSession.student_id || "",
+      topics: [typedSession.topic || "general conversation"],
+      grammarFocus: normalizeFocusList(scenario?.grammar_focus),
+      vocabulary: normalizeFocusList(scenario?.vocabulary_focus),
+      transcript,
+    }).catch((generationError) => {
+      console.error("[ExerciseGenerator] Background generation failed:", generationError);
+    });
+
     return NextResponse.json({
       success: true,
       feedback: {
@@ -158,7 +217,7 @@ export async function POST(request: Request) {
         vocabulary_used: allVocabulary,
         grammar_breakdown: grammarCounts,
         duration_seconds: durationSeconds,
-        message_count: session.message_count,
+        message_count: typedSession.message_count,
       },
     });
   } catch (error) {
@@ -191,12 +250,16 @@ async function generateSessionFeedback(
   }
 
   try {
-    const completion = await createPracticeChatCompletion({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a language learning assessment expert. Analyze the following ${language} practice conversation and provide feedback.
+    const completion = await routedChatCompletion(
+      {
+        task: "session_feedback",
+        cacheable: true,
+      },
+      {
+        messages: [
+          {
+            role: "system",
+            content: `You are a language learning assessment expert. Analyze the following ${language} practice conversation and provide feedback.
 
 Return your response as JSON with this exact structure:
 {
@@ -213,16 +276,17 @@ Consider:
 - Complexity of sentences
 
 Be encouraging but honest. The student is at ${level || "unknown"} level.`,
-        },
-        {
-          role: "user",
-          content: `Conversation transcript:\n\n${transcript}`,
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 300,
-      response_format: { type: "json_object" },
-    });
+          },
+          {
+            role: "user",
+            content: `Conversation transcript:\n\n${transcript}`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 300,
+        response_format: { type: "json_object" },
+      }
+    );
 
     const content = completion.choices[0]?.message?.content;
     if (content) {

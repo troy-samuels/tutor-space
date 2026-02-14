@@ -22,12 +22,12 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
   return (
     <section className="bg-muted py-20 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-brand-white p-10 shadow-2xl sm:p-16">
+        <div className="rounded-3xl bg-background p-10 shadow-2xl sm:p-16">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               {finalCTA.headline}
             </h2>
-            <p className="mt-4 text-lg text-gray-600">
+            <p className="mt-4 text-lg text-muted-foreground">
               {finalCTA.subheadline}
             </p>
           </div>
@@ -36,7 +36,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
           <div className="mt-12">
             <label
               htmlFor="revenue-slider"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-muted-foreground mb-2"
             >
               {finalCTA.calculatorLabel}
             </label>
@@ -47,7 +47,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
                 {currencySymbol}
                 {revenue.toLocaleString()}
               </span>
-              <span className="text-gray-600 ml-2">{finalCTA.calculatorUnit}</span>
+              <span className="text-muted-foreground ml-2">{finalCTA.calculatorUnit}</span>
             </div>
 
             {/* Slider */}
@@ -62,28 +62,28 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
               className="w-full"
             />
 
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
               <span>{finalCTA.rangeMinLabel}</span>
               <span>{finalCTA.rangeMaxLabel}</span>
             </div>
 
             {/* Calculation breakdown */}
-            <div className="mt-8 space-y-3 border-t border-gray-200 pt-6">
-              <div className="flex justify-between text-gray-700">
+            <div className="mt-8 space-y-3 border-t border-border pt-6">
+              <div className="flex justify-between text-muted-foreground">
                 <span>{finalCTA.commissionLabel}</span>
                 <span className="font-medium text-red-600">
                   -{currencySymbol}
                   {marketplaceFees.toLocaleString()}
                 </span>
               </div>
-              <div className="flex justify-between text-gray-700">
+              <div className="flex justify-between text-muted-foreground">
                 <span>{finalCTA.platformCostLabel}</span>
                 <span className="font-medium">
                   -{currencySymbol}
                   {platformCost}
                 </span>
               </div>
-              <div className="flex justify-between text-xl font-bold border-t border-gray-200 pt-3">
+              <div className="flex justify-between text-xl font-bold border-t border-border pt-3">
                 <span className="text-foreground">{finalCTA.monthlySavingsLabel}</span>
                 <span className="text-primary">
                   +{currencySymbol}
@@ -91,7 +91,7 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
                 </span>
               </div>
               <div className="text-center mt-4 p-4 bg-muted rounded-lg">
-                <div className="text-sm text-gray-600">{finalCTA.annualSavingsLabel}</div>
+                <div className="text-sm text-muted-foreground">{finalCTA.annualSavingsLabel}</div>
                 <div className="text-3xl font-bold text-primary mt-1">
                   {currencySymbol}
                   {annualSavings.toLocaleString()}
@@ -108,15 +108,15 @@ export function FinalCTASection({ finalCTA }: FinalCTASectionProps) {
             >
               {finalCTA.button}
             </Link>
-            <p className="mt-4 text-sm text-gray-600">{finalCTA.finePrint}</p>
+            <p className="mt-4 text-sm text-muted-foreground">{finalCTA.finePrint}</p>
           </div>
 
           {/* Trust badges */}
-          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-4 border-t border-gray-200 pt-8">
+          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-4 border-t border-border pt-8">
             {finalCTA.trustBadges.map((badge, index) => (
               <div
                 key={index}
-                className="flex items-center gap-x-2 text-sm text-gray-600"
+                className="flex items-center gap-x-2 text-sm text-muted-foreground"
               >
                 <svg
                   className="h-5 w-5 text-primary"

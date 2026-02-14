@@ -1,7 +1,8 @@
 "use server";
 
 import type { ServiceRoleClient } from "@/lib/supabase/admin";
-import { isPracticeOpenAIConfigured, createPracticeChatCompletion } from "./openai";
+import { routedChatCompletion } from "@/lib/ai/model-router";
+import { isPracticeOpenAIConfigured } from "./openai";
 
 export interface GreetingContext {
   language: string;
@@ -26,12 +27,16 @@ export async function generatePracticeGreeting(context: GreetingContext): Promis
   try {
     const prompt = buildGreetingPrompt(context);
 
-    const completion = await createPracticeChatCompletion({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a friendly ${context.language} language tutor starting a practice conversation. Generate a warm, personalized greeting that:
+    const completion = await routedChatCompletion(
+      {
+        task: "practice_greeting",
+        cacheable: true,
+      },
+      {
+        messages: [
+          {
+            role: "system",
+            content: `You are a friendly ${context.language} language tutor starting a practice conversation. Generate a warm, personalized greeting that:
 1. Is 2-3 sentences maximum
 2. References specific vocabulary or topics from their recent lesson (if provided)
 3. Ends with an open-ended question to start the conversation
@@ -40,15 +45,16 @@ export async function generatePracticeGreeting(context: GreetingContext): Promis
 6. Is encouraging but not overly enthusiastic
 
 Important: Be conversational and natural, not formal or stiff.`
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 150,
-      temperature: 0.7,
-    });
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      }
+    );
 
     const greeting = completion.choices[0]?.message?.content?.trim();
 

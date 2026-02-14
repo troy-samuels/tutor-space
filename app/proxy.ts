@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { defaultLocale, locales, type Locale } from "./lib/i18n/edge-config";
+import { ATTRIBUTION_COOKIE_DAYS, ATTRIBUTION_COOKIE_NAME } from "./lib/practice/attribution";
 
 const ADMIN_SESSION_COOKIE = "tl_admin_session";
 const GATE_SESSION_COOKIE = "tl_site_gate";
@@ -116,6 +117,30 @@ function buildLocaleCookie(locale: Locale, requestUrl: string) {
   return `NEXT_LOCALE=${encoded}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
+function normalizeRefUsername(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildAttributionCookie(tutorUsername: string) {
+  const maxAge = ATTRIBUTION_COOKIE_DAYS * 24 * 60 * 60;
+  const payload = encodeURIComponent(
+    JSON.stringify({
+      tutorId: tutorUsername,
+      tutorUsername,
+      source: "directory",
+      timestamp: Date.now(),
+    })
+  );
+  return `${ATTRIBUTION_COOKIE_NAME}=${payload}; Path=/; Max-Age=${maxAge}; SameSite=Lax; Secure`;
+}
+
+function appendAttributionCookie(headers: Headers, refUsername: string | null) {
+  if (!refUsername) return;
+  appendMiddlewareCookie(headers, buildAttributionCookie(refUsername));
+}
+
 function nextResponse(headers?: HeadersInit, pathname?: string) {
   const nextHeaders = new Headers(headers);
   nextHeaders.set("x-middleware-next", "1");
@@ -134,7 +159,9 @@ function redirectResponse(url: URL, headers?: HeadersInit, status = 307) {
 
 export function proxy(request: NextRequest) {
   try {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
+    const refUsername = normalizeRefUsername(url.searchParams.get("ref"));
     const pathLocale = getPathLocale(pathname);
     const preferredLocale = pathLocale ?? getPreferredLocale(request);
     const normalizedPathname = pathLocale ? pathname.replace(`/${pathLocale}`, "") || "/" : pathname;
@@ -164,6 +191,7 @@ export function proxy(request: NextRequest) {
       // Keep "/" canonical; let next-intl use cookie/header to pick the locale.
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+      appendAttributionCookie(headers, refUsername);
       return nextResponse(headers, normalizedPathname);
     }
 
@@ -171,6 +199,7 @@ export function proxy(request: NextRequest) {
     if (pathLocale && (pathname === `/${pathLocale}` || pathname === `/${pathLocale}/`)) {
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(pathLocale, request.url));
+      appendAttributionCookie(headers, refUsername);
       return redirectResponse(new URL("/", request.url), headers);
     }
 
@@ -178,6 +207,7 @@ export function proxy(request: NextRequest) {
       const redirectUrl = new URL(normalizedPathname || "/", request.url);
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(pathLocale, request.url));
+      appendAttributionCookie(headers, refUsername);
       return redirectResponse(redirectUrl, headers);
     }
 
@@ -190,6 +220,7 @@ export function proxy(request: NextRequest) {
       const redirectUrl = new URL(normalizedPathname || "/", request.url);
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(pathLocale, request.url));
+      appendAttributionCookie(headers, refUsername);
       return redirectResponse(redirectUrl, headers);
     }
 
@@ -224,6 +255,7 @@ export function proxy(request: NextRequest) {
     if (normalizedPathname.startsWith("/student")) {
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+      appendAttributionCookie(headers, refUsername);
       return nextResponse(headers, normalizedPathname);
     }
 
@@ -260,11 +292,13 @@ export function proxy(request: NextRequest) {
       // Tutor routes proceed to layout.tsx for full auth/role verification
       const headers = new Headers();
       appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+      appendAttributionCookie(headers, refUsername);
       return nextResponse(headers, normalizedPathname);
     }
 
     const headers = new Headers();
     appendMiddlewareCookie(headers, buildLocaleCookie(preferredLocale, request.url));
+    appendAttributionCookie(headers, refUsername);
     return nextResponse(headers, normalizedPathname);
   } catch (error) {
     console.error("[proxy] Invocation failed", error);

@@ -1,101 +1,58 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import {
-  getTutorHasPracticeAccess,
-  getStudentPracticeAccess,
-} from "@/lib/practice/access";
+import { errorResponse } from "@/lib/api/error-responses";
+import { getStudentPracticeAccess } from "@/lib/practice/access";
 
 /**
- * POST /api/practice/enable
- * Enables free tier AI Practice for a student (no Stripe required)
- * Access gate: Tutor must have Studio tier subscription
+ * Marks the authenticated student as enabled for legacy free-tier flags.
+ *
+ * Practice access is now tier-driven for all students, but this endpoint is
+ * retained for backward compatibility with existing clients.
  */
 export async function POST(request: Request) {
+  const requestId = randomUUID();
+  const respondError = (message: string, status: number, code: string) =>
+    errorResponse(message, { status, code, extra: { requestId } });
+
   try {
     const supabase = await createClient();
     const adminClient = createServiceRoleClient();
 
     if (!adminClient) {
-      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    const { studentId } = await request.json();
-
-    if (!studentId) {
-      return NextResponse.json({ error: "Student ID required" }, { status: 400 });
+    const payload = await parseEnablePayload(request);
+    if (!payload.success) {
+      return respondError("Student ID required", 400, "INVALID_INPUT");
     }
 
-    // Verify student belongs to the authenticated user
-    const { data: student } = await supabase
+    const { studentId } = payload;
+    const { data: student, error: studentError } = await adminClient
       .from("students")
-      .select(`
-        *,
-        profiles:tutor_id (
-          id,
-          full_name
-        )
-      `)
+      .select("id, user_id")
       .eq("id", studentId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
+
+    if (studentError) {
+      console.error("[Practice Enable] Failed to load student:", studentError);
+      return respondError("Failed to load student", 500, "DATABASE_ERROR");
+    }
 
     if (!student) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      return respondError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    if (!student.tutor_id) {
-      return NextResponse.json({ error: "No tutor assigned" }, { status: 400 });
-    }
-
-    const hasPracticeColumns = Object.prototype.hasOwnProperty.call(
-      student,
-      "ai_practice_free_tier_enabled"
-    );
-
-    if (!hasPracticeColumns) {
-      return NextResponse.json(
-        { error: "AI Practice is not configured for this environment." },
-        { status: 503 }
-      );
-    }
-
-    // Check if already enabled
-    if (student.ai_practice_free_tier_enabled) {
-      return NextResponse.json({
-        success: true,
-        alreadyEnabled: true,
-        message: "AI Practice is already enabled",
-      });
-    }
-
-    // Check if tutor has Studio tier
-    const tutorHasStudio = await getTutorHasPracticeAccess(
-      adminClient,
-      student.tutor_id
-    );
-
-    if (!tutorHasStudio) {
-      const profileRaw = Array.isArray(student.profiles)
-        ? student.profiles[0]
-        : student.profiles;
-      const tutorName = profileRaw?.full_name || "Your tutor";
-      return NextResponse.json(
-        {
-          error: `${tutorName} needs a Studio subscription to enable AI Practice for students`,
-          code: "TUTOR_NOT_STUDIO",
-          tutorNeedsStudio: true,
-        },
-        { status: 403 }
-      );
-    }
-
-    // Enable free tier access (no Stripe)
     const { error: updateError } = await adminClient
       .from("students")
       .update({
@@ -106,90 +63,104 @@ export async function POST(request: Request) {
       .eq("id", studentId);
 
     if (updateError) {
-      console.error("[Practice Enable] Failed to enable:", updateError);
-      return NextResponse.json(
-        { error: "Failed to enable access" },
-        { status: 500 }
-      );
+      console.error("[Practice Enable] Failed to update student:", updateError);
+      return respondError("Failed to enable access", 500, "DATABASE_ERROR");
     }
 
-    // Create initial usage period using the new DB function
-    const { data: usagePeriod, error: periodError } = await adminClient.rpc(
-      "get_or_create_free_usage_period",
-      {
-        p_student_id: studentId,
-        p_tutor_id: student.tutor_id,
-      }
-    );
-
-    if (periodError) {
-      console.error("[Practice Enable] Failed to create usage period:", periodError);
-      // Don't fail the request - the student can still use the service
+    const access = await getStudentPracticeAccess(adminClient, studentId);
+    if (!access.hasAccess) {
+      const status = access.reason === "student_not_found" ? 404 : 500;
+      return respondError(access.message, status, access.reason.toUpperCase());
     }
 
     return NextResponse.json({
       success: true,
-      isFreeUser: true,
-      usagePeriod: usagePeriod || null,
-      message: "AI Practice enabled successfully",
+      tier: access.tier,
+      showUpgradePrompt: access.showUpgradePrompt,
+      upgradePriceCents: access.upgradePrice,
+      isFreeUser: access.isFreeUser,
     });
   } catch (error) {
     console.error("[Practice Enable] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to enable AI Practice" },
-      { status: 500 }
-    );
+    return respondError("Failed to enable AI Practice", 500, "INTERNAL_ERROR");
   }
 }
 
 /**
- * GET /api/practice/enable
- * Checks if AI Practice can be enabled for the current student
- * Returns tutor Studio status and current access state
+ * Returns current practice availability for the authenticated student.
  */
 export async function GET() {
+  const requestId = randomUUID();
+  const respondError = (message: string, status: number, code: string) =>
+    errorResponse(message, { status, code, extra: { requestId } });
+
   try {
     const supabase = await createClient();
     const adminClient = createServiceRoleClient();
 
     if (!adminClient) {
-      return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    // Get student record
-    const { data: student } = await supabase
+    const { data: student, error: studentError } = await adminClient
       .from("students")
-      .select("id, tutor_id")
+      .select("id")
       .eq("user_id", user.id)
       .limit(1)
       .maybeSingle();
 
-    if (!student) {
-      return NextResponse.json(
-        { error: "Student record not found" },
-        { status: 404 }
-      );
+    if (studentError) {
+      console.error("[Practice Enable Check] Failed to load student:", studentError);
+      return respondError("Failed to check access", 500, "DATABASE_ERROR");
     }
 
-    // Get full access status
-    const accessStatus = await getStudentPracticeAccess(adminClient, student.id);
+    if (!student) {
+      return respondError("Student record not found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    const access = await getStudentPracticeAccess(adminClient, student.id);
+    if (!access.hasAccess) {
+      const status = access.reason === "student_not_found" ? 404 : 500;
+      return respondError(access.message, status, access.reason.toUpperCase());
+    }
 
     return NextResponse.json({
-      canEnable: accessStatus.hasAccess,
-      reason: accessStatus.reason,
-      tutorName: accessStatus.tutorName,
-      isFreeUser: accessStatus.isFreeUser,
+      canEnable: true,
+      tier: access.tier,
+      isFreeUser: access.isFreeUser,
+      showUpgradePrompt: access.showUpgradePrompt,
+      upgradePriceCents: access.upgradePrice,
+      tutorName: access.tutorName || null,
     });
   } catch (error) {
     console.error("[Practice Enable Check] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to check access" },
-      { status: 500 }
-    );
+    return respondError("Failed to check access", 500, "INTERNAL_ERROR");
+  }
+}
+
+/**
+ * Safely parses the enable payload.
+ *
+ * @param request - Incoming POST request.
+ * @returns Validated payload marker.
+ */
+async function parseEnablePayload(
+  request: Request
+): Promise<{ success: true; studentId: string } | { success: false }> {
+  try {
+    const body = await request.json();
+    if (body && typeof body.studentId === "string" && body.studentId.trim().length > 0) {
+      return { success: true, studentId: body.studentId.trim() };
+    }
+    return { success: false };
+  } catch {
+    return { success: false };
   }
 }

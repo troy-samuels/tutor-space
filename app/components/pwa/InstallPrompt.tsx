@@ -163,18 +163,18 @@ export function InstallPrompt() {
           <div
             className={cn(
               "pointer-events-auto mx-auto w-full max-w-[430px] rounded-2xl border border-white/10",
-              "bg-[#242220]/95 px-4 py-3 text-[#F5F2EF] shadow-[0_12px_32px_rgba(0,0,0,0.35)]",
+              "bg-[#242220]/95 px-4 py-3 text-foreground shadow-[0_12px_32px_rgba(0,0,0,0.35)]",
               "backdrop-blur"
             )}
           >
             <div className="flex items-start gap-3">
-              <p className="flex-1 text-sm leading-5 text-[#F5F2EF]/90">
+              <p className="flex-1 text-sm leading-5 text-foreground/90">
                 Add TutorLingua to your home screen for the best experience.
               </p>
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="rounded-full p-1 text-[#F5F2EF]/60 transition-colors hover:text-[#F5F2EF]"
+                className="rounded-full p-1 text-foreground/60 transition-colors hover:text-foreground"
                 aria-label="Dismiss install prompt"
               >
                 <X className="h-4 w-4" />
@@ -185,7 +185,7 @@ export function InstallPrompt() {
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold text-[#F5F2EF]/85 transition-colors hover:text-[#F5F2EF]"
+                className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold text-foreground/85 transition-colors hover:text-foreground"
               >
                 Dismiss
               </button>
@@ -196,7 +196,7 @@ export function InstallPrompt() {
                 }}
                 disabled={isInstalling}
                 className={cn(
-                  "rounded-full bg-[#E8784D] px-3 py-1.5 text-xs font-semibold text-[#1A1917] transition-opacity",
+                  "rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-background transition-opacity",
                   isInstalling && "cursor-not-allowed opacity-70"
                 )}
               >

@@ -23,7 +23,6 @@ import {
 	logStepError,
 	sanitizeInput,
 } from "@/lib/logger";
-import { requireUser } from "./helpers";
 import type {
 	HomeworkSubmission,
 	SubmitHomeworkInput,

@@ -2,149 +2,112 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
-import {
-  FREE_AUDIO_SECONDS,
-  FREE_TEXT_TURNS,
-  BLOCK_AUDIO_SECONDS,
-  BLOCK_TEXT_TURNS,
-  AI_PRACTICE_BLOCK_PRICE_CENTS,
-} from "@/lib/practice/constants";
-import {
-  getTutorHasPracticeAccess,
-  calculatePracticeAllowance,
-  getCurrentPracticePeriod,
-} from "@/lib/practice/access";
 import { errorResponse } from "@/lib/api/error-responses";
+import {
+  getCurrentPracticePeriod,
+  getStudentPracticeAccess,
+  type StudentPracticeTier,
+} from "@/lib/practice/access";
+
+type StudentUsageRow = {
+  id: string;
+};
+
+type ActiveSessionUsageRow = {
+  id: string;
+  message_count: number | null;
+};
 
 export interface PracticeUsageStats {
-  audioSecondsUsed: number;
-  audioSecondsAllowance: number;
-  textTurnsUsed: number;
+  tier: StudentPracticeTier;
+  sessionsUsedThisMonth: number;
+  sessionsAllowance: number;
+  textTurnsUsedThisSession: number;
   textTurnsAllowance: number;
-  blocksConsumed: number;
-  currentTierPriceCents: number;
+  audioEnabled: boolean;
+  adaptiveEnabled: boolean;
+  voiceInputEnabled: boolean;
+  canUpgrade: boolean;
+  upgradePriceCents: number | null;
   periodStart: string;
   periodEnd: string;
-  percentAudioUsed: number;
-  percentTextUsed: number;
-  // Freemium model additions
-  isFreeUser: boolean;
-  audioSecondsRemaining: number;
-  textTurnsRemaining: number;
-  canBuyBlocks: boolean;
-  blockPriceCents: number;
 }
 
 /**
- * GET /api/practice/usage
- * Returns current usage and allowance for the authenticated student
- * FREEMIUM MODEL: Works for both free tier and paid block users
+ * Returns tier-based usage and allowance details for the authenticated student.
  */
 export async function GET() {
   const requestId = randomUUID();
-  const respondError = (message: string, status: number, code: string, extra?: Record<string, unknown>) =>
-    errorResponse(message, { status, code, extra: { requestId, ...extra } });
+  const respondError = (
+    message: string,
+    status: number,
+    code: string,
+    extra?: Record<string, unknown>
+  ) =>
+    errorResponse(message, {
+      status,
+      code,
+      extra: {
+        requestId,
+        ...extra,
+      },
+    });
 
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const adminClient = createServiceRoleClient();
+
+    if (!adminClient) {
+      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return respondError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    // Get the student record
-    const { data: student } = await supabase
-      .from("students")
-      .select("*")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
-
+    const student = await loadStudent(adminClient, user.id);
     if (!student) {
       return respondError("Student record not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    const adminClient = createServiceRoleClient();
-    if (!adminClient) {
-      return respondError("Service unavailable", 503, "SERVICE_UNAVAILABLE");
+    const access = await getStudentPracticeAccess(adminClient, student.id);
+    if (!access.hasAccess) {
+      const status = access.reason === "student_not_found" ? 404 : 500;
+      return respondError(access.message, status, access.reason.toUpperCase());
     }
 
-    // Check tutor tier (freemium access gate)
-    if (!student.tutor_id) {
-      return respondError("No tutor assigned", 403, "NO_TUTOR");
-    }
+    const { periodStart, periodEnd } = getCurrentPracticePeriod();
+    const periodStartIso = periodStart.toISOString();
+    const periodEndIso = periodEnd.toISOString();
 
-    const tutorHasStudio = await getTutorHasPracticeAccess(
+    const sessionsUsedThisMonth = await countSessionsForCurrentPeriod(
       adminClient,
-      student.tutor_id
+      student.id,
+      periodStartIso,
+      periodEndIso
     );
-
-    if (!tutorHasStudio) {
-      return respondError("AI Practice requires tutor Studio subscription", 403, "TUTOR_NOT_STUDIO");
-    }
-
-    // Get or create free usage period
-    const { data: usagePeriod, error: periodError } = await adminClient.rpc(
-      "get_or_create_free_usage_period",
-      {
-        p_student_id: student.id,
-        p_tutor_id: student.tutor_id,
-      }
+    const textTurnsUsedThisSession = await getCurrentSessionTextTurns(
+      adminClient,
+      student.id
     );
-
-    if (periodError) {
-      console.error("[Practice Usage] Failed to get/create period:", periodError);
-      // Return default values if period creation fails
-      const { periodStart, periodEnd } = getCurrentPracticePeriod();
-      const stats: PracticeUsageStats = {
-        audioSecondsUsed: 0,
-        audioSecondsAllowance: FREE_AUDIO_SECONDS,
-        textTurnsUsed: 0,
-        textTurnsAllowance: FREE_TEXT_TURNS,
-        blocksConsumed: 0,
-        currentTierPriceCents: 0,
-        periodStart: periodStart.toISOString(),
-        periodEnd: periodEnd.toISOString(),
-        percentAudioUsed: 0,
-        percentTextUsed: 0,
-        isFreeUser: true,
-        audioSecondsRemaining: FREE_AUDIO_SECONDS,
-        textTurnsRemaining: FREE_TEXT_TURNS,
-        canBuyBlocks: false,
-        blockPriceCents: AI_PRACTICE_BLOCK_PRICE_CENTS,
-      };
-      return NextResponse.json(stats);
-    }
-
-    // Calculate allowances using the new helper
-    const allowance = calculatePracticeAllowance(usagePeriod);
-
-    // Calculate percentages
-    const percentAudioUsed = allowance.audioSecondsAllowance > 0
-      ? Math.round((allowance.audioSecondsUsed / allowance.audioSecondsAllowance) * 100)
-      : 0;
-    const percentTextUsed = allowance.textTurnsAllowance > 0
-      ? Math.round((allowance.textTurnsUsed / allowance.textTurnsAllowance) * 100)
-      : 0;
 
     const stats: PracticeUsageStats = {
-      audioSecondsUsed: allowance.audioSecondsUsed,
-      audioSecondsAllowance: allowance.audioSecondsAllowance,
-      textTurnsUsed: allowance.textTurnsUsed,
-      textTurnsAllowance: allowance.textTurnsAllowance,
-      blocksConsumed: allowance.blocksConsumed,
-      currentTierPriceCents: allowance.blocksConsumed * AI_PRACTICE_BLOCK_PRICE_CENTS,
-      periodStart: allowance.periodStart.toISOString(),
-      periodEnd: allowance.periodEnd.toISOString(),
-      percentAudioUsed,
-      percentTextUsed,
-      // Freemium model additions
-      isFreeUser: allowance.isFreeUser,
-      audioSecondsRemaining: allowance.audioSecondsRemaining,
-      textTurnsRemaining: allowance.textTurnsRemaining,
-      canBuyBlocks: false,
-      blockPriceCents: AI_PRACTICE_BLOCK_PRICE_CENTS,
+      tier: access.tier,
+      sessionsUsedThisMonth,
+      sessionsAllowance: access.sessionsPerMonth,
+      textTurnsUsedThisSession,
+      textTurnsAllowance: access.textTurnsPerSession,
+      audioEnabled: access.audioEnabled,
+      adaptiveEnabled: access.adaptiveEnabled,
+      voiceInputEnabled: access.voiceInputEnabled,
+      canUpgrade: access.showUpgradePrompt,
+      upgradePriceCents: access.upgradePrice,
+      periodStart: periodStartIso,
+      periodEnd: periodEndIso,
     };
 
     return NextResponse.json(stats);
@@ -152,4 +115,88 @@ export async function GET() {
     console.error("[Practice Usage] Error:", error);
     return respondError("Failed to fetch usage stats", 500, "INTERNAL_ERROR");
   }
+}
+
+/**
+ * Loads the student row for the authenticated user.
+ *
+ * @param adminClient - Service-role Supabase client.
+ * @param userId - Authenticated user ID.
+ * @returns Student row or `null`.
+ */
+async function loadStudent(
+  adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  userId: string
+): Promise<StudentUsageRow | null> {
+  const { data, error } = await adminClient
+    .from("students")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Practice Usage] Failed to load student:", error);
+    return null;
+  }
+
+  return (data as StudentUsageRow | null) ?? null;
+}
+
+/**
+ * Counts completed and active sessions in the current billing period.
+ *
+ * @param adminClient - Service-role Supabase client.
+ * @param studentId - Student UUID.
+ * @param periodStartIso - Inclusive period start timestamp.
+ * @param periodEndIso - Exclusive period end timestamp.
+ * @returns Number of sessions started in the period.
+ */
+async function countSessionsForCurrentPeriod(
+  adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  studentId: string,
+  periodStartIso: string,
+  periodEndIso: string
+): Promise<number> {
+  const { count, error } = await adminClient
+    .from("student_practice_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("student_id", studentId)
+    .gte("started_at", periodStartIso)
+    .lt("started_at", periodEndIso);
+
+  if (error) {
+    console.error("[Practice Usage] Failed to count sessions:", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+/**
+ * Reads the current active session message count for the authenticated student.
+ *
+ * @param adminClient - Service-role Supabase client.
+ * @param studentId - Student UUID.
+ * @returns Number of text turns in the active session.
+ */
+async function getCurrentSessionTextTurns(
+  adminClient: NonNullable<ReturnType<typeof createServiceRoleClient>>,
+  studentId: string
+): Promise<number> {
+  const { data, error } = await adminClient
+    .from("student_practice_sessions")
+    .select("id, message_count")
+    .eq("student_id", studentId)
+    .is("ended_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Practice Usage] Failed to load active session:", error);
+    return 0;
+  }
+
+  return ((data as ActiveSessionUsageRow | null)?.message_count ?? 0);
 }

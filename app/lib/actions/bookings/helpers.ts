@@ -1,10 +1,32 @@
 "use server";
 
-import { differenceInCalendarDays, endOfDay, endOfWeek, startOfDay, startOfWeek } from "date-fns";
+import { endOfDay, endOfWeek, startOfDay, startOfWeek } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { insertConversationThread, countBookingsInRange } from "@/lib/repositories/bookings";
 import type { TutorProfileData } from "./types";
+
+// ============================================================================
+// Auth Helper
+// ============================================================================
+
+/**
+ * Require the current user to be an authenticated tutor.
+ * Returns the Supabase client and user, or throws.
+ */
+export async function requireTutor() {
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		throw new Error("Authentication required");
+	}
+
+	return { supabase, user };
+}
 
 // ============================================================================
 // Conversation Thread

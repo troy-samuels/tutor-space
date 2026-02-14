@@ -17,6 +17,9 @@ import { CopilotWidgetServer } from "@/components/copilot/copilot-widget-server"
 import { CopilotDemoWidget } from "@/components/copilot/copilot-demo-widget";
 import { isClassroomUrl, resolveBookingMeetingUrl } from "@/lib/utils/classroom-links";
 import type { PlatformBillingPlan } from "@/lib/types/payments";
+import { StudentActivityFeed } from "@/components/dashboard/StudentActivityFeed";
+import { getTutorStudentActivity } from "@/lib/actions/practice-dashboard";
+import { AnimateIn } from "@/components/ui/animate-in";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -41,10 +44,11 @@ export default async function DashboardPage() {
     .eq("is_active", true)
     .order("created_at", { ascending: true });
 
-  const [summary, recentActivity, servicesResult] = await Promise.all([
+  const [summary, recentActivity, servicesResult, studentActivities] = await Promise.all([
     summaryPromise,
     getRecentActivity(user.id, 6, supabase),
     servicesPromise,
+    getTutorStudentActivity(),
   ]);
 
   const activeServices = servicesResult.data ?? [];
@@ -178,24 +182,28 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="pb-6 sm:pb-10">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-          {formatDate(new Date())}
-        </p>
-        <h1 className="font-sans text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          {getTimeBasedGreeting()}, {displayName}.
-        </h1>
-        <p className="mt-2 text-base font-sans text-muted-foreground sm:text-lg">
-          You have {sessionsToday} {sessionsToday === 1 ? "session" : "sessions"} today.
-        </p>
-      </div>
+      <AnimateIn>
+        <div className="pb-6 sm:pb-10">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {formatDate(new Date())}
+          </p>
+          <h1 className="font-sans text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
+            {getTimeBasedGreeting()}, {displayName}.
+          </h1>
+          <p className="mt-2 text-base font-sans text-muted-foreground sm:text-lg">
+            You have {sessionsToday} {sessionsToday === 1 ? "session" : "sessions"} today.
+          </p>
+        </div>
+      </AnimateIn>
 
-      <DashboardAnalytics
-        plan={planName}
-        studentCount={studentCount}
-        upcomingSessions={upcomingBookings.length}
-        revenueThisMonthCents={revenueThisMonth}
-      />
+      <AnimateIn delay={0.1}>
+        <DashboardAnalytics
+          plan={planName}
+          studentCount={studentCount}
+          upcomingSessions={upcomingBookings.length}
+          revenueThisMonthCents={revenueThisMonth}
+        />
+      </AnimateIn>
 
       {/* AI Copilot Widget - Shows for all users */}
       <Suspense fallback={null}>
@@ -208,6 +216,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         {/* Row 1, Col 1: UP NEXT */}
+        <AnimateIn delay={0.15} hoverLift>
         <div
           className={cn(
             "rounded-2xl border bg-white p-5 sm:rounded-3xl sm:p-6",
@@ -313,7 +322,10 @@ export default async function DashboardPage() {
           )}
         </div>
 
+        </AnimateIn>
+
         {/* Row 1, Col 2: Invite Students */}
+        <AnimateIn delay={0.22} hoverLift>
         <InviteStudentsCard
           username={profile?.username ?? ""}
           tutorName={profile?.full_name ?? ""}
@@ -321,13 +333,26 @@ export default async function DashboardPage() {
           services={activeServices}
         />
 
+        </AnimateIn>
+
         {/* Row 2, Col 1: Today & Tomorrow */}
+        <AnimateIn delay={0.29} hoverLift>
         <div className="rounded-2xl border border-stone-200 bg-white p-5 sm:rounded-3xl sm:p-6">
           <UpcomingSessions sessions={mappedUpcomingSessions} />
         </div>
 
+        </AnimateIn>
+
         {/* Row 2, Col 2: Recent Activity */}
+        <AnimateIn delay={0.36} hoverLift>
         <RecentActivityList data={recentActivity} />
+
+        </AnimateIn>
+
+        {/* Row 3, Full Width: Student Practice Activity */}
+        <AnimateIn delay={0.43} className="lg:col-span-2">
+          <StudentActivityFeed activities={studentActivities} />
+        </AnimateIn>
       </div>
 
       {showStudioDiscovery && (

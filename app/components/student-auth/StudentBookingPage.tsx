@@ -11,12 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import {
   getTutorBookingDetails,
   getAvailableSlots,
-  createStudentBooking,
 } from "@/lib/actions/student-bookings";
 import type {
   TutorBookingDetails,
@@ -35,8 +32,6 @@ type StudentBookingPageProps = {
 };
 
 type SelectedService = TutorWithDetails["services"][number] | null;
-
-type PaymentMethod = "subscription" | "package" | "direct";
 
 export function StudentBookingPage({ tutors, tutorsError }: StudentBookingPageProps) {
   const [selectedTutorId, setSelectedTutorId] = useState<string | null>(null);

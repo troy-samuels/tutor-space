@@ -3,7 +3,7 @@
  * These are NOT server actions - they're shared utilities.
  */
 
-import { getAppUrl, type UserRole } from "@/lib/auth/redirects";
+import { getAppUrl } from "@/lib/auth/redirects";
 import { DASHBOARD_ROUTE, STUDENT_HOME_ROUTE } from "./types";
 
 // ============================================================================

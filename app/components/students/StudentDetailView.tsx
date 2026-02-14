@@ -18,10 +18,11 @@ import { OnboardingProgressBadge } from "./onboarding/OnboardingProgressBadge";
 import { EngagementScoreCard } from "./engagement/EngagementScoreCard";
 import { StudentTimeline } from "./timeline/StudentTimeline";
 import { getOrCreateThreadByStudentId } from "@/lib/actions/messaging";
-import { getStudentOnboardingProgress, initializeStudentOnboarding } from "@/lib/actions/student-onboarding";
+import { getStudentOnboardingProgress } from "@/lib/actions/student-onboarding";
 import { getStudentEngagementScore } from "@/lib/actions/student-engagement";
 import type { OnboardingProgress, EngagementScore } from "@/lib/actions/types";
 import type { StudentDetailData } from "@/lib/data/types";
+import { AssignPracticeButton } from "@/components/dashboard/AssignPracticeButton";
 
 type StudentDetailViewProps = {
   studentId: string;
@@ -83,6 +84,14 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [threadId, setThreadId] = useState<string | null>(detail?.threadId ?? null);
+
+  const lastLessonNote = detail?.lessonNotes?.[0] ?? null;
+  const assignPracticeDefaultTopic =
+    lastLessonNote?.topics_covered?.[0] ||
+    detail?.practiceScenarios?.[0]?.title ||
+    "Lesson follow-up practice";
+  const assignPracticeGrammarOptions = lastLessonNote?.areas_to_focus ?? [];
+  const assignPracticeVocabularyOptions = lastLessonNote?.topics_covered ?? [];
 
   const handleStudentUpdated = (updates: Partial<StudentDetailData["student"]>) => {
     setState((prev) => {
@@ -319,6 +328,13 @@ export function StudentDetailView({ studentId, initialData, onClose }: StudentDe
           >
             <Activity className="h-4 w-4" />
           </Button>
+          <AssignPracticeButton
+            studentId={detail.student.id}
+            studentName={detail.student.full_name || "Student"}
+            defaultTopic={assignPracticeDefaultTopic}
+            grammarOptions={assignPracticeGrammarOptions}
+            vocabularyOptions={assignPracticeVocabularyOptions}
+          />
           <Button asChild>
             <Link href={`/lesson-notes/new?student=${detail.student.id}`}>Add lesson note</Link>
           </Button>

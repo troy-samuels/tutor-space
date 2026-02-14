@@ -63,7 +63,7 @@ export const ARCHETYPES = [
     // Cool & Precise - Inspired by Stripe, Linear, Apple
     background: "#F8FAFC",    // Cool Snow
     cardBg: "#FFFFFF",        // White
-    primary: "#334155",       // Slate 700 - Matte Blue-Grey (authoritative)
+    primary: "#0F172A",       // Rich Midnight Navy (authoritative)
     textPrimary: "#0F172A",   // Deep Slate
     textSecondary: "#64748B", // Cool Gray
     border: "#E2E8F0",        // Cool Ice
@@ -78,10 +78,10 @@ export const ARCHETYPES = [
     vibe: "Elegant, Warm, Human",
     bannerHint: "Street scenes, coffee shops, nature",
     // Warm & Organic - Inspired by Kinfolk, Aeon, Substack
-    background: "#FBFBF9",    // Warm Alabaster
+    background: "#FFFCF0",    // Newsprint (keep warmth here)
     cardBg: "#FFFFFF",        // White
-    primary: "#A16207",       // Muted Gold/Ochre (expensive, earthy)
-    textPrimary: "#44403C",   // Warm Charcoal
+    primary: "#9A3412",       // Deep Rust (WCAG compliant)
+    textPrimary: "#292524",   // Warm Charcoal
     textSecondary: "#78716C", // Stone Gray
     border: "#E7E5E4",        // Warm Stone
     font: "rounded" as FontOption,           // Manrope (body)
@@ -95,9 +95,9 @@ export const ARCHETYPES = [
     vibe: "Traditional, Prestigious, Institutional",
     bannerHint: "Books, libraries, university textures",
     // Traditional & Rich - Inspired by Ivy League, NYT
-    background: "#FFFCF5",    // Very Pale Cream/Vellum
+    background: "#F5F7F5",    // Mist
     cardBg: "#FFFFFF",        // White
-    primary: "#14532D",       // Deep Hunter Green (growth, education)
+    primary: "#1B4D3E",       // Oxford Green (British Racing Green)
     textPrimary: "#1C1917",   // Soft Black (Ink)
     textSecondary: "#57534E", // Warm Grey (Pencil)
     border: "#F0EBE0",        // Paper Edge
@@ -111,11 +111,11 @@ export const ARCHETYPES = [
     description: "Pop culture, Slang, Creative methods",
     vibe: "Contemporary, Fresh, Digital-native",
     bannerHint: "Minimalist, bold typography, matte surfaces",
-    // Warm Neutral - Peachy accent with dark charcoal text
+    // Modern Vibrant - Electric Violet with dark zinc text
     background: "#FAFAFA",    // Neutral Grey-White
     cardBg: "#FFFFFF",        // White
-    primary: "#E8B59E",       // Peachy/Salmon accent
-    textPrimary: "#2C2C2C",   // Dark Charcoal
+    primary: "#7C3AED",       // Electric Violet (CRITICAL FIX: was 1.8:1 contrast)
+    textPrimary: "#18181B",   // Zinc 900
     textSecondary: "#737373", // Neutral Grey
     border: "#E5E5E5",        // Soft Border
     font: "luxury" as FontOption,            // DM Sans (body)
@@ -129,9 +129,10 @@ export const ARCHETYPES = [
     vibe: "Handcrafted, Boutique, Personal",
     bannerHint: "Warm textures, handwritten notes, craft materials",
     // Warm & Artisanal - Inspired by Etsy, handmade brands
-    background: "#F4F1F0",    // Warm Blush Cream
+    // NOTE: This archetype needs dark text on primary buttons (not white)
+    background: "#FAF9F6",    // Warmer background
     cardBg: "#FFFFFF",        // White
-    primary: "#BF9056",       // Bronze/Caramel (warm, inviting)
+    primary: "#A67C52",       // Clay (adjusted for better contrast)
     textPrimary: "#3D3229",   // Warm Dark Brown (high contrast)
     textSecondary: "#8C7F75", // Warm Taupe Gray
     border: "#E8E2DE",        // Warm Stone Border

@@ -201,6 +201,75 @@ export async function pingSemanticCache(): Promise<boolean> {
   return client !== null;
 }
 
+// ---------------------------------------------------------------------------
+// Exports consumed by model-router.ts
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the underlying Redis client (or null if unconfigured/disconnected).
+ * Used by model-router for cache-aware inference.
+ * Synchronous — returns the cached client if connected, null otherwise.
+ */
+export function getSemanticRedis(): Redis | null {
+  return getRedisClient();
+}
+
+/**
+ * Build a deterministic cache key from arbitrary inputs.
+ */
+export function buildCacheKey(...parts: unknown[]): string {
+  const raw = JSON.stringify(parts);
+  // Simple hash for cache key
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const chr = raw.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0;
+  }
+  return `sc:${Math.abs(hash).toString(36)}`;
+}
+
+type WithCacheOptions = {
+  namespace: string;
+  ttlSeconds: number;
+  similarityThreshold?: number;
+};
+
+/**
+ * Cache-through wrapper: checks cache first, falls back to executor, stores result.
+ */
+export async function withCache<T>(
+  redis: Redis,
+  options: WithCacheOptions,
+  key: string,
+  executor: () => Promise<T>
+): Promise<{ data: T; cached: boolean }> {
+  const fullKey = `${options.namespace}:${key}`;
+
+  try {
+    const cached = await redis.get<T>(fullKey);
+    if (cached !== null && cached !== undefined) {
+      return { data: cached, cached: true };
+    }
+  } catch {
+    // Cache miss or error — proceed to execute
+  }
+
+  const data = await executor();
+
+  try {
+    if (options.ttlSeconds > 0) {
+      await redis.set(fullKey, data, { ex: Math.floor(options.ttlSeconds) });
+    } else {
+      await redis.set(fullKey, data);
+    }
+  } catch {
+    // Cache write failure is non-fatal
+  }
+
+  return { data, cached: false };
+}
+
 export async function getSemanticCacheHealth(): Promise<SemanticCacheHealth> {
   if (redisStatus === "disconnected" && reconnectAtMs !== null && Date.now() >= reconnectAtMs) {
     await ensureRedisReady({ forceProbe: true });

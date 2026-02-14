@@ -14,8 +14,8 @@
  * - See: lib/ai/google-compliance.ts
  */
 
-import OpenAI from "openai";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
+import { routedChatCompletion } from "@/lib/ai/model-router";
 import type { SpeakerSegment } from "./speaker-diarization";
 import { SpeechAnalyzerBase } from "./speech-analyzer-base";
 
@@ -193,18 +193,18 @@ export async function analyzeTutorSpeech(
       sources: ["lesson_recordings.transcript_json", "lesson_objectives"],
     });
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are a language tutor analyst. Return JSON only." },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 2000,
-      temperature: 0.3,
-    });
+    const response = await routedChatCompletion(
+      { task: "speech_analysis" },
+      {
+        messages: [
+          { role: "system", content: "You are a language tutor analyst. Return JSON only." },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 2000,
+        temperature: 0.3,
+      }
+    );
 
     const content = response.choices[0]?.message?.content;
     if (!content) {

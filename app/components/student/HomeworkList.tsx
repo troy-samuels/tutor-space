@@ -205,7 +205,7 @@ export function HomeworkList({
                           variant={hasPracticeExercises ? "default" : "outline"}
                           className={
                             hasPracticeExercises
-                              ? "border-[#E8784D]/30 bg-[#E8784D]/15 text-[#E8784D]"
+                              ? "border-primary/30 bg-primary/15 text-primary"
                               : ""
                           }
                         >
@@ -290,7 +290,7 @@ export function HomeworkList({
                           <Button
                             asChild
                             size="sm"
-                            className="bg-[#E8784D] text-[#1A1917] hover:bg-[#E8784D]/90"
+                            className="bg-primary text-background hover:bg-primary/90"
                           >
                             <Link
                               href={`/practice/start/${practiceAssignmentId}?source=homework&homeworkId=${item.id}`}
@@ -411,7 +411,7 @@ export function HomeworkList({
                             variant={hasPracticeExercises ? "default" : "outline"}
                             className={
                               hasPracticeExercises
-                                ? "border-[#E8784D]/30 bg-[#E8784D]/15 text-[#E8784D]"
+                                ? "border-primary/30 bg-primary/15 text-primary"
                                 : ""
                             }
                           >

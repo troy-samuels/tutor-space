@@ -183,6 +183,8 @@ export async function POST(req: NextRequest) {
 
       case "customer.subscription.created":
       case "customer.subscription.updated": {
+        // Includes tutor plans, legacy AI practice plans, and student practice
+        // Unlimited/Solo subscriptions (metadata.type=student_practice_subscription).
         const subscription = event.data.object as StripeSubscriptionPayload;
         await handleSubscriptionUpdate(subscription, supabase);
         break;
@@ -201,6 +203,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "invoice.payment_failed": {
+        // Handles tutor subscription retries plus student practice downgrades.
         const invoice = event.data.object as Stripe.Invoice;
         await handleInvoicePaymentFailed(invoice, supabase);
         break;

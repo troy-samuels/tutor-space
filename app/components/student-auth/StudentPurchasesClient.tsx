@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, CreditCard, Search, Ticket, Calendar, UserPlus, ShoppingBag } from "lucide-react";
+import { Package, CreditCard, Search, Calendar, UserPlus, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PackageCard } from "./PackageCard";
 import { SubscriptionCard } from "./SubscriptionCard";

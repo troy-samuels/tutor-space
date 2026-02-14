@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Trash2, Package } from "lucide-react";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
-import { createService, updateService, deleteService } from "@/lib/actions/services";
+import { createService, updateService } from "@/lib/actions/services";
 import {
   createSessionPackage,
   updateSessionPackage,

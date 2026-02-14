@@ -31,6 +31,7 @@ export async function createInviteLink(params: {
 }): Promise<{ success: boolean; link?: InviteLink; error?: string }> {
   try {
     const { supabase, user } = await requireTutor({ strict: true });
+    if (!user) throw new Error("Unauthorized");    if (!user) throw new Error("Unauthorized");
 
     const token = generateSecureToken();
 
@@ -83,7 +84,7 @@ export async function listInviteLinks(): Promise<{
 }> {
   try {
     const { supabase, user } = await requireTutor({ strict: true });
-
+    if (!user) throw new Error("Unauthorized");
     // Fetch invite links
     const { data: links, error: linksError } = await supabase
       .from("tutor_invite_links")
@@ -146,7 +147,7 @@ export async function deleteInviteLink(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { supabase, user } = await requireTutor({ strict: true });
-
+    if (!user) throw new Error("Unauthorized");
     const { error } = await supabase
       .from("tutor_invite_links")
       .delete()
@@ -176,7 +177,7 @@ export async function toggleInviteLinkActive(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { supabase, user } = await requireTutor({ strict: true });
-
+    if (!user) throw new Error("Unauthorized");
     const { error } = await supabase
       .from("tutor_invite_links")
       .update({ is_active: isActive })
@@ -296,7 +297,7 @@ export async function getInviteLinkUsages(linkId: string): Promise<{
 }> {
   try {
     const { supabase, user } = await requireTutor();
-
+    if (!user) throw new Error("Unauthorized");
     // First verify the tutor owns this link
     const { data: link, error: linkError } = await supabase
       .from("tutor_invite_links")

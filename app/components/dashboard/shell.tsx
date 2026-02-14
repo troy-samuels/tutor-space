@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/header";
-import { DashboardBottomNav } from "@/components/dashboard/bottom-nav";
+import { BottomNav } from "@/components/navigation/BottomNav";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
+import { PageTransition } from "@/components/ui/page-transition";
 import { cn } from "@/lib/utils";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -75,11 +76,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           )}
         >
           <div className={cn("mx-auto w-full", contentWidth)}>
-            {children}
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>
-      {!hideChrome && <DashboardBottomNav />}
+      {!hideChrome && <BottomNav role="tutor" />}
     </div>
   );
 }

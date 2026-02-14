@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor Commission Calculator | See What You're Really Losing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                    Tutor Commission Calculator
+                </h1>
+                <p class="text-xl text-gray-600">
+                    Discover how much you're actually losing to platform fees
+                </p>
+            </div>
+
+            <!-- Calculator Card -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Input Section -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Current Earnings</h3>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Monthly Revenue (£)
+                            </label>
+                            <input 
+                                type="number" 
+                                id="monthlyRevenue" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="2000"
+                                oninput="calculateCommissions()"
+                            >
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Current Platform
+                            </label>
+                            <select 
+                                id="platform" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                onchange="calculateCommissions()"
+                            >
+                                <option value="preply">Preply (18-33%)</option>
+                                <option value="italki">iTalki (15%)</option>
+                                <option value="verbling">Verbling (15%)</option>
+                                <option value="cambly">Cambly (10.20 per hour)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Years Teaching Online
+                            </label>
+                            <input 
+                                type="number" 
+                                id="yearsTeaching" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="2"
+                                oninput="calculateCommissions()"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Commission Loss</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-3 bg-red-100 rounded-lg">
+                                <span class="text-sm font-medium text-red-800">Monthly Loss:</span>
+                                <span class="text-lg font-bold text-red-600" id="monthlyLoss">£0</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                                <span class="text-sm font-medium text-red-700">Annual Loss:</span>
+                                <span class="text-xl font-bold text-red-600" id="annualLoss">£0</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                                <span class="text-sm font-medium text-orange-700">Lifetime Loss:</span>
+                                <span class="text-2xl font-bold text-orange-600" id="lifetimeLoss">£0</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 p-4 bg-green-100 rounded-lg">
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-green-800 mb-1">With TutorLingua (0% commission)</p>
+                                <p class="text-2xl font-bold text-green-600" id="tutorLinguaEarnings">£0</p>
+                                <p class="text-xs text-green-700">Monthly take-home</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Section -->
+                <div class="mt-8 text-center">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
+                        <h3 class="text-2xl font-bold mb-2">Ready to Keep 100% of Your Revenue?</h3>
+                        <p class="text-indigo-100 mb-4">Join TutorLingua and never pay commission again</p>
+                        <a href="https://tutorlingua.com" class="inline-block bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                            Start Your Free Account →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Social Proof -->
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600">
+                        Join <span class="font-semibold">50+ tutors</span> who've already made the switch
+                    </p>
+                </div>
+            </div>
+
+            <!-- Feature Highlights -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg p-6 text-center">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">💰</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Zero Commission</h3>
+                    <p class="text-sm text-gray-600">Keep 100% of what you earn</p>
+                </div>
+                
+                <div class="bg-white rounded-lg p-6 text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">📅</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Direct Bookings</h3>
+                    <p class="text-sm text-gray-600">Students book directly with you</p>
+                </div>
+                
+                <div class="bg-white rounded-lg p-6 text-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">🚀</span>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Own Your Business</h3>
+                    <p class="text-sm text-gray-600">Build your own student base</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculateCommissions() {
+            const revenue = parseFloat(document.getElementById('monthlyRevenue').value) || 0;
+            const platform = document.getElementById('platform').value;
+            const years = parseFloat(document.getElementById('yearsTeaching').value) || 1;
+
+            let commissionRate = 0;
+            switch(platform) {
+                case 'preply': commissionRate = 0.25; break; // Average of 18-33%
+                case 'italki': commissionRate = 0.15; break;
+                case 'verbling': commissionRate = 0.15; break;
+                case 'cambly': commissionRate = 0.20; break; // Estimated
+            }
+
+            const monthlyLoss = revenue * commissionRate;
+            const annualLoss = monthlyLoss * 12;
+            const lifetimeLoss = annualLoss * years;
+            const tutorLinguaEarnings = revenue; // 100% of revenue
+
+            document.getElementById('monthlyLoss').textContent = `£${monthlyLoss.toFixed(0)}`;
+            document.getElementById('annualLoss').textContent = `£${annualLoss.toFixed(0)}`;
+            document.getElementById('lifetimeLoss').textContent = `£${lifetimeLoss.toFixed(0)}`;
+            document.getElementById('tutorLinguaEarnings').textContent = `£${tutorLinguaEarnings.toFixed(0)}`;
+
+            // Update social proof based on calculation
+            if (revenue > 1500) {
+                updateSocialProof('high');
+            } else if (revenue > 500) {
+                updateSocialProof('medium');
+            } else {
+                updateSocialProof('low');
+            }
+        }
+
+        function updateSocialProof(tier) {
+            const messages = {
+                high: "You're losing serious money to commission fees!",
+                medium: "Every month counts - stop giving away your earnings",
+                low: "Even small savings add up over time"
+            };
+            
+            // Could update UI messaging based on earnings tier
+        }
+
+        // Initialize with example values
+        document.getElementById('monthlyRevenue').value = '2000';
+        document.getElementById('yearsTeaching').value = '2';
+        calculateCommissions();
+    </script>
+
+    <!-- Analytics -->
+    <script>
+        // Track calculator usage
+        function trackCalculatorUse(revenue, platform) {
+            // Add analytics tracking here
+            console.log(`Calculator used: £${revenue}/month on ${platform}`);
+        }
+    </script>
+</body>
+</html>

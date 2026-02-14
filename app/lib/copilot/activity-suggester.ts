@@ -15,8 +15,8 @@
  * - See: lib/ai/google-compliance.ts
  */
 
-import OpenAI from "openai";
 import { assertGoogleDataIsolation } from "@/lib/ai/google-compliance";
+import { routedChatCompletion } from "@/lib/ai/model-router";
 import type { SuggestedActivity, FocusArea, ErrorPattern } from "./briefing-generator";
 
 // =============================================================================
@@ -180,16 +180,19 @@ async function generateAISuggestions(
       ],
     });
 
-    const openai = new OpenAI({ apiKey });
-
     const prompt = buildPrompt(input);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert language teaching consultant. Generate 2-3 specific, actionable lesson activities based on the student's needs. Each activity should:
+    const response = await routedChatCompletion(
+      {
+        task: "copilot_suggestion",
+        cacheable: true,
+        cacheTtlSeconds: 60 * 60 * 4,
+      },
+      {
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert language teaching consultant. Generate 2-3 specific, actionable lesson activities based on the student's needs. Each activity should:
 - Target specific errors or focus areas mentioned
 - Be appropriate for the proficiency level
 - Fit within the time allocation
@@ -212,16 +215,17 @@ Example response:
     "targetArea": "past_tense"
   }
 ]`,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-      response_format: { type: "json_object" },
-    });
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+        response_format: { type: "json_object" },
+      }
+    );
 
     const content = response.choices[0]?.message?.content;
     if (!content) return null;

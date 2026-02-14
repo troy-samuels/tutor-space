@@ -661,7 +661,7 @@ async function incrementAudioWithBillingFreemium(params: {
   if (incrementResult.needs_block && blockSubscriptionItemId) {
     try {
       // Record metered usage on Stripe
-      const usageRecord = await stripe.subscriptionItems.createUsageRecord(
+      const usageRecord = await (stripe.subscriptionItems as unknown as { createUsageRecord: (id: string, params: Record<string, unknown>) => Promise<{ id: string }> }).createUsageRecord(
         blockSubscriptionItemId,
         {
           quantity: 1,

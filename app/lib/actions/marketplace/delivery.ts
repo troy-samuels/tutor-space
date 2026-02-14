@@ -27,7 +27,6 @@ import {
 	logStep,
 	logStepError,
 } from "@/lib/logger";
-import { DOWNLOAD_RATE_LIMIT_CONFIG } from "./types";
 import type {
 	ActionResult,
 	ValidateDownloadParams,

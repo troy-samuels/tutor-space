@@ -10,7 +10,7 @@ type HeroProps = {
 export function Hero({ hero, socialProof }: HeroProps) {
 
   return (
-    <section className="relative overflow-hidden bg-brand-white py-20 sm:py-24 lg:py-32">
+    <section className="relative overflow-hidden bg-background py-20 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Hero content */}
         <div className="mx-auto max-w-3xl text-center">
@@ -21,7 +21,7 @@ export function Hero({ hero, socialProof }: HeroProps) {
             </span>
             <span className="block">{hero.variants.aspirationalHeadline}</span>
           </h1>
-          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-gray-700 lg:text-xl">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground lg:text-xl">
             {hero.subheadline}
           </p>
 
@@ -35,22 +35,34 @@ export function Hero({ hero, socialProof }: HeroProps) {
             </Link>
             <Link
               href="#calendar-demo"
-              className="w-full rounded-md border border-border px-6 sm:px-8 py-3 sm:py-3.5 text-center text-sm sm:text-base font-semibold leading-7 text-foreground transition-all duration-300 hover:bg-stone-50 hover:border-stone-200 sm:w-auto"
+              className="w-full rounded-md border border-border px-6 sm:px-8 py-3 sm:py-3.5 text-center text-sm sm:text-base font-semibold leading-7 text-foreground transition-all duration-300 hover:bg-muted hover:border-border sm:w-auto"
             >
               {hero.secondaryCTA} <span aria-hidden="true">→</span>
             </Link>
           </div>
 
+          {/* Test Your Level CTA */}
+          <div className="mt-6 sm:mt-8">
+            <Link
+              href="/practice"
+              className="group inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-5 py-2.5 text-sm font-medium text-primary transition-all duration-300 hover:bg-primary/10 hover:border-primary/50"
+            >
+              <span className="text-base" aria-hidden="true">🎯</span>
+              Test your level in 3 minutes — no signup required
+              <span className="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
+            </Link>
+          </div>
+
           {/* Social proof */}
           <div className="mt-10 sm:mt-16">
-            <p className="text-xs sm:text-sm font-medium text-gray-600">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">
               {socialProof.text}
             </p>
             <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-8">
               {socialProof.tutors.map((tutor, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-x-2 text-sm text-gray-500"
+                  className="flex items-center gap-x-2 text-sm text-muted-foreground"
                 >
                   <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-muted flex items-center justify-center font-semibold text-primary text-sm sm:text-base">
                     {tutor.name.charAt(0)}
