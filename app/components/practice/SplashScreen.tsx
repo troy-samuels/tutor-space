@@ -61,7 +61,7 @@ export default function SplashScreen({
               width: size,
               height: size,
               backgroundColor: color,
-              opacity: 0.15,
+              opacity: 0.08,
               left: `${x}%`,
               top: `${y}%`,
             }}
@@ -92,7 +92,7 @@ export default function SplashScreen({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full backdrop-blur-xl bg-white/[0.08] border border-white/[0.12] mb-6 shadow-[0_0_20px_-10px_rgba(232,120,77,0.2)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-50 border border-stone-200 mb-6 shadow-[0_0_20px_-10px_rgba(232,120,77,0.2)]"
         >
           <Zap className="w-3 h-3 text-primary" />
           <span className="text-xs text-primary font-medium">
@@ -115,7 +115,7 @@ export default function SplashScreen({
                 {kineticPhrases[phraseIndex]}
               </motion.span>
             </AnimatePresence>
-            <span className="block text-foreground">Powered by AI.</span>
+            <span className="block text-foreground">Start learning today.</span>
           </h1>
         </div>
 
@@ -142,7 +142,7 @@ export default function SplashScreen({
               type: "spring",
               stiffness: 200,
             }}
-            className="shrink-0 px-4 py-2 rounded-full backdrop-blur-md bg-white/[0.04] border border-white/[0.08] text-sm text-foreground shadow-sm"
+            className="shrink-0 px-4 py-2 rounded-full bg-stone-50 border border-stone-200 text-sm text-foreground shadow-sm"
           >
             {lang.flag} {lang.name}
           </motion.span>
@@ -163,7 +163,7 @@ export default function SplashScreen({
             learners
           </span>
         </div>
-        <div className="w-px h-3 bg-white/[0.1]" />
+        <div className="w-px h-3 bg-stone-100" />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Trophy className="w-3.5 h-3.5" />
           <span>
@@ -186,7 +186,7 @@ export default function SplashScreen({
             boxShadow: "0 0 40px -10px rgba(232,120,77,0.5)",
           }}
           transition={springTransition}
-          className="w-full py-4 rounded-full backdrop-blur-xl bg-white/[0.08] border border-white/[0.12] text-foreground font-semibold text-lg shadow-[0_0_30px_-10px_rgba(232,120,77,0.3)] hover:border-primary/40 transition-colors"
+          className="w-full py-4 rounded-full bg-primary text-primary-foreground font-semibold text-lg shadow-lg hover:bg-primary/90 transition-colors"
         >
           Start practising
         </motion.button>
@@ -200,7 +200,7 @@ export default function SplashScreen({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.3 }}
-          className="mt-5 w-full max-w-sm rounded-2xl border border-white/[0.1] bg-white/[0.05] p-3 text-center backdrop-blur-xl"
+          className="mt-5 w-full max-w-sm rounded-2xl border border-stone-200 bg-stone-50 p-3 text-center backdrop-blur-xl"
         >
           <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Assigned practice</p>
           <p className="mt-1 text-sm text-foreground">

@@ -92,82 +92,60 @@ export function StudentProgressClient({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">My Progress</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Track your learning journey and achievements
         </p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Lessons
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-primary" />
-              </div>
-              <span className="text-2xl font-bold">
-                {stats?.total_lessons || 0}
-              </span>
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <div className="rounded-2xl bg-white border border-stone-100 p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-2xl font-bold">{stats?.total_lessons || 0}</p>
+              <p className="text-xs text-muted-foreground">Lessons</p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-primary" />
-              </div>
-              <span className="text-2xl font-bold">
-                {stats ? formatMinutes(stats.total_minutes) : "0m"}
-              </span>
+        <div className="rounded-2xl bg-white border border-stone-100 p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-amber-600" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-2xl font-bold">{stats ? formatMinutes(stats.total_minutes) : "0m"}</p>
+              <p className="text-xs text-muted-foreground">Study time</p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Current Streak
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Flame className="h-5 w-5 text-primary" />
-              </div>
-              <span className="text-2xl font-bold">
-                {stats?.current_streak || 0} weeks
-              </span>
+        <div className="rounded-2xl bg-white border border-stone-100 p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center">
+              <Flame className="h-5 w-5 text-orange-500" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-2xl font-bold">{stats?.current_streak || 0}</p>
+              <p className="text-xs text-muted-foreground">Week streak</p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Goals Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Award className="h-5 w-5 text-primary" />
-              </div>
-              <span className="text-2xl font-bold">{completedGoals.length}</span>
+        <div className="rounded-2xl bg-white border border-stone-100 p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <Award className="h-5 w-5 text-emerald-600" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-2xl font-bold">{completedGoals.length}</p>
+              <p className="text-xs text-muted-foreground">Goals done</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Onboarding Progress */}
@@ -215,10 +193,12 @@ export function StudentProgressClient({
           </CardHeader>
           <CardContent>
             {assessments.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <TrendingUp className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No assessments yet</p>
-                <p className="text-xs mt-1">
+              <div className="text-center py-8">
+                <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-stone-50 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-stone-300" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No assessments yet</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Your tutor will assess your skills during lessons
                 </p>
               </div>
@@ -263,10 +243,12 @@ export function StudentProgressClient({
           </CardHeader>
           <CardContent>
             {activeGoals.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Target className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No active goals</p>
-                <p className="text-xs mt-1">
+              <div className="text-center py-8">
+                <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-stone-50 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-stone-300" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No active goals</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Set learning goals with your tutor
                 </p>
               </div>
@@ -316,10 +298,12 @@ export function StudentProgressClient({
         </CardHeader>
         <CardContent>
           {recentNotes.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No lesson notes yet</p>
-              <p className="text-xs mt-1">
+            <div className="text-center py-8">
+              <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-stone-50 flex items-center justify-center">
+                <MessageSquare className="h-6 w-6 text-stone-300" />
+              </div>
+              <p className="text-sm font-medium text-foreground">No lesson notes yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 Your tutor will add notes after lessons
               </p>
             </div>

@@ -46,7 +46,18 @@ export function TutorsComingSoon() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE }}
         >
-          <span className="text-5xl mb-6 block">👩‍🏫</span>
+          {/* Premium illustration */}
+          <div className="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-amber-50 border border-primary/15 shadow-sm">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary/30" />
+              <circle cx="8.5" cy="10" r="1.5" fill="currentColor" className="text-primary" />
+              <circle cx="15.5" cy="10" r="1.5" fill="currentColor" className="text-primary" />
+              <path d="M8 14.5c0 0 1.5 2.5 4 2.5s4-2.5 4-2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-primary" />
+              <path d="M4.5 8.5C3.5 7 4 4.5 6.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-primary/40" />
+              <path d="M19.5 8.5C20.5 7 20 4.5 17.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-primary/40" />
+              <path d="M9 2.5c1-.5 2-.5 3-.5s2 0 3 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-primary/50" />
+            </svg>
+          </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Tutors are on their way.
           </h1>

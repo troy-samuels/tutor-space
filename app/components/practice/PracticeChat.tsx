@@ -625,16 +625,7 @@ export default function PracticeChat({
           disabled={answerState !== "idle"}
           className="absolute right-4 top-4 z-30"
         />
-      ) : (
-        <button
-          type="button"
-          onClick={handleVoiceLockedClick}
-          className="absolute right-4 top-4 z-30 inline-flex items-center gap-1.5 rounded-full border border-primary/35 bg-card/70 px-3 py-1.5 text-[11px] uppercase tracking-[0.08em] text-[#E8A84D]"
-        >
-          <Lock className="h-3.5 w-3.5" />
-          Voice locked
-        </button>
-      )}
+      ) : null}
 
       {/* Header */}
       <div className="px-4 pt-3 pb-2 space-y-2">
@@ -651,7 +642,7 @@ export default function PracticeChat({
           </div>
           <div className="flex items-center gap-3">
             {/* Glassmorphic Hearts */}
-            <div className="flex items-center gap-1 backdrop-blur-md bg-white/[0.04] px-2 py-1 rounded-full border border-white/[0.08]">
+            <div className="flex items-center gap-1 bg-stone-100 px-2 py-1 rounded-full border border-stone-200">
               {HEART_SLOTS.map((index) => (
                 <Heart
                   key={index}
@@ -664,7 +655,7 @@ export default function PracticeChat({
               ))}
             </div>
             {/* XP */}
-            <div className="flex items-center gap-1 backdrop-blur-md bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/[0.08]">
+            <div className="flex items-center gap-1 bg-stone-100 px-2.5 py-1 rounded-full border border-stone-200">
               <Zap className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-bold text-primary tabular-nums">
                 {totalXp}
@@ -674,7 +665,7 @@ export default function PracticeChat({
         </div>
 
         {/* Progress bar */}
-        <div className="h-2 rounded-full backdrop-blur-md bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+        <div className="h-2 rounded-full bg-stone-100 border border-stone-200 overflow-hidden">
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-primary to-amber-500 shadow-[0_0_20px_-5px_rgba(232,120,77,0.4)]"
             initial={{ width: 0 }}
@@ -704,7 +695,7 @@ export default function PracticeChat({
                   {correctStreak} in a row!
                 </span>
                 {correctStreak >= 3 && (
-                  <span className="text-[10px] text-[#E8A84D] backdrop-blur-md bg-[#E8A84D]/10 px-1.5 py-0.5 rounded-full border border-[#E8A84D]/30 shadow-[0_0_15px_-5px_rgba(232,168,77,0.3)]">
+                  <span className="text-[10px] text-[#E8A84D] backdrop-blur-md bg-[#E8A84D]/10 px-1.5 py-0.5 rounded-full border border-primary/30 shadow-[0_0_15px_-5px_rgba(232,168,77,0.3)]">
                     1.5× XP
                   </span>
                 )}
@@ -731,15 +722,10 @@ export default function PracticeChat({
               )}
             </AnimatePresence>
 
-            {difficultyBadgeLabel && !resolvedAdaptiveEnabled && (
-              <button
-                type="button"
-                onClick={handleAdaptiveLockedClick}
-                className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] tracking-[0.08em] text-[#E8A84D]"
-              >
-                <Lock className="h-3 w-3" />
-                ADAPTIVE LOCKED
-              </button>
+            {difficultyBadgeLabel && resolvedAdaptiveEnabled && (
+              <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20">
+                Adaptive ON
+              </span>
             )}
           </div>
         )}
@@ -751,7 +737,7 @@ export default function PracticeChat({
         ref={scrollRef}
       >
         {hasContext ? (
-          <div className="mt-2 rounded-2xl border border-white/[0.1] bg-white/[0.04] p-3">
+          <div className="mt-2 rounded-2xl border border-stone-200 bg-stone-50 p-3">
             <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Lesson context</p>
             {exerciseContext?.topic ? (
               <p className="mt-1 text-sm font-medium text-foreground">{exerciseContext.topic}</p>
@@ -779,10 +765,10 @@ export default function PracticeChat({
             className="py-4 space-y-5"
           >
             {/* Exercise card - glassmorphic */}
-            <div className="backdrop-blur-xl bg-white/[0.05] border border-white/[0.1] rounded-3xl p-5 space-y-5 shadow-lg">
+            <div className="bg-stone-50 border border-stone-200 rounded-3xl p-5 space-y-5 shadow-lg">
               {/* Exercise type pill */}
               <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full backdrop-blur-md bg-white/[0.08] text-xs text-muted-foreground border border-white/[0.1]">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-stone-100 text-xs text-muted-foreground border border-stone-200">
                   {exerciseTypeLabel(current.type)}
                 </span>
                 <span className="text-xs text-muted-foreground tabular-nums">
@@ -803,7 +789,7 @@ export default function PracticeChat({
                     const isSelected = selectedOption === index;
                     const isCorrect = index === (current.correctIndex ?? 0);
                     let style =
-                      "backdrop-blur-md bg-white/[0.04] border-white/[0.08]";
+                      "bg-stone-50 border-stone-200";
 
                     if (answerState !== "idle") {
                       if (isCorrect) {
@@ -814,7 +800,7 @@ export default function PracticeChat({
                           "backdrop-blur-md bg-[#C4563F]/[0.15] border-[#C4563F] shadow-[0_0_20px_-10px_rgba(196,86,63,0.4)]";
                       } else {
                         style =
-                          "backdrop-blur-md bg-white/[0.02] border-white/[0.04] opacity-50";
+                          "bg-stone-100/50 border-stone-200 opacity-50";
                       }
                     }
 
@@ -834,7 +820,7 @@ export default function PracticeChat({
                               ? "border-accent bg-accent text-background"
                               : answerState !== "idle" && isSelected
                               ? "border-[#C4563F] bg-[#C4563F] text-background"
-                              : "border-white/[0.15] text-muted-foreground"
+                              : "border-stone-300 text-muted-foreground"
                           }`}
                         >
                           {answerState !== "idle" && isCorrect ? (
@@ -855,7 +841,7 @@ export default function PracticeChat({
               {/* Fill in the Blank */}
               {current.type === "fill-blank" && current.sentence && (
                 <div className="space-y-4">
-                  <div className="backdrop-blur-md bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 text-center">
+                  <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 text-center">
                     <p className="text-lg leading-relaxed">
                       {current.sentence.split("___").map((part, index, array) => (
                         <span key={index}>
@@ -886,7 +872,7 @@ export default function PracticeChat({
                       const correctIndex = current.blankCorrectIndex ?? 0;
                       const isCorrect = index === correctIndex;
                       let style =
-                        "backdrop-blur-md bg-white/[0.04] border-white/[0.08] text-foreground";
+                        "bg-stone-50 border-stone-200 text-foreground";
 
                       if (answerState !== "idle") {
                         if (isCorrect) {
@@ -897,7 +883,7 @@ export default function PracticeChat({
                             "backdrop-blur-md bg-[#C4563F]/[0.15] border-[#C4563F] text-[#C4563F] shadow-[0_0_20px_-10px_rgba(196,86,63,0.4)]";
                         } else {
                           style =
-                            "backdrop-blur-md bg-white/[0.02] border-white/[0.04] text-muted-foreground/40";
+                            "bg-stone-100/50 border-stone-200 text-muted-foreground/40";
                         }
                       }
 
@@ -922,7 +908,7 @@ export default function PracticeChat({
               {/* Word Bank / Word Order */}
               {(current.type === "word-bank" || current.type === "word-order") && (
                 <div className="space-y-4">
-                  <div className="backdrop-blur-md bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 min-h-[56px] flex flex-wrap gap-2 items-center">
+                  <div className="bg-stone-100 border border-stone-200 rounded-2xl p-4 min-h-[56px] flex flex-wrap gap-2 items-center">
                     {orderedWords.length === 0 && (
                       <span className="text-muted-foreground/40 text-sm">
                         Tap words to build the sentence...
@@ -998,7 +984,7 @@ export default function PracticeChat({
                       <div className="w-8 h-8 rounded-full backdrop-blur-md bg-primary/[0.15] flex items-center justify-center shrink-0">
                         <Sparkles className="w-4 h-4 text-primary" />
                       </div>
-                      <div className="backdrop-blur-md bg-white/[0.04] border border-white/[0.08] rounded-2xl rounded-tl-sm px-4 py-3">
+                      <div className="bg-stone-50 border border-stone-200 rounded-2xl rounded-tl-sm px-4 py-3">
                         <TypingIndicator />
                       </div>
                     </div>
@@ -1061,7 +1047,7 @@ export default function PracticeChat({
                 type="text"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                className="flex-1 px-4 py-3.5 rounded-full backdrop-blur-md bg-white/[0.04] border border-white/[0.08] text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none transition-colors"
+                className="flex-1 px-4 py-3.5 rounded-full bg-stone-50 border border-stone-200 text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none transition-colors"
                 placeholder="Type your response..."
                 autoFocus
               />

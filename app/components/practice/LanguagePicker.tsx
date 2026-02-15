@@ -60,10 +60,10 @@ export default function LanguagePicker({ onSelect }: LanguagePickerProps) {
             transition={{ delay: 0.3 + i * 0.05, duration: 0.3 }}
             whileTap={{ scale: 0.92 }}
             onClick={() => handleSelect(lang.code)}
-            className={`flex flex-col items-center gap-2 py-6 rounded-2xl backdrop-blur-md bg-white/[0.04] border transition-all relative overflow-hidden ${
+            className={`flex flex-col items-center gap-2 py-6 rounded-2xl bg-stone-50 border transition-all relative overflow-hidden ${
               selected === lang.code
                 ? "border-primary shadow-[0_0_30px_-10px_rgba(232,120,77,0.4)]"
-                : "border-white/[0.08]"
+                : "border-stone-200"
             }`}
             style={{ transition: "all 0.3s ease" }}
           >

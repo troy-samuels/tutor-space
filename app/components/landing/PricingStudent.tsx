@@ -12,7 +12,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const FAQS = [
   {
     q: "What's included for free?",
-    a: "Unlimited AI practice drills, level assessments, streak tracking, and full access to the tutor directory. No credit card needed.",
+    a: "Free practice sessions every month, level assessments, streak tracking, and full access to the tutor directory. No credit card needed. Upgrade for unlimited practice and audio.",
   },
   {
     q: "How much do lessons cost?",
@@ -28,7 +28,7 @@ const FAQS = [
   },
   {
     q: "How is this different from Duolingo?",
-    a: "Duolingo teaches vocabulary. We combine real human tutors with AI practice that adapts to your actual weaknesses. You'll actually hold conversations.",
+    a: "Duolingo teaches vocabulary. We combine real human tutors with practice that adapts to your actual weaknesses. You'll actually hold conversations.",
   },
 ];
 
@@ -44,7 +44,7 @@ export function PricingStudent() {
               Simple, transparent pricing.
             </h2>
             <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
-              Unlimited platform access. Pay only for the tutor hours you book.
+              Free to start. Pay only for the tutor hours you book.
             </p>
           </div>
         </Reveal>
@@ -60,7 +60,7 @@ export function PricingStudent() {
                   <span className="text-5xl sm:text-6xl font-bold text-foreground">Free</span>
                 </div>
                 <p className="mt-3 text-muted-foreground">
-                  AI practice, streaks, level assessments, tutor directory.
+                  Practice, streaks, level assessments, tutor directory.
                   Everything you need to start learning — forever.
                 </p>
               </div>

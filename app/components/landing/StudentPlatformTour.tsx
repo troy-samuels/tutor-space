@@ -8,7 +8,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const FEATURES = [
   {
     id: "practice",
-    label: "AI Practice",
+    label: "Practice",
     title: "Practice that adapts to you.",
     description:
       "Your AI generates drills from your actual mistakes — not generic textbook exercises. Five exercise types, streaks, and XP keep it fresh. You won't even realise you're studying.",
@@ -26,17 +26,17 @@ function PracticeVisual({ inView }: { inView: boolean }) {
   const words = ["Yo", "quiero", "aprender", "español"];
 
   return (
-    <div className="rounded-2xl bg-[#3D2E23] p-6 sm:p-7">
+    <div className="rounded-2xl bg-stone-50 border border-stone-200 p-6 sm:p-7">
       <div className="flex items-center gap-3 mb-5">
         <span className="text-xl">🇪🇸</span>
         <div>
-          <p className="text-xs text-white/40">Daily Drill</p>
-          <p className="text-sm text-white/70">Spanish · Intermediate</p>
+          <p className="text-xs text-muted-foreground">Daily Drill</p>
+          <p className="text-sm text-foreground/70">Spanish · Intermediate</p>
         </div>
         <span className="ml-auto text-xs text-amber-400">🔥 7 streak</span>
       </div>
 
-      <p className="text-white/50 text-sm mb-3">Build the sentence:</p>
+      <p className="text-muted-foreground text-sm mb-3">Build the sentence:</p>
 
       <div className="flex flex-wrap gap-2 mb-5 min-h-[36px]">
         {words.map((word, i) => (
@@ -56,7 +56,7 @@ function PracticeVisual({ inView }: { inView: boolean }) {
         {["español", "aprender", "Yo", "quiero", "tengo", "casa"].map((word) => (
           <span
             key={`bank-${word}`}
-            className="bg-white/[0.06] text-white/40 px-3 py-1.5 rounded-lg text-sm"
+            className="bg-white/[0.06] text-muted-foreground px-3 py-1.5 rounded-lg text-sm"
           >
             {word}
           </span>
@@ -72,7 +72,7 @@ function PracticeVisual({ inView }: { inView: boolean }) {
             transition={{ delay: 0.8, duration: 1.2, ease: EASE }}
           />
         </div>
-        <span className="text-xs text-white/40">+35 XP</span>
+        <span className="text-xs text-muted-foreground">+35 XP</span>
       </div>
     </div>
   );

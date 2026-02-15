@@ -67,18 +67,18 @@ export function PracticeHook() {
   }
 
   return (
-    <section className="relative bg-[#3D2E23] py-16 sm:py-20 lg:py-24 overflow-hidden">
+    <section className="relative bg-stone-100 py-16 sm:py-20 lg:py-24 overflow-hidden">
       {/* Subtle glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/[0.06] blur-[150px] rounded-full" aria-hidden="true" />
 
       <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
               Don't just learn.{" "}
               <span className="text-primary">Practice.</span>
             </h2>
-            <p className="mt-6 text-xl text-white/50 max-w-xl mx-auto">
+            <p className="mt-6 text-xl text-muted-foreground max-w-xl mx-auto">
               Try a real exercise. No signup. No tricks.
             </p>
           </div>
@@ -87,20 +87,20 @@ export function PracticeHook() {
         {/* Interactive exercise card */}
         <Reveal delay={0.2}>
           <div className="mx-auto max-w-xl">
-            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] p-8 sm:p-10">
+            <div className="rounded-2xl bg-white border border-stone-200 shadow-sm p-8 sm:p-10">
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{q.flag}</span>
                   <div>
-                    <p className="text-sm font-medium text-white/40">{q.type}</p>
-                    <p className="text-sm text-white/60">{q.language}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{q.type}</p>
+                    <p className="text-sm text-muted-foreground">{q.language}</p>
                   </div>
                 </div>
               </div>
 
               {/* Question */}
-              <p className="text-lg text-white/70 mb-3">{q.prompt}</p>
+              <p className="text-lg text-foreground/70 mb-3">{q.prompt}</p>
               <p className="text-2xl sm:text-3xl font-semibold text-white mb-10 leading-snug">
                 {q.sentence.join(" ")}
               </p>
@@ -125,11 +125,11 @@ export function PracticeHook() {
                       transition={{ duration: 0.4 }}
                       className={cn(
                         "rounded-xl px-4 py-4 text-center text-base font-medium transition-colors duration-200",
-                        !answered && "bg-white/[0.08] text-white/80 hover:bg-white/[0.14] cursor-pointer",
+                        !answered && "bg-stone-100 text-foreground hover:bg-stone-200 cursor-pointer",
                         answered && isSelected && optionCorrect && "bg-emerald-500/20 text-emerald-300 ring-2 ring-emerald-500/40",
                         answered && isSelected && !optionCorrect && "bg-red-500/20 text-red-300 ring-2 ring-red-500/40",
                         answered && !isSelected && optionCorrect && "bg-emerald-500/10 text-emerald-400/60 ring-1 ring-emerald-500/20",
-                        answered && !isSelected && !optionCorrect && "bg-white/[0.03] text-white/20",
+                        answered && !isSelected && !optionCorrect && "bg-stone-50 text-muted-foreground/40",
                       )}
                     >
                       {option.text}
@@ -158,7 +158,7 @@ export function PracticeHook() {
                       )}>
                         {isCorrect ? "Correct." : "Not quite."}
                       </p>
-                      <p className="text-sm text-white/50">{q.explanation}</p>
+                      <p className="text-sm text-muted-foreground">{q.explanation}</p>
                     </div>
 
                     <Link

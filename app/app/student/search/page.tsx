@@ -66,13 +66,20 @@ export default async function StudentSearchPage({ searchParams }: PageProps) {
 
         {/* Tutor Search */}
         <AnimateIn delay={0.16}>
-        <div className="space-y-4 rounded-2xl border border-border bg-white p-6 shadow-sm">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Find your tutor</p>
-            <h1 className="text-2xl font-bold text-foreground">Search by name or username</h1>
-            <p className="text-sm text-muted-foreground">
-              Connect with tutors and send an intro message to get approved for bookings.
-            </p>
+        <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Find your tutor</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Search by name or username to connect and start booking lessons.
+              </p>
+            </div>
           </div>
           <TutorSearch initialQuery={initialQuery} />
         </div>

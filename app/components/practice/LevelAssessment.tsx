@@ -204,6 +204,7 @@ export default function LevelAssessment({
 
   return (
     <div className="flex flex-col h-[100dvh] relative">
+      {/* Voice input toggle - top right */}
       {resolvedVoiceInputEnabled ? (
         <VoiceInputToggle
           languageCode={languageCode}
@@ -212,22 +213,13 @@ export default function LevelAssessment({
           disabled={answerState !== "idle"}
           className="absolute right-4 top-4 z-30"
         />
-      ) : (
-        <button
-          type="button"
-          onClick={() => showLockedFeaturePrompt("voice")}
-          className="absolute right-4 top-4 z-30 inline-flex items-center gap-1.5 rounded-full border border-primary/35 bg-card/70 px-3 py-1.5 text-[11px] uppercase tracking-[0.08em] text-[#E8A84D]"
-        >
-          <Lock className="h-3.5 w-3.5" />
-          Voice locked
-        </button>
-      )}
+      ) : null}
 
       {/* Header */}
       <div className="px-4 pt-4 pb-2">
         {/* Progress bar with glow */}
         <div className="flex items-center gap-3 mb-1">
-          <div className="flex-1 h-3 rounded-full backdrop-blur-md bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+          <div className="flex-1 h-3 rounded-full bg-stone-100 border border-stone-200 overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-primary to-amber-500 shadow-[0_0_20px_-5px_rgba(232,120,77,0.5)]"
               initial={{ width: 0 }}
@@ -267,26 +259,18 @@ export default function LevelAssessment({
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={springTransition}
-                className="text-[10px] text-[#E8A84D] backdrop-blur-md bg-[#E8A84D]/10 px-1.5 py-0.5 rounded-full border border-[#E8A84D]/30 shadow-[0_0_15px_-5px_rgba(232,168,77,0.3)]"
+                className="text-[10px] text-[#E8A84D] backdrop-blur-md bg-[#E8A84D]/10 px-1.5 py-0.5 rounded-full border border-primary/30 shadow-[0_0_15px_-5px_rgba(232,168,77,0.3)]"
               >
                 1.5× XP
               </motion.span>
             )}
 
             {resolvedAdaptiveEnabled ? (
-              <span className="text-[10px] text-[#E8A84D] backdrop-blur-md bg-[#E8A84D]/10 px-1.5 py-0.5 rounded-full border border-[#E8A84D]/30 shadow-[0_0_15px_-5px_rgba(232,168,77,0.3)]">
+              <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20">
                 Adaptive ON
               </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => showLockedFeaturePrompt("adaptive")}
-                className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] tracking-[0.08em] text-[#E8A84D]"
-              >
-                <Lock className="h-3 w-3" />
-                ADAPTIVE LOCKED
-              </button>
-            )}
+            ) : null}
+            {resolvedVoiceInputEnabled ? null : null}
           </div>
           <span
             className={`text-xs font-medium uppercase tracking-wider ${
@@ -307,13 +291,13 @@ export default function LevelAssessment({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className={`space-y-6 p-5 rounded-3xl backdrop-blur-xl bg-white/[0.05] border ${
-              streak >= 3 ? "border-[#E8A84D]/30" : "border-white/[0.1]"
+            className={`space-y-6 p-5 rounded-3xl bg-stone-50 border ${
+              streak >= 3 ? "border-primary/30" : "border-stone-200"
             } transition-colors`}
           >
             {/* Question prompt */}
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full backdrop-blur-md bg-white/[0.08] text-xs text-muted-foreground mb-2 border border-white/[0.1]">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-xs text-muted-foreground mb-2 border border-stone-200">
                 <Sparkles className="w-3 h-3 text-primary" />
                 Question {currentIndex + 1} of {totalQuestions}
               </div>
@@ -332,7 +316,7 @@ export default function LevelAssessment({
                   const isSelected = selectedOption === i;
                   const isCorrect = i === current.correctIndex;
                   let bgClass =
-                    "backdrop-blur-md bg-white/[0.04] border-white/[0.08]";
+                    "bg-stone-50 border-stone-200";
                   let textClass = "text-foreground";
 
                   if (answerState !== "idle") {
@@ -368,7 +352,7 @@ export default function LevelAssessment({
                               isSelected &&
                               !isCorrect
                             ? "border-[#C4563F] bg-[#C4563F] text-background"
-                            : "border-white/[0.15] text-muted-foreground"
+                            : "border-stone-300 text-muted-foreground"
                         }`}
                       >
                         {answerState !== "idle" && isCorrect ? (
@@ -394,7 +378,7 @@ export default function LevelAssessment({
             {current.type === "fill-blank" && current.sentence && (
               <div className="space-y-5">
                 {/* Sentence with blank */}
-                <div className="backdrop-blur-md bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 text-center">
+                <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 text-center">
                   <p className="text-lg leading-relaxed">
                     {current.sentence.split("___").map((part, i, arr) => (
                       <span key={i}>
@@ -426,7 +410,7 @@ export default function LevelAssessment({
                     const correctIdx = current.correctIndex ?? 0;
                     const isCorrect = i === correctIdx;
                     let style =
-                      "backdrop-blur-md bg-white/[0.04] border-white/[0.08] text-foreground";
+                      "bg-stone-50 border-stone-200 text-foreground";
 
                     if (answerState !== "idle") {
                       if (isCorrect) {
@@ -437,7 +421,7 @@ export default function LevelAssessment({
                           "backdrop-blur-md bg-[#C4563F]/[0.15] border-[#C4563F] text-[#C4563F] shadow-[0_0_20px_-10px_rgba(196,86,63,0.4)]";
                       } else {
                         style =
-                          "backdrop-blur-md bg-white/[0.02] border-white/[0.05] text-muted-foreground/50";
+                          "bg-stone-100/50 border-stone-200 text-muted-foreground/50";
                       }
                     }
 
@@ -466,7 +450,7 @@ export default function LevelAssessment({
             {current.type === "word-order" && (
               <div className="space-y-5">
                 {/* Drop zone */}
-                <div className="backdrop-blur-md bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 min-h-[60px] flex flex-wrap gap-2 items-center">
+                <div className="bg-stone-100 border border-stone-200 rounded-2xl p-4 min-h-[60px] flex flex-wrap gap-2 items-center">
                   {orderedWords.length === 0 && (
                     <span className="text-muted-foreground/50 text-sm">
                       Tap words below to build the sentence…

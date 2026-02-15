@@ -17,19 +17,19 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Learn Any Language — AI Practice & Expert Tutors | TutorLingua",
+  title: "Learn Any Language — Practice & Expert Tutors | TutorLingua",
   description:
-    "The fun way to master a new language. Gamified AI practice between lessons, 1-on-1 video tutoring, and progress tracking. Start for free — no signup needed.",
+    "The fun way to master a new language. Gamified practice between lessons, 1-on-1 video tutoring, and progress tracking. Start for free — no signup needed.",
   keywords: [
     "learn a language",
     "language learning",
-    "AI language practice",
+    "language practice",
     "find a language tutor",
     "online language lessons",
   ],
   openGraph: {
     title: "Learn Any Language | TutorLingua",
-    description: "AI-powered practice + real tutors. The complete path to fluency.",
+    description: "Interactive practice + real tutors. The complete path to fluency.",
     type: "website",
     url: "/",
   },

@@ -24,12 +24,6 @@ function UnauthenticatedButtons() {
       >
         Log in
       </Link>
-      <Link
-        href="/signup"
-        className="inline-flex h-8 sm:h-9 items-center justify-center whitespace-nowrap rounded-full bg-primary px-3 sm:px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
-      >
-        Sign up
-      </Link>
     </div>
   );
 }
