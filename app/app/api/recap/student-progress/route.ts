@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { errorResponse } from "@/lib/api/error-responses";
 
+// UUID v4 format validation
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * GET /api/recap/student-progress?fp={fingerprint}
  *
  * Returns cumulative SRS stats for a recap student, used on the
  * enhanced results screen to show their learning journey.
+ *
+ * No auth required — students access this with their own fingerprint.
+ * Fingerprints are random UUIDs so enumeration risk is minimal.
+ *
+ * TODO: Add lightweight rate limiting (e.g. Upstash Redis) to prevent abuse.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +22,14 @@ export async function GET(request: Request) {
 
   if (!fingerprint) {
     return errorResponse("Missing fingerprint parameter", {
+      status: 400,
+      code: "invalid_request",
+    });
+  }
+
+  // Validate fingerprint format (must be a UUID v4)
+  if (!UUID_RE.test(fingerprint)) {
+    return errorResponse("Invalid fingerprint format", {
       status: 400,
       code: "invalid_request",
     });
