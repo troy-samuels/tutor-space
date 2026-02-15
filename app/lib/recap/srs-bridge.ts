@@ -92,7 +92,7 @@ export async function ingestRecapAttempt(
           question: exercise.question,
           answer: correctAnswer,
           explanation: exercise.explanation,
-          hint: exercise.hint ?? null,
+          hint: ("hint" in exercise ? exercise.hint : null) ?? null,
           targetVocab: exercise.targetVocab ?? null,
           sourceRecapId: recapId,
           language,
