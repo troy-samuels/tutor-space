@@ -71,14 +71,14 @@ function getLanguageName(code: string): string {
 }
 
 function getScoreColour(score: number): string {
-  if (score >= 80) return "text-emerald-400";
-  if (score >= 60) return "text-amber-400";
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 60) return "text-amber-600";
   return "text-primary";
 }
 
 function getScoreRingColour(score: number): string {
-  if (score >= 80) return "stroke-emerald-400";
-  if (score >= 60) return "stroke-amber-400";
+  if (score >= 80) return "stroke-emerald-500";
+  if (score >= 60) return "stroke-amber-500";
   return "stroke-primary";
 }
 
@@ -121,7 +121,7 @@ function ScoreRing({ score, size = 140 }: { score: number; size?: number }) {
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-white/[0.08]"
+          className="text-stone-200"
         />
         {/* Progress ring */}
         <motion.circle
@@ -177,7 +177,7 @@ function LanguageCard({
   return (
     <motion.div
       variants={STAGGER_ITEM}
-      className={`relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-6 backdrop-blur-xl ${getScoreGlow(score)}`}
+      className={`relative overflow-hidden rounded-3xl border border-stone-200 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-6  ${getScoreGlow(score)}`}
     >
       {/* Ambient gradient blobs */}
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
@@ -207,10 +207,10 @@ function LanguageCard({
 
       {/* Badges */}
       <div className="relative mt-4 flex items-center justify-center gap-2">
-        <span className="rounded-full border border-white/[0.12] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-foreground">
+        <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-semibold text-foreground">
           {levelLabel}
         </span>
-        <span className="rounded-full border border-white/[0.12] bg-white/[0.06] px-3 py-1 text-xs text-muted-foreground">
+        <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-muted-foreground">
           Better than {percentile}% of learners
         </span>
       </div>
@@ -234,7 +234,7 @@ function MetricBar({ label, value, max = 10 }: { label: string; value: number; m
   return (
     <div className="flex items-center gap-3">
       <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">{label}</span>
-      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-stone-50">
         <motion.div
           className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary to-amber-500"
           initial={{ width: 0 }}
@@ -275,14 +275,14 @@ function GhostEmailCapture({ sessionToken }: { sessionToken: string | null }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 backdrop-blur-xl"
+        className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 "
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
-          <Check className="h-4 w-4 text-emerald-400" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+          <Check className="h-4 w-4 text-emerald-600" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-emerald-300">Progress saved!</p>
-          <p className="mt-0.5 text-xs text-emerald-300/70">
+          <p className="text-sm font-semibold text-emerald-600">Progress saved!</p>
+          <p className="mt-0.5 text-xs text-emerald-600/70">
             We&apos;ll email you a link to continue your learning journey.
           </p>
         </div>
@@ -309,7 +309,7 @@ function GhostEmailCapture({ sessionToken }: { sessionToken: string | null }) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
             required
-            className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 backdrop-blur-xl outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
+            className="h-10 w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60  outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
           />
         </div>
         <motion.button
@@ -335,7 +335,7 @@ function SignupCTA({ languageCode, level }: { languageCode: string; level: strin
     <motion.div variants={STAGGER_ITEM}>
       <Link
         href={`/signup?lang=${languageCode}&level=${encodeURIComponent(level)}`}
-        className="group flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 backdrop-blur-xl transition-colors hover:bg-primary/15"
+        className="group flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4  transition-colors hover:bg-primary/15"
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20">
           <UserPlus className="h-5 w-5 text-primary" />
@@ -363,12 +363,12 @@ function TutorNotifiedCard({ tutorName }: { tutorName?: string }) {
       className="space-y-3"
     >
       {/* Tutor notified */}
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 backdrop-blur-xl">
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50 p-4 ">
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20">
-            <Check className="h-3.5 w-3.5 text-emerald-400" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50">
+            <Check className="h-3.5 w-3.5 text-emerald-600" />
           </div>
-          <p className="text-sm font-semibold text-emerald-300">
+          <p className="text-sm font-semibold text-emerald-600">
             {displayName} has been notified
           </p>
         </div>
@@ -547,7 +547,7 @@ export default function ResultsCard({
             type="button"
             whileTap={{ scale: 0.97 }}
             onClick={handleShare}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.06] text-sm font-semibold text-foreground backdrop-blur-xl transition-colors hover:bg-white/[0.1]"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-stone-50 text-sm font-semibold text-foreground  transition-colors hover:bg-stone-100"
           >
             <Share2 className="h-4 w-4" />
             {shareStatus === "copied" ? "Copied!" : "Share"}
@@ -558,7 +558,7 @@ export default function ResultsCard({
           whileTap={{ scale: 0.97 }}
           onClick={handleChallenge}
           disabled={isCreatingChallenge}
-          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/15 text-sm font-semibold text-primary shadow-[0_0_28px_-6px_rgba(232,120,77,0.4)] backdrop-blur-xl disabled:opacity-60"
+          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/15 text-sm font-semibold text-primary shadow-[0_0_28px_-6px_rgba(232,120,77,0.4)]  disabled:opacity-60"
         >
           {isCreatingChallenge ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -585,7 +585,7 @@ export default function ResultsCard({
       {/* ── Metrics Breakdown ─────────────────────────────────── */}
       <motion.div
         variants={STAGGER_ITEM}
-        className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl"
+        className="space-y-3 rounded-2xl border border-stone-200 bg-stone-50 p-5 "
       >
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Breakdown</p>
         {results.metrics.map((m) => (
@@ -597,15 +597,15 @@ export default function ResultsCard({
       {results.topErrors.length > 0 && (
         <motion.div
           variants={STAGGER_ITEM}
-          className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl"
+          className="space-y-3 rounded-2xl border border-stone-200 bg-stone-50 p-5 "
         >
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Corrections</p>
           {results.topErrors.map((err, i) => (
             <div key={i} className="flex items-start gap-2 text-xs">
-              <span className="mt-0.5 shrink-0 rounded bg-red-500/20 px-1.5 py-0.5 font-mono text-red-300 line-through">
+              <span className="mt-0.5 shrink-0 rounded bg-red-50 px-1.5 py-0.5 font-mono text-red-600 line-through">
                 {err.wrong}
               </span>
-              <span className="mt-0.5 shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-emerald-300">
+              <span className="mt-0.5 shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-emerald-600">
                 {err.correct}
               </span>
               <span className="text-muted-foreground">{err.explanation}</span>
@@ -624,7 +624,7 @@ export default function ResultsCard({
             <motion.span
               key={ach.label}
               whileHover={{ scale: 1.04 }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground backdrop-blur-xl"
+              className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-foreground "
             >
               {ach.icon} {ach.label}
             </motion.span>
@@ -646,7 +646,7 @@ export default function ResultsCard({
         <>
           <motion.div
             variants={STAGGER_ITEM}
-            className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl"
+            className="rounded-2xl border border-stone-200 bg-stone-50 p-5 "
           >
             <GhostEmailCapture sessionToken={sessionToken} />
           </motion.div>

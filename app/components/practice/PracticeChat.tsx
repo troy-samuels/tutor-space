@@ -146,6 +146,7 @@ export default function PracticeChat({
   );
   const [whyInsight, setWhyInsight] = useState<string | null>(null);
   const [showDifficultyPulse, setShowDifficultyPulse] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
   const [miniPromptReason, setMiniPromptReason] = useState<MiniPromptReason | null>(null);
 
   const [orderedWords, setOrderedWords] = useState<string[]>([]);
@@ -1101,6 +1102,72 @@ export default function PracticeChat({
                 </span>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Save progress email capture — shows after 3rd exercise */}
+      <AnimatePresence>
+        {currentIndex >= 3 && !emailSaved && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="sticky bottom-0 z-30 border-t border-stone-100 bg-white/95 px-4 py-3"
+          >
+            {!emailSaved && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const emailInput = form.elements.namedItem("saveEmail") as HTMLInputElement;
+                  if (emailInput?.value) {
+                    // Fire and forget — save email with session context
+                    void fetch("/api/practice/anonymous/claim", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email: emailInput.value, language: languageCode }),
+                    });
+                    setEmailSaved(true);
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-foreground mb-1">Save your progress</p>
+                  <div className="flex gap-2">
+                    <input
+                      name="saveEmail"
+                      type="email"
+                      required
+                      placeholder="Enter your email"
+                      className="flex-1 h-9 rounded-lg border border-stone-200 bg-stone-50 px-3 text-sm placeholder:text-muted-foreground/60 focus:border-primary/40 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="h-9 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary/90 transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Email saved confirmation */}
+      <AnimatePresence>
+        {emailSaved && currentIndex >= 3 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="sticky bottom-0 z-30 border-t border-emerald-100 bg-emerald-50/95 px-4 py-2.5 text-center"
+          >
+            <p className="text-xs font-medium text-emerald-700">✓ Progress saved — check your email to continue later</p>
           </motion.div>
         )}
       </AnimatePresence>
