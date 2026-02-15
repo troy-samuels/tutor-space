@@ -17,6 +17,8 @@ const GENERATE_SCHEMA = z
     tutorName: z.string().trim().max(120).optional(),
     /** Optional: pass the student's fingerprint to enable adaptive recap generation */
     studentFingerprint: z.string().trim().optional(),
+    /** Tone for the recap: encouraging (default), neutral, or challenging */
+    tone: z.enum(["encouraging", "neutral", "challenging"]).optional(),
   })
   .strict();
 
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const { input, tutorFingerprint, tutorName, studentFingerprint } =
+    const { input, tutorFingerprint, tutorName, studentFingerprint, tone } =
       parsedBody.data;
 
     // Try to get authenticated tutor (optional — recap works without auth)
@@ -96,10 +98,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Generate recap via LLM (with optional SRS context)
+    // Generate recap via LLM (with optional SRS context + tone)
     const { summary, exercises, generationTimeMs } = await generateRecap(
       input,
-      contextBlock
+      contextBlock,
+      tone
     );
 
     // Use tutor name from input or from LLM extraction

@@ -4,9 +4,17 @@ import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
+import QRCode from "@/components/recap/QRCode";
 import type { RecapData } from "@/lib/recap/types";
 
 type State = "idle" | "generating" | "success" | "error";
+type Tone = "encouraging" | "neutral" | "challenging";
+
+const TONE_OPTIONS: { value: Tone; label: string; emoji: string; description: string }[] = [
+  { value: "encouraging", label: "Encouraging", emoji: "🌟", description: "Warm and supportive" },
+  { value: "neutral", label: "Neutral", emoji: "📝", description: "Clear and balanced" },
+  { value: "challenging", label: "Challenging", emoji: "🔥", description: "Push them further" },
+];
 
 function getTutorFingerprint(): string {
   if (typeof window === "undefined") return "";
@@ -30,12 +38,22 @@ function getStudentFingerprint(): string {
   return fp;
 }
 
+function buildWhatsAppUrl(recap: RecapData, origin: string): string {
+  const url = `${origin}/r/${recap.shortId}`;
+  const studentName = recap.summary.studentName || "your";
+  const lang = recap.summary.language || "language";
+  const message = `Hi! 📚 Here's ${studentName === "your" ? "your" : `${studentName}'s`} ${lang} lesson recap with interactive exercises:\n\n${url}\n\nGive it a try when you have a moment! ✨`;
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
 export default function RecapGenerator() {
   const [state, setState] = useState<State>("idle");
   const [input, setInput] = useState("");
+  const [tone, setTone] = useState<Tone>("encouraging");
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!input.trim()) return;
@@ -48,6 +66,7 @@ export default function RecapGenerator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           input: input.trim(),
+          tone,
           tutorFingerprint: getTutorFingerprint(),
           studentFingerprint: getStudentFingerprint(),
         }),
@@ -65,7 +84,7 @@ export default function RecapGenerator() {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setState("error");
     }
-  }, [input]);
+  }, [input, tone]);
 
   const handleCopy = useCallback(async () => {
     if (!recap) return;
@@ -84,6 +103,7 @@ export default function RecapGenerator() {
     setInput("");
     setRecap(null);
     setError(null);
+    setShowQR(false);
   }, []);
 
   return (
@@ -134,11 +154,35 @@ export default function RecapGenerator() {
                 style={{ borderColor: "rgba(245, 242, 239, 0.08)" }}
               />
 
+              {/* Tone Selector */}
+              <div className="mt-4">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Tone
+                </label>
+                <div className="flex gap-2">
+                  {TONE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setTone(opt.value)}
+                      className={cn(
+                        "flex flex-1 flex-col items-center gap-1 rounded-xl border p-3 text-xs transition-all",
+                        tone === opt.value
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border text-muted-foreground hover:border-primary/30"
+                      )}
+                    >
+                      <span className="text-lg">{opt.emoji}</span>
+                      <span className="font-medium">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={handleGenerate}
                 disabled={!input.trim()}
                 className={cn(
-                  "mt-4 w-full rounded-xl bg-primary py-3.5 text-xl text-white",
+                  "mt-6 w-full rounded-xl bg-primary py-3.5 text-xl text-white",
                   "transition-all hover:brightness-110 active:scale-[0.98]",
                   "disabled:cursor-not-allowed disabled:opacity-50"
                 )}
@@ -218,6 +262,7 @@ export default function RecapGenerator() {
                 Your recap is ready!
               </h2>
 
+              {/* Recap info card */}
               <div
                 className="mt-6 w-full rounded-2xl border bg-card p-5"
                 style={{ borderColor: "rgba(245, 242, 239, 0.08)" }}
@@ -233,8 +278,12 @@ export default function RecapGenerator() {
                   {" · "}
                   {recap.summary.covered.slice(0, 2).join(", ")}
                 </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {recap.exercises.length} exercises · 7 types
+                </p>
               </div>
 
+              {/* Link display */}
               <div
                 className="mt-4 flex w-full items-center gap-2 rounded-xl border bg-card px-4 py-3"
                 style={{ borderColor: "rgba(245, 242, 239, 0.08)" }}
@@ -246,16 +295,74 @@ export default function RecapGenerator() {
                 </span>
               </div>
 
+              {/* Action buttons */}
+              <div className="mt-4 flex w-full gap-3">
+                <button
+                  onClick={handleCopy}
+                  className={cn(
+                    "flex-1 rounded-xl bg-primary py-3 font-semibold text-white",
+                    "transition-all hover:brightness-110 active:scale-[0.98]"
+                  )}
+                >
+                  {copied ? "✅ Copied!" : "📋 Copy"}
+                </button>
+
+                <a
+                  href={buildWhatsAppUrl(recap, typeof window !== "undefined" ? window.location.origin : "")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "flex-1 rounded-xl bg-[#25D366] py-3 text-center font-semibold text-white",
+                    "transition-all hover:brightness-110 active:scale-[0.98]"
+                  )}
+                >
+                  💬 WhatsApp
+                </a>
+              </div>
+
+              {/* QR Code toggle */}
               <button
-                onClick={handleCopy}
+                onClick={() => setShowQR(!showQR)}
                 className={cn(
-                  "mt-4 w-full rounded-xl bg-primary py-3 font-semibold text-white",
-                  "transition-all hover:brightness-110 active:scale-[0.98]"
+                  "mt-3 w-full rounded-xl border py-3 font-semibold text-foreground",
+                  "transition-all hover:bg-card active:scale-[0.98]"
                 )}
+                style={{ borderColor: "rgba(245, 242, 239, 0.08)" }}
               >
-                {copied ? "✅ Copied!" : "📋 Copy Link"}
+                {showQR ? "🔳 Hide QR Code" : "🔳 Show QR Code"}
               </button>
 
+              {/* QR Code */}
+              <AnimatePresence>
+                {showQR && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-4 flex w-full justify-center overflow-hidden"
+                  >
+                    <div
+                      className="rounded-2xl border bg-white p-4"
+                      style={{ borderColor: "rgba(245, 242, 239, 0.08)" }}
+                    >
+                      <QRCode
+                        value={
+                          typeof window !== "undefined"
+                            ? `${window.location.origin}/r/${recap.shortId}`
+                            : `/r/${recap.shortId}`
+                        }
+                        size={180}
+                      />
+                      <p className="mt-2 text-center text-xs text-gray-500">
+                        Student scans to open recap
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Preview button */}
               <button
                 onClick={() =>
                   window.open(`/r/${recap.shortId}`, "_blank")

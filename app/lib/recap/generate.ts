@@ -401,23 +401,34 @@ function getOpenAIKey(): string {
   return key;
 }
 
+export type RecapTone = "encouraging" | "neutral" | "challenging";
+
 /**
  * @param input - The tutor's lesson notes
  * @param contextBlock - Optional SRS-derived context for adaptive exercises.
  *                       Built by `buildContextBlock()` from `./context.ts`.
+ * @param tone - Optional tone for encouragement and exercise framing.
  */
 export async function generateRecap(
   input: string,
-  contextBlock?: string
+  contextBlock?: string,
+  tone?: RecapTone
 ): Promise<GenerateRecapResult> {
   const startTime = Date.now();
 
   const client = new OpenAI({ apiKey: getOpenAIKey() });
 
-  // Build the user message with optional SRS context
+  // Build the user message with optional SRS context and tone
   let userContent = `TUTOR'S NOTE:\n"""\n${input}\n"""`;
   if (contextBlock && contextBlock.trim().length > 0) {
     userContent += `\n\n${contextBlock}`;
+  }
+  if (tone && tone !== "encouraging") {
+    const toneInstructions: Record<string, string> = {
+      neutral: "\n\nTONE: Use a clear, balanced, matter-of-fact tone. No excessive praise or warmth. Professional and straightforward encouragement.",
+      challenging: "\n\nTONE: Use a motivating, push-them-further tone. Be direct, set high expectations, and frame mistakes as opportunities. Think coach, not cheerleader. The student can handle it.",
+    };
+    userContent += toneInstructions[tone] ?? "";
   }
 
   const completion = await client.chat.completions.create({
