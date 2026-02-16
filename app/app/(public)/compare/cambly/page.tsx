@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/compare/cambly",
+    languages: {
+      en: "/compare/cambly",
+      es: "/es/compare/cambly",
+      fr: "/fr/compare/cambly",
+      de: "/de/compare/cambly",
+    },
   },
 };
 

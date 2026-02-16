@@ -23,6 +23,23 @@ type ReceiptState = {
   hoursPerWeek: number;
   monthsOnPlatform: number;
   currency: string;
+  teachingLanguage: string;
+};
+
+const TEACHING_LANGUAGE_PRESETS: Record<
+  string,
+  { currency: string; hourlyRate: number; label: string }
+> = {
+  any: { currency: "USD", hourlyRate: 25, label: "Any language" },
+  english: { currency: "USD", hourlyRate: 25, label: "English" },
+  spanish: { currency: "EUR", hourlyRate: 22, label: "Español" },
+  french: { currency: "EUR", hourlyRate: 28, label: "Français" },
+  german: { currency: "EUR", hourlyRate: 30, label: "Deutsch" },
+  italian: { currency: "EUR", hourlyRate: 24, label: "Italiano" },
+  portuguese: { currency: "BRL", hourlyRate: 80, label: "Português" },
+  japanese: { currency: "JPY", hourlyRate: 3000, label: "日本語" },
+  korean: { currency: "KRW", hourlyRate: 25000, label: "한국어" },
+  chinese: { currency: "CNY", hourlyRate: 150, label: "中文" },
 };
 
 type ReceiptData = {
@@ -109,6 +126,7 @@ export function ReceiptGenerator() {
     hoursPerWeek: 15,
     monthsOnPlatform: 12,
     currency: "USD",
+    teachingLanguage: "any",
   });
   const [showReceipt, setShowReceipt] = React.useState(false);
   const receiptRef = React.useRef<HTMLDivElement>(null);
@@ -171,6 +189,40 @@ export function ReceiptGenerator() {
       {/* Input Form */}
       <section className="px-6 pb-8">
         <div className="mx-auto max-w-md space-y-6 rounded-2xl border border-border/50 bg-card p-6">
+          {/* Teaching Language */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              I teach
+            </label>
+            <Select
+              value={state.teachingLanguage}
+              onValueChange={(v) => {
+                const preset = TEACHING_LANGUAGE_PRESETS[v];
+                if (preset && v !== "any") {
+                  setState((s) => ({
+                    ...s,
+                    teachingLanguage: v,
+                    currency: preset.currency,
+                    hourlyRate: preset.hourlyRate,
+                  }));
+                } else {
+                  setState((s) => ({ ...s, teachingLanguage: v }));
+                }
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(TEACHING_LANGUAGE_PRESETS).map(([key, data]) => (
+                  <SelectItem key={key} value={key}>
+                    {data.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Platform */}
           <div className="space-y-2">
             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

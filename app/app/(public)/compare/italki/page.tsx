@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/compare/italki",
+    languages: {
+      en: "/compare/italki",
+      es: "/es/compare/italki",
+      fr: "/fr/compare/italki",
+      de: "/de/compare/italki",
+    },
   },
 };
 
