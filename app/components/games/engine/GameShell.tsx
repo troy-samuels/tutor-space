@@ -7,10 +7,14 @@ import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getStreakData, getStreakTier } from "@/lib/games/streaks";
+import { getLanguageLabel, isRtl } from "@/lib/games/language-utils";
+import { haptic } from "@/lib/games/haptics";
+import { recordDailyProgress } from "@/lib/games/progress";
 import { cn } from "@/lib/utils";
 
 interface GameShellProps {
   gameName: string;
+  gameSlug: string;
   puzzleNumber: number;
   language: string;
   isComplete: boolean;
@@ -30,6 +34,7 @@ function formatTime(ms: number): string {
 
 export default function GameShell({
   gameName,
+  gameSlug,
   puzzleNumber,
   language,
   isComplete,
@@ -60,27 +65,33 @@ export default function GameShell({
     return () => clearInterval(interval);
   }, [isComplete]);
 
-  const languageLabel =
-    language === "es"
-      ? "🇪🇸 Español"
-      : language === "fr"
-        ? "🇫🇷 Français"
-        : language === "de"
-          ? "🇩🇪 Deutsch"
-          : language === "it"
-            ? "🇮🇹 Italiano"
-            : language === "pt"
-              ? "🇧🇷 Português"
-              : language;
+  // Record progress and haptic on game end
+  React.useEffect(() => {
+    if (isComplete) {
+      recordDailyProgress(gameSlug, isWon);
+      haptic(isWon ? "success" : "gameOver");
+    }
+  }, [isComplete, isWon, gameSlug]);
+
+  const languageLabel = getLanguageLabel(language);
+  const rtl = isRtl(language);
 
   return (
-    <div className="dark min-h-screen bg-background">
+    <div
+      className="dark min-h-[100dvh] bg-background"
+      dir={rtl ? "rtl" : "ltr"}
+    >
       {/* Nav */}
       <nav className="border-b border-border/50 px-4 py-3">
         <div className="mx-auto flex max-w-lg items-center justify-between">
-          <Link href="/games" className="flex items-center gap-2">
+          <Link
+            href="/games"
+            className="flex items-center gap-2 touch-manipulation"
+          >
             <Logo variant="icon" className="h-6 w-6" />
-            <span className="text-sm font-medium text-muted-foreground">Games</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Games
+            </span>
           </Link>
           <div className="flex items-center gap-2">
             {streak.current > 0 && (
@@ -101,16 +112,16 @@ export default function GameShell({
             <span className="opacity-40">·</span>
             <span>{languageLabel}</span>
             <span className="opacity-40">·</span>
-            <span className="font-mono tabular-nums">{formatTime(elapsed)}</span>
+            <span className="font-mono tabular-nums">
+              {formatTime(elapsed)}
+            </span>
           </div>
         </div>
       </header>
 
       {/* Game Content */}
-      <main className="px-4 pb-8">
-        <div className="mx-auto max-w-lg">
-          {children}
-        </div>
+      <main className="px-4 pb-24">
+        <div className="mx-auto max-w-lg">{children}</div>
       </main>
 
       {/* End-of-game CTAs */}
@@ -121,6 +132,7 @@ export default function GameShell({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.4 }}
             className="fixed inset-x-0 bottom-0 z-50 border-t border-border/50 bg-background/80 px-4 py-4 backdrop-blur-md"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
           >
             <div className="mx-auto flex max-w-lg flex-col gap-2.5">
               {onShare && (
@@ -128,7 +140,7 @@ export default function GameShell({
                   onClick={onShare}
                   variant="default"
                   size="lg"
-                  className="w-full rounded-xl"
+                  className="w-full rounded-xl min-h-[48px]"
                 >
                   📋 Share Result
                 </Button>
@@ -138,7 +150,7 @@ export default function GameShell({
                   onClick={onExplainMistakes}
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-xl"
+                  className="w-full rounded-xl min-h-[48px]"
                 >
                   🧠 Explain My Mistakes
                 </Button>

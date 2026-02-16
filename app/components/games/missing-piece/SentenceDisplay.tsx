@@ -9,6 +9,8 @@ interface SentenceDisplayProps {
   sentence: string;
   category: SentenceCategory;
   difficulty: 1 | 2 | 3;
+  /** Language code — used to adapt gap styling for CJK/non-space languages */
+  language?: string;
 }
 
 const CATEGORY_LABELS: Record<SentenceCategory, { label: string; emoji: string }> = {
@@ -26,14 +28,18 @@ const DIFFICULTY_DOTS: Record<number, string> = {
   3: "●●●",
 };
 
+/** Languages that don't use spaces between words — use block gap instead of underline */
+const NO_SPACE_LANGUAGES = new Set(["ja", "zh", "th"]);
+
 export default function SentenceDisplay({
   sentence,
   category,
   difficulty,
+  language,
 }: SentenceDisplayProps) {
   const catInfo = CATEGORY_LABELS[category];
-  // Split sentence on ___ to highlight the blank
   const parts = sentence.split("___");
+  const useBlockGap = language && NO_SPACE_LANGUAGES.has(language);
 
   return (
     <div className="space-y-3">
@@ -69,11 +75,15 @@ export default function SentenceDisplay({
                     ease: "easeInOut",
                   }}
                   className={cn(
-                    "mx-1 inline-block rounded-lg border-2 border-dashed border-primary/50 px-4 py-0.5",
-                    "bg-primary/[0.08] text-primary font-bold",
+                    "mx-1 inline-block font-bold",
+                    useBlockGap
+                      ? // Block-style gap for CJK languages (no word spaces)
+                        "rounded-lg border-2 border-dashed border-primary/50 bg-primary/[0.08] text-primary w-12 h-8 align-middle"
+                      : // Standard underline-style gap for spaced languages
+                        "rounded-lg border-2 border-dashed border-primary/50 px-4 py-0.5 bg-primary/[0.08] text-primary",
                   )}
                 >
-                  ???
+                  {useBlockGap ? "\u3000" : "???"}
                 </motion.span>
               )}
             </span>

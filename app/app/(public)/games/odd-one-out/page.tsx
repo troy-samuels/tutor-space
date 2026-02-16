@@ -61,6 +61,7 @@ export default function OddOneOutPage() {
   return (
     <GameShell
       gameName="Odd One Out"
+      gameSlug="odd-one-out"
       puzzleNumber={puzzle.number}
       language={puzzle.language}
       isComplete={endState.isComplete}
@@ -73,7 +74,7 @@ export default function OddOneOutPage() {
           <button
             key={lang.code}
             onClick={() => handleLanguageChange(lang.code)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-all min-h-[44px] touch-manipulation ${
               language === lang.code
                 ? "bg-primary text-primary-foreground shadow-lg"
                 : "bg-white/[0.05] text-muted-foreground hover:bg-white/[0.1]"

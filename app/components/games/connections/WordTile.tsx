@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type { Difficulty } from "@/lib/games/data/connections/types";
 
@@ -57,28 +58,46 @@ function getStateStyles(state: TileState): string {
   }
 }
 
+/**
+ * Dynamically scale font size based on word length.
+ * Handles CJK characters, Arabic, and long European words gracefully.
+ */
+function getAdaptiveFontClass(word: string): string {
+  const len = word.length;
+  if (len <= 4) return "text-sm sm:text-base";
+  if (len <= 8) return "text-xs sm:text-sm";
+  if (len <= 12) return "text-[11px] sm:text-xs";
+  return "text-[10px] sm:text-[11px]";
+}
+
 export default function WordTile({
   word,
   state,
   onClick,
   disabled = false,
 }: WordTileProps) {
+  const handleClick = () => {
+    haptic("tap");
+    onClick?.();
+  };
+
   return (
     <motion.button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       layout
       whileTap={!disabled ? { scale: 0.93 } : undefined}
       animate={state === "wrong" ? shakeAnimation : { scale: state === "selected" ? 1.03 : 1 }}
       transition={springTransition}
       className={cn(
-        "flex h-14 w-full items-center justify-center rounded-xl border px-2 text-sm font-semibold transition-colors sm:h-16 sm:text-base",
+        "flex min-h-[48px] h-14 w-full items-center justify-center rounded-xl border px-2 font-semibold transition-colors sm:h-16",
         "select-none touch-manipulation",
         "disabled:opacity-40 disabled:cursor-not-allowed",
+        getAdaptiveFontClass(word),
         getStateStyles(state),
       )}
     >
-      {word}
+      <span className="break-all leading-tight text-center">{word}</span>
     </motion.button>
   );
 }

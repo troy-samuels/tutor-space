@@ -2,6 +2,8 @@
  * Lingua Connections puzzle types.
  */
 
+import type { CefrLevel } from "@/lib/games/cefr";
+
 export type Difficulty = "yellow" | "green" | "blue" | "purple";
 
 export interface ConnectionCategory {
@@ -24,6 +26,8 @@ export interface ConnectionsPuzzle {
   language: string;
   /** Date string YYYY-MM-DD */
   date: string;
+  /** CEFR level for this puzzle */
+  cefrLevel?: CefrLevel;
   /** The 4 categories (16 words total) */
   categories: [ConnectionCategory, ConnectionCategory, ConnectionCategory, ConnectionCategory];
   /** Optional "Vibe Clue" hints — lateral/poetic, not direct */

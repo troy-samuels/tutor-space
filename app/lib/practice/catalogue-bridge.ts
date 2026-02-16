@@ -302,11 +302,13 @@ export const LANGUAGES: Language[] = (() => {
   try {
     const catalogueLanguages = getAvailableLanguages();
     if (catalogueLanguages.length > 0) {
+      const CJK_CODES = new Set(["zh", "ja", "ko"]);
       return catalogueLanguages.map((language) => ({
         code: language.code,
         name: language.name,
         nativeName: language.nativeName,
         flag: language.flag,
+        ...(CJK_CODES.has(language.code) ? { isCJK: true } : {}),
       }));
     }
   } catch {

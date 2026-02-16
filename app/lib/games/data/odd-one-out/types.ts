@@ -2,6 +2,8 @@
  * Odd One Out puzzle types.
  */
 
+import type { CefrLevel } from "@/lib/games/cefr";
+
 export interface OddOneOutRound {
   /** The 4 words displayed */
   words: [string, string, string, string];
@@ -13,6 +15,8 @@ export interface OddOneOutRound {
   explanation: string;
   /** Difficulty level */
   difficulty: 1 | 2 | 3;
+  /** CEFR level tag */
+  cefrLevel?: CefrLevel;
 }
 
 export interface OddOneOutPuzzle {
@@ -22,6 +26,8 @@ export interface OddOneOutPuzzle {
   language: string;
   /** Date string YYYY-MM-DD */
   date: string;
+  /** CEFR level for this puzzle */
+  cefrLevel?: CefrLevel;
   /** 10 rounds per puzzle */
   rounds: OddOneOutRound[];
 }

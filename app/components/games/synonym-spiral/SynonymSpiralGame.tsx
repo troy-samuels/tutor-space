@@ -9,6 +9,7 @@ import WordInput from "./WordInput";
 import DepthMeter from "./DepthMeter";
 import RoundSummary from "./RoundSummary";
 import { recordGamePlay } from "@/lib/games/streaks";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type {
   SynonymSpiralPuzzle,
@@ -144,6 +145,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
 
       if (matchedDepth) {
         // Success!
+        haptic("success");
         const skipped = matchedDepth > targetDepth;
         setTowerWords((prev) => [...prev, { word: normalizedWord, depth: matchedDepth as DepthLevel }]);
         setWordsThisRound((prev) => [...prev, normalizedWord]);
@@ -192,6 +194,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
           ],
         };
         const langHints = hints[puzzle.language] || hints.es;
+        haptic("error");
         setFeedback({
           type: "error",
           message: langHints[targetDepth - 1] || `Try a ${targetLabel} synonym`,

@@ -2,6 +2,8 @@
  * Daily Decode puzzle types.
  */
 
+import type { CefrLevel } from "@/lib/games/cefr";
+
 export type DecodeDifficulty = "easy" | "medium" | "hard";
 
 export interface DecodePuzzle {
@@ -17,6 +19,8 @@ export interface DecodePuzzle {
   author: string;
   /** Difficulty level */
   difficulty: DecodeDifficulty;
+  /** CEFR level for this puzzle */
+  cefrLevel?: CefrLevel;
 }
 
 export interface CipherMap {

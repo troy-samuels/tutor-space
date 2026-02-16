@@ -2,6 +2,8 @@
  * Missing Piece puzzle types.
  */
 
+import type { CefrLevel } from "@/lib/games/cefr";
+
 export type SentenceCategory =
   | "grammar"
   | "vocabulary"
@@ -21,8 +23,12 @@ export interface MissingPieceSentence {
   explanation: string;
   /** Category of the sentence */
   category: SentenceCategory;
-  /** Difficulty level */
+  /** Difficulty level (legacy — prefer cefrLevel) */
   difficulty: 1 | 2 | 3;
+  /** CEFR level tag */
+  cefrLevel?: CefrLevel;
+  /** Grammar topic tag for struggle detection */
+  grammarTopic?: string;
 }
 
 export interface MissingPiecePuzzle {
@@ -32,6 +38,8 @@ export interface MissingPiecePuzzle {
   language: string;
   /** Date string YYYY-MM-DD */
   date: string;
+  /** CEFR level for this puzzle */
+  cefrLevel?: CefrLevel;
   /** 15 sentences per puzzle */
   sentences: MissingPieceSentence[];
 }

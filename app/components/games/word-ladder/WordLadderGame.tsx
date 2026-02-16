@@ -8,6 +8,7 @@ import StepChain from "./StepChain";
 import WordInput from "./WordInput";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { validateStep, generateShareText, SUPPORTED_GAME_LANGUAGES } from "@/lib/games/data/word-ladder";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type { WordLadderPuzzle, WordLadderGameState } from "@/lib/games/data/word-ladder/types";
 
@@ -80,6 +81,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
     const result = validateStep(lastWord, upper, puzzle.validWords);
 
     if (!result.valid) {
+      haptic("error");
       setGameState((prev) => ({
         ...prev,
         error: result.error || "Invalid word",
@@ -106,7 +108,10 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
     });
 
     if (isWin) {
+      haptic("success");
       recordGamePlay("word-ladder");
+    } else {
+      haptic("tap");
     }
   }, [gameState, lastWord, puzzle]);
 

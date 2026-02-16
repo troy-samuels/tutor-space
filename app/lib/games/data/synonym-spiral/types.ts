@@ -2,6 +2,8 @@
  * Synonym Spiral puzzle types.
  */
 
+import type { CefrLevel } from "@/lib/games/cefr";
+
 export type DepthLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface SynonymLevel {
@@ -29,6 +31,8 @@ export interface SynonymSpiralPuzzle {
   language: string;
   /** Date string YYYY-MM-DD */
   date: string;
+  /** CEFR level for this puzzle */
+  cefrLevel?: CefrLevel;
   /** 5 synonym chains per puzzle */
   chains: [SynonymChain, SynonymChain, SynonymChain, SynonymChain, SynonymChain];
 }

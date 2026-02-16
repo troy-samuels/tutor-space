@@ -2,6 +2,8 @@
  * Word Ladder puzzle types.
  */
 
+import type { CefrLevel } from "@/lib/games/cefr";
+
 export interface WordLadderPuzzle {
   /** Puzzle number */
   number: number;
@@ -21,6 +23,8 @@ export interface WordLadderPuzzle {
   optimalPath: string[];
   /** Optional hint */
   hint?: string;
+  /** CEFR level for this puzzle */
+  cefrLevel?: CefrLevel;
 }
 
 export interface WordLadderGameState {

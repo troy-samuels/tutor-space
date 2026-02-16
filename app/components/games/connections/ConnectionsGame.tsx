@@ -9,6 +9,7 @@ import type { TileState } from "./WordTile";
 import CategoryReveal from "./CategoryReveal";
 import VibeClueBanner from "./VibeClueBanner";
 import { recordGamePlay } from "@/lib/games/streaks";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type {
   ConnectionsPuzzle,
@@ -137,6 +138,8 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
         return newState;
       });
 
+      haptic("success");
+
       // Record guess in history — 4 emojis of the same colour for a correct guess
       setGuessHistory((prev) => [
         ...prev,
@@ -166,6 +169,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
         setOneAway(true);
       }
 
+      haptic("error");
       setWrongGuessWords(new Set(selectedWords));
       setGuessHistory((prev) => [...prev, guessColors]);
 

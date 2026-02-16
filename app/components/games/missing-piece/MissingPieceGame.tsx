@@ -8,6 +8,7 @@ import OptionButton from "./OptionButton";
 import type { OptionState } from "./OptionButton";
 import ExplanationPanel from "./ExplanationPanel";
 import { recordGamePlay } from "@/lib/games/streaks";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type {
   MissingPiecePuzzle,
@@ -76,6 +77,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
       setOptionStates(newStates);
       setLastGuessCorrect(isCorrect);
       setShowExplanation(true);
+      haptic(isCorrect ? "success" : "error");
 
       setGameState((prev) => {
         const newResults = [...prev.sentenceResults];

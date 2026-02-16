@@ -13,6 +13,7 @@ import {
   generateShareText,
   stripAccent,
 } from "@/lib/games/data/daily-decode";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type {
   DecodePuzzle,
@@ -117,6 +118,9 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
         const expectedPlain = prev.cipher.decrypt[prev.selectedLetter!];
         const isWrong = expectedPlain && letter.toUpperCase() !== expectedPlain;
         const newMistakes = isWrong ? prev.mistakes + 1 : prev.mistakes;
+
+        if (isWrong) haptic("error");
+        else haptic("tap");
 
         // Check for win
         const won = checkWin(newMappings, prev.hintedLetters, prev.cipher);

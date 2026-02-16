@@ -8,6 +8,7 @@ import type { CardState } from "./WordCard";
 import RoundResult from "./RoundResult";
 import ProgressBar from "./ProgressBar";
 import { recordGamePlay } from "@/lib/games/streaks";
+import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type { OddOneOutPuzzle, OddOneOutGameState } from "@/lib/games/data/odd-one-out/types";
 
@@ -81,6 +82,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
       setCardStates(newStates);
       setLastGuessCorrect(isCorrect);
       setShowResult(true);
+      haptic(isCorrect ? "success" : "error");
 
       setGameState((prev) => {
         const newResults = [...prev.roundResults];
