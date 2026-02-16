@@ -74,7 +74,7 @@ export default function GameShell({
               : language;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dark min-h-screen bg-background">
       {/* Nav */}
       <nav className="border-b border-border/50 px-4 py-3">
         <div className="mx-auto flex max-w-lg items-center justify-between">

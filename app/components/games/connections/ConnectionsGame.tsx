@@ -137,8 +137,11 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
         return newState;
       });
 
-      // Record guess in history
-      setGuessHistory((prev) => [...prev, [matchedCategory.difficulty]]);
+      // Record guess in history — 4 emojis of the same colour for a correct guess
+      setGuessHistory((prev) => [
+        ...prev,
+        [matchedCategory.difficulty, matchedCategory.difficulty, matchedCategory.difficulty, matchedCategory.difficulty],
+      ]);
 
       // If won, record streak
       if (gameState.solvedCategories.length === 3) {
@@ -147,16 +150,17 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
     } else {
       // Wrong guess — check if "one away"
       let maxOverlap = 0;
-      const guessColors: Difficulty[] = [];
       for (const cat of puz.categories) {
         if (gameState.solvedCategories.includes(cat)) continue;
         const overlap = cat.words.filter((w) => selectedWords.includes(w)).length;
         if (overlap > maxOverlap) maxOverlap = overlap;
-        // Track the difficulty colour for each selected word's actual category
-        for (const w of selectedWords) {
-          if (cat.words.includes(w)) guessColors.push(cat.difficulty);
-        }
       }
+
+      // Build colour row: map each selected word to its actual category's difficulty
+      const guessColors: Difficulty[] = selectedWords.map((w) => {
+        const cat = puz.categories.find((c) => c.words.includes(w));
+        return cat ? cat.difficulty : "yellow";
+      });
 
       if (maxOverlap === 3) {
         setOneAway(true);
@@ -211,7 +215,8 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
   }, []);
 
   const generateShareText = React.useCallback((): string => {
-    const header = `Lingua Connections #${puzzle.number} 🇪🇸`;
+    const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
+    const header = `Lingua Connections #${puzzle.number} ${langFlag}`;
     const mistakeStr = gameState.isWon
       ? `${gameState.mistakes}/${MAX_MISTAKES} mistakes`
       : "❌ Not solved";

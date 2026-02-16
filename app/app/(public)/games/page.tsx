@@ -20,6 +20,41 @@ const GAMES = [
     emoji: "🔗",
     status: "live" as const,
   },
+  {
+    slug: "word-ladder",
+    name: "Word Ladder",
+    description: "Change one letter at a time to transform one word into another. Every step must be real.",
+    emoji: "🪜",
+    status: "live" as const,
+  },
+  {
+    slug: "daily-decode",
+    name: "Daily Decode",
+    description: "Crack the cipher to reveal a famous quote. A cryptogram for language lovers.",
+    emoji: "🔐",
+    status: "live" as const,
+  },
+  {
+    slug: "odd-one-out",
+    name: "Odd One Out",
+    description: "4 words, 3 belong together. Find the imposter in 10 rounds.",
+    emoji: "🎯",
+    status: "live" as const,
+  },
+  {
+    slug: "missing-piece",
+    name: "Missing Piece",
+    description: "Fill the blank in 15 sentences. The distractors are nasty.",
+    emoji: "🧩",
+    status: "live" as const,
+  },
+  {
+    slug: "synonym-spiral",
+    name: "Synonym Spiral",
+    description: "Start simple, go deep. How sophisticated can your vocabulary get?",
+    emoji: "🌀",
+    status: "live" as const,
+  },
 ];
 
 export default function GamesPage() {
