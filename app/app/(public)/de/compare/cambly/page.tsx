@@ -18,6 +18,7 @@ export const metadata: Metadata = {
       en: "/compare/cambly",
       es: "/es/compare/cambly",
       fr: "/fr/compare/cambly",
+      de: "/de/compare/cambly",
     },
   },
 };

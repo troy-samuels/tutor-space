@@ -18,6 +18,7 @@ export const metadata: Metadata = {
       en: "/compare/italki",
       es: "/es/compare/italki",
       fr: "/fr/compare/italki",
+      de: "/de/compare/italki",
     },
   },
 };

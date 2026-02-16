@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     canonical: "/es/compare/preply",
     languages: {
       en: "/compare/preply",
+      es: "/es/compare/preply",
       fr: "/fr/compare/preply",
       de: "/de/compare/preply",
     },

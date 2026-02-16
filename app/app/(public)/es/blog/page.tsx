@@ -34,6 +34,14 @@ export const metadata: Metadata = {
     languages: {
       en: "/blog",
       es: "/es/blog",
+      fr: "/fr/blog",
+      de: "/de/blog",
+      it: "/it/blog",
+      ja: "/ja/blog",
+      ko: "/ko/blog",
+      nl: "/nl/blog",
+      pt: "/pt/blog",
+      zh: "/zh/blog",
     },
   },
 };
