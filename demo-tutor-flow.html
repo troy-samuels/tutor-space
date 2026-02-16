@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TutorLingua — Tutor Onboarding Flow Demo</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --fg: #0F172A;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --card: #FFFFFF;
+    --primary: #FF5A1F;
+    --primary-hover: #E04812;
+    --green: #10B981;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --violet: #7C3AED;
+    --surface: #F8FAFC;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    background: #F1F5F9;
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Step navigation */
+  .step-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--fg);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    height: 56px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  .step-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  .step-btn:hover { color: rgba(255,255,255,0.7); }
+  .step-btn.active { 
+    color: white; 
+    border-bottom-color: var(--primary);
+  }
+  .step-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 2px;
+    opacity: 0.6;
+  }
+
+  /* Steps */
+  .step { display: none; padding: 80px 20px 40px; }
+  .step.active { display: block; }
+
+  /* ============================================
+     STEP 1: Input
+     ============================================ */
+  .input-hero {
+    max-width: 640px;
+    margin: 60px auto;
+    text-align: center;
+  }
+  .input-hero h1 {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+  .input-hero h1 span { color: var(--primary); }
+  .input-hero p {
+    font-size: 18px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+  .url-input-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .url-input {
+    flex: 1;
+    height: 56px;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+    padding: 0 20px;
+    font-size: 16px;
+    background: white;
+    color: var(--fg);
+    transition: border-color 0.2s;
+  }
+  .url-input:focus { outline: none; border-color: var(--primary); }
+  .url-input::placeholder { color: #94A3B8; }
+  .btn-primary {
+    height: 56px;
+    padding: 0 28px;
+    border-radius: 14px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+  .input-hint {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .trust-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .trust-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  /* ============================================
+     STEP 2: What We Found (Before)
+     ============================================ */
+  .found-container {
+    max-width: 800px;
+    margin: 20px auto;
+  }
+  .found-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .found-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .found-header p { color: var(--muted); font-size: 16px; }
+  
+  .profile-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+  }
+  .profile-card-header {
+    background: var(--fg);
+    color: white;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366F1, #8B5CF6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .profile-meta h3 { font-size: 20px; font-weight: 600; }
+  .profile-meta-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+  }
+  .profile-badge {
+    margin-left: auto;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.1);
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-cell {
+    background: white;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-cell-value { font-size: 22px; font-weight: 700; color: var(--fg); }
+  .stat-cell-label { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .profile-body { padding: 24px 28px; }
+  
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  
+  .current-bio {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #991B1B;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .current-bio::before {
+    content: "CURRENT";
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: #EF4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  
+  .issue-list {
+    list-style: none;
+    margin-bottom: 24px;
+  }
+  .issue-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 14px;
+    color: #92400E;
+  }
+  .issue-icon {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #FEF3C7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .score-preview {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .score-big {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-red { color: var(--red); }
+  .score-amber { color: var(--amber); }
+  .score-green { color: var(--green); }
+  .score-details h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .score-details p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .cta-generate {
+    width: 100%;
+    padding: 18px;
+    border-radius: 14px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .cta-generate:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,90,31,0.3); }
+
+  /* ============================================
+     STEP 3: Generated Page
+     ============================================ */
+  .page-container {
+    max-width: 480px;
+    margin: 10px auto;
+  }
+  .browser-chrome {
+    background: #E2E8F0;
+    border-radius: 16px 16px 0 0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .browser-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .browser-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .dot-red { background: #EF4444; }
+  .dot-yellow { background: #F59E0B; }
+  .dot-green { background: #10B981; }
+  .browser-url {
+    flex: 1;
+    background: white;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: monospace;
+  }
+  .browser-url strong { color: var(--fg); }
+  
+  .tutor-page {
+    background: white;
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+  }
+  
+  /* Hero banner */
+  .tutor-hero {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    padding: 32px 24px 24px;
+    color: white;
+    text-align: center;
+    position: relative;
+  }
+  .tutor-hero-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366F1, #8B5CF6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 auto 12px;
+    border: 3px solid rgba(255,255,255,0.2);
+  }
+  .tutor-hero h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .tutor-hero-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 12px;
+  }
+  .tutor-hero-headline {
+    font-size: 15px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+    max-width: 360px;
+    margin: 0 auto 16px;
+    font-style: italic;
+  }
+  .lang-flags {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .lang-flag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.1);
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+  }
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+  }
+  .hero-stat-val { font-size: 20px; font-weight: 700; }
+  .hero-stat-lbl { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+  
+  /* Tabs */
+  .tutor-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: white;
+  }
+  .tutor-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .tutor-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  
+  /* Bio section */
+  .tutor-bio {
+    padding: 20px 24px;
+  }
+  .tutor-bio-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+  .tutor-bio-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #334155;
+  }
+  .tutor-bio-text p { margin-bottom: 12px; }
+  
+  /* AI Practice CTA */
+  .practice-cta {
+    margin: 0 24px 20px;
+    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+    border-radius: 14px;
+    padding: 20px;
+    color: white;
+    text-align: center;
+  }
+  .practice-cta-icon { font-size: 28px; margin-bottom: 8px; }
+  .practice-cta h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .practice-cta p { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 12px; line-height: 1.5; }
+  .practice-cta-btn {
+    display: inline-block;
+    background: white;
+    color: #7C3AED;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s;
+  }
+  .practice-cta-btn:hover { transform: translateY(-1px); }
+  
+  /* Services */
+  .services-section { padding: 0 24px 20px; }
+  .service-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .service-name { font-size: 14px; font-weight: 600; }
+  .service-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .service-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+  .service-per { font-size: 11px; color: var(--muted); font-weight: 400; }
+  
+  /* Book CTA */
+  .book-cta {
+    padding: 16px 24px 24px;
+  }
+  .book-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .book-sub {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  
+  /* Footer branding */
+  .tl-footer {
+    text-align: center;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: #94A3B8;
+  }
+  .tl-footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  
+  /* ============================================
+     STEP 4: Share / Viral
+     ============================================ */
+  .share-container {
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: center;
+  }
+  .share-container h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .share-container > p {
+    color: var(--muted);
+    font-size: 16px;
+    margin-bottom: 32px;
+  }
+  
+  .share-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .share-card-image {
+    background: linear-gradient(135deg, #0F172A, #1E293B);
+    padding: 32px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .share-score-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 4px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .share-score-ring span { font-size: 28px; font-weight: 800; }
+  .share-meta h3 { font-size: 18px; font-weight: 600; }
+  .share-meta p { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .share-meta .improvement { color: var(--green); font-weight: 600; font-size: 14px; margin-top: 8px; }
+  
+  .share-card-body { padding: 20px 24px; }
+  .share-card-body p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .share-card-body .share-url {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+    font-family: monospace;
+    margin-top: 12px;
+  }
+  
+  .share-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 24px;
+  }
+  .share-btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .share-btn:hover { transform: translateY(-1px); }
+  .share-whatsapp { background: #25D366; color: white; }
+  .share-linkedin { background: #0A66C2; color: white; }
+  .share-facebook { background: #1877F2; color: white; }
+  .share-copy { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
+  
+  .viral-note {
+    margin-top: 32px;
+    padding: 20px 24px;
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 14px;
+    text-align: left;
+  }
+  .viral-note h4 { font-size: 14px; font-weight: 600; color: #92400E; margin-bottom: 6px; }
+  .viral-note p { font-size: 13px; color: #A16207; line-height: 1.6; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .step-btn { padding: 16px 10px; font-size: 11px; }
+    .input-hero h1 { font-size: 28px; }
+    .url-input-group { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Step Nav -->
+<nav class="step-nav">
+  <button class="step-btn active" onclick="showStep(1)">
+    <span class="step-label">Step 1</span>
+    Paste URL
+  </button>
+  <button class="step-btn" onclick="showStep(2)">
+    <span class="step-label">Step 2</span>
+    What We Found
+  </button>
+  <button class="step-btn" onclick="showStep(3)">
+    <span class="step-label">Step 3</span>
+    Generated Page
+  </button>
+  <button class="step-btn" onclick="showStep(4)">
+    <span class="step-label">Step 4</span>
+    Share & Grow
+  </button>
+</nav>
+
+<!-- ==================== STEP 1: Paste URL ==================== -->
+<div class="step active" id="step-1">
+  <div class="input-hero">
+    <h1>Claim your <span>free tutor page</span></h1>
+    <p>Paste your Preply or iTalki profile URL. In 30 seconds you'll get a professional landing page, an optimised bio, and an AI practice space for your students.</p>
+    
+    <div class="url-input-group">
+      <input class="url-input" type="url" value="https://preply.com/en/tutor/2047" placeholder="https://preply.com/en/tutor/..." readonly>
+      <button class="btn-primary" onclick="showStep(2)">Generate my page →</button>
+    </div>
+    <p class="input-hint">Supports Preply and iTalki profile URLs</p>
+    
+    <div class="trust-row">
+      <span class="trust-item"><span class="trust-dot"></span> 100% free</span>
+      <span class="trust-item"><span class="trust-dot"></span> Ready in 30 seconds</span>
+      <span class="trust-item"><span class="trust-dot"></span> No signup required</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STEP 2: What We Found ==================== -->
+<div class="step" id="step-2">
+  <div class="found-container">
+    <div class="found-header">
+      <h2>Here's what we found 👀</h2>
+      <p>We scraped your Preply profile. Here's what students see — and what we can do better.</p>
+    </div>
+    
+    <div class="profile-card">
+      <div class="profile-card-header">
+        <div class="avatar">IH</div>
+        <div class="profile-meta">
+          <h3>Iryna H.</h3>
+          <div class="profile-meta-sub">Ukraine · Professional Tutor · Preply</div>
+        </div>
+        <div class="profile-badge">🇺🇦 CELTA</div>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-cell">
+          <div class="stat-cell-value">10,666</div>
+          <div class="stat-cell-label">Lessons</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-value">4.95</div>
+          <div class="stat-cell-label">Rating</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-value">202</div>
+          <div class="stat-cell-label">Reviews</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-value">£29</div>
+          <div class="stat-cell-label">Per Hour</div>
+        </div>
+      </div>
+      
+      <div class="profile-body">
+        <div class="section-label">Your current Preply headline & bio</div>
+        <div class="current-bio">
+          "Certified CELTA, TEFL & TESOL tutor with 10 years of experience, Russian and Ukrainian tutor"
+        </div>
+        
+        <div class="section-label">Issues we detected</div>
+        <ul class="issue-list">
+          <li><span class="issue-icon">⚠️</span> <strong>Generic headline</strong> — "Certified tutor with 10 years experience" describes 5,000 other tutors. No specific outcome or niche.</li>
+          <li><span class="issue-icon">⚠️</span> <strong>No student-focused language</strong> — The bio talks about YOUR credentials, not what the STUDENT will achieve.</li>
+          <li><span class="issue-icon">⚠️</span> <strong>Missing high-value keywords</strong> — No mention of specific skills students search for (IELTS, business English, conversation, pronunciation).</li>
+          <li><span class="issue-icon">⚠️</span> <strong>Underselling your experience</strong> — 10,666 lessons is top 0.5% on the platform. Students don't know this is exceptional.</li>
+          <li><span class="issue-icon">⚠️</span> <strong>No differentiation</strong> — What makes you different from 200 other CELTA-certified Ukrainian tutors?</li>
+        </ul>
+        
+        <div class="score-preview">
+          <div class="score-big score-amber">47</div>
+          <div class="score-details">
+            <h4>Your current profile score</h4>
+            <p>Your stats are incredible (top 1%) but your profile copy is letting you down. With 10,666 lessons, you should be charging £45+ and converting 3× more trial students.</p>
+          </div>
+        </div>
+        
+        <button class="cta-generate" onclick="showStep(3)">
+          ✨ Generate my optimised page — free
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STEP 3: Generated Page ==================== -->
+<div class="step" id="step-3">
+  <div class="page-container">
+    <div style="text-align:center;margin-bottom:16px;">
+      <span style="font-size:13px;color:var(--green);font-weight:600;">✓ Your page is live!</span>
+    </div>
+    
+    <div class="browser-chrome">
+      <div class="browser-dots">
+        <span class="browser-dot dot-red"></span>
+        <span class="browser-dot dot-yellow"></span>
+        <span class="browser-dot dot-green"></span>
+      </div>
+      <div class="browser-url">
+        tutorlingua.com/<strong>@iryna</strong>
+      </div>
+    </div>
+    
+    <div class="tutor-page">
+      <!-- Hero -->
+      <div class="tutor-hero">
+        <div class="tutor-hero-avatar">IH</div>
+        <h2>Iryna H.</h2>
+        <div class="tutor-hero-sub">CELTA · TEFL · TESOL Certified · Ukraine</div>
+        <div class="tutor-hero-headline">
+          "I help professionals sound confident in English, Russian & Ukrainian — with a method refined over 10,000+ lessons"
+        </div>
+        <div class="lang-flags">
+          <span class="lang-flag">🇬🇧 English</span>
+          <span class="lang-flag">🇷🇺 Russian</span>
+          <span class="lang-flag">🇺🇦 Ukrainian</span>
+          <span class="lang-flag">🇪🇸 Spanish</span>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <div class="hero-stat-val">10,666</div>
+            <div class="hero-stat-lbl">Lessons</div>
+          </div>
+          <div>
+            <div class="hero-stat-val">4.95 ★</div>
+            <div class="hero-stat-lbl">Rating</div>
+          </div>
+          <div>
+            <div class="hero-stat-val">202</div>
+            <div class="hero-stat-lbl">Reviews</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tabs -->
+      <div class="tutor-tabs">
+        <div class="tutor-tab active">About</div>
+        <div class="tutor-tab">Services</div>
+        <div class="tutor-tab">Reviews</div>
+        <div class="tutor-tab">FAQ</div>
+      </div>
+      
+      <!-- Bio - REWRITTEN -->
+      <div class="tutor-bio">
+        <div class="tutor-bio-label">✨ AI-Optimised Bio</div>
+        <div class="tutor-bio-text">
+          <p><strong>Are you preparing for a career move and need confident, professional English?</strong> I've guided hundreds of professionals through that exact transition — from nervous to natural — in as little as 8 weeks.</p>
+          <p>With 10,000+ lessons behind me and CELTA, TEFL & TESOL certifications, I've developed a method that cuts through textbook fluff and focuses on what you actually need: real conversations, real scenarios, real confidence.</p>
+          <p>I also teach Russian and Ukrainian for professionals relocating or doing business in Eastern Europe. As a native speaker of both, I understand the cultural nuances that textbooks miss.</p>
+          <p><strong>What my students say:</strong> "After 3 months with Iryna, I led my first all-English board presentation. I couldn't have done that before." — 4.95★ across 202 reviews.</p>
+        </div>
+      </div>
+      
+      <!-- AI Practice CTA -->
+      <div class="practice-cta">
+        <div class="practice-cta-icon">🧠</div>
+        <h4>AI Practice Between Lessons</h4>
+        <p>Iryna's students get free AI-powered exercises personalised to what you're learning. Practice conversation, grammar & vocabulary anytime.</p>
+        <a href="#" class="practice-cta-btn">Start practising →</a>
+      </div>
+      
+      <!-- Services -->
+      <div class="services-section">
+        <div class="section-label">Services</div>
+        <div class="service-card">
+          <div>
+            <div class="service-name">Professional English</div>
+            <div class="service-desc">Meetings, presentations, emails</div>
+          </div>
+          <div class="service-price">£29 <span class="service-per">/ hr</span></div>
+        </div>
+        <div class="service-card">
+          <div>
+            <div class="service-name">Russian for Business</div>
+            <div class="service-desc">From zero to conversational</div>
+          </div>
+          <div class="service-price">£29 <span class="service-per">/ hr</span></div>
+        </div>
+        <div class="service-card">
+          <div>
+            <div class="service-name">Ukrainian Language</div>
+            <div class="service-desc">Culture, language & confidence</div>
+          </div>
+          <div class="service-price">£29 <span class="service-per">/ hr</span></div>
+        </div>
+      </div>
+      
+      <!-- Book -->
+      <div class="book-cta">
+        <button class="book-btn">Book a free trial with Iryna →</button>
+        <div class="book-sub">0% commission · Direct booking · Cancel anytime</div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="tl-footer">
+        Built with <a href="#">TutorLingua</a> · <a href="#">Get your free page</a>
+      </div>
+    </div>
+    
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn-primary" onclick="showStep(4)">Share my page →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STEP 4: Share ==================== -->
+<div class="step" id="step-4">
+  <div class="share-container">
+    <h2>Share your transformation 🚀</h2>
+    <p>Your profile went from 47 → 86. Show other tutors what's possible.</p>
+    
+    <!-- Shareable OG Card -->
+    <div class="share-card">
+      <div class="share-card-image">
+        <div class="share-score-ring">
+          <span>86</span>
+        </div>
+        <div class="share-meta">
+          <h3>Iryna H.</h3>
+          <p>CELTA Certified · 10,666 lessons · 4.95★</p>
+          <div class="improvement">↑ 47 → 86 · Profile optimised by TutorLingua</div>
+        </div>
+      </div>
+      <div class="share-card-body">
+        <p>"I just got a free professional tutor page with an AI practice space for my students. Took 30 seconds. Check your score:"</p>
+        <div class="share-url">tutorlingua.com/claim</div>
+      </div>
+    </div>
+    
+    <div class="share-buttons">
+      <button class="share-btn share-whatsapp">WhatsApp</button>
+      <button class="share-btn share-facebook">Facebook</button>
+      <button class="share-btn share-linkedin">LinkedIn</button>
+      <button class="share-btn share-copy">📋 Copy link</button>
+    </div>
+    
+    <div class="viral-note">
+      <h4>💡 The viral loop</h4>
+      <p>Every tutor who shares their page brings in 2-3 more tutors. Every student who visits the page sees "Built with TutorLingua." Every practice session is a free ad. The product distributes itself.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  document.querySelectorAll('.step-btn')[n-1].classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

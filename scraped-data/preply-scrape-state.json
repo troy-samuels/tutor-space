@@ -1,0 +1,10 @@
+{
+  "started_at": "2025-07-17T14:00:00Z",
+  "last_updated": "2025-07-17T14:34:00Z",
+  "completed": 12,
+  "skipped": [],
+  "last_id": 2296,
+  "ids_completed": [20, 332, 499, 626, 1373, 1467, 1507, 1791, 1937, 1984, 2047, 2296],
+  "next_id_index": 12,
+  "notes": "No Cloudflare blocks or CAPTCHAs encountered. Cookie consent accepted on first visit. All profiles loaded successfully. Scraping at ~3 min per profile with throttling delays."
+}
