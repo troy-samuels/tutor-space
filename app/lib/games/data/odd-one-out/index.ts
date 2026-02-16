@@ -23,7 +23,11 @@ export const SUPPORTED_GAME_LANGUAGES = [
 
 /**
  * Get today's puzzle for a given language.
- * Uses the daily seed to select puzzle.
+ * Uses round recombination for extended content:
+ * - With N puzzles × 10 rounds each, we have a large round pool
+ * - Each day, we deterministically select 10 rounds from the pool
+ * - Rounds are sorted by difficulty (easy → hard) for good pacing
+ * - This gives us effectively unlimited unique daily puzzles
  */
 export function getTodaysPuzzle(language: string): OddOneOutPuzzle | null {
   const puzzles = ALL_PUZZLES[language];
@@ -32,13 +36,27 @@ export function getTodaysPuzzle(language: string): OddOneOutPuzzle | null {
   const seed = getDailySeed("odd-one-out", language);
   const puzzleNumber = getPuzzleNumber();
 
-  // Select puzzle by cycling through available puzzles
-  const index = seed % puzzles.length;
-  const puzzle = puzzles[index];
+  // Collect all rounds into a pool
+  const roundPool = puzzles.flatMap((p) => p.rounds);
+
+  // If pool is small enough that recombination doesn't help, use original logic
+  if (roundPool.length <= 10) {
+    const index = seed % puzzles.length;
+    return { ...puzzles[index], number: puzzleNumber };
+  }
+
+  // Select 10 rounds deterministically from the pool
+  const shuffled = seededShuffle(roundPool, seed);
+  const selected = shuffled.slice(0, 10);
+
+  // Sort by difficulty for good pacing (easy → hard)
+  selected.sort((a, b) => a.difficulty - b.difficulty);
 
   return {
-    ...puzzle,
     number: puzzleNumber,
+    language,
+    date: new Date().toISOString().split("T")[0],
+    rounds: selected,
   };
 }
 

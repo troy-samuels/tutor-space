@@ -7,7 +7,7 @@ import type { SynonymSpiralPuzzle } from "./types";
 import { PUZZLES_ES } from "./puzzles-es";
 import { PUZZLES_FR } from "./puzzles-fr";
 import { PUZZLES_DE } from "./puzzles-de";
-import { getDailySeed, getPuzzleNumber } from "../../daily-seed";
+import { getDailySeed, getPuzzleNumber, seededShuffle } from "../../daily-seed";
 
 const ALL_PUZZLES: Record<string, SynonymSpiralPuzzle[]> = {
   es: PUZZLES_ES,
@@ -23,7 +23,10 @@ export const SUPPORTED_SPIRAL_LANGUAGES = [
 
 /**
  * Get today's puzzle for a given language.
- * Uses the daily seed to select.
+ * Uses chain recombination for extended content:
+ * - Collects all chains from all puzzles into a pool
+ * - Deterministically selects 5 chains per day
+ * - This gives far more unique daily combinations than base puzzle count
  */
 export function getTodaysSpiralPuzzle(language: string): SynonymSpiralPuzzle | null {
   const puzzles = ALL_PUZZLES[language];
@@ -32,13 +35,30 @@ export function getTodaysSpiralPuzzle(language: string): SynonymSpiralPuzzle | n
   const seed = getDailySeed("synonym-spiral", language);
   const puzzleNumber = getPuzzleNumber();
 
-  // Select puzzle by cycling through available puzzles
-  const index = seed % puzzles.length;
-  const puzzle = puzzles[index];
+  // Collect all chains into a pool
+  const chainPool = puzzles.flatMap((p) => p.chains);
+
+  // If pool is small, use original logic
+  if (chainPool.length <= 5) {
+    const index = seed % puzzles.length;
+    return { ...puzzles[index], number: puzzleNumber };
+  }
+
+  // Select 5 chains deterministically
+  const shuffled = seededShuffle(chainPool, seed);
+  const selected = shuffled.slice(0, 5) as [
+    import("./types").SynonymChain,
+    import("./types").SynonymChain,
+    import("./types").SynonymChain,
+    import("./types").SynonymChain,
+    import("./types").SynonymChain,
+  ];
 
   return {
-    ...puzzle,
     number: puzzleNumber,
+    language,
+    date: new Date().toISOString().split("T")[0],
+    chains: selected,
   };
 }
 

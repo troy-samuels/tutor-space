@@ -5,12 +5,13 @@
 
 import type { ConnectionsPuzzle } from "./types";
 import { PUZZLES_ES } from "./puzzles-es";
+import { PUZZLES_ES_EXTRA } from "./puzzles-es-extra";
 import { PUZZLES_FR } from "./puzzles-fr";
 import { PUZZLES_DE } from "./puzzles-de";
 import { getDailySeed, getTodayUTC, getPuzzleNumber, seededShuffle } from "../../daily-seed";
 
 const ALL_PUZZLES: Record<string, ConnectionsPuzzle[]> = {
-  es: PUZZLES_ES,
+  es: [...PUZZLES_ES, ...PUZZLES_ES_EXTRA],
   fr: PUZZLES_FR,
   de: PUZZLES_DE,
 };

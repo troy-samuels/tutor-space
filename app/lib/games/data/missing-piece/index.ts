@@ -13,7 +13,7 @@ import { PUZZLES_ES_A1 } from "./puzzles-es-a1";
 import { PUZZLES_ES_A2 } from "./puzzles-es-a2";
 import { PUZZLES_ES_B1 } from "./puzzles-es-b1";
 import { PUZZLES_ES_B2 } from "./puzzles-es-b2";
-import { getDailySeed, getPuzzleNumber } from "../../daily-seed";
+import { getDailySeed, getPuzzleNumber, seededShuffle } from "../../daily-seed";
 
 /** Legacy puzzles (mixed difficulty) */
 const ALL_PUZZLES: Record<string, MissingPiecePuzzle[]> = {
@@ -40,7 +40,11 @@ export const SUPPORTED_GAME_LANGUAGES = [
 
 /**
  * Get today's puzzle for a given language.
- * Uses the daily seed to select puzzle.
+ * Uses sentence recombination for extended content:
+ * - Collects all sentences from all puzzles into a pool
+ * - Deterministically selects 15 sentences per day
+ * - Sorts by difficulty (easy → hard) for good pacing
+ * - Ensures unique daily puzzles far beyond the base puzzle count
  */
 export function getTodaysPuzzle(language: string): MissingPiecePuzzle | null {
   const puzzles = ALL_PUZZLES[language];
@@ -49,13 +53,27 @@ export function getTodaysPuzzle(language: string): MissingPiecePuzzle | null {
   const seed = getDailySeed("missing-piece", language);
   const puzzleNumber = getPuzzleNumber();
 
-  // Select puzzle by cycling through available puzzles
-  const index = seed % puzzles.length;
-  const puzzle = puzzles[index];
+  // Collect all sentences into a pool
+  const sentencePool = puzzles.flatMap((p) => p.sentences);
+
+  // If pool is small, use original logic
+  if (sentencePool.length <= 15) {
+    const index = seed % puzzles.length;
+    return { ...puzzles[index], number: puzzleNumber };
+  }
+
+  // Select 15 sentences deterministically
+  const shuffled = seededShuffle(sentencePool, seed);
+  const selected = shuffled.slice(0, 15);
+
+  // Sort by difficulty for good pacing
+  selected.sort((a, b) => a.difficulty - b.difficulty);
 
   return {
-    ...puzzle,
     number: puzzleNumber,
+    language,
+    date: new Date().toISOString().split("T")[0],
+    sentences: selected,
   };
 }
 
