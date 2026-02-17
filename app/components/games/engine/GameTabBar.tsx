@@ -2,20 +2,27 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import {
+  TabPlayIcon,
+  TabStreakIcon,
+  TabChallengeIcon,
+  TabLearnIcon,
+  TabProfileIcon,
+} from "./GameIcons";
 
 interface Tab {
   id: string;
   label: string;
-  emoji: string;
+  icon: React.FC<{ active?: boolean; size?: number }>;
   comingSoon?: boolean;
 }
 
 const TABS: Tab[] = [
-  { id: "play", label: "Play", emoji: "🎮" },
-  { id: "streak", label: "Streak", emoji: "🔥", comingSoon: true },
-  { id: "challenge", label: "Challenge", emoji: "⚔️", comingSoon: true },
-  { id: "learn", label: "Learn", emoji: "📚", comingSoon: true },
-  { id: "profile", label: "Profile", emoji: "👤", comingSoon: true },
+  { id: "play", label: "Play", icon: TabPlayIcon },
+  { id: "streak", label: "Streak", icon: TabStreakIcon, comingSoon: true },
+  { id: "challenge", label: "Challenge", icon: TabChallengeIcon, comingSoon: true },
+  { id: "learn", label: "Learn", icon: TabLearnIcon, comingSoon: true },
+  { id: "profile", label: "Profile", icon: TabProfileIcon, comingSoon: true },
 ];
 
 interface GameTabBarProps {
@@ -78,17 +85,22 @@ export default function GameTabBar({ activeTab = "play", onTabChange }: GameTabB
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => handleTabClick(tab)}
                 className={cn(
-                  "flex flex-1 flex-col items-center justify-center gap-0.5",
-                  "transition-colors duration-150 touch-manipulation select-none",
+                  "flex flex-1 flex-col items-center justify-center gap-1",
+                  "transition-all duration-200 touch-manipulation select-none",
                 )}
               >
                 <span
                   className={cn(
-                    "text-lg leading-none transition-transform duration-150",
+                    "leading-none transition-transform duration-200",
                     isActive && "scale-110",
                   )}
+                  style={{
+                    color: isActive
+                      ? "var(--game-text-accent)"
+                      : "var(--game-text-muted)",
+                  }}
                 >
-                  {tab.emoji}
+                  <tab.icon active={isActive} size={22} />
                 </span>
                 <span
                   className="text-[10px] font-medium"

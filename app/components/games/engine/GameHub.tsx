@@ -8,6 +8,12 @@ import { getDailyProgress, type GameStatus } from "@/lib/games/progress";
 import { isTelegram, tgBackButton } from "@/lib/telegram";
 import GameTabBar from "./GameTabBar";
 import { cn } from "@/lib/utils";
+import {
+  GAME_ICON_MAP,
+  StatBrainIcon,
+  StatWordsIcon,
+  StatStreakIcon,
+} from "./GameIcons";
 
 /* ——— CRITICAL-1: Design Bible's 5 games ——— */
 const GAMES = [
@@ -15,36 +21,26 @@ const GAMES = [
     slug: "connections",
     name: "Lingua Connections",
     description: "Group 16 words into 4 hidden categories",
-    emoji: "🔗",
-    preview: "🟨🟩🟦🟪",
   },
   {
     slug: "strands",
     name: "Lingua Strands",
     description: "Find themed words hidden in a letter grid",
-    emoji: "🔤",
-    preview: "✨",
   },
   {
     slug: "spell-cast",
     name: "Spell Cast",
     description: "Form words from 7 letters in a honeycomb",
-    emoji: "⬡",
-    preview: "🐝",
   },
   {
     slug: "speed-clash",
     name: "Speed Clash",
     description: "Pick natural responses in 60 seconds",
-    emoji: "⚔️",
-    preview: "⏱️",
   },
   {
     slug: "daily-decode",
     name: "Daily Decode",
     description: "Fill blanks in an unfolding mystery story",
-    emoji: "📖",
-    preview: "🔲",
   },
 ] as const;
 
@@ -59,6 +55,7 @@ function GameCard({
   index: number;
 }) {
   const isDone = status === "won" || status === "played";
+  const IconComponent = GAME_ICON_MAP[game.slug];
 
   return (
     <motion.div
@@ -83,20 +80,19 @@ function GameCard({
           border: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        {/* Icon */}
-        <span className="text-3xl flex-shrink-0">{game.emoji}</span>
+        {/* Icon — luxury SVG with gradients */}
+        <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
+          {IconComponent ? <IconComponent size={40} /> : null}
+        </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3
-              className="text-sm font-bold truncate"
-              style={{ color: "var(--game-text-primary)" }}
-            >
-              {game.name}
-            </h3>
-            <span className="text-xs flex-shrink-0">{game.preview}</span>
-          </div>
+          <h3
+            className="text-sm font-bold truncate"
+            style={{ color: "var(--game-text-primary)" }}
+          >
+            {game.name}
+          </h3>
           <p
             className="text-xs mt-0.5 truncate"
             style={{ color: "var(--game-text-secondary)" }}
@@ -105,15 +101,34 @@ function GameCard({
           </p>
         </div>
 
-        {/* Status */}
-        <span
-          className="text-xs font-bold flex-shrink-0"
-          style={{
-            color: isDone ? "var(--game-correct)" : "var(--game-text-accent)",
-          }}
-        >
-          {isDone ? "✅ Done" : "▶ Play"}
-        </span>
+        {/* Status badge */}
+        <div className="flex-shrink-0">
+          {isDone ? (
+            <div
+              className="flex items-center gap-1 rounded-full px-2.5 py-1"
+              style={{ background: "rgba(34,197,94,0.12)" }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M20 6L9 17L4 12" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[11px] font-semibold" style={{ color: "#22c55e" }}>
+                Done
+              </span>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-1 rounded-full px-2.5 py-1"
+              style={{ background: "rgba(99,102,241,0.12)" }}
+            >
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="none" aria-hidden>
+                <path d="M1 1L9 6L1 11V1Z" fill="var(--game-text-accent)" />
+              </svg>
+              <span className="text-[11px] font-semibold" style={{ color: "var(--game-text-accent)" }}>
+                Play
+              </span>
+            </div>
+          )}
+        </div>
       </Link>
     </motion.div>
   );
@@ -161,14 +176,17 @@ export default function GameHub() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1
-            className="text-lg font-bold"
+            className="text-lg font-bold tracking-tight"
             style={{ color: "var(--game-text-primary)" }}
           >
-            🎮 TutorLingua Games
+            TutorLingua Games
           </h1>
           {streak.current > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-base">🔥</span>
+            <div
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
+              style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.15)" }}
+            >
+              <StatStreakIcon size={16} />
               <span
                 className="text-sm font-bold tabular-nums"
                 style={{ color: "var(--game-streak)" }}
@@ -222,9 +240,9 @@ export default function GameHub() {
           >
             {/* CEFR Level */}
             <div className="flex flex-col items-center">
-              <span className="text-lg">🧠</span>
+              <StatBrainIcon size={22} />
               <span
-                className="text-sm font-bold mt-1"
+                className="text-sm font-bold mt-1.5"
                 style={{ color: "var(--game-text-accent)" }}
               >
                 B1
@@ -238,9 +256,9 @@ export default function GameHub() {
             </div>
             {/* Words mastered */}
             <div className="flex flex-col items-center">
-              <span className="text-lg">📚</span>
+              <StatWordsIcon size={22} />
               <span
-                className="text-sm font-bold mt-1 tabular-nums"
+                className="text-sm font-bold mt-1.5 tabular-nums"
                 style={{ color: "var(--game-text-accent)" }}
               >
                 247
@@ -254,9 +272,9 @@ export default function GameHub() {
             </div>
             {/* Streak counter */}
             <div className="flex flex-col items-center">
-              <span className="text-lg">🔥</span>
+              <StatStreakIcon size={22} />
               <span
-                className="text-sm font-bold mt-1 tabular-nums"
+                className="text-sm font-bold mt-1.5 tabular-nums"
                 style={{ color: "var(--game-streak)" }}
               >
                 {streak.current}
