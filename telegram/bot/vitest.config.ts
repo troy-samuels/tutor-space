@@ -11,12 +11,10 @@ export default defineConfig({
       NODE_ENV: 'test',
       TEST_DATA_DIR: path.join(process.cwd(), 'data-test'),
     },
-    // Run tests sequentially to avoid file system race conditions
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
+    // Run test files sequentially to avoid file system race conditions
+    fileParallelism: false,
+    sequence: {
+      concurrent: false,
     },
   },
 });

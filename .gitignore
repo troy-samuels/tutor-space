@@ -1,5 +1,6 @@
 # Environment
 .env*
+!.env.example
 
 # Node / Next
 node_modules/

@@ -102,12 +102,10 @@ describe('Referral System', () => {
 });
 
 describe('Referral Edge Cases', () => {
-  it('should handle self-referral prevention (application layer)', () => {
+  it('should handle self-referral prevention (application layer)', async () => {
     // This would be checked in middleware, not in the store
     // Here we just verify the store doesn't prevent it
-    expect(async () => {
-      await createReferral(123, 123);
-    }).not.toThrow();
+    await expect(createReferral(123, 123)).resolves.toBeDefined();
   });
 
   it('should handle duplicate referral prevention', async () => {
