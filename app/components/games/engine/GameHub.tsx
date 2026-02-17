@@ -7,7 +7,7 @@ import gsap from "gsap";
 import { getStreakData, getStreakTier } from "@/lib/games/streaks";
 import { getDailyProgress, type GameStatus } from "@/lib/games/progress";
 import { isTelegram, tgBackButton } from "@/lib/telegram";
-import { hapticTap } from "@/lib/games/juice";
+import { haptic } from "@/lib/games/haptics";
 import GameTabBar from "./GameTabBar";
 import { cn } from "@/lib/utils";
 import {
@@ -82,7 +82,7 @@ function HeroGameCard({
       data-card-index={index}
       className="game-hero-card relative block w-[92%] mx-auto touch-manipulation active:scale-[0.97] transition-transform duration-100"
       style={{ aspectRatio: "16 / 9" }}
-      onClick={() => hapticTap()}
+      onClick={() => haptic("tap")}
     >
       {/* Card body */}
       <div

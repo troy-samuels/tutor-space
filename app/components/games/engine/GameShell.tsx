@@ -3,6 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,11 +149,33 @@ export default function GameShell({
     };
   }, [inTg, isComplete, onShare, onExplainMistakes, mistakes]);
 
+  const shellRef = React.useRef<HTMLDivElement>(null);
   const languageLabel = getLanguageLabel(language);
   const rtl = isRtl(language);
 
+  /* ——— GSAP entrance — game content slides up ——— */
+  useGSAP(
+    () => {
+      gsap.from(".game-header", {
+        y: -20,
+        opacity: 0,
+        duration: 0.4,
+        ease: "power3.out",
+      });
+      gsap.from(".game-content", {
+        y: 30,
+        opacity: 0,
+        duration: 0.5,
+        ease: "power3.out",
+        delay: 0.1,
+      });
+    },
+    { scope: shellRef },
+  );
+
   return (
     <div
+      ref={shellRef}
       className={cn("dark min-h-[100dvh] game-canvas game-mode", inTg && "tg-content-safe-top")}
       dir={rtl ? "rtl" : "ltr"}
     >
@@ -202,7 +226,7 @@ export default function GameShell({
 
       {/* Compact Game Header — single line, Design Bible style */}
       <header className={cn(
-        "px-4 pb-2",
+        "game-header px-4 pb-2",
         inTg ? "pt-2" : "pt-3",
       )}>
         <div className="flex items-center justify-between">
@@ -238,7 +262,7 @@ export default function GameShell({
       </header>
 
       {/* Game Content — full width */}
-      <main className={cn("px-4", inTg ? "pb-20" : "pb-24")}>
+      <main className={cn("game-content px-4", inTg ? "pb-20" : "pb-24")}>
         {children}
       </main>
 
