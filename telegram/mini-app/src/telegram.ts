@@ -34,15 +34,22 @@ const IS_TELEGRAM = typeof window !== 'undefined' && (window as any).Telegram?.W
 
 class TelegramService {
   private _isReady = false;
+  private _listenersRegistered = false;
+  private _mainButtonHandler?: () => void;
+  private _backButtonHandler?: () => void;
 
   /**
    * Initialize Telegram WebApp SDK.
    * Call this once on app start.
    */
   init(): void {
+    if (this._isReady) return;
+
     if (!IS_TELEGRAM) {
       console.warn('[Telegram] Not running inside Telegram WebApp. Using fallback mode.');
       this._isReady = true;
+      this.applyTheme();
+      this.applySafeArea();
       return;
     }
 
@@ -64,8 +71,15 @@ class TelegramService {
         WebApp.disableVerticalSwipes();
       }
 
-      // Enable closing confirmation for games in progress
-      WebApp.enableClosingConfirmation();
+      this.applyTheme();
+      this.applySafeArea();
+
+      if (!this._listenersRegistered) {
+        WebApp.onEvent('themeChanged', () => this.applyTheme());
+        WebApp.onEvent('safeAreaChanged', () => this.applySafeArea());
+        WebApp.onEvent('contentSafeAreaChanged', () => this.applySafeArea());
+        this._listenersRegistered = true;
+      }
 
       this._isReady = true;
       console.log('[Telegram] WebApp initialized');
@@ -146,6 +160,28 @@ class TelegramService {
   }
 
   /**
+   * Apply safe area insets to CSS variables.
+   */
+  applySafeArea(): void {
+    const root = document.documentElement;
+    const safeArea = IS_TELEGRAM
+      ? WebApp.safeAreaInset
+      : { top: 0, right: 0, bottom: 0, left: 0 };
+    const contentSafeArea = IS_TELEGRAM
+      ? WebApp.contentSafeAreaInset
+      : { top: 0, right: 0, bottom: 0, left: 0 };
+
+    root.style.setProperty('--tg-safe-area-top', `${safeArea.top}px`);
+    root.style.setProperty('--tg-safe-area-right', `${safeArea.right}px`);
+    root.style.setProperty('--tg-safe-area-bottom', `${safeArea.bottom}px`);
+    root.style.setProperty('--tg-safe-area-left', `${safeArea.left}px`);
+    root.style.setProperty('--tg-content-safe-area-top', `${contentSafeArea.top}px`);
+    root.style.setProperty('--tg-content-safe-area-right', `${contentSafeArea.right}px`);
+    root.style.setProperty('--tg-content-safe-area-bottom', `${contentSafeArea.bottom}px`);
+    root.style.setProperty('--tg-content-safe-area-left', `${contentSafeArea.left}px`);
+  }
+
+  /**
    * Share text/link via Telegram.
    */
   async share(text: string, url?: string): Promise<void> {
@@ -161,9 +197,21 @@ class TelegramService {
     }
 
     const shareText = url ? `${text}\n${url}` : text;
-    
+    const shareLink = `https://t.me/share/url?url=${encodeURIComponent(
+      url || ''
+    )}&text=${encodeURIComponent(text)}`;
+
     // Use inline query share (shows contact/group picker)
-    WebApp.switchInlineQuery(shareText, ['users', 'groups', 'channels']);
+    if (typeof WebApp.switchInlineQuery === 'function') {
+      try {
+        WebApp.switchInlineQuery(shareText, ['users', 'groups', 'channels']);
+        return;
+      } catch (error) {
+        console.warn('[Telegram] Inline share failed, falling back to share link.', error);
+      }
+    }
+
+    WebApp.openTelegramLink(shareLink);
   }
 
   /**
@@ -196,9 +244,14 @@ class TelegramService {
   showMainButton(text: string, onClick: () => void): void {
     if (!IS_TELEGRAM) return;
 
+    if (this._mainButtonHandler) {
+      WebApp.MainButton.offClick(this._mainButtonHandler);
+    }
+
     WebApp.MainButton.setText(text);
     WebApp.MainButton.show();
     WebApp.MainButton.onClick(onClick);
+    this._mainButtonHandler = onClick;
   }
 
   /**
@@ -206,6 +259,10 @@ class TelegramService {
    */
   hideMainButton(): void {
     if (!IS_TELEGRAM) return;
+    if (this._mainButtonHandler) {
+      WebApp.MainButton.offClick(this._mainButtonHandler);
+      this._mainButtonHandler = undefined;
+    }
     WebApp.MainButton.hide();
   }
 
@@ -215,8 +272,13 @@ class TelegramService {
   showBackButton(onClick: () => void): void {
     if (!IS_TELEGRAM) return;
 
+    if (this._backButtonHandler) {
+      WebApp.BackButton.offClick(this._backButtonHandler);
+    }
+
     WebApp.BackButton.show();
     WebApp.BackButton.onClick(onClick);
+    this._backButtonHandler = onClick;
   }
 
   /**
@@ -224,7 +286,27 @@ class TelegramService {
    */
   hideBackButton(): void {
     if (!IS_TELEGRAM) return;
+    if (this._backButtonHandler) {
+      WebApp.BackButton.offClick(this._backButtonHandler);
+      this._backButtonHandler = undefined;
+    }
     WebApp.BackButton.hide();
+  }
+
+  /**
+   * Enable closing confirmation prompt.
+   */
+  enableClosingConfirmation(): void {
+    if (!IS_TELEGRAM) return;
+    WebApp.enableClosingConfirmation();
+  }
+
+  /**
+   * Disable closing confirmation prompt.
+   */
+  disableClosingConfirmation(): void {
+    if (!IS_TELEGRAM) return;
+    WebApp.disableClosingConfirmation();
   }
 
   /**
@@ -332,5 +414,4 @@ export const tg = new TelegramService();
 // Auto-initialize when module loads
 if (typeof window !== 'undefined') {
   tg.init();
-  tg.applyTheme();
 }

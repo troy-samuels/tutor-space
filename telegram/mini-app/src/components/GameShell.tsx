@@ -45,6 +45,12 @@ export function GameShell({
     }
   }, [onBack]);
 
+  // Enable closing confirmation while in a game
+  useEffect(() => {
+    tg.enableClosingConfirmation();
+    return () => tg.disableClosingConfirmation();
+  }, []);
+
   const languageLabel = getLanguageLabel(language);
 
   return (
