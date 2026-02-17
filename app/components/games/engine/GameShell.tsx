@@ -152,19 +152,25 @@ export default function GameShell({
 
   return (
     <div
-      className={cn("dark min-h-[100dvh] bg-background", inTg && "tg-content-safe-top")}
+      className={cn("dark min-h-[100dvh] game-canvas game-mode", inTg && "tg-content-safe-top")}
       dir={rtl ? "rtl" : "ltr"}
     >
       {/* Nav — hidden in Telegram (BackButton replaces it) */}
       {!inTg && (
-        <nav className="border-b border-border/50 px-4 py-3">
+        <nav
+          className="px-4 py-3"
+          style={{
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
           <div className="flex items-center justify-between">
             <Link
               href="/games"
               className="flex items-center gap-1.5 touch-manipulation"
             >
               <svg
-                className="h-4 w-4 text-muted-foreground"
+                className="h-4 w-4"
+                style={{ color: "var(--game-text-muted)" }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -172,13 +178,20 @@ export default function GameShell({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="text-sm font-medium text-muted-foreground">
+              <span
+                className="text-sm font-medium"
+                style={{ color: "var(--game-text-secondary)" }}
+              >
                 Games
               </span>
             </Link>
             <div className="flex items-center gap-2">
               {streak.current > 0 && (
-                <Badge variant="outline" className="gap-1 text-xs">
+                <Badge
+                  variant="outline"
+                  className="gap-1 text-xs border-[rgba(255,255,255,0.08)]"
+                  style={{ color: "var(--game-text-secondary)" }}
+                >
                   {streakTier.emoji} {streak.current}
                 </Badge>
               )}
@@ -187,26 +200,37 @@ export default function GameShell({
         </nav>
       )}
 
-      {/* Compact Game Header — single line */}
+      {/* Compact Game Header — single line, Design Bible style */}
       <header className={cn(
         "px-4 pb-2",
-        inTg ? "pt-2" : "pt-4",
+        inTg ? "pt-2" : "pt-3",
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className={cn(
-              "font-bold text-foreground truncate",
-              inTg ? "text-base" : "text-lg font-heading",
-            )}>
+            <h1
+              className="font-bold truncate text-base"
+              style={{ color: "var(--game-text-primary)" }}
+            >
               {gameName}
             </h1>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
+          <div
+            className="flex items-center gap-2 text-xs flex-shrink-0"
+            style={{ color: "var(--game-text-secondary)" }}
+          >
             <span>#{puzzleNumber}</span>
-            <span className="opacity-40">·</span>
+            <span style={{ opacity: 0.3 }}>·</span>
             <span>{languageLabel}</span>
-            <span className="opacity-40">·</span>
-            <span className="font-mono tabular-nums">
+            <span style={{ opacity: 0.3 }}>·</span>
+            <span
+              className={cn(
+                "font-mono tabular-nums",
+                !isComplete && "game-text-glow",
+              )}
+              style={{
+                color: !isComplete ? "var(--game-text-accent)" : "var(--game-text-secondary)",
+              }}
+            >
               {formatTime(elapsed)}
             </span>
           </div>
@@ -225,8 +249,14 @@ export default function GameShell({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.4 }}
-            className="fixed inset-x-0 bottom-0 z-50 border-t border-border/50 bg-background/80 px-4 py-4 backdrop-blur-md"
-            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+            className="fixed inset-x-0 bottom-0 z-50 px-4 py-4"
+            style={{
+              background: "rgba(8, 12, 20, 0.85)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+            }}
           >
             <div className="flex flex-col gap-2.5">
               {onShare && (
@@ -244,7 +274,7 @@ export default function GameShell({
                   onClick={onExplainMistakes}
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-xl min-h-[48px]"
+                  className="w-full rounded-xl min-h-[48px] border-[rgba(255,255,255,0.08)] text-[var(--game-text-secondary)]"
                 >
                   🧠 Explain My Mistakes
                 </Button>
@@ -261,14 +291,19 @@ export default function GameShell({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="fixed inset-x-0 bottom-0 z-50 px-4 py-3 bg-background/90 backdrop-blur-md"
-            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+            className="fixed inset-x-0 bottom-0 z-50 px-4 py-3"
+            style={{
+              background: "rgba(8, 12, 20, 0.9)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+            }}
           >
             <Button
               onClick={onExplainMistakes}
               variant="outline"
               size="lg"
-              className="w-full rounded-xl min-h-[48px]"
+              className="w-full rounded-xl min-h-[48px] border-[rgba(255,255,255,0.08)] text-[var(--game-text-secondary)]"
             >
               🧠 Explain My Mistakes
             </Button>

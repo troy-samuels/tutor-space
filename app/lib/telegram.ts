@@ -112,6 +112,7 @@ interface TgWebApp {
   disableClosingConfirmation: () => void;
   onEvent: (eventType: string, cb: (...args: unknown[]) => void) => void;
   offEvent: (eventType: string, cb: (...args: unknown[]) => void) => void;
+  switchInlineQuery?: (query: string, chatTypes?: string[]) => void;
 }
 
 declare global {
@@ -240,7 +241,7 @@ export function setBottomBarColor(color: string): void {
 
 /* ——— Haptic helpers ——— */
 
-export type TgHapticType = "tap" | "success" | "error" | "warning" | "selection";
+export type TgHapticType = "tap" | "success" | "error" | "warning" | "selection" | "heavy" | "medium" | "soft";
 
 /**
  * Trigger Telegram-native haptic feedback.
@@ -267,6 +268,15 @@ export function tgHaptic(type: TgHapticType): boolean {
         break;
       case "selection":
         wa.HapticFeedback.selectionChanged();
+        break;
+      case "heavy":
+        wa.HapticFeedback.impactOccurred("heavy");
+        break;
+      case "medium":
+        wa.HapticFeedback.impactOccurred("medium");
+        break;
+      case "soft":
+        wa.HapticFeedback.impactOccurred("soft");
         break;
     }
     return true;
@@ -345,6 +355,23 @@ export function onTgEvent(eventType: string, cb: (...args: unknown[]) => void): 
 
 export function offTgEvent(eventType: string, cb: (...args: unknown[]) => void): void {
   getWebApp()?.offEvent(eventType, cb);
+}
+
+/* ——— Share helpers ——— */
+
+/**
+ * Share text via Telegram's native inline query share dialog.
+ * Returns true if the API was available, false otherwise.
+ */
+export function tgShareInline(text: string): boolean {
+  const wa = getWebApp();
+  if (!wa?.switchInlineQuery) return false;
+  try {
+    wa.switchInlineQuery(text, ["users", "groups", "channels"]);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /* ——— Theme helpers ——— */

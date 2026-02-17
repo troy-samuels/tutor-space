@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -394,6 +395,134 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 .tg-app body,
 .tg-app .dark {
   color-scheme: dark;
+}
+
+/* ——— Game Design Bible tokens ——— */
+/* These work both inside .tg-app (Telegram) and standalone (web fallback via .dark) */
+
+.tg-app,
+.dark {
+  /* Canvas colours */
+  --game-bg-deep: #080C14;
+  --game-bg-primary: #0F1520;
+  --game-bg-surface: #161D2E;
+  --game-bg-elevated: #1E2740;
+  --game-bg-active: #253050;
+
+  /* Game semantic colours (Connections difficulty) */
+  --game-yellow: #FDE047;
+  --game-green: #4ADE80;
+  --game-blue: #60A5FA;
+  --game-purple: #C084FC;
+
+  /* State colours */
+  --game-correct: #4ADE80;
+  --game-wrong: #F87171;
+  --game-warning: #FBBF24;
+  --game-streak: #F97316;
+
+  /* Text */
+  --game-text-primary: #F1F5F9;
+  --game-text-secondary: #94A3B8;
+  --game-text-muted: #475569;
+  --game-text-accent: #FCD34D;
+
+  /* Glow / depth */
+  --game-glow-primary: radial-gradient(ellipse at 50% 40%, rgba(252,211,77,0.08) 0%, transparent 70%);
+  --game-shadow-glow: 0 0 20px rgba(252,211,77,0.2);
+
+  /* Animation easings */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-snap: cubic-bezier(0.7, 0, 0.3, 1);
+}
+
+/* Game utility classes */
+.game-canvas {
+  background: var(--game-bg-deep);
+}
+
+.game-surface {
+  background: var(--game-bg-surface);
+}
+
+.game-glow {
+  background: var(--game-glow-primary);
+}
+
+.game-text-glow {
+  text-shadow: 0 0 20px rgba(252,211,77,0.3), 0 0 40px rgba(252,211,77,0.1);
+}
+
+/* Game-specific keyframes */
+@keyframes game-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes game-pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(252,211,77,0.15); }
+  50% { box-shadow: 0 0 24px rgba(252,211,77,0.3); }
+}
+
+.animate-game-shimmer {
+  background-size: 200% 100%;
+  animation: game-shimmer 2s ease-in-out infinite;
+}
+
+.animate-game-pulse-glow {
+  animation: game-pulse-glow 2s ease-in-out infinite;
+}
+
+/* ——— Game Mode overrides (HIGH-1: enforce game palette, HIGH-6: typography, MEDIUM-1: missing tokens) ——— */
+.game-mode,
+.tg-app .game-mode {
+  /* HIGH-1: Override semantic tokens with game canvas colours */
+  --background: var(--game-bg-deep);
+  --background-alt: var(--game-bg-primary);
+  --foreground: var(--game-text-primary);
+  --card: var(--game-bg-surface);
+  --card-foreground: var(--game-text-primary);
+  --muted: var(--game-bg-surface);
+  --muted-foreground: var(--game-text-secondary);
+  --border: rgba(255, 255, 255, 0.06);
+
+  /* MEDIUM-1: Spacing tokens */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* MEDIUM-1: Game grid tokens */
+  --tile-gap: 6px;
+  --tile-radius: 8px;
+  --card-radius: 16px;
+  --tab-height: 56px;
+
+  /* MEDIUM-1: Elevation */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+
+  /* MEDIUM-1: Surface gradient */
+  --surface-gradient: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+
+  /* HIGH-6: Game typography — Inter Tight for display, Inter for body */
+  font-family: 'Inter', 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+.game-mode h1,
+.game-mode h2,
+.game-mode h3 {
+  font-family: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+.game-mode code,
+.game-mode .font-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
 
 /* ——— Telegram safe area padding ——— */

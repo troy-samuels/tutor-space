@@ -11,11 +11,33 @@ interface CategoryRevealProps {
   index: number;
 }
 
-const COLOUR_MAP: Record<Difficulty, { bg: string; border: string; text: string; label: string; solidBg: string }> = {
-  yellow: { bg: "bg-[#F9DF6D]/15", border: "border-[#F9DF6D]/30", text: "text-[#F9DF6D]", label: "🟨", solidBg: "bg-[#F9DF6D]/25" },
-  green:  { bg: "bg-[#A0C35A]/15", border: "border-[#A0C35A]/30", text: "text-[#A0C35A]", label: "🟩", solidBg: "bg-[#A0C35A]/25" },
-  blue:   { bg: "bg-[#B0C4EF]/15", border: "border-[#B0C4EF]/30", text: "text-[#B0C4EF]", label: "🟦", solidBg: "bg-[#B0C4EF]/25" },
-  purple: { bg: "bg-[#BA81C5]/15", border: "border-[#BA81C5]/30", text: "text-[#BA81C5]", label: "🟪", solidBg: "bg-[#BA81C5]/25" },
+/** Design Bible: solid category colour backgrounds with dark text for max contrast */
+/** MEDIUM-2: Full solid category colours — no opacity modifier */
+const COLOUR_MAP: Record<Difficulty, { bg: string; text: string; wordText: string; label: string }> = {
+  yellow: {
+    bg: "bg-[var(--game-yellow)]",
+    text: "text-[#080C14]",
+    wordText: "text-[#080C14]/70",
+    label: "🟨",
+  },
+  green: {
+    bg: "bg-[var(--game-green)]",
+    text: "text-[#080C14]",
+    wordText: "text-[#080C14]/70",
+    label: "🟩",
+  },
+  blue: {
+    bg: "bg-[var(--game-blue)]",
+    text: "text-[#080C14]",
+    wordText: "text-[#080C14]/70",
+    label: "🟦",
+  },
+  purple: {
+    bg: "bg-[var(--game-purple)]",
+    text: "text-[#080C14]",
+    wordText: "text-[#080C14]/70",
+    label: "🟪",
+  },
 };
 
 export default function CategoryReveal({ category, index }: CategoryRevealProps) {
@@ -28,8 +50,8 @@ export default function CategoryReveal({ category, index }: CategoryRevealProps)
 
   return (
     <motion.div
-      initial={{ opacity: 0, scaleY: 0.3, y: -10 }}
-      animate={{ opacity: 1, scaleY: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.95, y: -8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{
         type: "spring",
         stiffness: 350,
@@ -37,9 +59,8 @@ export default function CategoryReveal({ category, index }: CategoryRevealProps)
         delay: index * 0.05,
       }}
       className={cn(
-        "rounded-xl border px-4 py-3 origin-top",
-        colours.solidBg,
-        colours.border,
+        "rounded-lg px-4 py-3 origin-top",
+        colours.bg,
       )}
     >
       <div className="flex items-center gap-2">
@@ -48,7 +69,7 @@ export default function CategoryReveal({ category, index }: CategoryRevealProps)
           {category.name}
         </h3>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className={cn("mt-1 text-xs font-medium uppercase tracking-wide", colours.wordText)}>
         {category.words.join(" · ")}
       </p>
     </motion.div>

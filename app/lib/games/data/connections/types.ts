@@ -6,6 +6,16 @@ import type { CefrLevel } from "@/lib/games/cefr";
 
 export type Difficulty = "yellow" | "green" | "blue" | "purple";
 
+/** HIGH-2: Per-word false friend metadata */
+export interface WordEntry {
+  /** The word string */
+  word: string;
+  /** Is this word a false friend? */
+  falseFriend?: boolean;
+  /** What players assume it means vs what it actually means (e.g. "ACTUAL = current ≠ actual") */
+  falseFriendMeaning?: string;
+}
+
 export interface ConnectionCategory {
   /** Category name/description — revealed on solve */
   name: string;
@@ -17,6 +27,8 @@ export interface ConnectionCategory {
   explanation: string;
   /** Is this a "false friends" category? */
   isFalseFriends?: boolean;
+  /** Optional per-word metadata with false friend info */
+  wordEntries?: WordEntry[];
 }
 
 export interface ConnectionsPuzzle {
@@ -56,4 +68,6 @@ export interface ConnectionsGameState {
   endTime?: number;
   /** Solve order for share grid */
   solveOrder: Difficulty[];
+  /** HIGH-2: False friends the player encountered during play */
+  falseFriendsEncountered?: Array<{ word: string; meaning: string }>;
 }

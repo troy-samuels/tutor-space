@@ -3,165 +3,128 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { getStreakData, getStreakTier } from "@/lib/games/streaks";
 import { getDailyProgress, type GameStatus } from "@/lib/games/progress";
 import { isTelegram, tgBackButton } from "@/lib/telegram";
+import GameTabBar from "./GameTabBar";
 import { cn } from "@/lib/utils";
 
-/* ——— Game registry ——— */
+/* ——— CRITICAL-1: Design Bible's 5 games ——— */
 const GAMES = [
   {
     slug: "connections",
     name: "Lingua Connections",
     description: "Group 16 words into 4 hidden categories",
     emoji: "🔗",
-    accent: "bg-amber-500",
+    preview: "🟨🟩🟦🟪",
   },
   {
-    slug: "word-ladder",
-    name: "Word Ladder",
-    description: "Change one letter at a time to reach the target",
-    emoji: "🪜",
-    accent: "bg-emerald-500",
+    slug: "strands",
+    name: "Lingua Strands",
+    description: "Find themed words hidden in a letter grid",
+    emoji: "🔤",
+    preview: "✨",
+  },
+  {
+    slug: "spell-cast",
+    name: "Spell Cast",
+    description: "Form words from 7 letters in a honeycomb",
+    emoji: "⬡",
+    preview: "🐝",
+  },
+  {
+    slug: "speed-clash",
+    name: "Speed Clash",
+    description: "Pick natural responses in 60 seconds",
+    emoji: "⚔️",
+    preview: "⏱️",
   },
   {
     slug: "daily-decode",
     name: "Daily Decode",
-    description: "Crack the cipher to reveal a famous quote",
-    emoji: "🔐",
-    accent: "bg-violet-500",
-  },
-  {
-    slug: "odd-one-out",
-    name: "Odd One Out",
-    description: "Find the word that doesn't belong",
-    emoji: "🎯",
-    accent: "bg-blue-500",
-  },
-  {
-    slug: "missing-piece",
-    name: "Missing Piece",
-    description: "Fill the blank — the distractors are nasty",
-    emoji: "🧩",
-    accent: "bg-rose-500",
-  },
-  {
-    slug: "synonym-spiral",
-    name: "Synonym Spiral",
-    description: "How sophisticated can your vocabulary get?",
-    emoji: "🌀",
-    accent: "bg-cyan-500",
+    description: "Fill blanks in an unfolding mystery story",
+    emoji: "📖",
+    preview: "🔲",
   },
 ] as const;
 
-/* ——— Status indicator ——— */
-function StatusDot({ status }: { status: GameStatus }) {
-  if (status === "unplayed") return null;
-  return (
-    <div
-      className={cn(
-        "h-2 w-2 rounded-full flex-shrink-0",
-        status === "won" ? "bg-amber-400" : "bg-primary",
-      )}
-    />
-  );
-}
-
-/* ——— Streak Flame ——— */
-function StreakFlame({
-  count,
-  atRisk,
-}: {
-  count: number;
-  atRisk: boolean;
-}) {
-  if (count === 0) return null;
-
-  return (
-    <motion.div
-      className="flex items-center gap-1"
-      animate={
-        atRisk
-          ? { opacity: [1, 0.5, 1], scale: [1, 0.95, 1] }
-          : undefined
-      }
-      transition={
-        atRisk
-          ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-          : undefined
-      }
-    >
-      <span className="text-base">🔥</span>
-      <span className="text-sm font-bold tabular-nums text-foreground">
-        {count}
-      </span>
-    </motion.div>
-  );
-}
-
-/* ——— Telegram-native game row ——— */
-function TgGameRow({
+/* ——— HIGH-4 / CRITICAL-1: Full-width vertical card list (not 2-column grid) ——— */
+function GameCard({
   game,
   status,
-  isLast,
+  index,
 }: {
   game: (typeof GAMES)[number];
   status: GameStatus;
-  isLast: boolean;
+  index: number;
 }) {
+  const isDone = status === "won" || status === "played";
+
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.05,
+        type: "spring",
+        stiffness: 400,
+        damping: 30,
+      }}
+    >
       <Link
         href={`/games/${game.slug}`}
-        className="flex items-center gap-3 px-4 py-2.5 active:bg-white/[0.04] transition-colors min-h-[52px]"
+        className={cn(
+          "relative flex items-center gap-4 rounded-xl px-4 py-4 w-full",
+          "transition-all duration-150 touch-manipulation active:scale-[0.98]",
+          !isDone && "animate-game-pulse-glow",
+        )}
+        style={{
+          background: "var(--game-bg-surface)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
       >
-        {/* Large emoji */}
-        <span className="text-[32px] leading-none flex-shrink-0 w-10 text-center">
-          {game.emoji}
-        </span>
+        {/* Icon */}
+        <span className="text-3xl flex-shrink-0">{game.emoji}</span>
 
-        {/* Text */}
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[15px] font-normal text-foreground leading-tight">
+          <div className="flex items-center gap-2">
+            <h3
+              className="text-sm font-bold truncate"
+              style={{ color: "var(--game-text-primary)" }}
+            >
               {game.name}
-            </span>
-            {status === "won" && (
-              <span className="text-xs">✓</span>
-            )}
+            </h3>
+            <span className="text-xs flex-shrink-0">{game.preview}</span>
           </div>
-          <span className="text-[13px] leading-snug text-muted-foreground">
+          <p
+            className="text-xs mt-0.5 truncate"
+            style={{ color: "var(--game-text-secondary)" }}
+          >
             {game.description}
-          </span>
+          </p>
         </div>
 
-        {/* Status + Chevron */}
-        <div className="flex-shrink-0 flex items-center gap-1.5">
-          <StatusDot status={status} />
-          <svg
-            className="h-4 w-4 text-muted-foreground/30"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
+        {/* Status */}
+        <span
+          className="text-xs font-bold flex-shrink-0"
+          style={{
+            color: isDone ? "var(--game-correct)" : "var(--game-text-accent)",
+          }}
+        >
+          {isDone ? "✅ Done" : "▶ Play"}
+        </span>
       </Link>
-      {/* Separator — inset from left (aligned after emoji) */}
-      {!isLast && <div className="tg-separator" />}
-    </div>
+    </motion.div>
   );
 }
 
 /* ——— Main Hub ——— */
 export default function GameHub() {
   const [streak, setStreak] = React.useState({ current: 0, longest: 0 });
-  const [streakTier, setStreakTier] = React.useState({ name: "New", emoji: "🌱" });
+  const [, setStreakTier] = React.useState({ name: "New", emoji: "🌱" });
   const [gameStatuses, setGameStatuses] = React.useState<Record<string, GameStatus>>({});
-  const [isLateNight, setIsLateNight] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("play");
   const inTg = React.useMemo(() => typeof window !== "undefined" && isTelegram(), []);
 
   React.useEffect(() => {
@@ -172,9 +135,6 @@ export default function GameHub() {
     const progress = getDailyProgress();
     setGameStatuses(progress.games);
 
-    const hour = new Date().getHours();
-    setIsLateNight(hour >= 21 && data.gamesPlayedToday.length === 0);
-
     // Hide Telegram back button on hub
     if (isTelegram()) {
       tgBackButton.hide();
@@ -182,186 +142,146 @@ export default function GameHub() {
   }, []);
 
   const getStatus = (slug: string): GameStatus => gameStatuses[slug] ?? "unplayed";
-  const playedCount = Object.values(gameStatuses).filter(
-    (s) => s === "played" || s === "won",
-  ).length;
 
-  /* ——— Telegram-native layout ——— */
-  if (inTg) {
-    return (
-      <div className="dark min-h-[100dvh] bg-background tg-content-safe-top">
-        <div className="px-4 pt-3 pb-safe">
-
-          {/* Streak section (only if has a streak) */}
-          {streak.current > 0 && (
-            <>
-              <div className="tg-section-header">STREAK</div>
-              <div className="tg-section">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🔥</span>
-                    <div>
-                      <span className="text-[15px] font-medium text-foreground">
-                        {streak.current} day{streak.current !== 1 ? "s" : ""}
-                      </span>
-                      <span className="text-[13px] text-muted-foreground ml-2">
-                        Best: {streak.longest}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="gap-1 text-[11px] font-normal px-2 py-0.5 border-border/50"
-                  >
-                    {streakTier.emoji} {streakTier.name}
-                  </Badge>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Games section */}
-          <div className="tg-section-header" style={{ marginTop: streak.current > 0 ? 16 : 0 }}>
-            DAILY PUZZLES
-            {playedCount > 0 && (
-              <span className="ml-1 opacity-60">
-                · {playedCount}/{GAMES.length}
-              </span>
-            )}
-          </div>
-          <div className="tg-section">
-            {GAMES.map((game, i) => (
-              <TgGameRow
-                key={game.slug}
-                game={game}
-                status={getStatus(game.slug)}
-                isLast={i === GAMES.length - 1}
-              />
-            ))}
-          </div>
-
-          {/* Footer hint */}
-          <p className="mt-4 text-center text-[12px] text-muted-foreground/50">
-            New puzzles every day
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  /* ——— Standard web layout (unchanged) ——— */
   return (
-    <div className="dark min-h-[100dvh] bg-background">
-      {/* Compact header */}
-      <header className="sticky top-0 z-10 border-b border-border/50 bg-background/95 backdrop-blur-md px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-foreground">
-              🎮 Games
-            </h1>
-            {playedCount > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {playedCount}/{GAMES.length}
+    <div className="dark min-h-[100dvh] game-canvas">
+      {/* Radial gradient spotlight — Design Bible */}
+      <div
+        className="pointer-events-none fixed inset-0 game-glow opacity-50"
+        aria-hidden
+      />
+
+      <div
+        className={cn(
+          "relative z-10 px-4 pt-4",
+          inTg && "tg-content-safe-top",
+        )}
+        style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1
+            className="text-lg font-bold"
+            style={{ color: "var(--game-text-primary)" }}
+          >
+            🎮 TutorLingua Games
+          </h1>
+          {streak.current > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-base">🔥</span>
+              <span
+                className="text-sm font-bold tabular-nums"
+                style={{ color: "var(--game-streak)" }}
+              >
+                {streak.current}
               </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {streak.current > 0 && (
-              <Badge
-                variant="outline"
-                className="gap-1 text-[10px] font-medium px-2 py-0.5"
+              <span
+                className="text-[10px]"
+                style={{ color: "var(--game-text-muted)" }}
               >
-                {streakTier.emoji} {streakTier.name}
-              </Badge>
-            )}
-            <StreakFlame count={streak.current} atRisk={isLateNight} />
-          </div>
+                day{streak.current !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
         </div>
-      </header>
 
-      {/* Game list */}
-      <div className="px-4 py-3 pb-safe">
-        {/* Subtitle */}
-        <p className="text-xs text-muted-foreground mb-3">
-          {playedCount === 0
-            ? "Daily puzzles to level up your vocabulary"
-            : "Tap to play — new puzzles daily"}
-        </p>
+        {/* TODAY'S PUZZLES — section header */}
+        <h2
+          className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+          style={{ color: "var(--game-text-muted)" }}
+        >
+          Today&apos;s Puzzles
+        </h2>
 
-        {/* Game tiles */}
-        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-          {GAMES.map((game, i) => {
-            const status = getStatus(game.slug);
+        {/* Vertical card list — Design Bible Phase 6G */}
+        <div className="flex flex-col gap-3">
+          {GAMES.map((game, i) => (
+            <GameCard
+              key={game.slug}
+              game={game}
+              status={getStatus(game.slug)}
+              index={i}
+            />
+          ))}
+        </div>
 
-            return (
-              <motion.div
-                key={game.slug}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  delay: i * 0.04,
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 30,
-                }}
+        {/* YOUR STATS — section at bottom */}
+        <div className="mt-8">
+          <h2
+            className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+            style={{ color: "var(--game-text-muted)" }}
+          >
+            Your Stats
+          </h2>
+          <div
+            className="rounded-xl p-4 flex items-center justify-around"
+            style={{
+              background: "var(--game-bg-surface)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            {/* CEFR Level */}
+            <div className="flex flex-col items-center">
+              <span className="text-lg">🧠</span>
+              <span
+                className="text-sm font-bold mt-1"
+                style={{ color: "var(--game-text-accent)" }}
               >
-                <Link
-                  href={`/games/${game.slug}`}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 transition-all",
-                    "touch-manipulation active:scale-[0.98] active:bg-card/80",
-                    "min-h-[56px]",
-                  )}
-                >
-                  {/* Emoji with accent pip */}
-                  <div className="relative flex-shrink-0">
-                    <span className="text-2xl">{game.emoji}</span>
-                    <div
-                      className={cn(
-                        "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
-                        status === "won"
-                          ? "bg-amber-400"
-                          : status === "played"
-                            ? "bg-primary"
-                            : game.accent + " opacity-40",
-                      )}
-                    />
-                  </div>
-
-                  {/* Text */}
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-sm font-semibold text-foreground leading-tight">
-                      {game.name}
-                    </h2>
-                    <p className="text-[11px] leading-snug text-muted-foreground truncate">
-                      {game.description}
-                    </p>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex-shrink-0 flex items-center gap-1.5">
-                    <StatusDot status={status} />
-                    <svg
-                      className="h-4 w-4 text-muted-foreground/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </Link>
-              </motion.div>
-            );
-          })}
+                B1
+              </span>
+              <span
+                className="text-[10px]"
+                style={{ color: "var(--game-text-muted)" }}
+              >
+                Level
+              </span>
+            </div>
+            {/* Words mastered */}
+            <div className="flex flex-col items-center">
+              <span className="text-lg">📚</span>
+              <span
+                className="text-sm font-bold mt-1 tabular-nums"
+                style={{ color: "var(--game-text-accent)" }}
+              >
+                247
+              </span>
+              <span
+                className="text-[10px]"
+                style={{ color: "var(--game-text-muted)" }}
+              >
+                Words
+              </span>
+            </div>
+            {/* Streak counter */}
+            <div className="flex flex-col items-center">
+              <span className="text-lg">🔥</span>
+              <span
+                className="text-sm font-bold mt-1 tabular-nums"
+                style={{ color: "var(--game-streak)" }}
+              >
+                {streak.current}
+              </span>
+              <span
+                className="text-[10px]"
+                style={{ color: "var(--game-text-muted)" }}
+              >
+                Streak
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Minimal footer */}
-        <p className="mt-6 text-center text-[10px] text-muted-foreground/50">
+        <p
+          className="mt-6 text-center text-[10px]"
+          style={{ color: "var(--game-text-muted)", opacity: 0.5 }}
+        >
           TutorLingua · New puzzles daily
         </p>
       </div>
+
+      {/* Bottom tab bar — Design Bible Phase 6A */}
+      <GameTabBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }

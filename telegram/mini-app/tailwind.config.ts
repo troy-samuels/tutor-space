@@ -1,5 +1,4 @@
 import type { Config } from 'tailwindcss'
-import plugin from 'tailwindcss/plugin'
 
 export default {
   content: [
@@ -9,25 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Hardcoded dark palette — no reliance on TG theme vars that can be white
-        background: '#0a0a0b',
-        foreground: '#fafafa',
-        card: 'rgba(255, 255, 255, 0.06)',
-        'card-foreground': '#fafafa',
-        primary: 'var(--tg-theme-button-color, #6366f1)',
+        background: '#1A1A2E',
+        foreground: '#E0E0E0',
+        card: '#2C2C40',
+        'card-foreground': '#E0E0E0',
+        primary: '#8B5CF6',
         'primary-foreground': '#ffffff',
-        secondary: 'rgba(255, 255, 255, 0.08)',
-        'secondary-foreground': '#fafafa',
-        muted: 'rgba(255, 255, 255, 0.5)',
-        'muted-foreground': 'rgba(255, 255, 255, 0.5)',
-        accent: 'var(--tg-theme-accent-text-color, #818cf8)',
-        'accent-foreground': '#ffffff',
-        destructive: '#ef4444',
-        'destructive-foreground': '#ffffff',
-        success: '#22c55e',
-        'game-gold': '#fbbf24',
-        border: 'rgba(255, 255, 255, 0.1)',
-        link: 'var(--tg-theme-link-color, #818cf8)',
+        secondary: '#2DD4BF',
+        'secondary-foreground': '#ffffff',
+        muted: '#A0A0A0',
+        accent: '#8B5CF6',
+        destructive: '#EF4444',
+        success: '#34D399',
+        'game-gold': '#FBBF24',
+        border: 'rgba(255, 255, 255, 0.08)',
+        link: '#8B5CF6',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
@@ -37,9 +32,11 @@ export default {
         '4xl': '32px',
       },
       boxShadow: {
-        'glow-sm': '0 0 8px rgba(var(--tg-theme-button-color-rgb, 99 102 241) / 0.5)',
-        'glow-md': '0 0 16px rgba(var(--tg-theme-button-color-rgb, 99 102 241) / 0.7)',
-        'card-soft': '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
+        'card': '0px 8px 20px rgba(0, 0, 0, 0.4), 0px 2px 5px rgba(0, 0, 0, 0.25)',
+        'button': '0px 4px 10px rgba(0, 0, 0, 0.3), 0px 1px 3px rgba(0, 0, 0, 0.15)',
+        'glow': '0 0 20px rgba(139, 92, 246, 0.3)',
+        'glow-teal': '0 0 20px rgba(45, 212, 191, 0.3)',
+        'glow-amber': '0 0 20px rgba(251, 191, 36, 0.3)',
       },
       animation: {
         'slide-in': 'slide-in 0.3s ease-out',
@@ -48,6 +45,7 @@ export default {
         'shake': 'shake 0.6s ease-in-out',
         'pulsefast': 'pulsefast 1.5s ease-in-out infinite',
         'shimmer': 'shimmer 8s linear infinite',
+        'float': 'float 6s ease-in-out infinite',
       },
       keyframes: {
         'slide-in': {
@@ -75,16 +73,12 @@ export default {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0) scale(1)' },
+          '50%': { transform: 'translateY(-10px) scale(1.05)' },
+        },
       },
     },
   },
-  plugins: [
-    plugin(function({ addBase }) {
-      addBase({
-        ':root': {
-          '--tg-theme-button-color-rgb': '99 102 241',
-        },
-      });
-    }),
-  ],
+  plugins: [],
 } satisfies Config

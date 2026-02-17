@@ -1,6 +1,6 @@
 /**
  * GameShell — Universal wrapper for all games.
- * Dark glass header, safe-area-aware, with timer + streak.
+ * Solid #2C2C40 header, safe-area-aware, monospace timer.
  */
 
 import { useState, useEffect } from 'react';
@@ -48,15 +48,15 @@ export function GameShell({
   const languageLabel = getLanguageLabel(language);
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0b]">
-      {/* Header — glass bar, below safe area */}
+    <div className="min-h-[100dvh] bg-[#1A1A2E]">
+      {/* Header — solid surface bar, below safe area */}
       <header className="sticky top-0 z-20 pt-[env(safe-area-inset-top,0px)]">
-        <div className="bg-white/[0.04] backdrop-blur-xl border-b border-white/10 px-5 py-3">
+        <div className="bg-[#2C2C40] border-b border-[rgba(255,255,255,0.08)] px-5 py-3">
           <div className="mx-auto max-w-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-[18px] font-bold text-white">{gameName}</h1>
-                <div className="flex items-center gap-1.5 text-[13px] text-white/50">
+                <h1 className="text-[18px] font-bold text-[#E0E0E0]">{gameName}</h1>
+                <div className="flex items-center gap-1.5 text-[13px] text-[#A0A0A0]">
                   <span>#{puzzleNumber}</span>
                   <span>·</span>
                   <span>{languageLabel}</span>
@@ -65,7 +65,7 @@ export function GameShell({
               
               <div className="flex items-center gap-3">
                 {/* Timer */}
-                <div className="flex items-center gap-1.5 font-mono text-[16px] font-bold text-primary">
+                <div className="flex items-center gap-1.5 font-mono text-[16px] font-bold text-[#8B5CF6]">
                   <Clock size={18} strokeWidth={2} />
                   <span>{formatTime(elapsed)}</span>
                 </div>
@@ -76,7 +76,7 @@ export function GameShell({
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                    className="flex items-center gap-1 rounded-full bg-white/[0.08] border border-white/10 px-2.5 py-1 text-xs font-bold text-white"
+                    className="flex items-center gap-1 rounded-full bg-[#1A1A2E] border border-[rgba(255,255,255,0.08)] px-2.5 py-1 text-xs font-bold text-[#E0E0E0]"
                   >
                     <span>{streakTier.emoji}</span>
                     <span>{streakCurrent}</span>
