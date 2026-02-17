@@ -2,7 +2,8 @@
  * Telegram WebApp SDK integration layer for TutorLingua Games.
  *
  * Detects if running inside Telegram's WebView, provides typed
- * helpers for haptics, BackButton, MainButton, and theme params.
+ * helpers for haptics, BackButton, MainButton/BottomButton,
+ * SecondaryButton, fullscreen, safe areas, and theme params.
  * Falls back silently outside Telegram.
  */
 
@@ -20,8 +21,24 @@ interface TgThemeParams {
   accent_text_color?: string;
   section_bg_color?: string;
   section_header_text_color?: string;
+  section_separator_color?: string;
   subtitle_text_color?: string;
   destructive_text_color?: string;
+  bottom_bar_bg_color?: string;
+}
+
+interface TgSafeAreaInset {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+interface TgContentSafeAreaInset {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
 }
 
 interface TgHapticFeedback {
@@ -38,35 +55,41 @@ interface TgBackButton {
   offClick: (cb: () => void) => void;
 }
 
-interface TgMainButton {
+interface TgBottomButton {
   text: string;
   color: string;
   textColor: string;
   isVisible: boolean;
   isActive: boolean;
   isProgressVisible: boolean;
-  setText: (text: string) => TgMainButton;
-  show: () => TgMainButton;
-  hide: () => TgMainButton;
-  enable: () => TgMainButton;
-  disable: () => TgMainButton;
-  showProgress: (leaveActive?: boolean) => TgMainButton;
-  hideProgress: () => TgMainButton;
-  onClick: (cb: () => void) => TgMainButton;
-  offClick: (cb: () => void) => TgMainButton;
+  setText: (text: string) => TgBottomButton;
+  show: () => TgBottomButton;
+  hide: () => TgBottomButton;
+  enable: () => TgBottomButton;
+  disable: () => TgBottomButton;
+  showProgress: (leaveActive?: boolean) => TgBottomButton;
+  hideProgress: () => TgBottomButton;
+  onClick: (cb: () => void) => TgBottomButton;
+  offClick: (cb: () => void) => TgBottomButton;
   setParams: (params: {
     text?: string;
     color?: string;
     text_color?: string;
     is_active?: boolean;
     is_visible?: boolean;
-  }) => TgMainButton;
+    has_shine_effect?: boolean;
+  }) => TgBottomButton;
 }
 
 interface TgWebApp {
   ready: () => void;
   expand: () => void;
   close: () => void;
+  requestFullscreen?: () => void;
+  exitFullscreen?: () => void;
+  isFullscreen?: boolean;
+  disableVerticalSwipes?: () => void;
+  enableVerticalSwipes?: () => void;
   isExpanded: boolean;
   viewportHeight: number;
   viewportStableHeight: number;
@@ -74,17 +97,21 @@ interface TgWebApp {
   themeParams: TgThemeParams;
   HapticFeedback: TgHapticFeedback;
   BackButton: TgBackButton;
-  MainButton: TgMainButton;
+  MainButton: TgBottomButton;
+  SecondaryButton?: TgBottomButton;
+  safeAreaInset?: TgSafeAreaInset;
+  contentSafeAreaInset?: TgContentSafeAreaInset;
   platform: string;
   version: string;
   initData: string;
   initDataUnsafe: Record<string, unknown>;
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
+  setBottomBarColor?: (color: string) => void;
   enableClosingConfirmation: () => void;
   disableClosingConfirmation: () => void;
-  onEvent: (eventType: string, cb: () => void) => void;
-  offEvent: (eventType: string, cb: () => void) => void;
+  onEvent: (eventType: string, cb: (...args: unknown[]) => void) => void;
+  offEvent: (eventType: string, cb: (...args: unknown[]) => void) => void;
 }
 
 declare global {
@@ -118,12 +145,96 @@ export function initTelegram(): void {
   if (!wa) return;
   wa.ready();
   wa.expand();
-  // Match header colour to the Telegram bg
+
+  // Disable vertical swipes to prevent pull-to-close during gameplay
   try {
-    wa.setHeaderColor(wa.themeParams.bg_color || "#1c1c1d");
-    wa.setBackgroundColor(wa.themeParams.bg_color || "#1c1c1d");
+    wa.disableVerticalSwipes?.();
+  } catch {
+    // Older SDK versions may not support this
+  }
+
+  // Request fullscreen to go edge-to-edge (hides Telegram header)
+  try {
+    wa.requestFullscreen?.();
+  } catch {
+    // Older SDK versions may not support this
+  }
+
+  // Match header & background colour to the actual Telegram theme
+  const bgColor = wa.themeParams.bg_color || "#1c1c1d";
+  try {
+    wa.setHeaderColor(bgColor);
+    wa.setBackgroundColor(bgColor);
   } catch {
     // Older SDK versions may not support these
+  }
+
+  // Set bottom bar colour to match theme
+  try {
+    const bottomBarColor = wa.themeParams.bottom_bar_bg_color || wa.themeParams.secondary_bg_color || bgColor;
+    wa.setBottomBarColor?.(bottomBarColor);
+  } catch {
+    // Older SDK versions may not support this
+  }
+}
+
+/* ——— Fullscreen helpers ——— */
+
+export function requestFullscreen(): void {
+  try {
+    getWebApp()?.requestFullscreen?.();
+  } catch {
+    // Not supported
+  }
+}
+
+export function exitFullscreen(): void {
+  try {
+    getWebApp()?.exitFullscreen?.();
+  } catch {
+    // Not supported
+  }
+}
+
+export function isFullscreen(): boolean {
+  return getWebApp()?.isFullscreen ?? false;
+}
+
+/* ——— Safe Area helpers ——— */
+
+export function getSafeAreaInset(): TgSafeAreaInset {
+  return getWebApp()?.safeAreaInset ?? { top: 0, bottom: 0, left: 0, right: 0 };
+}
+
+export function getContentSafeAreaInset(): TgContentSafeAreaInset {
+  return getWebApp()?.contentSafeAreaInset ?? { top: 0, bottom: 0, left: 0, right: 0 };
+}
+
+/* ——— Closing confirmation helpers ——— */
+
+export function enableClosingConfirmation(): void {
+  try {
+    getWebApp()?.enableClosingConfirmation();
+  } catch {
+    // Older SDK versions may not support this
+  }
+}
+
+export function disableClosingConfirmation(): void {
+  try {
+    getWebApp()?.disableClosingConfirmation();
+  } catch {
+    // Older SDK versions may not support this
+  }
+}
+
+/* ——— Bottom bar color helper ——— */
+
+export function setBottomBarColor(color: string): void {
+  try {
+    getWebApp()?.setBottomBarColor?.(color);
+  } catch {
+    // Not supported
   }
 }
 
@@ -181,7 +292,7 @@ export const tgBackButton = {
   },
 };
 
-/* ——— MainButton helpers ——— */
+/* ——— MainButton / BottomButton helpers ——— */
 
 export const tgMainButton = {
   show(text: string, cb: () => void) {
@@ -195,7 +306,46 @@ export const tgMainButton = {
   offClick(cb: () => void) {
     getWebApp()?.MainButton.offClick(cb);
   },
+  setParams(params: {
+    text?: string;
+    color?: string;
+    text_color?: string;
+    is_active?: boolean;
+    is_visible?: boolean;
+    has_shine_effect?: boolean;
+  }) {
+    getWebApp()?.MainButton.setParams(params);
+  },
 };
+
+/* ——— SecondaryButton helpers ——— */
+
+export const tgSecondaryButton = {
+  show(text: string, cb: () => void) {
+    const sb = getWebApp()?.SecondaryButton;
+    if (!sb) return;
+    sb.setText(text).onClick(cb).show();
+  },
+  hide() {
+    getWebApp()?.SecondaryButton?.hide();
+  },
+  offClick(cb: () => void) {
+    getWebApp()?.SecondaryButton?.offClick(cb);
+  },
+  isAvailable(): boolean {
+    return !!getWebApp()?.SecondaryButton;
+  },
+};
+
+/* ——— Event helpers ——— */
+
+export function onTgEvent(eventType: string, cb: (...args: unknown[]) => void): void {
+  getWebApp()?.onEvent(eventType, cb);
+}
+
+export function offTgEvent(eventType: string, cb: (...args: unknown[]) => void): void {
+  getWebApp()?.offEvent(eventType, cb);
+}
 
 /* ——— Theme helpers ——— */
 

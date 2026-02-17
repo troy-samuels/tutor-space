@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
+import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import ConnectionsGame from "@/components/games/connections/ConnectionsGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
 import { PUZZLES_ES } from "@/lib/games/data/connections/puzzles-es";
@@ -68,21 +69,11 @@ export default function ConnectionsPage() {
       mistakes={endState.mistakes}
     >
       {/* Language selector */}
-      <div className="mb-4 flex justify-center gap-1.5 flex-wrap">
-        {SUPPORTED_GAME_LANGUAGES.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => handleLanguageChange(lang.code)}
-            className={`rounded-full px-3 py-2 text-sm font-medium transition-all min-h-[44px] touch-manipulation ${
-              language === lang.code
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "bg-white/[0.05] text-muted-foreground hover:bg-white/[0.1]"
-            }`}
-          >
-            {lang.flag} {lang.name}
-          </button>
-        ))}
-      </div>
+      <LanguageSelector
+        languages={SUPPORTED_GAME_LANGUAGES}
+        selected={language}
+        onChange={handleLanguageChange}
+      />
 
       <ConnectionsGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} />
     </GameShell>

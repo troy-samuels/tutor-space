@@ -100,6 +100,62 @@ function StreakFlame({
   );
 }
 
+/* ——— Telegram-native game row ——— */
+function TgGameRow({
+  game,
+  status,
+  isLast,
+}: {
+  game: (typeof GAMES)[number];
+  status: GameStatus;
+  isLast: boolean;
+}) {
+  return (
+    <div>
+      <Link
+        href={`/games/${game.slug}`}
+        className="flex items-center gap-3 px-4 py-2.5 active:bg-white/[0.04] transition-colors min-h-[52px]"
+      >
+        {/* Large emoji */}
+        <span className="text-[32px] leading-none flex-shrink-0 w-10 text-center">
+          {game.emoji}
+        </span>
+
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[15px] font-normal text-foreground leading-tight">
+              {game.name}
+            </span>
+            {status === "won" && (
+              <span className="text-xs">✓</span>
+            )}
+          </div>
+          <span className="text-[13px] leading-snug text-muted-foreground">
+            {game.description}
+          </span>
+        </div>
+
+        {/* Status + Chevron */}
+        <div className="flex-shrink-0 flex items-center gap-1.5">
+          <StatusDot status={status} />
+          <svg
+            className="h-4 w-4 text-muted-foreground/30"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </Link>
+      {/* Separator — inset from left (aligned after emoji) */}
+      {!isLast && <div className="tg-separator" />}
+    </div>
+  );
+}
+
 /* ——— Main Hub ——— */
 export default function GameHub() {
   const [streak, setStreak] = React.useState({ current: 0, longest: 0 });
@@ -130,6 +186,70 @@ export default function GameHub() {
     (s) => s === "played" || s === "won",
   ).length;
 
+  /* ——— Telegram-native layout ——— */
+  if (inTg) {
+    return (
+      <div className="dark min-h-[100dvh] bg-background tg-content-safe-top">
+        <div className="px-4 pt-3 pb-safe">
+
+          {/* Streak section (only if has a streak) */}
+          {streak.current > 0 && (
+            <>
+              <div className="tg-section-header">STREAK</div>
+              <div className="tg-section">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🔥</span>
+                    <div>
+                      <span className="text-[15px] font-medium text-foreground">
+                        {streak.current} day{streak.current !== 1 ? "s" : ""}
+                      </span>
+                      <span className="text-[13px] text-muted-foreground ml-2">
+                        Best: {streak.longest}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="gap-1 text-[11px] font-normal px-2 py-0.5 border-border/50"
+                  >
+                    {streakTier.emoji} {streakTier.name}
+                  </Badge>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Games section */}
+          <div className="tg-section-header" style={{ marginTop: streak.current > 0 ? 16 : 0 }}>
+            DAILY PUZZLES
+            {playedCount > 0 && (
+              <span className="ml-1 opacity-60">
+                · {playedCount}/{GAMES.length}
+              </span>
+            )}
+          </div>
+          <div className="tg-section">
+            {GAMES.map((game, i) => (
+              <TgGameRow
+                key={game.slug}
+                game={game}
+                status={getStatus(game.slug)}
+                isLast={i === GAMES.length - 1}
+              />
+            ))}
+          </div>
+
+          {/* Footer hint */}
+          <p className="mt-4 text-center text-[12px] text-muted-foreground/50">
+            New puzzles every day
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ——— Standard web layout (unchanged) ——— */
   return (
     <div className="dark min-h-[100dvh] bg-background">
       {/* Compact header */}
@@ -168,11 +288,8 @@ export default function GameHub() {
             : "Tap to play — new puzzles daily"}
         </p>
 
-        {/* Game tiles — single column for Telegram, 2-col grid otherwise */}
-        <div className={cn(
-          "grid gap-2",
-          inTg ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2",
-        )}>
+        {/* Game tiles */}
+        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
           {GAMES.map((game, i) => {
             const status = getStatus(game.slug);
 
@@ -241,11 +358,9 @@ export default function GameHub() {
         </div>
 
         {/* Minimal footer */}
-        {!inTg && (
-          <p className="mt-6 text-center text-[10px] text-muted-foreground/50">
-            TutorLingua · New puzzles daily
-          </p>
-        )}
+        <p className="mt-6 text-center text-[10px] text-muted-foreground/50">
+          TutorLingua · New puzzles daily
+        </p>
       </div>
     </div>
   );

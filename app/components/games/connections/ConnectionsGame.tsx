@@ -262,15 +262,15 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
 
   return (
     <div className="space-y-4">
-      {/* Mistake dots */}
+      {/* Mistake dots — prominent with destructive colour */}
       <div className="flex items-center justify-center gap-2">
         <span className="text-xs text-muted-foreground">Mistakes:</span>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {Array.from({ length: MAX_MISTAKES }).map((_, i) => (
             <div
               key={i}
               className={cn(
-                "h-2 w-2 rounded-full transition-colors",
+                "h-2.5 w-2.5 rounded-full transition-colors",
                 i < gameState.mistakes
                   ? "bg-destructive"
                   : "bg-white/[0.1]",
@@ -307,7 +307,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
 
       {/* Word Grid — edge-to-edge */}
       {gameState.remainingWords.length > 0 && (
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 gap-1">
           {gameState.remainingWords.map((word) => (
             <WordTile
               key={word}
