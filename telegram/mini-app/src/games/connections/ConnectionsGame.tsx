@@ -14,6 +14,7 @@ import type { ConnectionsPuzzle, ConnectionCategory, Difficulty } from '@/data/c
 import { hapticPress, hapticCorrect, hapticWrong, hapticVictory, hapticDefeat, hapticShuffle, hapticReveal } from '@/lib/haptics';
 import { recordGamePlay } from '@/lib/streaks';
 import { generateShareText } from './share';
+import { Shuffle, X, Send, Clock, Lightbulb } from 'lucide-react';
 
 interface ConnectionsGameProps {
   puzzle: ConnectionsPuzzle;
@@ -100,7 +101,6 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
     );
 
     if (matchedCategory) {
-      // Correct guess!
       hapticCorrect();
       setTimeout(() => hapticReveal(), 200);
 
@@ -113,13 +113,11 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
       setRemainingWords(newRemaining);
       setSelectedWords([]);
 
-      // Record guess in history
       setGuessHistory((prev) => [
         ...prev,
         [matchedCategory.difficulty, matchedCategory.difficulty, matchedCategory.difficulty, matchedCategory.difficulty],
       ]);
 
-      // Check if won
       if (newSolved.length === 4) {
         setIsComplete(true);
         setIsWon(true);
@@ -128,10 +126,8 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
         recordGamePlay('connections');
       }
     } else {
-      // Wrong guess
       hapticWrong();
 
-      // Check if "one away"
       let maxOverlap = 0;
       for (const cat of puzzle.categories) {
         if (solvedCategories.includes(cat)) continue;
@@ -143,7 +139,6 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
         setOneAway(true);
       }
 
-      // Build colour row
       const guessColors: Difficulty[] = selectedWords.map((w) => {
         const cat = puzzle.categories.find((c) => c.words.includes(w));
         return cat ? cat.difficulty : 'yellow';
@@ -156,13 +151,11 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
       setMistakes(newMistakes);
 
       if (newMistakes >= MAX_MISTAKES) {
-        // Game over
         hapticDefeat();
         setIsComplete(true);
         setIsWon(false);
         setEndTime(Date.now());
 
-        // Reveal all remaining categories
         const remainingCats = puzzle.categories.filter(
           (c) => !solvedCategories.includes(c)
         );
@@ -201,16 +194,16 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
       language={puzzle.language}
       onBack={onExit}
     >
-      <div className="space-y-4">
-        {/* Mistake dots */}
+      <div className="space-y-5">
+        {/* Mistake indicators */}
         <div className="flex items-center justify-center gap-2">
-          <span className="text-xs text-muted">Mistakes:</span>
-          <div className="flex gap-1">
+          <span className="text-sm text-muted">Mistakes:</span>
+          <div className="flex gap-1.5">
             {Array.from({ length: MAX_MISTAKES }).map((_, i) => (
               <div
                 key={i}
-                className={`h-2 w-2 rounded-full transition-colors ${
-                  i < mistakes ? 'bg-destructive' : 'bg-white/10'
+                className={`h-3 w-3 rounded-full border-2 transition-all duration-300 ${
+                  i < mistakes ? 'bg-destructive border-destructive' : 'bg-transparent border-muted/50'
                 }`}
               />
             ))}
@@ -221,12 +214,12 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
         <AnimatePresence>
           {oneAway && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -15 }}
               className="flex justify-center"
             >
-              <div className="animate-pulse rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent">
+              <div className="animate-pulse rounded-full border-2 border-accent bg-accent/15 px-4 py-1.5 text-sm font-bold text-accent shadow-md">
                 One away! 🤏
               </div>
             </motion.div>
@@ -234,7 +227,7 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
         </AnimatePresence>
 
         {/* Solved Categories */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {solvedCategories.map((cat, i) => (
             <CategoryReveal key={cat.name} category={cat} index={i} />
           ))}
@@ -257,27 +250,30 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
 
         {/* Action buttons */}
         {!isComplete && (
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-2 mt-5">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={handleShuffle}
-              className="flex-1 rounded-xl bg-card px-4 py-3 text-sm font-bold text-foreground active:bg-card/80"
+              className="flex-1 rounded-xl bg-card border border-white/10 px-5 py-3 text-base font-bold text-foreground shadow-md active:bg-card/80 flex items-center justify-center gap-2"
             >
-              🔀 Shuffle
-            </button>
-            <button
+              <Shuffle size={18} strokeWidth={2} /> Shuffle
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={handleDeselectAll}
               disabled={selectedWords.length === 0}
-              className="flex-1 rounded-xl bg-card px-4 py-3 text-sm font-bold text-foreground disabled:opacity-40 active:bg-card/80"
+              className="flex-1 rounded-xl bg-card border border-white/10 px-5 py-3 text-base font-bold text-foreground shadow-md disabled:opacity-50 active:bg-card/80 flex items-center justify-center gap-2"
             >
-              ✕ Deselect
-            </button>
-            <button
+              <X size={18} strokeWidth={2} /> Deselect
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={handleSubmit}
               disabled={selectedWords.length !== MAX_SELECTED}
-              className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-40 active:bg-primary/90"
+              className="flex-1 rounded-xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-md disabled:opacity-50 active:bg-primary/90 flex items-center justify-center gap-2"
             >
-              Submit
-            </button>
+              <Send size={18} strokeWidth={2} /> Submit
+            </motion.button>
           </div>
         )}
 
@@ -290,21 +286,28 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
             className="mt-6 space-y-4"
           >
             {/* Result banner */}
-            <div className="rounded-2xl border border-white/10 bg-card p-6 text-center">
-              <div className="text-4xl">{isWon ? '🎉' : '💪'}</div>
-              <h2 className="mt-2 text-xl font-bold text-foreground">
+            <div className="rounded-2.5xl border-2 border-white/10 bg-card p-6 text-center shadow-xl">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.5 }}
+                className="text-5xl mb-2"
+              >
+                {isWon ? '🎉' : '💪'}
+              </motion.div>
+              <h2 className="mt-2 text-2xl font-bold text-foreground">
                 {isWon ? '¡Perfecto!' : 'Good try!'}
               </h2>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-md text-muted">
                 {isWon
                   ? `Solved with ${mistakes} mistake${mistakes !== 1 ? 's' : ''}`
                   : "You'll get it next time"}
               </p>
 
               {/* Score grid */}
-              <div className="mx-auto mt-4 max-w-[200px] space-y-1">
+              <div className="mx-auto mt-4 max-w-[200px] space-y-1.5">
                 {guessHistory.map((row, i) => (
-                  <div key={i} className="flex justify-center gap-0.5 text-lg">
+                  <div key={i} className="flex justify-center gap-1.5 text-lg">
                     {row.map((d, j) => (
                       <span key={j}>{DIFFICULTY_EMOJI[d]}</span>
                     ))}
@@ -314,8 +317,8 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
 
               {/* Time */}
               {endTime && (
-                <p className="mt-3 text-xs text-muted">
-                  ⏱{' '}
+                <p className="mt-3 text-sm text-muted flex items-center justify-center gap-1">
+                  <Clock size={16} strokeWidth={2} />
                   {(() => {
                     const secs = Math.floor((endTime - startTime) / 1000);
                     return `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, '0')}`;
@@ -329,12 +332,14 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
 
             {/* Explain mistakes */}
             {mistakes > 0 && (
-              <button
+              <motion.button
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setShowExplanations((prev) => !prev)}
-                className="w-full rounded-xl border border-white/10 bg-card px-6 py-4 text-sm font-bold text-foreground active:bg-card/80"
+                className="w-full rounded-xl border border-white/10 bg-card px-6 py-4 text-base font-bold text-foreground shadow-md active:bg-card/80 flex items-center justify-center gap-2"
               >
-                {showExplanations ? 'Hide Explanations' : '🧠 Explain My Mistakes'}
-              </button>
+                <Lightbulb size={20} strokeWidth={2} />
+                {showExplanations ? 'Hide Explanations' : 'Explain My Mistakes'}
+              </motion.button>
             )}
 
             {/* Explanations */}
@@ -344,6 +349,7 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
+                  transition={{ type: 'spring', stiffness: 100, damping: 20 }}
                   className="space-y-3 overflow-hidden"
                 >
                   {puzzle.categories.map((cat) => (
@@ -351,7 +357,7 @@ export function ConnectionsGame({ puzzle, onExit }: ConnectionsGameProps) {
                       key={cat.name}
                       className="rounded-xl border border-white/10 bg-card/50 p-4"
                     >
-                      <h4 className="text-sm font-bold text-foreground">
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                         {DIFFICULTY_EMOJI[cat.difficulty]} {cat.name}
                       </h4>
                       <p className="mt-1 text-xs leading-relaxed text-muted">

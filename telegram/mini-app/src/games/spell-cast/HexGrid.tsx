@@ -14,30 +14,30 @@ interface HexGridProps {
   onHexTap: (index: number) => void;
 }
 
-// Hex positions for 19-hex honeycomb (approximate layout)
+// Hex positions for 19-hex honeycomb
 const HEX_POSITIONS = [
   // Center hex (0)
   { x: 50, y: 50 },
   // Inner ring (1-6)
-  { x: 50, y: 30 }, // top
-  { x: 65, y: 40 }, // top-right
-  { x: 65, y: 60 }, // bottom-right
-  { x: 50, y: 70 }, // bottom
-  { x: 35, y: 60 }, // bottom-left
-  { x: 35, y: 40 }, // top-left
+  { x: 50, y: 30 },
+  { x: 65, y: 40 },
+  { x: 65, y: 60 },
+  { x: 50, y: 70 },
+  { x: 35, y: 60 },
+  { x: 35, y: 40 },
   // Outer ring (7-18)
-  { x: 50, y: 10 }, // top
-  { x: 65, y: 20 }, // top-right-1
-  { x: 80, y: 30 }, // top-right-2
-  { x: 80, y: 50 }, // right
-  { x: 80, y: 70 }, // bottom-right-2
-  { x: 65, y: 80 }, // bottom-right-1
-  { x: 50, y: 90 }, // bottom
-  { x: 35, y: 80 }, // bottom-left-1
-  { x: 20, y: 70 }, // bottom-left-2
-  { x: 20, y: 50 }, // left
-  { x: 20, y: 30 }, // top-left-2
-  { x: 35, y: 20 }, // top-left-1
+  { x: 50, y: 10 },
+  { x: 65, y: 20 },
+  { x: 80, y: 30 },
+  { x: 80, y: 50 },
+  { x: 80, y: 70 },
+  { x: 65, y: 80 },
+  { x: 50, y: 90 },
+  { x: 35, y: 80 },
+  { x: 20, y: 70 },
+  { x: 20, y: 50 },
+  { x: 20, y: 30 },
+  { x: 35, y: 20 },
 ];
 
 export function HexGrid({
@@ -54,8 +54,7 @@ export function HexGrid({
   };
 
   return (
-    <div className="relative aspect-square w-full max-w-sm mx-auto">
-      {/* SVG container */}
+    <div className="relative aspect-square w-full max-w-sm mx-auto select-none">
       <svg
         viewBox="0 0 100 100"
         className="absolute inset-0 h-full w-full"
@@ -68,40 +67,43 @@ export function HexGrid({
           const isSelected = selectedIndices.includes(i);
           const isUsed = usedIndices.has(i);
           const isCenter = i === centerIndex;
+          const isTappable = !isUsed;
 
           let fillColor = 'var(--tg-theme-secondary-bg-color, #2c2c2c)';
-          let strokeColor = 'rgba(255, 255, 255, 0.1)';
+          let strokeColor = 'var(--tg-theme-hint-color, #7a7a7a)';
           let textColor = 'var(--tg-theme-text-color, #ffffff)';
+          let letterOpacity = 1;
 
           if (isUsed) {
-            fillColor = 'rgba(255, 255, 255, 0.05)';
-            textColor = 'rgba(255, 255, 255, 0.3)';
+            fillColor = 'var(--tg-theme-secondary-bg-color, #2c2c2c)';
+            strokeColor = 'var(--tg-theme-secondary-bg-color, #2c2c2c)';
+            textColor = 'var(--tg-theme-hint-color, #7a7a7a)';
+            letterOpacity = 0.4;
           } else if (isSelected) {
             fillColor = 'var(--tg-theme-button-color, #8774e1)';
             strokeColor = 'var(--tg-theme-button-color, #8774e1)';
             textColor = 'var(--tg-theme-button-text-color, #ffffff)';
           } else if (isCenter) {
-            fillColor = '#F59E0B'; // Golden
+            fillColor = '#F59E0B';
             strokeColor = '#F59E0B';
+            textColor = '#ffffff';
           }
 
           return (
             <g
               key={i}
               onClick={() => handleHexClick(i)}
-              style={{ cursor: isUsed ? 'default' : 'pointer' }}
+              style={{ cursor: isTappable ? 'pointer' : 'default' }}
             >
-              {/* Hexagon */}
               <motion.polygon
                 points={getHexPoints(pos.x, pos.y, 6)}
                 fill={fillColor}
                 stroke={strokeColor}
-                strokeWidth="0.5"
+                strokeWidth={isUsed ? '0.2' : '0.5'}
                 initial={{ scale: 0 }}
                 animate={{ scale: isSelected ? 1.1 : 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               />
-              {/* Letter */}
               <text
                 x={pos.x}
                 y={pos.y}
@@ -110,6 +112,7 @@ export function HexGrid({
                 fontSize="6"
                 fontWeight="bold"
                 fill={textColor}
+                opacity={letterOpacity}
                 style={{ pointerEvents: 'none', userSelect: 'none' }}
               >
                 {letter}
@@ -122,9 +125,6 @@ export function HexGrid({
   );
 }
 
-/**
- * Generate SVG polygon points for a hexagon.
- */
 function getHexPoints(cx: number, cy: number, radius: number): string {
   const points: Array<[number, number]> = [];
   for (let i = 0; i < 6; i++) {

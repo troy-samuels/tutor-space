@@ -5,6 +5,7 @@
 import { motion } from 'framer-motion';
 import { tg } from '@/telegram';
 import { hapticPress } from '@/lib/haptics';
+import { GraduationCap } from 'lucide-react';
 
 interface TutorCTAProps {
   weakness?: {
@@ -27,13 +28,13 @@ export function TutorCTA({ weakness }: TutorCTAProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="mt-6 overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 to-accent/5"
+      transition={{ delay: 0.4, type: 'spring', stiffness: 150, damping: 20 }}
+      className="mt-6 overflow-hidden rounded-2.5xl border border-accent/40 bg-gradient-to-br from-accent/10 to-accent/5 shadow-lg"
     >
       <div className="p-5">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-2xl">👨‍🏫</span>
-          <h3 className="text-base font-bold text-foreground">Ready to Level Up?</h3>
+        <div className="mb-2 flex items-center gap-3">
+          <GraduationCap size={28} className="text-accent" strokeWidth={1.5} />
+          <h3 className="text-lg font-bold text-foreground">Ready to Level Up?</h3>
         </div>
         
         {weakness ? (
@@ -47,12 +48,13 @@ export function TutorCTA({ weakness }: TutorCTAProps) {
           </p>
         )}
         
-        <button
+        <motion.button
+          whileTap={{ scale: 0.98 }}
           onClick={handleClick}
-          className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-accent-foreground active:bg-accent/90"
+          className="w-full rounded-xl bg-accent px-4 py-3 text-base font-bold text-accent-foreground shadow-md active:bg-accent/90"
         >
           Book a Free Trial Lesson
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   );

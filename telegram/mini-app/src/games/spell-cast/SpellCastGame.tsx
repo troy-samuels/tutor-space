@@ -10,9 +10,10 @@ import { TutorCTA } from '@/components/TutorCTA';
 import { HexGrid } from './HexGrid';
 import type { HexPuzzle } from '@/data/spell-cast/types';
 import { isValidWord, calculateWordScore } from '@/data/spell-cast/word-lists';
-import { hapticCorrect, hapticWrong, hapticVictory, hapticWordFound } from '@/lib/haptics';
+import { hapticCorrect, hapticWrong, hapticVictory, hapticWordFound, hapticCombo } from '@/lib/haptics';
 import { recordGamePlay } from '@/lib/streaks';
 import { generateShareText } from './share';
+import { Clock, TrendingUp, Hash, X, Check, Flame } from 'lucide-react';
 
 interface SpellCastGameProps {
   puzzle: HexPuzzle;
@@ -20,8 +21,8 @@ interface SpellCastGameProps {
   onExit?: () => void;
 }
 
-const GAME_DURATION_MS = 2 * 60 * 1000; // 2 minutes
-const COMBO_TIMEOUT_MS = 30 * 1000; // 30 seconds
+const GAME_DURATION_MS = 2 * 60 * 1000;
+const COMBO_TIMEOUT_MS = 30 * 1000;
 
 export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGameProps) {
   const [selectedHexes, setSelectedHexes] = useState<number[]>([]);
@@ -33,7 +34,7 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
   const [isComplete, setIsComplete] = useState(false);
   const [bestWord, setBestWord] = useState<{ word: string; score: number } | null>(null);
   const [maxCombo, setMaxCombo] = useState(1);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Timer
   useEffect(() => {
@@ -76,17 +77,14 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
     if (isComplete) return;
 
     setSelectedHexes((prev) => {
-      // If already selected, deselect
       if (prev.includes(index)) {
         return prev.filter((i) => i !== index);
       }
       
-      // If empty, start new word
       if (prev.length === 0) {
         return [index];
       }
 
-      // Check if adjacent to last selected hex
       const lastHex = prev[prev.length - 1];
       if (!isAdjacent(lastHex, index)) {
         return prev;
@@ -98,7 +96,7 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
 
   const handleSubmit = useCallback(() => {
     if (selectedHexes.length < 3) {
-      setMessage({ text: 'Word too short!', type: 'error' });
+      setMessage({ text: 'Word too short! (Min 3)', type: 'error' });
       hapticWrong();
       setSelectedHexes([]);
       return;
@@ -106,7 +104,6 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
 
     const word = selectedHexes.map((i) => puzzle.letters[i]).join('');
     
-    // Check if already found
     if (foundWords.has(word.toLowerCase())) {
       setMessage({ text: 'Already found!', type: 'error' });
       hapticWrong();
@@ -114,7 +111,6 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
       return;
     }
 
-    // Validate word
     const validWord = isValidWord(word, puzzle.language);
     if (!validWord) {
       setMessage({ text: 'Not a valid word', type: 'error' });
@@ -123,22 +119,19 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
       return;
     }
 
-    // Calculate score
     const usedCenter = selectedHexes.includes(puzzle.centerIndex);
     const wordScore = calculateWordScore(validWord, usedCenter, combo);
 
-    // Update state
     hapticWordFound();
     setFoundWords((prev) => new Set(prev).add(word.toLowerCase()));
     setScore((prev) => prev + wordScore);
     setLastWordTime(Date.now());
     
-    // Update combo
     const newCombo = combo + 1;
     setCombo(newCombo);
     setMaxCombo((prev) => Math.max(prev, newCombo));
+    hapticCombo(newCombo);
 
-    // Track best word
     if (!bestWord || wordScore > bestWord.score) {
       setBestWord({ word: validWord.word, score: wordScore });
     }
@@ -161,56 +154,86 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
       language={puzzle.language}
       onBack={onExit}
     >
-      <div className="space-y-4">
-        {/* Timer & Score */}
-        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-card p-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-foreground">
-              {Math.floor(timeRemaining / 1000)}s
+      <div className="space-y-5">
+        {/* Timer & Score & Words */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+          className="rounded-2xl border-2 border-white/10 bg-gradient-to-br from-card to-card/90 p-4 flex items-center justify-around shadow-md"
+        >
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-1 text-primary">
+              <Clock size={22} strokeWidth={2} />
+              <div className="text-3xl font-bold font-mono">{Math.floor(timeRemaining / 1000)}</div>
             </div>
-            <div className="text-xs text-muted">Time Left</div>
+            <div className="text-sm text-muted">Time Left</div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{score}</div>
-            <div className="text-xs text-muted">Score</div>
+          <div className="border-l border-white/10 h-12 mx-2" />
+
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-1 text-success">
+              <TrendingUp size={22} strokeWidth={2} />
+              <div className="text-3xl font-bold">{score}</div>
+            </div>
+            <div className="text-sm text-muted">Score</div>
           </div>
+
+          <div className="border-l border-white/10 h-12 mx-2" />
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-accent">{foundWords.size}</div>
-            <div className="text-xs text-muted">Words</div>
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-1 text-accent">
+              <Hash size={22} strokeWidth={2} />
+              <div className="text-3xl font-bold">{foundWords.size}</div>
+            </div>
+            <div className="text-sm text-muted">Words</div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Combo indicator */}
-        {combo > 1 && !isComplete && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="text-center"
-          >
-            <div className="text-lg font-bold text-accent">
-              🔥 {combo}x Combo!
-            </div>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {combo > 1 && !isComplete && (
+            <motion.div
+              key="combo"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="text-center"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent px-4 py-1.5 text-lg font-bold text-accent shadow-sm animate-pulsefast">
+                <Flame size={20} strokeWidth={2} /> {combo}x Combo!
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Current word */}
-        <div className="rounded-xl border border-white/10 bg-card px-4 py-3 text-center">
-          <div className="text-xl font-bold text-foreground">
-            {currentWord || '⏺ Tap hexes to spell'}
+        <motion.div
+          key={currentWord}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className="rounded-xl border-2 border-white/10 bg-card p-4 text-center shadow-sm"
+        >
+          <div className="text-2xl font-bold text-foreground">
+            {currentWord || <span className="text-lg font-semibold text-muted">Tap hexes to spell...</span>}
           </div>
-        </div>
+        </motion.div>
 
         {/* Message toast */}
         <AnimatePresence>
           {message && (
             <motion.div
+              key="message"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={`text-center text-sm font-bold ${
-                message.type === 'success' ? 'text-accent' : 'text-destructive'
+              className={`text-center rounded-lg px-3 py-1.5 text-sm font-bold shadow-sm border ${
+                message.type === 'success' ? 'bg-success/20 text-success border-success/50' :
+                message.type === 'error' ? 'bg-destructive/20 text-destructive border-destructive/50' :
+                'bg-card text-muted border-white/10'
               }`}
             >
               {message.text}
@@ -231,21 +254,23 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
 
         {/* Action buttons */}
         {!isComplete && (
-          <div className="flex gap-2">
-            <button
+          <div className="flex gap-3 mt-5">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedHexes([])}
               disabled={selectedHexes.length === 0}
-              className="flex-1 rounded-xl bg-card px-4 py-3 text-sm font-bold text-foreground disabled:opacity-40 active:bg-card/80"
+              className="flex-1 rounded-xl bg-card border border-white/10 px-5 py-3 text-base font-bold text-foreground shadow-md disabled:opacity-50 active:bg-card/80 flex items-center justify-center gap-2"
             >
-              Clear
-            </button>
-            <button
+              <X size={18} strokeWidth={2} /> Clear
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={handleSubmit}
               disabled={selectedHexes.length < 3}
-              className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-40 active:bg-primary/90"
+              className="flex-1 rounded-xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-md disabled:opacity-50 active:bg-primary/90 flex items-center justify-center gap-2"
             >
-              Submit
-            </button>
+              <Check size={18} strokeWidth={2} /> Submit
+            </motion.button>
           </div>
         )}
 
@@ -257,31 +282,36 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             className="mt-6 space-y-4"
           >
-            {/* Result banner */}
-            <div className="rounded-2xl border border-white/10 bg-card p-6 text-center">
-              <div className="text-4xl">🍯</div>
-              <h2 className="mt-2 text-xl font-bold text-foreground">Time's Up!</h2>
+            <div className="rounded-2.5xl border-2 border-white/10 bg-card p-6 text-center shadow-xl">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.5 }}
+                className="text-5xl mb-2"
+              >
+                🍯
+              </motion.div>
+              <h2 className="mt-2 text-2xl font-bold text-foreground">Time's Up!</h2>
               
               <div className="mt-4 space-y-2">
-                <div className="text-2xl font-bold text-primary">{score} pts</div>
-                <div className="text-sm text-muted">{foundWords.size} words found</div>
+                <div className="text-3xl font-bold text-primary">{score} pts</div>
+                <div className="text-md text-muted">{foundWords.size} words found</div>
                 {bestWord && (
-                  <div className="text-xs text-muted">
+                  <div className="text-sm text-muted flex items-center justify-center gap-1">
+                    <TrendingUp size={16} strokeWidth={2} />
                     Best: <span className="font-bold text-accent">{bestWord.word}</span> ({bestWord.score} pts)
                   </div>
                 )}
                 {maxCombo > 1 && (
-                  <div className="text-xs text-muted">
+                  <div className="text-sm text-muted flex items-center justify-center gap-1">
+                    <Flame size={16} strokeWidth={2} />
                     Max combo: <span className="font-bold text-accent">{maxCombo}x</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Share */}
             <ShareCard text={shareText} />
-
-            {/* Tutor CTA */}
             <TutorCTA />
           </motion.div>
         )}
@@ -290,29 +320,21 @@ export function SpellCastGame({ puzzle, puzzleNumber, onExit }: SpellCastGamePro
   );
 }
 
-/**
- * Check if two hex indices are adjacent.
- * Simplified adjacency for honeycomb layout.
- */
 function isAdjacent(a: number, b: number): boolean {
-  // Center hex (0) is adjacent to inner ring (1-6)
   if (a === 0) return b >= 1 && b <= 6;
   if (b === 0) return a >= 1 && a <= 6;
 
-  // Inner ring adjacency
   if (a >= 1 && a <= 6 && b >= 1 && b <= 6) {
     const diff = Math.abs(a - b);
-    return diff === 1 || diff === 5; // Adjacent in ring
+    return diff === 1 || diff === 5;
   }
 
-  // Outer ring to inner ring
   if (a >= 1 && a <= 6 && b >= 7) return true;
   if (b >= 1 && b <= 6 && a >= 7) return true;
 
-  // Outer ring adjacency
   if (a >= 7 && b >= 7) {
     const diff = Math.abs(a - b);
-    return diff === 1 || diff === 11; // Adjacent in ring
+    return diff === 1 || diff === 11;
   }
 
   return false;

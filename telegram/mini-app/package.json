@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@twa-dev/sdk": "^8.0.2",
     "framer-motion": "^12.34.0",
+    "lucide-react": "^0.567.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.1.18",

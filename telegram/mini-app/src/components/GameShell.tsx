@@ -4,10 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStreakStore } from '@/stores/streak';
 import { formatTime } from '@/lib/share';
 import { tg } from '@/telegram';
+import { Clock } from 'lucide-react';
 
 interface GameShellProps {
   gameName: string;
@@ -25,7 +26,7 @@ export function GameShell({
   children,
 }: GameShellProps) {
   const [elapsed, setElapsed] = useState(0);
-  const streak = useStreakStore();
+  const { current: streakCurrent, tier: streakTier } = useStreakStore();
   const startTimeRef = useState(() => Date.now())[0];
 
   // Timer — count up
@@ -49,34 +50,35 @@ export function GameShell({
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-white/10 px-4 py-3">
+      <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm border-b border-white/10 px-4 py-3">
         <div className="mx-auto max-w-lg">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold text-foreground">{gameName}</h1>
-              <div className="flex items-center gap-2 text-xs text-muted">
+              <h1 className="text-xl font-bold text-foreground">{gameName}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted">
                 <span>#{puzzleNumber}</span>
                 <span>·</span>
                 <span>{languageLabel}</span>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {/* Timer */}
-              <div className="flex items-center gap-1 text-sm font-mono text-muted">
-                <span>⏱</span>
+              <div className="flex items-center gap-1 font-mono text-lg font-bold text-primary">
+                <Clock size={20} strokeWidth={2} />
                 <span>{formatTime(elapsed)}</span>
               </div>
               
               {/* Streak badge */}
-              {streak.current > 0 && (
+              {streakCurrent > 0 && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  className="flex items-center gap-1 rounded-full bg-card px-2.5 py-1 text-xs font-bold shadow-md"
                 >
-                  <span>{streak.tier.emoji}</span>
-                  <span>{streak.current}</span>
+                  <span>{streakTier.emoji}</span>
+                  <span>{streakCurrent}</span>
                 </motion.div>
               )}
             </div>

@@ -129,6 +129,14 @@ class TelegramService {
     Object.entries(theme).forEach(([key, value]) => {
       if (value) {
         root.style.setProperty(`--tg-theme-${key.replace(/_/g, '-')}`, value);
+        // Extract RGB values for glow effects
+        if (key === 'button_color' && value.startsWith('#')) {
+          const hex = value.slice(1);
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          root.style.setProperty('--tg-theme-button-color-rgb', `${r} ${g} ${b}`);
+        }
       }
     });
   }
