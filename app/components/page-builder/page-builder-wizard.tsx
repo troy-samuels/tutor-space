@@ -1,7 +1,9 @@
 "use client";
 
-import { Check, Clock, Save, Rocket } from "lucide-react";
+import { useState } from "react";
+import { Check, Clock, Save, Rocket, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProfileImporter } from "@/components/import";
 import {
   PageBuilderWizardProvider,
   usePageBuilderWizard,
@@ -85,6 +87,7 @@ type WizardContentProps = {
 function WizardContent({ profile, services, reviews }: WizardContentProps) {
   const { state, saveDraft, publish } = usePageBuilderWizard();
   const { status, autoSaveStatus, lastSaved, isPublishing, avatarUrl, faq } = state;
+  const [showImporter, setShowImporter] = useState(false);
 
   const previewUrl = useMemo(() => {
     if (!state.siteId) return null;
@@ -145,6 +148,15 @@ function WizardContent({ profile, services, reviews }: WizardContentProps) {
             <span className="text-xs text-red-600">Error saving</span>
           ) : null}
           <Button
+            onClick={() => setShowImporter(!showImporter)}
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            Import Profile
+          </Button>
+          <Button
             onClick={saveDraft}
             variant="outline"
             size="sm"
@@ -176,6 +188,13 @@ function WizardContent({ profile, services, reviews }: WizardContentProps) {
           </Button>
         </div>
       </div>
+
+      {/* Import from platform — collapsible */}
+      {showImporter && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/[0.02] p-4">
+          <ProfileImporter compact onComplete={() => setShowImporter(false)} />
+        </div>
+      )}
 
       {/* Main content grid */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.4fr)] lg:items-start">

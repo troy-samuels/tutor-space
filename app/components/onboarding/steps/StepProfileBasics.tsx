@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition, useCallback } from "react";
 import { Check, X, Loader2, Upload, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { saveOnboardingStep } from "@/lib/actions/onboarding";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { TimezoneSelect } from "@/components/ui/timezone-select";
 import { detectUserTimezone } from "@/lib/utils/timezones";
+import { ProfileImporter } from "@/components/import";
 
 type StepProfileBasicsProps = {
   profileId: string;
@@ -192,6 +194,21 @@ export function StepProfileBasics({
 
   return (
     <div className="space-y-5">
+      {/* Import from existing platform */}
+      <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-4">
+        <ProfileImporter compact={false} />
+        <div className="relative mt-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border/50" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-background px-3 text-muted-foreground">
+              or set up manually below
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Avatar Upload */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-foreground">
