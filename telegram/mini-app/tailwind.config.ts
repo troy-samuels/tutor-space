@@ -6,29 +6,28 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Telegram theme colours
-        background: 'var(--tg-theme-bg-color, #212121)',
-        foreground: 'var(--tg-theme-text-color, #ffffff)',
-        card: 'var(--tg-theme-secondary-bg-color, #2c2c2c)',
-        'card-foreground': 'var(--tg-theme-text-color, #ffffff)',
-        primary: 'var(--tg-theme-button-color, #8774e1)',
-        'primary-foreground': 'var(--tg-theme-button-text-color, #ffffff)',
-        secondary: 'var(--tg-theme-secondary-bg-color, #2c2c2c)',
-        'secondary-foreground': 'var(--tg-theme-text-color, #ffffff)',
-        muted: 'var(--tg-theme-hint-color, #7a7a7a)',
-        'muted-foreground': 'var(--tg-theme-hint-color, #7a7a7a)',
-        accent: 'var(--tg-theme-accent-text-color, #8774e1)',
-        'accent-foreground': 'var(--tg-theme-button-text-color, #ffffff)',
+        // Hardcoded dark palette — no reliance on TG theme vars that can be white
+        background: '#0a0a0b',
+        foreground: '#fafafa',
+        card: 'rgba(255, 255, 255, 0.06)',
+        'card-foreground': '#fafafa',
+        primary: 'var(--tg-theme-button-color, #6366f1)',
+        'primary-foreground': '#ffffff',
+        secondary: 'rgba(255, 255, 255, 0.08)',
+        'secondary-foreground': '#fafafa',
+        muted: 'rgba(255, 255, 255, 0.5)',
+        'muted-foreground': 'rgba(255, 255, 255, 0.5)',
+        accent: 'var(--tg-theme-accent-text-color, #818cf8)',
+        'accent-foreground': '#ffffff',
         destructive: '#ef4444',
         'destructive-foreground': '#ffffff',
-        success: '#22C55E',
-        'game-gold': '#FFD700',
-        border: 'var(--tg-theme-secondary-bg-color, #2c2c2c)',
-        link: 'var(--tg-theme-link-color, #8774e1)',
+        success: '#22c55e',
+        'game-gold': '#fbbf24',
+        border: 'rgba(255, 255, 255, 0.1)',
+        link: 'var(--tg-theme-link-color, #818cf8)',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
@@ -38,9 +37,9 @@ export default {
         '4xl': '32px',
       },
       boxShadow: {
-        'glow-sm': '0 0 8px rgba(var(--tg-theme-button-color-rgb, 135 116 225) / 0.5)',
-        'glow-md': '0 0 16px rgba(var(--tg-theme-button-color-rgb, 135 116 225) / 0.7)',
-        'card-soft': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        'glow-sm': '0 0 8px rgba(var(--tg-theme-button-color-rgb, 99 102 241) / 0.5)',
+        'glow-md': '0 0 16px rgba(var(--tg-theme-button-color-rgb, 99 102 241) / 0.7)',
+        'card-soft': '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
       },
       animation: {
         'slide-in': 'slide-in 0.3s ease-out',
@@ -83,7 +82,7 @@ export default {
     plugin(function({ addBase }) {
       addBase({
         ':root': {
-          '--tg-theme-button-color-rgb': '135 116 225',
+          '--tg-theme-button-color-rgb': '99 102 241',
         },
       });
     }),

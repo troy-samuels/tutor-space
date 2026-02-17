@@ -49,6 +49,10 @@ class TelegramService {
     try {
       WebApp.ready();
       WebApp.expand();
+
+      // Force dark appearance — we control the palette
+      WebApp.setHeaderColor('#0a0a0b');
+      WebApp.setBackgroundColor('#0a0a0b');
       
       // Request fullscreen mode (available in Telegram 8.0+)
       if (WebApp.requestFullscreen) {

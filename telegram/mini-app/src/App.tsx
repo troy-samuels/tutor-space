@@ -1,5 +1,5 @@
 /**
- * Main App — Router + Telegram initialization.
+ * Main App — Router + Premium dark glass menu.
  */
 
 import { useState, useEffect } from 'react';
@@ -15,8 +15,16 @@ import { parseDeepLink } from './lib/share';
 import { getTodaysPuzzle } from './data/connections';
 import { getTodaysHexPuzzle, getSpellCastPuzzleNumber } from './data/spell-cast/hex-puzzles';
 import { StreakBadge } from './components/StreakBadge';
+import { hapticPress } from './lib/haptics';
 
 type Screen = 'menu' | 'connections' | 'spell-cast' | 'speed-clash';
+
+// Game color gradients for card overlays
+const GAME_COLORS: Record<string, string> = {
+  connections: 'from-violet-500/10 to-transparent',
+  'spell-cast': 'from-amber-500/10 to-transparent',
+  'speed-clash': 'from-blue-500/10 to-transparent',
+};
 
 const GAME_CARDS = [
   {
@@ -41,6 +49,20 @@ const GAME_CARDS = [
     screen: 'speed-clash' as Screen,
   },
 ];
+
+const cardVariants = {
+  initial: { opacity: 0, y: 24 },
+  animate: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.08 + 0.1,
+      type: 'spring' as const,
+      stiffness: 180,
+      damping: 22,
+    },
+  }),
+};
 
 function App() {
   const { hasCompletedOnboarding, language } = useUserStore();
@@ -68,24 +90,11 @@ function App() {
     return <OnboardingFlow onComplete={() => {}} />;
   }
 
+  // --- Game screens ---
   if (screen === 'connections') {
     const puzzle = getTodaysPuzzle(language);
     if (!puzzle) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="text-center text-foreground">
-            <div className="text-4xl">😕</div>
-            <div className="mt-2">No puzzle available for {language}</div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setScreen('menu')}
-              className="mt-4 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md"
-            >
-              Back to Menu
-            </motion.button>
-          </div>
-        </div>
-      );
+      return <NoPuzzle language={language} onBack={() => setScreen('menu')} />;
     }
     return <ConnectionsGame puzzle={puzzle} onExit={() => setScreen('menu')} />;
   }
@@ -94,21 +103,7 @@ function App() {
     const puzzle = getTodaysHexPuzzle(language);
     const puzzleNumber = getSpellCastPuzzleNumber();
     if (!puzzle) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="text-center text-foreground">
-            <div className="text-4xl">😕</div>
-            <div className="mt-2">No puzzle available for {language}</div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setScreen('menu')}
-              className="mt-4 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md"
-            >
-              Back to Menu
-            </motion.button>
-          </div>
-        </div>
-      );
+      return <NoPuzzle language={language} onBack={() => setScreen('menu')} />;
     }
     return <SpellCastGame puzzle={puzzle} puzzleNumber={puzzleNumber} onExit={() => setScreen('menu')} />;
   }
@@ -117,64 +112,123 @@ function App() {
     return <SpeedClashGame language={language} puzzleNumber={1} onExit={() => setScreen('menu')} />;
   }
 
-  // Menu screen
-  return (
-    <div className="min-h-screen bg-background p-4 pt-8 relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-background via-card/50 to-background opacity-50" />
+  // --- Menu screen ---
+  const user = tg.getUser();
+  const firstName = user?.first_name || 'Player';
+  const playedCount = gamesPlayedToday.length;
 
-      <div className="mx-auto max-w-lg space-y-6 z-10 relative">
-        <div className="text-center">
-          <h1 className="mb-2 text-3xl font-extrabold text-foreground leading-tight">
-            TutorLingua Games
-          </h1>
-          <p className="text-md text-muted">
-            Learn {language.toUpperCase()} with daily challenges
-          </p>
-          <div className="mt-4 flex justify-center">
-            <StreakBadge />
+  return (
+    <div className="min-h-[100dvh] bg-[#0a0a0b] relative overflow-hidden">
+      {/* Ambient glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-primary/[0.04] blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 px-5 pt-[env(safe-area-inset-top,60px)] pb-10">
+        <div className="mx-auto max-w-md">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            className="mb-8"
+          >
+            <h1 className="text-[28px] font-extrabold text-white leading-tight tracking-tight">
+              Hey {firstName} 👋
+            </h1>
+            <p className="mt-1 text-[15px] text-white/50">
+              {playedCount === 0
+                ? 'Ready for today\'s challenges?'
+                : `${playedCount}/${GAME_CARDS.length} played today`}
+            </p>
+            
+            {/* Streak badge */}
+            <div className="mt-4">
+              <StreakBadge />
+            </div>
+          </motion.div>
+
+          {/* Section label */}
+          <div className="text-[13px] font-semibold text-white/30 uppercase tracking-wider mb-3">
+            Daily Puzzles
+          </div>
+
+          {/* Game cards */}
+          <div className="space-y-3">
+            {GAME_CARDS.map((game, i) => {
+              const played = gamesPlayedToday.includes(game.id);
+              return (
+                <motion.button
+                  key={game.id}
+                  custom={i}
+                  variants={cardVariants}
+                  initial="initial"
+                  animate="animate"
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    hapticPress();
+                    setScreen(game.screen);
+                  }}
+                  className="
+                    relative flex w-full items-center gap-4
+                    min-h-[100px] px-5 py-5
+                    rounded-2xl backdrop-blur-xl
+                    bg-white/[0.06] border border-white/10
+                    text-left transition-all duration-150
+                    active:scale-[0.98] active:bg-white/[0.08]
+                    overflow-hidden
+                  "
+                >
+                  {/* Color gradient overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-r ${GAME_COLORS[game.id] || ''} pointer-events-none`} />
+
+                  {/* Emoji */}
+                  <div className="relative text-[40px] leading-none shrink-0">
+                    {game.emoji}
+                  </div>
+
+                  {/* Text */}
+                  <div className="relative flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-[18px] text-white">{game.title}</h3>
+                      {played && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                          className="text-success text-sm"
+                        >
+                          ✓
+                        </motion.span>
+                      )}
+                    </div>
+                    <p className="text-[14px] text-white/50 mt-0.5">{game.description}</p>
+                  </div>
+
+                  {/* Arrow */}
+                  <span className="relative text-white/20 text-2xl shrink-0">›</span>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        <div className="space-y-4">
-          {GAME_CARDS.map((game, i) => (
-            <motion.button
-              key={game.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: i * 0.1 + 0.2,
-                type: 'spring' as const,
-                stiffness: 150,
-                damping: 20,
-              }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setScreen(game.screen)}
-              className="relative flex w-full items-center gap-4 p-5 rounded-3xl bg-card border-2 border-white/10 shadow-xl overflow-hidden active:bg-card/80"
-            >
-              {/* Card gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-card to-card/90 -z-10" />
-
-              <div className="text-4xl flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10 shrink-0">
-                {game.emoji}
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-bold text-xl text-foreground">{game.title}</h3>
-                <p className="text-sm text-muted">{game.description}</p>
-              </div>
-              {gamesPlayedToday.includes(game.id) && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute top-3 right-3 text-2xl"
-                >
-                  ✅
-                </motion.div>
-              )}
-              <span className="text-3xl text-muted font-light">›</span>
-            </motion.button>
-          ))}
-        </div>
+/** Fallback screen when no puzzle is available */
+function NoPuzzle({ language, onBack }: { language: string; onBack: () => void }) {
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0b] p-5">
+      <div className="text-center">
+        <div className="text-[64px] mb-4">😕</div>
+        <div className="text-white/70 text-[16px]">No puzzle available for {language}</div>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={onBack}
+          className="mt-6 rounded-xl bg-white/[0.06] border border-white/10 px-6 py-3 text-[15px] font-bold text-white transition-all active:scale-[0.98]"
+        >
+          Back to Menu
+        </motion.button>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * StreakBadge — Display streak with tier emoji.
+ * StreakBadge — Premium glass streak display with tier emoji.
  */
 
 import { motion } from 'framer-motion';
@@ -18,13 +18,13 @@ export function StreakBadge({ className = '' }: StreakBadgeProps) {
     <motion.div
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-      className={`inline-flex items-center gap-2 rounded-full bg-card px-4 py-1.5 shadow-md border border-white/10 ${className}`}
+      transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+      className={`inline-flex items-center gap-2.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/10 px-4 py-2 ${className}`}
     >
-      <span className="text-xl">{tier.emoji}</span>
+      <span className="text-[22px] leading-none">{tier.emoji}</span>
       <div className="flex flex-col items-start">
-        <span className="text-base font-bold leading-none text-foreground">{current} days</span>
-        <span className="text-xs leading-none text-muted">{tier.name}</span>
+        <span className="text-[15px] font-bold leading-none text-white">{current} days</span>
+        <span className="text-[12px] leading-none text-white/50 mt-0.5">{tier.name}</span>
       </div>
     </motion.div>
   );

@@ -1,5 +1,6 @@
 /**
- * OnboardingFlow — Language + difficulty selection for first-time users.
+ * OnboardingFlow — Premium dark glass language + difficulty selection.
+ * Full-height centered layout with large tappable glass cards.
  */
 
 import { useState } from 'react';
@@ -7,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '@/stores/user';
 import { hapticPress, hapticCorrect } from '@/lib/haptics';
 import { CEFR_LEVELS } from '@/lib/cefr';
-import { Globe, GraduationCap } from 'lucide-react';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -20,6 +20,36 @@ const LANGUAGES = [
 ];
 
 const DIFFICULTIES = ['A1', 'A2', 'B1', 'B2'] as const;
+
+const screenVariants = {
+  initial: { opacity: 0, x: 60, scale: 0.96 },
+  animate: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: { type: 'spring' as const, stiffness: 200, damping: 25 },
+  },
+  exit: {
+    opacity: 0,
+    x: -60,
+    scale: 0.96,
+    transition: { ease: 'easeOut' as const, duration: 0.25 },
+  },
+};
+
+const cardVariants = {
+  initial: { opacity: 0, y: 24 },
+  animate: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.08 + 0.15,
+      type: 'spring' as const,
+      stiffness: 180,
+      damping: 22,
+    },
+  }),
+};
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<'language' | 'difficulty'>('language');
@@ -34,7 +64,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setTimeout(() => {
       hapticCorrect();
       setStep('difficulty');
-    }, 400);
+    }, 350);
   };
 
   const handleDifficultySelect = (level: typeof DIFFICULTIES[number]) => {
@@ -45,35 +75,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       hapticCorrect();
       completeOnboarding();
       onComplete();
-    }, 400);
-  };
-
-  const screenVariants = {
-    initial: { opacity: 0, x: 50, scale: 0.95 },
-    animate: { opacity: 1, x: 0, scale: 1, transition: { type: 'spring' as const, stiffness: 200, damping: 25, duration: 0.5 } },
-    exit: { opacity: 0, x: -50, scale: 0.95, transition: { ease: 'easeOut' as const, duration: 0.3 } },
-  };
-
-  const itemVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: i * 0.1 + 0.2,
-        type: 'spring' as const,
-        stiffness: 150,
-        damping: 20,
-      },
-    }),
+    }, 350);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-background via-card/50 to-background opacity-50" />
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0b] px-5 py-8 relative overflow-hidden">
+      {/* Subtle ambient glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-primary/[0.06] blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md z-10">
+      <div className="w-full max-w-sm z-10">
         <AnimatePresence mode="wait">
           {step === 'language' ? (
             <motion.div
@@ -82,57 +92,54 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="space-y-6"
+              className="space-y-8"
             >
-              <div className="text-center mb-8">
+              {/* Header */}
+              <div className="text-center">
                 <motion.div
-                  initial={{ scale: 0, rotate: -90 }}
+                  initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
-                  className="mb-6 text-primary flex justify-center"
+                  transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.05 }}
+                  className="text-[80px] leading-none mb-5"
                 >
-                  <Globe size={80} strokeWidth={1.5} />
+                  🌍
                 </motion.div>
-                <h1 className="mb-3 text-3xl font-extrabold text-foreground leading-tight">
-                  Which language are you learning?
+                <h1 className="text-[28px] font-extrabold text-white leading-tight tracking-tight">
+                  What are you learning?
                 </h1>
-                <p className="text-sm text-muted">
-                  Choose your target language to get started on your journey!
+                <p className="mt-2 text-[15px] text-white/50">
+                  Choose your target language
                 </p>
               </div>
 
-              <div className="space-y-4">
+              {/* Language cards */}
+              <div className="space-y-3">
                 {LANGUAGES.map((lang, i) => (
                   <motion.button
                     key={lang.code}
-                    variants={itemVariants}
                     custom={i}
+                    variants={cardVariants}
                     initial="initial"
                     animate="animate"
-                    whileTap={{ scale: 0.96 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => handleLanguageSelect(lang.code)}
                     className={`
-                      flex w-full items-center gap-4 p-5 rounded-2xl border-2
-                      bg-card shadow-lg transition-all duration-200
+                      flex w-full items-center gap-4 min-h-[76px] px-5 py-4
+                      rounded-2xl backdrop-blur-xl
+                      border transition-all duration-150
+                      active:scale-[0.98]
                       ${selectedLang === lang.code
-                        ? 'border-primary bg-primary/20'
-                        : 'border-white/10 active:bg-card/80'
+                        ? 'bg-white/[0.12] border-primary/60 shadow-glow-sm'
+                        : 'bg-white/[0.06] border-white/10 hover:bg-white/[0.08]'
                       }
                     `}
                   >
-                    <span className="text-4xl">{lang.flag}</span>
+                    <span className="text-[48px] leading-none shrink-0">{lang.flag}</span>
                     <div className="flex-1 text-left">
-                      <div className="font-bold text-lg text-foreground">{lang.name}</div>
-                      <div className="text-sm text-muted">{lang.native}</div>
+                      <div className="font-bold text-[18px] text-white">{lang.name}</div>
+                      <div className="text-[14px] text-white/50">{lang.native}</div>
                     </div>
-                    <motion.span
-                      initial={{ x: 0 }}
-                      animate={{ x: selectedLang === lang.code ? 5 : 0 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                      className="text-2xl text-muted"
-                    >
-                      ›
-                    </motion.span>
+                    <span className="text-white/20 text-2xl shrink-0">›</span>
                   </motion.button>
                 ))}
               </div>
@@ -144,64 +151,61 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="space-y-6"
+              className="space-y-8"
             >
-              <div className="text-center mb-8">
+              {/* Header */}
+              <div className="text-center">
                 <motion.div
-                  initial={{ scale: 0, rotate: 90 }}
+                  initial={{ scale: 0, rotate: 20 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
-                  className="mb-6 text-primary flex justify-center"
+                  transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.05 }}
+                  className="text-[80px] leading-none mb-5"
                 >
-                  <GraduationCap size={80} strokeWidth={1.5} />
+                  📚
                 </motion.div>
-                <h1 className="mb-3 text-3xl font-extrabold text-foreground leading-tight">
-                  What's your current level?
+                <h1 className="text-[28px] font-extrabold text-white leading-tight tracking-tight">
+                  What's your level?
                 </h1>
-                <p className="text-sm text-muted">
-                  Don't worry — you can change this anytime in settings
+                <p className="mt-2 text-[15px] text-white/50">
+                  You can change this anytime
                 </p>
               </div>
 
-              <div className="space-y-4">
+              {/* Difficulty cards */}
+              <div className="space-y-3">
                 {DIFFICULTIES.map((level, i) => {
                   const config = CEFR_LEVELS[level];
                   return (
                     <motion.button
                       key={level}
-                      variants={itemVariants}
                       custom={i}
+                      variants={cardVariants}
                       initial="initial"
                       animate="animate"
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => handleDifficultySelect(level)}
                       className={`
-                        flex w-full items-center gap-4 p-5 rounded-2xl border-2
-                        bg-card shadow-lg transition-all duration-200
+                        flex w-full items-center gap-4 min-h-[76px] px-5 py-4
+                        rounded-2xl backdrop-blur-xl
+                        border transition-all duration-150
+                        active:scale-[0.98]
                         ${selectedDifficulty === level
-                          ? 'border-primary bg-primary/20'
-                          : 'border-white/10 active:bg-card/80'
+                          ? 'bg-white/[0.12] border-primary/60 shadow-glow-sm'
+                          : 'bg-white/[0.06] border-white/10 hover:bg-white/[0.08]'
                         }
                       `}
                     >
                       <div
-                        className="h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md"
+                        className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-base shrink-0 shadow-lg"
                         style={{ backgroundColor: config.colour }}
                       >
                         {level}
                       </div>
                       <div className="flex-1 text-left">
-                        <div className="font-bold text-lg text-foreground">{config.label}</div>
-                        <div className="text-sm text-muted">{config.description}</div>
+                        <div className="font-bold text-[18px] text-white">{config.label}</div>
+                        <div className="text-[13px] text-white/50 leading-snug">{config.description}</div>
                       </div>
-                      <motion.span
-                        initial={{ x: 0 }}
-                        animate={{ x: selectedDifficulty === level ? 5 : 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="text-2xl text-muted"
-                      >
-                        ›
-                      </motion.span>
+                      <span className="text-white/20 text-2xl shrink-0">›</span>
                     </motion.button>
                   );
                 })}
