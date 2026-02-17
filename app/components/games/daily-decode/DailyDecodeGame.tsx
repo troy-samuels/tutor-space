@@ -47,6 +47,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
   }));
 
   const [copied, setCopied] = React.useState(false);
+  const [showInlineHint, setShowInlineHint] = React.useState(true);
 
   // Compute used letters (letters already assigned as guesses)
   const usedLetters = React.useMemo(() => {
@@ -121,6 +122,9 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
 
         if (isWrong) haptic("error");
         else haptic("tap");
+
+        // Hide inline hint after first mapping
+        setShowInlineHint(false);
 
         // Check for win
         const won = checkWin(newMappings, prev.hintedLetters, prev.cipher);
@@ -255,6 +259,21 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
           💡 Hints: {gameState.hintsUsed}/{MAX_HINTS}
         </Badge>
       </div>
+
+      {/* Inline helper hint — fades after first mapping */}
+      <AnimatePresence>
+        {showInlineHint && !gameState.isComplete && (
+          <motion.p
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-xs text-center"
+            style={{ color: "var(--game-text-muted)" }}
+          >
+            💡 Tap any letter below, then type what you think it really is
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {/* Cipher text display */}
       <div className="rounded-2xl border border-border/50 bg-card/50 p-3">

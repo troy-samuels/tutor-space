@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
+import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import DailyDecodeGame from "@/components/games/daily-decode/DailyDecodeGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
@@ -67,6 +68,8 @@ export default function DailyDecodePage() {
       isWon={endState.isWon}
       mistakes={endState.mistakes}
     >
+      <HowToPlay gameSlug="daily-decode" gameName="Daily Decode" />
+
       {/* Language selector */}
       <LanguageSelector
         languages={SUPPORTED_GAME_LANGUAGES}

@@ -71,7 +71,7 @@ export default function WordInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder="Type next word..."
+          placeholder="Change 1 letter..."
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}

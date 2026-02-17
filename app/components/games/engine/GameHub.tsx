@@ -23,41 +23,73 @@ const GAMES = [
     slug: "connections",
     name: "Lingua Connections",
     description: "Group 16 words into 4 hidden categories",
-    accent: "#FDE047",
-    accentGlow: "rgba(253, 224, 71, 0.15)",
+    accent: "#C4A835",
+    accentGlow: "rgba(196, 168, 53, 0.08)",
     tagline: "Find the link",
   },
   {
     slug: "strands",
     name: "Lingua Strands",
     description: "Find themed words hidden in a letter grid",
-    accent: "#60A5FA",
-    accentGlow: "rgba(96, 165, 250, 0.15)",
+    accent: "#4A7EC5",
+    accentGlow: "rgba(74, 126, 197, 0.08)",
     tagline: "Trace the path",
   },
   {
     slug: "spell-cast",
     name: "Spell Cast",
     description: "Form words from 7 letters in a honeycomb",
-    accent: "#4ADE80",
-    accentGlow: "rgba(74, 222, 128, 0.15)",
+    accent: "#4A8C5C",
+    accentGlow: "rgba(74, 140, 92, 0.08)",
     tagline: "Unlock the hive",
   },
   {
     slug: "speed-clash",
     name: "Speed Clash",
     description: "Pick natural responses in 60 seconds",
-    accent: "#F87171",
-    accentGlow: "rgba(248, 113, 113, 0.15)",
+    accent: "#DC3545",
+    accentGlow: "rgba(220, 53, 69, 0.08)",
     tagline: "Beat the clock",
   },
   {
     slug: "daily-decode",
     name: "Daily Decode",
     description: "Fill blanks in an unfolding mystery story",
-    accent: "#C084FC",
-    accentGlow: "rgba(192, 132, 252, 0.15)",
+    accent: "#8B5CB5",
+    accentGlow: "rgba(139, 92, 181, 0.08)",
     tagline: "Solve the mystery",
+  },
+  {
+    slug: "word-ladder",
+    name: "Word Ladder",
+    description: "Change one letter at a time",
+    accent: "#0D9668",
+    accentGlow: "rgba(13, 150, 104, 0.08)",
+    tagline: "Climb the chain",
+  },
+  {
+    slug: "odd-one-out",
+    name: "Odd One Out",
+    description: "Spot the word that doesn't belong",
+    accent: "#D48C09",
+    accentGlow: "rgba(212, 140, 9, 0.08)",
+    tagline: "Trust your instincts",
+  },
+  {
+    slug: "missing-piece",
+    name: "Missing Piece",
+    description: "Fill in the missing word",
+    accent: "#C93D82",
+    accentGlow: "rgba(201, 61, 130, 0.08)",
+    tagline: "Complete the sentence",
+  },
+  {
+    slug: "synonym-spiral",
+    name: "Synonym Spiral",
+    description: "Climb the tower of synonyms",
+    accent: "#7C4FD0",
+    accentGlow: "rgba(124, 79, 208, 0.08)",
+    tagline: "Expand your vocabulary",
   },
 ] as const;
 
@@ -88,36 +120,12 @@ function HeroGameCard({
       <div
         className="relative h-full w-full overflow-hidden"
         style={{
-          background: `linear-gradient(145deg, #1A2333 0%, #0F1520 100%)`,
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: "#FFFFFF",
+          border: "1px solid rgba(0, 0, 0, 0.08)",
           borderRadius: "24px",
-          boxShadow: `0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 0 ${game.accentGlow}`,
+          boxShadow: `0 2px 12px rgba(0, 0, 0, 0.06)`,
         }}
       >
-        {/* Inner glow — top radial */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `radial-gradient(circle at 50% 0%, ${game.accentGlow} 0%, transparent 60%)`,
-            borderRadius: "24px",
-          }}
-          aria-hidden
-        />
-
-        {/* Floating accent orb — subtle background energy */}
-        <div
-          className="pointer-events-none absolute animate-pulse"
-          style={{
-            width: "120px",
-            height: "120px",
-            right: "-20px",
-            top: "-20px",
-            background: `radial-gradient(circle, ${game.accentGlow} 0%, transparent 70%)`,
-            borderRadius: "50%",
-            opacity: 0.6,
-          }}
-          aria-hidden
-        />
 
         {/* Content layout */}
         <div className="relative z-10 flex h-full items-center px-6 gap-5">
@@ -125,9 +133,8 @@ function HeroGameCard({
           <div
             className="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-2xl"
             style={{
-              background: `rgba(255, 255, 255, 0.05)`,
-              border: `1px solid rgba(255, 255, 255, 0.08)`,
-              boxShadow: `0 0 20px ${game.accentGlow}`,
+              background: `rgba(0, 0, 0, 0.03)`,
+              border: `1px solid rgba(0, 0, 0, 0.06)`,
             }}
           >
             {IconComponent ? <IconComponent size={36} /> : null}
@@ -145,14 +152,14 @@ function HeroGameCard({
             {/* Game name */}
             <h3
               className="text-xl font-extrabold tracking-tight leading-tight"
-              style={{ color: "#F1F5F9" }}
+              style={{ color: "#1A1A1B" }}
             >
               {game.name}
             </h3>
             {/* Description */}
             <p
               className="text-[13px] mt-1 leading-snug"
-              style={{ color: "#94A3B8" }}
+              style={{ color: "#5A5A5C" }}
             >
               {game.description}
             </p>
@@ -189,7 +196,7 @@ function HeroGameCard({
                 className="play-button flex items-center justify-center w-12 h-12 rounded-full"
                 style={{
                   background: game.accent,
-                  boxShadow: `0 0 20px ${game.accentGlow}, 0 4px 12px rgba(0,0,0,0.3)`,
+                  boxShadow: `0 2px 8px rgba(0,0,0,0.12)`,
                 }}
               >
                 <svg
@@ -201,8 +208,8 @@ function HeroGameCard({
                 >
                   <path
                     d="M5 3L19 12L5 21V3Z"
-                    fill="#080C14"
-                    stroke="#080C14"
+                    fill="#FFFFFF"
+                    stroke="#FFFFFF"
                     strokeWidth="2"
                     strokeLinejoin="round"
                   />
@@ -216,7 +223,7 @@ function HeroGameCard({
         <div
           className="absolute bottom-0 left-6 right-6 h-[2px]"
           style={{
-            background: `linear-gradient(90deg, transparent, ${game.accent}40, transparent)`,
+            background: `linear-gradient(90deg, transparent, ${game.accent}25, transparent)`,
           }}
           aria-hidden
         />
@@ -282,10 +289,10 @@ export default function GameHub() {
         delay: 0.6,
       });
 
-      // Play button pulse — CSS animation triggered after entrance
+      // Play button pulse — subtle shadow pulse
       gsap.to(".play-button", {
         boxShadow:
-          "0 0 30px rgba(255,215,0,0.4), 0 4px 12px rgba(0,0,0,0.3)",
+          "0 4px 16px rgba(0,0,0,0.15)",
         repeat: -1,
         yoyo: true,
         duration: 1.5,
@@ -300,16 +307,7 @@ export default function GameHub() {
     gameStatuses[slug] ?? "unplayed";
 
   return (
-    <div ref={containerRef} className="dark min-h-[100dvh] game-canvas">
-      {/* Radial gradient spotlight — deep void with gold warmth */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 20%, rgba(255,215,0,0.04) 0%, transparent 60%)",
-        }}
-        aria-hidden
-      />
+    <div ref={containerRef} className="min-h-[100dvh] game-canvas">
 
       <div
         className={cn(
@@ -325,18 +323,18 @@ export default function GameHub() {
           <div>
             <h1
               className="text-2xl font-extrabold tracking-tight"
-              style={{ color: "#F1F5F9" }}
+              style={{ color: "#1A1A1B" }}
             >
               Games
             </h1>
             <p
               className="text-[12px] mt-0.5"
-              style={{ color: "#64748B" }}
+              style={{ color: "#939598" }}
             >
               {Object.values(gameStatuses).filter(
                 (s) => s === "won" || s === "played",
               ).length}
-              /5 completed today
+              /{GAMES.length} completed today
             </p>
           </div>
 
@@ -346,12 +344,12 @@ export default function GameHub() {
             style={{
               background:
                 streak.current > 0
-                  ? "linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(251,191,36,0.1) 100%)"
-                  : "rgba(255,255,255,0.05)",
+                  ? "linear-gradient(135deg, rgba(230,126,34,0.08) 0%, rgba(201,180,88,0.06) 100%)"
+                  : "rgba(0,0,0,0.03)",
               border:
                 streak.current > 0
-                  ? "1px solid rgba(249,115,22,0.2)"
-                  : "1px solid rgba(255,255,255,0.06)",
+                  ? "1px solid rgba(230,126,34,0.15)"
+                  : "1px solid rgba(0,0,0,0.06)",
             }}
           >
             <span className="text-lg" role="img" aria-label="streak">
@@ -362,14 +360,14 @@ export default function GameHub() {
                 className="text-base font-extrabold tabular-nums leading-none"
                 style={{
                   color:
-                    streak.current > 0 ? "#F97316" : "#64748B",
+                    streak.current > 0 ? "#E67E22" : "#939598",
                 }}
               >
                 {streak.current}
               </span>
               <span
                 className="text-[9px] font-medium uppercase tracking-wider"
-                style={{ color: "#64748B" }}
+                style={{ color: "#939598" }}
               >
                 {streak.current === 1
                   ? "day"
@@ -385,14 +383,14 @@ export default function GameHub() {
         <div className="px-5 mb-4">
           <h2
             className="text-[11px] font-bold uppercase tracking-[0.15em]"
-            style={{ color: "#475569" }}
+            style={{ color: "#939598" }}
           >
             Today&apos;s Puzzles
           </h2>
         </div>
 
         {/* ——— Hero Cards — the main event ——— */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3">
           {GAMES.map((game, i) => (
             <HeroGameCard
               key={game.slug}
@@ -407,16 +405,16 @@ export default function GameHub() {
         <div className="stats-card mt-8 mx-5">
           <h2
             className="text-[11px] font-bold uppercase tracking-[0.15em] mb-3"
-            style={{ color: "#475569" }}
+            style={{ color: "#939598" }}
           >
             Your Progress
           </h2>
           <div
             className="rounded-2xl p-5 flex items-center justify-around"
             style={{
-              background: "linear-gradient(145deg, #1A2333 0%, #0F1520 100%)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+              background: "#FFFFFF",
+              border: "1px solid rgba(0,0,0,0.08)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
             }}
           >
             {/* CEFR Level */}
@@ -424,21 +422,21 @@ export default function GameHub() {
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{
-                  background: "rgba(252,211,77,0.1)",
-                  border: "1px solid rgba(252,211,77,0.15)",
+                  background: "rgba(196,168,53,0.08)",
+                  border: "1px solid rgba(196,168,53,0.12)",
                 }}
               >
                 <StatBrainIcon size={22} />
               </div>
               <span
                 className="text-lg font-extrabold"
-                style={{ color: "#FCD34D" }}
+                style={{ color: "#C4A835" }}
               >
                 B1
               </span>
               <span
                 className="text-[10px] font-medium"
-                style={{ color: "#64748B" }}
+                style={{ color: "#939598" }}
               >
                 Level
               </span>
@@ -447,7 +445,7 @@ export default function GameHub() {
             {/* Divider */}
             <div
               className="w-px h-14"
-              style={{ background: "rgba(255,255,255,0.06)" }}
+              style={{ background: "rgba(0,0,0,0.06)" }}
             />
 
             {/* Words mastered */}
@@ -455,21 +453,21 @@ export default function GameHub() {
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{
-                  background: "rgba(96,165,250,0.1)",
-                  border: "1px solid rgba(96,165,250,0.15)",
+                  background: "rgba(74,126,197,0.08)",
+                  border: "1px solid rgba(74,126,197,0.12)",
                 }}
               >
                 <StatWordsIcon size={22} />
               </div>
               <span
                 className="text-lg font-extrabold tabular-nums"
-                style={{ color: "#60A5FA" }}
+                style={{ color: "#4A7EC5" }}
               >
                 247
               </span>
               <span
                 className="text-[10px] font-medium"
-                style={{ color: "#64748B" }}
+                style={{ color: "#939598" }}
               >
                 Words
               </span>
@@ -478,7 +476,7 @@ export default function GameHub() {
             {/* Divider */}
             <div
               className="w-px h-14"
-              style={{ background: "rgba(255,255,255,0.06)" }}
+              style={{ background: "rgba(0,0,0,0.06)" }}
             />
 
             {/* Streak */}
@@ -486,21 +484,21 @@ export default function GameHub() {
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{
-                  background: "rgba(249,115,22,0.1)",
-                  border: "1px solid rgba(249,115,22,0.15)",
+                  background: "rgba(230,126,34,0.08)",
+                  border: "1px solid rgba(230,126,34,0.12)",
                 }}
               >
                 <StatStreakIcon size={22} />
               </div>
               <span
                 className="text-lg font-extrabold tabular-nums"
-                style={{ color: "#F97316" }}
+                style={{ color: "#E67E22" }}
               >
                 {streak.current}
               </span>
               <span
                 className="text-[10px] font-medium"
-                style={{ color: "#64748B" }}
+                style={{ color: "#939598" }}
               >
                 Streak
               </span>
@@ -511,7 +509,7 @@ export default function GameHub() {
         {/* Footer */}
         <p
           className="mt-6 text-center text-[10px]"
-          style={{ color: "#475569", opacity: 0.5 }}
+          style={{ color: "#939598", opacity: 0.5 }}
         >
           TutorLingua · New puzzles daily
         </p>

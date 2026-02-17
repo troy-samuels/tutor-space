@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
+import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import ConnectionsGame from "@/components/games/connections/ConnectionsGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
@@ -68,6 +69,8 @@ export default function ConnectionsPage() {
       isWon={endState.isWon}
       mistakes={endState.mistakes}
     >
+      <HowToPlay gameSlug="connections" gameName="Lingua Connections" />
+
       {/* Language selector */}
       <LanguageSelector
         languages={SUPPORTED_GAME_LANGUAGES}

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
+import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import SynonymSpiralGame from "@/components/games/synonym-spiral/SynonymSpiralGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
@@ -78,6 +79,8 @@ export default function SynonymSpiralPage() {
       isWon={endState.isWon}
       mistakes={endState.mistakes}
     >
+      <HowToPlay gameSlug="synonym-spiral" gameName="Synonym Spiral" />
+
       {/* Language selector */}
       <LanguageSelector
         languages={SUPPORTED_SPIRAL_LANGUAGES}

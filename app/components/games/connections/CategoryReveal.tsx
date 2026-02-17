@@ -22,31 +22,31 @@ const COLOUR_MAP: Record<
   { bg: string; border: string; text: string; glow: string; label: string }
 > = {
   yellow: {
-    bg: "#FDE047",
-    border: "#EAB308",
-    text: "#080C14",
-    glow: "rgba(253, 224, 71, 0.3)",
+    bg: "#F9DF6D",
+    border: "#D4B62C",
+    text: "#1A1A1B",
+    glow: "rgba(249, 223, 109, 0.15)",
     label: "🟨",
   },
   green: {
-    bg: "#4ADE80",
-    border: "#22C55E",
-    text: "#080C14",
-    glow: "rgba(74, 222, 128, 0.3)",
+    bg: "#6AAA64",
+    border: "#538D4E",
+    text: "#FFFFFF",
+    glow: "rgba(106, 170, 100, 0.15)",
     label: "🟩",
   },
   blue: {
-    bg: "#60A5FA",
-    border: "#3B82F6",
-    text: "#080C14",
-    glow: "rgba(96, 165, 250, 0.3)",
+    bg: "#85C0F9",
+    border: "#5A9BD5",
+    text: "#1A1A1B",
+    glow: "rgba(133, 192, 249, 0.15)",
     label: "🟦",
   },
   purple: {
-    bg: "#C084FC",
-    border: "#A855F7",
-    text: "#080C14",
-    glow: "rgba(192, 132, 252, 0.3)",
+    bg: "#B484D6",
+    border: "#8B5CB5",
+    text: "#FFFFFF",
+    glow: "rgba(180, 132, 214, 0.15)",
     label: "🟪",
   },
 };
@@ -82,7 +82,7 @@ export default function CategoryReveal({
       style={{
         background: colours.bg,
         borderBottom: `4px solid ${colours.border}`,
-        boxShadow: `0 0 20px ${colours.glow}, 0 4px 12px rgba(0,0,0,0.2)`,
+        boxShadow: `0 2px 8px ${colours.glow}, 0 2px 6px rgba(0,0,0,0.08)`,
       }}
     >
       <div className="flex items-center gap-2">

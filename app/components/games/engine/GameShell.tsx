@@ -176,7 +176,7 @@ export default function GameShell({
   return (
     <div
       ref={shellRef}
-      className={cn("dark min-h-[100dvh] game-canvas game-mode", inTg && "tg-content-safe-top")}
+      className={cn("min-h-[100dvh] game-canvas game-mode", inTg && "tg-content-safe-top")}
       dir={rtl ? "rtl" : "ltr"}
     >
       {/* Nav — hidden in Telegram (BackButton replaces it) */}
@@ -184,7 +184,7 @@ export default function GameShell({
         <nav
           className="px-4 py-3"
           style={{
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(0,0,0,0.08)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -213,7 +213,7 @@ export default function GameShell({
               {streak.current > 0 && (
                 <Badge
                   variant="outline"
-                  className="gap-1 text-xs border-[rgba(255,255,255,0.08)]"
+                  className="gap-1 text-xs border-[rgba(0,0,0,0.1)]"
                   style={{ color: "var(--game-text-secondary)" }}
                 >
                   {streakTier.emoji} {streak.current}
@@ -262,7 +262,7 @@ export default function GameShell({
       </header>
 
       {/* Game Content — full width */}
-      <main className={cn("game-content px-4", inTg ? "pb-20" : "pb-24")}>
+      <main className={cn("game-content px-5 pt-4", inTg ? "pb-20" : "pb-24")}>
         {children}
       </main>
 
@@ -275,10 +275,10 @@ export default function GameShell({
             transition={{ delay: 0.5, duration: 0.4 }}
             className="fixed inset-x-0 bottom-0 z-50 px-4 py-4"
             style={{
-              background: "rgba(8, 12, 20, 0.85)",
+              background: "rgba(255, 255, 255, 0.92)",
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
-              borderTop: "1px solid rgba(255,255,255,0.06)",
+              borderTop: "1px solid rgba(0,0,0,0.08)",
               paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
             }}
           >
@@ -298,7 +298,7 @@ export default function GameShell({
                   onClick={onExplainMistakes}
                   variant="outline"
                   size="lg"
-                  className="w-full rounded-xl min-h-[48px] border-[rgba(255,255,255,0.08)] text-[var(--game-text-secondary)]"
+                  className="w-full rounded-xl min-h-[48px] border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)]"
                 >
                   🧠 Explain My Mistakes
                 </Button>
@@ -317,7 +317,7 @@ export default function GameShell({
             transition={{ delay: 0.6 }}
             className="fixed inset-x-0 bottom-0 z-50 px-4 py-3"
             style={{
-              background: "rgba(8, 12, 20, 0.9)",
+              background: "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
               paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
@@ -327,7 +327,7 @@ export default function GameShell({
               onClick={onExplainMistakes}
               variant="outline"
               size="lg"
-              className="w-full rounded-xl min-h-[48px] border-[rgba(255,255,255,0.08)] text-[var(--game-text-secondary)]"
+              className="w-full rounded-xl min-h-[48px] border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)]"
             >
               🧠 Explain My Mistakes
             </Button>

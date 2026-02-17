@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
+import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import MissingPieceGame from "@/components/games/missing-piece/MissingPieceGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
@@ -68,6 +69,8 @@ export default function MissingPiecePage() {
       isWon={endState.isWon}
       mistakes={endState.mistakes}
     >
+      <HowToPlay gameSlug="missing-piece" gameName="Missing Piece" />
+
       {/* Language selector */}
       <LanguageSelector
         languages={SUPPORTED_GAME_LANGUAGES}

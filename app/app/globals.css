@@ -401,35 +401,36 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 /* These work both inside .tg-app (Telegram) and standalone (web fallback via .dark) */
 
 .tg-app,
-.dark {
-  /* Canvas colours */
-  --game-bg-deep: #080C14;
-  --game-bg-primary: #0F1520;
-  --game-bg-surface: #161D2E;
-  --game-bg-elevated: #1E2740;
-  --game-bg-active: #253050;
+.dark,
+:root {
+  /* Canvas colours — NYT Games inspired light theme */
+  --game-bg-deep: #F0F0EE;
+  --game-bg-primary: #F7F7F5;
+  --game-bg-surface: #FFFFFF;
+  --game-bg-elevated: #F0F0EE;
+  --game-bg-active: #E2E2E0;
 
-  /* Game semantic colours (Connections difficulty) */
-  --game-yellow: #FDE047;
-  --game-green: #4ADE80;
-  --game-blue: #60A5FA;
-  --game-purple: #C084FC;
+  /* Game semantic colours — slightly muted for light bg */
+  --game-yellow: #C4A835;
+  --game-green: #4A8C5C;
+  --game-blue: #4A7EC5;
+  --game-purple: #8B5CB5;
 
-  /* State colours */
-  --game-correct: #4ADE80;
-  --game-wrong: #F87171;
-  --game-warning: #FBBF24;
-  --game-streak: #F97316;
+  /* State colours — keep vibrant for feedback */
+  --game-correct: #6AAA64;
+  --game-wrong: #DC3545;
+  --game-warning: #C9B458;
+  --game-streak: #E67E22;
 
-  /* Text */
-  --game-text-primary: #F1F5F9;
-  --game-text-secondary: #94A3B8;
-  --game-text-muted: #475569;
-  --game-text-accent: #FCD34D;
+  /* Text — dark on light */
+  --game-text-primary: #1A1A1B;
+  --game-text-secondary: #5A5A5C;
+  --game-text-muted: #939598;
+  --game-text-accent: #6AAA64;
 
-  /* Glow / depth */
-  --game-glow-primary: radial-gradient(ellipse at 50% 40%, rgba(252,211,77,0.08) 0%, transparent 70%);
-  --game-shadow-glow: 0 0 20px rgba(252,211,77,0.2);
+  /* Glow / depth — subtle shadows instead of glows */
+  --game-glow-primary: none;
+  --game-shadow-glow: 0 2px 8px rgba(0,0,0,0.08);
 
   /* Animation easings */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -447,11 +448,11 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .game-glow {
-  background: var(--game-glow-primary);
+  background: none;
 }
 
 .game-text-glow {
-  text-shadow: 0 0 20px rgba(252,211,77,0.3), 0 0 40px rgba(252,211,77,0.1);
+  text-shadow: none;
 }
 
 /* Game-specific keyframes */
@@ -461,8 +462,8 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 @keyframes game-pulse-glow {
-  0%, 100% { box-shadow: 0 0 12px rgba(252,211,77,0.15); }
-  50% { box-shadow: 0 0 24px rgba(252,211,77,0.3); }
+  0%, 100% { box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  50% { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 }
 
 .animate-game-shimmer {
@@ -485,7 +486,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   --card-foreground: var(--game-text-primary);
   --muted: var(--game-bg-surface);
   --muted-foreground: var(--game-text-secondary);
-  --border: rgba(255, 255, 255, 0.06);
+  --border: rgba(0, 0, 0, 0.1);
 
   /* MEDIUM-1: Spacing tokens */
   --space-xs: 4px;
@@ -503,12 +504,12 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   --tab-height: 56px;
 
   /* MEDIUM-1: Elevation */
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
 
   /* MEDIUM-1: Surface gradient */
-  --surface-gradient: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+  --surface-gradient: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, transparent 100%);
 
   /* HIGH-6: Game typography — Inter Tight for display, Inter for body */
   font-family: 'Inter', 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;

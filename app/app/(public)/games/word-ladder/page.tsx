@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
+import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import WordLadderGame from "@/components/games/word-ladder/WordLadderGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
@@ -67,6 +68,8 @@ export default function WordLadderPage() {
       isWon={endState.isWon}
       mistakes={endState.mistakes}
     >
+      <HowToPlay gameSlug="word-ladder" gameName="Word Ladder" />
+
       {/* Language selector */}
       <LanguageSelector
         languages={SUPPORTED_GAME_LANGUAGES}

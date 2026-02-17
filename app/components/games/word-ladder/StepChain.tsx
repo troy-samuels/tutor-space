@@ -8,6 +8,7 @@ interface StepChainProps {
   steps: string[];
   targetWord: string;
   isComplete: boolean;
+  par?: number;
 }
 
 const springTransition = {
@@ -21,6 +22,7 @@ export default function StepChain({
   steps,
   targetWord,
   isComplete,
+  par,
 }: StepChainProps) {
   return (
     <div className="flex flex-col items-center gap-0">
@@ -66,14 +68,21 @@ export default function StepChain({
         ))}
       </AnimatePresence>
 
-      {/* Empty slots (placeholder) */}
-      {!isComplete && steps.length === 0 && (
+      {/* Empty slots (placeholder) — show steps remaining */}
+      {!isComplete && (
         <motion.div
           layout
           className="flex flex-col items-center"
         >
-          <div className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border border-dashed border-white/[0.1] px-4 text-base text-muted-foreground/40">
-            ???
+          <div className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border border-dashed border-white/[0.1] px-4 text-sm text-muted-foreground/50 gap-1.5">
+            {par != null ? (
+              <>
+                <span className="text-base">🪜</span>
+                <span>{Math.max(0, (par ?? 0) - steps.length)} step{(par ?? 0) - steps.length !== 1 ? "s" : ""} to go</span>
+              </>
+            ) : (
+              "???"
+            )}
           </div>
           <div className="flex h-6 w-px items-center justify-center bg-border/30">
             <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />

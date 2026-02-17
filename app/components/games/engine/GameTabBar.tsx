@@ -54,7 +54,7 @@ export default function GameTabBar({ activeTab = "play", onTabChange }: GameTabB
           style={{
             background: "var(--game-bg-elevated)",
             color: "var(--game-text-secondary)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid rgba(0,0,0,0.08)",
           }}
         >
           Coming soon ✨
@@ -68,10 +68,10 @@ export default function GameTabBar({ activeTab = "play", onTabChange }: GameTabB
         style={{
           height: "calc(56px + env(safe-area-inset-bottom, 0px))",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          background: "rgba(15, 21, 32, 0.85)",
+          background: "rgba(255, 255, 255, 0.92)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid rgba(0,0,0,0.08)",
         }}
       >
         <div className="flex h-14 items-stretch">

@@ -155,6 +155,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
         steps={gameState.steps}
         targetWord={puzzle.targetWord}
         isComplete={gameState.isComplete}
+        par={puzzle.par}
       />
 
       {/* Input area */}

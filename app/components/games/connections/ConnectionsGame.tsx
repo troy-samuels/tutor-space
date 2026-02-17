@@ -366,7 +366,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
       />
 
       {/* Mistake dots — Design Bible: 10px, prominent, spaced */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-2 mb-4">
         <span className="text-xs font-medium" style={{ color: "var(--game-text-secondary)" }}>
           Mistakes:
         </span>
@@ -378,7 +378,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 "h-2.5 w-2.5 rounded-full transition-colors duration-200",
                 i < gameState.mistakes
                   ? "bg-[var(--game-wrong)]"
-                  : "bg-white/[0.1]",
+                  : "bg-black/[0.08]",
               )}
             />
           ))}
@@ -415,7 +415,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
 
       {/* Word Grid — Design Bible: 6px gap, 8px radius tiles */}
       {gameState.remainingWords.length > 0 && (
-        <div className="grid grid-cols-4 gap-1.5" role="grid">
+        <div className="grid grid-cols-4 gap-2" role="grid">
           {gameState.remainingWords.map((word) => (
             <WordTile
               key={word}
@@ -432,12 +432,12 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
       {/* Action buttons — glass effect, sticky at bottom */}
       {!gameState.isComplete && (
         <div
-          className="sticky bottom-0 z-10 -mx-4 mt-3 px-4 py-3"
+          className="sticky bottom-0 z-10 -mx-4 mt-5 px-4 py-3"
           style={{
-            background: "rgba(8, 12, 20, 0.85)",
+            background: "rgba(255, 255, 255, 0.92)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
-            borderTop: "1px solid rgba(255,255,255,0.06)",
+            borderTop: "1px solid rgba(0,0,0,0.08)",
             paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
           }}
         >
@@ -494,7 +494,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
               className="rounded-2xl p-6 text-center"
               style={{
                 background: "var(--game-bg-surface)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                border: "1px solid rgba(0,0,0,0.06)",
               }}
             >
               <div className="text-4xl">
@@ -602,8 +602,8 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 "w-full rounded-xl py-3.5 font-bold text-sm min-h-[48px]",
                 "transition-all duration-200",
                 copied
-                  ? "bg-[var(--game-correct)] text-[#080C14]"
-                  : "animate-game-shimmer bg-gradient-to-r from-[var(--game-text-accent)] via-[#FDE68A] to-[var(--game-text-accent)] text-[#080C14]",
+                  ? "bg-[var(--game-correct)] text-white"
+                  : "bg-[var(--game-text-accent)] text-white hover:opacity-90",
               )}
             >
               {copied ? "✓ Copied!" : "📋 Share Result"}
@@ -615,7 +615,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 onClick={() => setShowExplanations((prev) => !prev)}
                 variant="outline"
                 size="lg"
-                className="w-full rounded-xl border-[rgba(255,255,255,0.08)] text-[var(--game-text-secondary)] hover:text-[var(--game-text-primary)] hover:bg-[var(--game-bg-elevated)]"
+                className="w-full rounded-xl border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)] hover:text-[var(--game-text-primary)] hover:bg-[var(--game-bg-elevated)]"
               >
                 {showExplanations ? "Hide Explanations" : "🧠 Explain My Mistakes"}
               </Button>
@@ -636,7 +636,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                       className="rounded-xl p-4"
                       style={{
                         background: "var(--game-bg-elevated)",
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(0,0,0,0.06)",
                       }}
                     >
                       <h4

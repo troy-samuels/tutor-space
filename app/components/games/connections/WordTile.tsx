@@ -30,28 +30,28 @@ const DIFFICULTY_COLOURS: Record<
   { bg: string; border: string; text: string; glow: string }
 > = {
   yellow: {
-    bg: "#FDE047",
-    border: "#EAB308",
-    text: "#080C14",
-    glow: "rgba(253, 224, 71, 0.4)",
+    bg: "#F9DF6D",
+    border: "#D4B62C",
+    text: "#1A1A1B",
+    glow: "rgba(249, 223, 109, 0.2)",
   },
   green: {
-    bg: "#4ADE80",
-    border: "#22C55E",
-    text: "#080C14",
-    glow: "rgba(74, 222, 128, 0.4)",
+    bg: "#6AAA64",
+    border: "#538D4E",
+    text: "#FFFFFF",
+    glow: "rgba(106, 170, 100, 0.2)",
   },
   blue: {
-    bg: "#60A5FA",
-    border: "#3B82F6",
-    text: "#080C14",
-    glow: "rgba(96, 165, 250, 0.4)",
+    bg: "#85C0F9",
+    border: "#5A9BD5",
+    text: "#1A1A1B",
+    glow: "rgba(133, 192, 249, 0.2)",
   },
   purple: {
-    bg: "#C084FC",
-    border: "#A855F7",
-    text: "#080C14",
-    glow: "rgba(192, 132, 252, 0.4)",
+    bg: "#B484D6",
+    border: "#8B5CB5",
+    text: "#FFFFFF",
+    glow: "rgba(180, 132, 214, 0.2)",
   },
 };
 
@@ -125,43 +125,43 @@ export default function WordTile({
     return { scale: 1 };
   };
 
-  /* ——— Inline styles for the "Supercell" tile look ——— */
+  /* ——— Inline styles for the NYT-inspired tile look ——— */
   const tileStyle: React.CSSProperties = colours
     ? {
         // Correct / solved state — full category colour
         background: colours.bg,
         borderBottom: `4px solid ${colours.border}`,
         color: colours.text,
-        boxShadow: `0 0 16px ${colours.glow}`,
+        boxShadow: `0 2px 8px rgba(0,0,0,0.1)`,
       }
     : state === "selected"
       ? {
-          // Selected — neon blue glow + pressed down
-          background: "#3B82F6",
-          borderBottom: "4px solid #1D4ED8",
+          // Selected — dark fill with white text (NYT style)
+          background: "#5A5A5C",
+          borderBottom: "4px solid #3A3A3C",
           color: "#FFFFFF",
-          transform: "translateY(2px)",
-          boxShadow: "0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.2)",
+          transform: "translateY(1px)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
         }
       : state === "wrong"
         ? {
             // Wrong — red flash
-            background: "#F87171",
-            borderBottom: "4px solid #DC2626",
-            color: "#080C14",
+            background: "#DC3545",
+            borderBottom: "4px solid #B02A37",
+            color: "#FFFFFF",
           }
         : state === "false-friend"
           ? {
-              // False friend — amber warning
-              background: "#1E2740",
-              borderBottom: "4px solid #FBBF24",
-              color: "#F1F5F9",
+              // False friend — amber warning on light
+              background: "#FEF3C7",
+              borderBottom: "4px solid #C9B458",
+              color: "#1A1A1B",
             }
           : {
-              // Default — chunky dark tile with faux-3D depth
-              background: "#1E293B",
-              borderBottom: "4px solid #0F172A",
-              color: "#F1F5F9",
+              // Default — clean white tile with subtle border + shadow
+              background: "#EFEFE6",
+              borderBottom: "4px solid #DEDAD2",
+              color: "#1A1A1B",
             };
 
   return (
@@ -202,15 +202,15 @@ export default function WordTile({
               exit={{ opacity: 0 }}
               className="absolute inset-0 flex flex-col items-center justify-center rounded-xl"
               style={{
-                background: "#1E2740",
-                border: "2px solid #FBBF24",
+                background: "#FEF3C7",
+                border: "2px solid #C9B458",
               }}
             >
               <span className="text-lg mb-0.5">🪤</span>
               {falseFriendBack && (
                 <span
                   className="text-[9px] leading-tight text-center px-1.5 font-semibold"
-                  style={{ color: "#FBBF24" }}
+                  style={{ color: "#92710C" }}
                 >
                   {falseFriendBack}
                 </span>
