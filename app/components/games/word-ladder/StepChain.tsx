@@ -28,7 +28,7 @@ export default function StepChain({
       <motion.div
         layout
         className={cn(
-          "flex h-14 w-full max-w-[200px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest",
+          "flex h-14 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest",
           "bg-[#A0C35A]/15 border-[#A0C35A]/30 text-[#A0C35A]",
         )}
       >
@@ -52,7 +52,7 @@ export default function StepChain({
           >
             <div
               className={cn(
-                "flex h-12 w-full max-w-[200px] items-center justify-center rounded-xl border px-4 text-base font-semibold tracking-widest",
+                "flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-base font-semibold tracking-widest",
                 "bg-primary/[0.12] border-primary/30 text-primary",
               )}
             >
@@ -72,7 +72,7 @@ export default function StepChain({
           layout
           className="flex flex-col items-center"
         >
-          <div className="flex h-12 w-full max-w-[200px] items-center justify-center rounded-xl border border-dashed border-white/[0.1] px-4 text-base text-muted-foreground/40">
+          <div className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border border-dashed border-white/[0.1] px-4 text-base text-muted-foreground/40">
             ???
           </div>
           <div className="flex h-6 w-px items-center justify-center bg-border/30">
@@ -85,7 +85,7 @@ export default function StepChain({
       <motion.div
         layout
         className={cn(
-          "flex h-14 w-full max-w-[200px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest",
+          "flex h-14 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest",
           isComplete
             ? "bg-[#F9DF6D]/20 border-[#F9DF6D]/50 text-[#F9DF6D]"
             : "bg-[#F9DF6D]/10 border-[#F9DF6D]/20 text-[#F9DF6D]/60",

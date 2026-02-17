@@ -82,7 +82,7 @@ export default function OptionButton({
       }}
       whileTap={!disabled && state === "default" ? { scale: 0.96 } : undefined}
       className={cn(
-        "flex min-h-[48px] h-14 w-full items-center justify-center rounded-xl border px-4 font-semibold transition-colors sm:h-16",
+        "flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl border px-3 font-semibold transition-colors",
         "select-none touch-manipulation",
         "disabled:cursor-not-allowed",
         getAdaptiveFontClass(text),

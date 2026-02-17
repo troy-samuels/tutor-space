@@ -198,8 +198,8 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
               Find the word that doesn&apos;t belong
             </p>
 
-            {/* 2x2 Word Grid */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* 2x2 Word Grid — full width */}
+            <div className="grid grid-cols-2 gap-2">
               {currentRound.words.map((word, i) => (
                 <WordCard
                   key={`${gameState.currentRound}-${i}`}

@@ -257,7 +257,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
       </div>
 
       {/* Cipher text display */}
-      <div className="rounded-2xl border border-border/50 bg-card/50 p-4 sm:p-6">
+      <div className="rounded-2xl border border-border/50 bg-card/50 p-3">
         <CipherText
           encodedText={prepared.encodedText}
           plaintext={puzzle.plaintext}

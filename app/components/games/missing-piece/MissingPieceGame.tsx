@@ -228,8 +228,8 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
               difficulty={currentSentence.difficulty}
             />
 
-            {/* Options */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Options — full width */}
+            <div className="grid grid-cols-2 gap-2 w-full">
               {currentSentence.options.map((option, i) => (
                 <OptionButton
                   key={`${gameState.currentSentence}-${i}`}

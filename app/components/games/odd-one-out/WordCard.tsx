@@ -76,7 +76,7 @@ export default function WordCard({
       }
       transition={springTransition}
       className={cn(
-        "flex min-h-[48px] h-20 w-full items-center justify-center rounded-2xl border px-3 font-bold transition-colors sm:h-24",
+        "flex min-h-[56px] h-20 w-full items-center justify-center rounded-2xl border px-3 font-bold transition-colors",
         "select-none touch-manipulation",
         "disabled:cursor-not-allowed",
         getAdaptiveFontClass(word),

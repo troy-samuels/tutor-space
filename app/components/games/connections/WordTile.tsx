@@ -90,7 +90,7 @@ export default function WordTile({
       animate={state === "wrong" ? shakeAnimation : { scale: state === "selected" ? 1.03 : 1 }}
       transition={springTransition}
       className={cn(
-        "flex min-h-[48px] h-14 w-full items-center justify-center rounded-xl border px-2 font-semibold transition-colors sm:h-16",
+        "flex min-h-[52px] h-[3.5rem] w-full items-center justify-center rounded-xl border px-1.5 font-semibold transition-colors",
         "select-none touch-manipulation",
         "disabled:opacity-40 disabled:cursor-not-allowed",
         getAdaptiveFontClass(word),

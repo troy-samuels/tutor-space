@@ -91,7 +91,7 @@ export default function AlphabetKeyboard({
                       whileTap={{ scale: 0.85 }}
                       onClick={() => onLetterPick(letter)}
                       className={cn(
-                        "flex h-9 min-w-[2rem] items-center justify-center rounded-lg text-sm font-semibold transition-colors",
+                        "flex h-10 min-w-[2.2rem] items-center justify-center rounded-lg text-sm font-semibold transition-colors",
                         "touch-manipulation select-none",
                         isUsed
                           ? "bg-white/[0.03] text-muted-foreground/30"
@@ -110,7 +110,7 @@ export default function AlphabetKeyboard({
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={onClear}
-                className="flex h-9 items-center justify-center rounded-lg bg-destructive/10 px-4 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors touch-manipulation"
+                className="flex h-10 items-center justify-center rounded-lg bg-destructive/10 px-5 text-sm font-medium text-destructive hover:bg-destructive/20 transition-colors touch-manipulation"
               >
                 ⌫ Clear
               </motion.button>

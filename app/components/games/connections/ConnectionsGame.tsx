@@ -305,9 +305,9 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
         </div>
       </AnimatePresence>
 
-      {/* Word Grid */}
+      {/* Word Grid — edge-to-edge */}
       {gameState.remainingWords.length > 0 && (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
           {gameState.remainingWords.map((word) => (
             <WordTile
               key={word}
@@ -320,35 +320,38 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
         </div>
       )}
 
-      {/* Action buttons */}
+      {/* Action buttons — sticky at bottom */}
       {!gameState.isComplete && (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleShuffle}
-            className="flex-1 rounded-xl text-xs"
-          >
-            🔀 Shuffle
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDeselectAll}
-            disabled={gameState.selectedWords.length === 0}
-            className="flex-1 rounded-xl text-xs"
-          >
-            ✕ Deselect
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSubmit}
-            disabled={gameState.selectedWords.length !== MAX_SELECTED}
-            className="flex-1 rounded-xl text-xs"
-          >
-            Submit
-          </Button>
+        <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border/30 bg-background/95 px-4 py-3 backdrop-blur-md"
+             style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShuffle}
+              className="flex-1 rounded-xl text-sm min-h-[44px]"
+            >
+              🔀 Shuffle
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeselectAll}
+              disabled={gameState.selectedWords.length === 0}
+              className="flex-1 rounded-xl text-sm min-h-[44px]"
+            >
+              ✕ Deselect
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={gameState.selectedWords.length !== MAX_SELECTED}
+              className="flex-1 rounded-xl text-sm min-h-[44px]"
+            >
+              Submit
+            </Button>
+          </div>
         </div>
       )}
 

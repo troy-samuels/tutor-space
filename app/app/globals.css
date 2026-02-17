@@ -339,3 +339,56 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* ——— Telegram Mini App theme overrides ——— */
+.tg-app {
+  --background: var(--tg-theme-bg-color, #1c1c1d);
+  --background-alt: var(--tg-theme-secondary-bg-color, #2b2b2b);
+  --foreground: var(--tg-theme-text-color, #ffffff);
+  --card: var(--tg-theme-secondary-bg-color, #2b2b2b);
+  --card-foreground: var(--tg-theme-text-color, #ffffff);
+  --popover: var(--tg-theme-secondary-bg-color, #2b2b2b);
+  --popover-foreground: var(--tg-theme-text-color, #ffffff);
+  --primary: var(--tg-theme-button-color, #3390ec);
+  --primary-foreground: var(--tg-theme-button-text-color, #ffffff);
+  --primary-button: var(--tg-theme-button-color, #3390ec);
+  --secondary: var(--tg-theme-secondary-bg-color, #2b2b2b);
+  --secondary-foreground: var(--tg-theme-text-color, #ffffff);
+  --muted: var(--tg-theme-secondary-bg-color, #2b2b2b);
+  --muted-foreground: var(--tg-theme-hint-color, #7d7d7d);
+  --accent: var(--tg-theme-accent-text-color, var(--tg-theme-link-color, #3390ec));
+  --accent-foreground: var(--tg-theme-button-text-color, #ffffff);
+  --destructive: #e53935;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: var(--tg-theme-button-color, #3390ec);
+
+  /* Charts — map to Telegram blue shades */
+  --chart-1: var(--tg-theme-button-color, #3390ec);
+  --chart-2: #43a047;
+  --chart-3: #e53935;
+  --chart-4: var(--tg-theme-hint-color, #7d7d7d);
+  --chart-5: var(--tg-theme-text-color, #ffffff);
+
+  /* Brand colours adapt to Telegram blue */
+  --brand-primary: var(--tg-theme-button-color, #3390ec);
+  --brand-secondary: var(--tg-theme-link-color, #3390ec);
+  --bg-page: var(--tg-theme-bg-color, #1c1c1d);
+  --accent-color: var(--tg-theme-button-color, #3390ec);
+
+  color-scheme: dark;
+}
+
+/* Ensure body-level overrides when inside Telegram */
+.tg-app,
+.tg-app * {
+  --radius: 0.75rem;
+  --radius-card: 0.875rem;
+}
+
+/* Force dark text rendering in Telegram */
+.tg-app body,
+.tg-app .dark {
+  color-scheme: dark;
+}

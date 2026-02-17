@@ -67,12 +67,12 @@ export default function DailyDecodePage() {
       mistakes={endState.mistakes}
     >
       {/* Language selector */}
-      <div className="mb-4 flex justify-center gap-2">
+      <div className="mb-4 flex justify-center gap-1.5 flex-wrap">
         {SUPPORTED_GAME_LANGUAGES.map((lang) => (
           <button
             key={lang.code}
             onClick={() => handleLanguageChange(lang.code)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-all min-h-[44px] touch-manipulation ${
+            className={`rounded-full px-3 py-2 text-sm font-medium transition-all min-h-[44px] touch-manipulation ${
               language === lang.code
                 ? "bg-primary text-primary-foreground shadow-lg"
                 : "bg-white/[0.05] text-muted-foreground hover:bg-white/[0.1]"

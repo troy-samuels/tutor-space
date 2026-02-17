@@ -415,9 +415,9 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
       </div>
 
       {/* Main game area: Tower + Depth Meter side by side */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         {/* Tower area */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <SpiralTower
             starterWord={chain.starterWord}
             starterTranslation={chain.starterTranslation}
@@ -426,7 +426,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
         </div>
 
         {/* Depth meter */}
-        <div className="w-28 flex-shrink-0">
+        <div className="w-24 flex-shrink-0">
           <DepthMeter
             currentDepth={currentDepth}
             language={puzzle.language}
