@@ -31,26 +31,64 @@ interface DailyDecodeGameProps {
 
 const MAX_HINTS = 3;
 
+/**
+ * Pick starter letters to pre-reveal.
+ * Strategy: reveal 2 of the most frequent letters to give players a foothold.
+ * For English: typically E and T. For other languages: the top 2 by frequency in the text.
+ */
+function pickStarterLetters(
+  encodedText: string,
+  cipher: CipherMap,
+  count: number = 2,
+): string[] {
+  // Count frequency of each cipher letter in the encoded text
+  const freq: Record<string, number> = {};
+  for (const ch of encodedText) {
+    const upper = ch.toUpperCase();
+    if (/[A-Z]/.test(upper)) {
+      freq[upper] = (freq[upper] || 0) + 1;
+    }
+  }
+
+  // Sort by frequency descending and take top `count`
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, count)
+    .map(([letter]) => letter);
+}
+
 export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: DailyDecodeGameProps) {
   const prepared = React.useMemo(() => preparePuzzle(puzzle), [puzzle]);
 
-  const [gameState, setGameState] = React.useState<DailyDecodeGameState>(() => ({
-    puzzle,
-    cipher: prepared.cipher,
-    encodedText: prepared.encodedText,
-    playerMappings: {},
-    selectedLetter: null,
-    hintsUsed: 0,
-    maxHints: MAX_HINTS,
-    hintedLetters: new Set(),
-    isComplete: false,
-    isWon: false,
-    mistakes: 0,
-    startTime: Date.now(),
-  }));
+  const [gameState, setGameState] = React.useState<DailyDecodeGameState>(() => {
+    // Pre-reveal starter letters
+    const starters = pickStarterLetters(prepared.encodedText, prepared.cipher, 2);
+    const starterHinted = new Set(starters);
+    const starterMappings: Record<string, string> = {};
+    for (const cipherLetter of starters) {
+      const plainLetter = prepared.cipher.decrypt[cipherLetter];
+      if (plainLetter) {
+        starterMappings[cipherLetter] = plainLetter;
+      }
+    }
+
+    return {
+      puzzle,
+      cipher: prepared.cipher,
+      encodedText: prepared.encodedText,
+      playerMappings: starterMappings,
+      selectedLetter: null,
+      hintsUsed: 0,
+      maxHints: MAX_HINTS,
+      hintedLetters: starterHinted,
+      isComplete: false,
+      isWon: false,
+      mistakes: 0,
+      startTime: Date.now(),
+    };
+  });
 
   const [copied, setCopied] = React.useState(false);
-  const [showInlineHint, setShowInlineHint] = React.useState(true);
   const resultRef = React.useRef<HTMLDivElement>(null);
 
   // Proper cleanup ref
@@ -86,10 +124,28 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
     return correct;
   }, [gameState.playerMappings, gameState.cipher.decrypt]);
 
+  // Count progress
+  const progressInfo = React.useMemo(() => {
+    const uniqueCipherLetters = new Set<string>();
+    for (const ch of prepared.encodedText) {
+      const upper = ch.toUpperCase();
+      if (/[A-Z]/.test(upper)) uniqueCipherLetters.add(upper);
+    }
+    const total = uniqueCipherLetters.size;
+    let solved = 0;
+    for (const cl of uniqueCipherLetters) {
+      const expected = gameState.cipher.decrypt[cl];
+      const guessed = gameState.playerMappings[cl];
+      if (gameState.hintedLetters.has(cl) || (guessed && guessed.toUpperCase() === expected)) {
+        solved++;
+      }
+    }
+    return { solved, total };
+  }, [prepared.encodedText, gameState.cipher.decrypt, gameState.playerMappings, gameState.hintedLetters]);
+
   // Check for win
   const checkWin = React.useCallback(
     (mappings: Record<string, string>, hinted: Set<string>, cipher: CipherMap): boolean => {
-      // Every cipher letter used in the text must be correctly mapped
       const encoded = prepared.encodedText;
       for (const ch of encoded) {
         const upper = ch.toUpperCase();
@@ -98,7 +154,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
         const expectedPlain = cipher.decrypt[upper];
         if (!expectedPlain) continue;
 
-        if (hinted.has(upper)) continue; // hinted letters are correct by definition
+        if (hinted.has(upper)) continue;
 
         const guessed = mappings[upper];
         if (!guessed || guessed.toUpperCase() !== expectedPlain) return false;
@@ -128,7 +184,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
     return () => clearTimeout(timer);
   }, [gameState.isComplete]);
 
-  // Victory confetti on win — delayed to hit as result card is mid-entrance
+  // Victory confetti
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
     const timer = setTimeout(() => {
@@ -166,10 +222,8 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
           }
         }
 
-        // Set new mapping
         newMappings[prev.selectedLetter!] = letter;
 
-        // Check if this guess is wrong
         const expectedPlain = prev.cipher.decrypt[prev.selectedLetter!];
         const isWrong = expectedPlain && letter.toUpperCase() !== expectedPlain;
         const newMistakes = isWrong ? prev.mistakes + 1 : prev.mistakes;
@@ -177,15 +231,8 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
         if (isWrong) haptic("error");
         else haptic("tap");
 
-        // Hide inline hint after first mapping
-        setShowInlineHint(false);
-
-        // Check for win
         const won = checkWin(newMappings, prev.hintedLetters, prev.cipher);
-
-        if (won) {
-          recordGamePlay("daily-decode");
-        }
+        if (won) recordGamePlay("daily-decode");
 
         return {
           ...prev,
@@ -223,7 +270,6 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
     if (gameState.hintsUsed >= MAX_HINTS || gameState.isComplete) return;
 
     setGameState((prev) => {
-      // Find a cipher letter that hasn't been correctly guessed or hinted
       const unsolvedLetters: string[] = [];
       for (const ch of prepared.encodedText) {
         const upper = ch.toUpperCase();
@@ -240,7 +286,6 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
 
       if (unsolvedLetters.length === 0) return prev;
 
-      // Pick the most frequent unsolved letter
       const freqMap: Record<string, number> = {};
       for (const ch of prepared.encodedText) {
         const upper = ch.toUpperCase();
@@ -255,17 +300,12 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
       const newHinted = new Set(prev.hintedLetters);
       newHinted.add(hintLetter);
 
-      // Also set the correct mapping
       const newMappings = { ...prev.playerMappings };
       const correctLetter = prev.cipher.decrypt[hintLetter];
       newMappings[hintLetter] = correctLetter;
 
-      // Check for win after hint
       const won = checkWin(newMappings, newHinted, prev.cipher);
-
-      if (won) {
-        recordGamePlay("daily-decode");
-      }
+      if (won) recordGamePlay("daily-decode");
 
       return {
         ...prev,
@@ -293,44 +333,65 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
 
   return (
     <div className="space-y-4">
-      {/* Difficulty & hints bar — glanceable */}
-      <div className="flex items-center justify-center gap-4">
+      {/* Top bar: difficulty, progress, hints */}
+      <div className="flex items-center justify-between px-1">
         <span
           className="rounded-full border px-3 py-0.5 text-xs font-medium capitalize"
           style={{ color: "#6B6560", borderColor: "rgba(0,0,0,0.10)" }}
         >
           {puzzle.difficulty === "easy" ? "Easy 🟢" : puzzle.difficulty === "medium" ? "Medium 🟡" : "Hard 🔴"}
         </span>
-        <span className="text-xs tabular-nums" style={{ color: "#9C9590" }}>
-          💡 {gameState.hintsUsed}/{MAX_HINTS} hints
-        </span>
+
+        {/* Progress indicator */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div
+              className="h-1.5 rounded-full overflow-hidden"
+              style={{ width: "4rem", background: "rgba(0,0,0,0.06)" }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "#3E5641" }}
+                initial={{ width: 0 }}
+                animate={{
+                  width: `${progressInfo.total > 0 ? (progressInfo.solved / progressInfo.total) * 100 : 0}%`,
+                }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <span className="text-[11px] tabular-nums font-medium" style={{ color: "#9C9590" }}>
+              {progressInfo.solved}/{progressInfo.total}
+            </span>
+          </div>
+          <span className="text-xs tabular-nums" style={{ color: "#9C9590" }}>
+            💡 {gameState.hintsUsed}/{MAX_HINTS}
+          </span>
+        </div>
       </div>
 
-      {/* Author attribution — gives context without spoiling */}
+      {/* Author attribution — contextual hint */}
       {!gameState.isComplete && puzzle.author && (
-        <p className="text-center text-xs font-medium italic" style={{ color: "#9C9590" }}>
-          A quote by {puzzle.author}
+        <p className="text-center text-sm font-medium italic" style={{ color: "#7A756F" }}>
+          — {puzzle.author}
         </p>
       )}
 
-      {/* Inline helper hint — fades after first mapping */}
-      <AnimatePresence>
-        {showInlineHint && !gameState.isComplete && (
-          <motion.p
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-xs text-center"
-            style={{ color: "var(--game-text-muted)" }}
-          >
-            Each letter has been swapped for another. Tap a letter to decode it.
-          </motion.p>
-        )}
-      </AnimatePresence>
+      {/* Instruction — always visible until game is won */}
+      {!gameState.isComplete && (
+        <p
+          className="text-center text-xs leading-relaxed"
+          style={{ color: "var(--game-text-muted, #9C9590)" }}
+        >
+          {gameState.selectedLetter
+            ? <>Now pick what <span className="font-bold font-mono" style={{ color: "#D36135" }}>{gameState.selectedLetter}</span> should be</>
+            : "Tap any empty tile to decode it"
+          }
+        </p>
+      )}
 
       {/* Cipher text display */}
       <div
-        className="overflow-hidden rounded-2xl p-2 sm:p-3"
+        className="overflow-hidden rounded-2xl p-3 sm:p-4"
         style={{
           background: "rgba(245,237,232,0.5)",
           border: "1px solid rgba(0,0,0,0.06)",
@@ -372,7 +433,6 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
       <AnimatePresence>
         {gameState.isComplete && (
           <div ref={resultRef} className="mt-6 space-y-3">
-            {/* Quote reveal */}
             <QuoteReveal plaintext={puzzle.plaintext} author={puzzle.author} />
 
             <GameResultCard
@@ -392,7 +452,6 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
               {copied ? "✓ Copied!" : "📋 Share Result"}
             </GameButton>
 
-            {/* Play Again */}
             {onPlayAgain && (
               <GameButton onClick={onPlayAgain} variant="secondary">
                 🔄 Play Again

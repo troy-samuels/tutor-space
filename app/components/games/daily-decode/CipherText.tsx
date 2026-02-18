@@ -27,14 +27,13 @@ export default function CipherText({
   onLetterTap,
   isComplete,
 }: CipherTextProps) {
-  // Split into words for wrapping
   const encodedWords = encodedText.split(" ");
   const plaintextWords = plaintext.split(" ");
 
   let globalCharIndex = 0;
 
   return (
-    <div className="flex flex-wrap justify-center gap-x-4 gap-y-5 overflow-hidden px-1 sm:gap-x-6">
+    <div className="flex flex-wrap justify-center gap-x-5 gap-y-6 px-1 sm:gap-x-8">
       {encodedWords.map((word, wordIdx) => {
         const plaintextWord = plaintextWords[wordIdx] || "";
         const startIdx = globalCharIndex;
@@ -46,7 +45,6 @@ export default function CipherText({
           const upperEncoded = encodedChar.toUpperCase();
           const upperPlain = stripAccent(plaintextChar.toUpperCase());
 
-          // What has the player guessed for this cipher letter?
           const guessed = isLetter ? playerMappings[upperEncoded] || "" : "";
           const isCorrect = isLetter && guessed.toUpperCase() === upperPlain;
           const isHinted = isLetter && hintedLetters.has(upperEncoded);
@@ -54,35 +52,37 @@ export default function CipherText({
           const hasGuess = isLetter && guessed !== "";
 
           if (!isLetter) {
-            // Punctuation / special chars
+            // Punctuation — render inline with appropriate sizing
             return (
               <span
                 key={`${wordIdx}-${charIdx}`}
-                className="flex flex-col items-center"
+                className="flex flex-col items-center justify-end"
               >
-                <span className="h-6 text-base" style={{ color: "#2D2A26" }}>
+                <span className="h-8 flex items-center text-base font-medium" style={{ color: "#6B6560" }}>
                   {encodedChar}
                 </span>
-                <span className="h-4" />
+                <span className="h-5" />
               </span>
             );
           }
 
-          // Build background colour based on state
-          const bgStyle: React.CSSProperties = {};
-          if (isSelected) {
-            bgStyle.background = "rgba(211,97,53,0.15)";
-            bgStyle.boxShadow = "0 0 0 1px rgba(211,97,53,0.40)";
-            bgStyle.borderRadius = "6px";
-          } else if (isCorrect && !isHinted) {
-            bgStyle.background = "rgba(62,86,65,0.12)";
-            bgStyle.borderRadius = "6px";
-          } else if (isHinted) {
-            bgStyle.background = "rgba(62,86,65,0.08)";
-            bgStyle.borderRadius = "6px";
-          } else if (!isCorrect && hasGuess) {
-            bgStyle.background = "rgba(162,73,54,0.08)";
-            bgStyle.borderRadius = "6px";
+          // Determine tile style
+          let tileBackground = "rgba(0,0,0,0.03)";
+          let tileBorder = "1.5px dashed rgba(0,0,0,0.12)";
+          let guessColor = "transparent";
+
+          if (isComplete || isCorrect || isHinted) {
+            tileBackground = "rgba(62,86,65,0.10)";
+            tileBorder = "1.5px solid rgba(62,86,65,0.30)";
+            guessColor = "#3E5641";
+          } else if (isSelected) {
+            tileBackground = "rgba(211,97,53,0.12)";
+            tileBorder = "2px solid rgba(211,97,53,0.50)";
+            guessColor = hasGuess ? "#2D2A26" : "transparent";
+          } else if (hasGuess) {
+            tileBackground = "rgba(255,255,255,0.8)";
+            tileBorder = "1.5px solid rgba(0,0,0,0.12)";
+            guessColor = "#2D2A26";
           }
 
           return (
@@ -90,48 +90,43 @@ export default function CipherText({
               key={`${wordIdx}-${charIdx}-${idx}`}
               onClick={() => onLetterTap(upperEncoded)}
               disabled={isComplete || isHinted}
-              whileTap={!isComplete ? { scale: 0.96 } : undefined}
-              style={bgStyle}
+              whileTap={!isComplete && !isHinted ? { scale: 0.93 } : undefined}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-0.5 py-1 transition-colors min-w-[1.5rem] sm:min-w-[2rem] sm:px-1",
-                "touch-manipulation select-none cursor-pointer",
-                !isComplete && !isHinted && "hover:brightness-95",
+                "flex flex-col items-center gap-1 transition-all duration-150",
+                "touch-manipulation select-none",
+                !isComplete && !isHinted && "cursor-pointer active:brightness-95",
                 (isComplete || isHinted) && "cursor-default",
               )}
             >
-              {/* Player's guess (top) */}
-              <span
-                className="h-6 min-w-[1.25rem] sm:min-w-[1.75rem] text-center font-mono text-sm sm:text-base font-bold"
+              {/* Guess tile — the main interactive element */}
+              <div
+                className="flex items-center justify-center rounded-lg w-8 h-8 sm:w-10 sm:h-10"
                 style={{
-                  color:
-                    isCorrect || isHinted
-                      ? "#3E5641" // brand sage green for correct
-                      : hasGuess
-                        ? "#2D2A26" // brand text primary for guesses
-                        : "transparent",
+                  background: tileBackground,
+                  border: tileBorder,
+                  transition: "all 0.15s ease",
                 }}
               >
-                {isHinted
-                  ? cipher.decrypt[upperEncoded] || ""
-                  : guessed || "_"}
-              </span>
+                <span
+                  className="font-mono text-base sm:text-lg font-bold leading-none"
+                  style={{ color: guessColor }}
+                >
+                  {isHinted
+                    ? cipher.decrypt[upperEncoded] || ""
+                    : guessed || ""}
+                </span>
+              </div>
 
-              {/* Divider line */}
-              <div
-                className="h-px w-full min-w-[1.25rem] sm:min-w-[1.75rem]"
-                style={{
-                  background: isSelected
-                    ? "rgba(211,97,53,0.60)"
-                    : isCorrect || isHinted
-                      ? "rgba(62,86,65,0.40)"
-                      : "rgba(0,0,0,0.15)",
-                }}
-              />
-
-              {/* Encoded letter (bottom) */}
+              {/* Cipher letter label — the encoded character below */}
               <span
-                className="h-4 min-w-[1.25rem] sm:min-w-[1.75rem] text-center text-[10px] sm:text-[11px] font-medium"
-                style={{ color: "rgba(156,149,144,0.8)" }}
+                className="text-xs sm:text-sm font-semibold font-mono leading-none"
+                style={{
+                  color: isSelected
+                    ? "#D36135"
+                    : isCorrect || isHinted
+                      ? "rgba(62,86,65,0.5)"
+                      : "rgba(107,101,96,0.7)",
+                }}
               >
                 {encodedChar.toUpperCase()}
               </span>
@@ -139,10 +134,17 @@ export default function CipherText({
           );
         });
 
-        globalCharIndex += word.length + 1; // +1 for space
+        globalCharIndex += word.length + 1;
 
         return (
-          <div key={wordIdx} className="flex gap-0.5">
+          <div
+            key={wordIdx}
+            className="flex gap-0.5 sm:gap-1 rounded-xl px-1.5 py-1"
+            style={{
+              background: "rgba(255,255,255,0.4)",
+              border: "1px solid rgba(0,0,0,0.04)",
+            }}
+          >
             {cells}
           </div>
         );

@@ -23,8 +23,8 @@ const GAME_TIPS: Record<string, { goal: string; tip: string }> = {
     tip: "Each step must be a real word",
   },
   "daily-decode": {
-    goal: "Crack the cipher to reveal the hidden quote",
-    tip: "Tap a letter, type the real one",
+    goal: "Each letter has been swapped — decode the hidden quote",
+    tip: "Tap an empty tile, then pick the real letter from the keyboard",
   },
   "odd-one-out": {
     goal: "Spot the word that doesn't belong",
