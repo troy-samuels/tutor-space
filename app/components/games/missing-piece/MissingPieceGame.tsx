@@ -50,6 +50,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
   const [lastGuessCorrect, setLastGuessCorrect] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [showAllExplanations, setShowAllExplanations] = React.useState(false);
+  const resultRef = React.useRef<HTMLDivElement>(null);
 
   // Proper cleanup ref for copy timeout
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,6 +73,15 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
     onGameEndRef.current?.(gameState);
   }, [gameState]);
 
+  // Scroll result card into view when game ends
+  React.useEffect(() => {
+    if (!gameState.isComplete) return;
+    const timer = setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [gameState.isComplete]);
+
   // Victory confetti on win — delayed to hit the emotional peak
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
@@ -85,7 +95,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
         origin: { y: 0.5 },
         colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
       });
-    }, 450);
+    }, 200);
     return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
@@ -256,7 +266,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
       {/* End of game */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <div className="mt-6 space-y-3">
+          <div ref={resultRef} className="mt-6 space-y-3">
             <GameResultCard
               emoji={gameState.isWon ? "🎉" : "💪"}
               heading={gameState.isWon ? "Brilliant!" : "Good effort!"}

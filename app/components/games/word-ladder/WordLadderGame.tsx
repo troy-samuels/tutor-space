@@ -35,6 +35,7 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
   const [showHint, setShowHint] = React.useState(false);
   const [showOptimalPath, setShowOptimalPath] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const resultRef = React.useRef<HTMLDivElement>(null);
 
   // Proper cleanup ref — prevents memory leak on unmount
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,6 +59,15 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
     });
   }, [gameState]);
 
+  // Scroll result card into view when game ends
+  React.useEffect(() => {
+    if (!gameState.isComplete) return;
+    const timer = setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [gameState.isComplete]);
+
   // Victory confetti on win — delayed to hit as result card is mid-entrance
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
@@ -71,7 +81,7 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
         origin: { y: 0.5 },
         colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
       });
-    }, 450);
+    }, 200);
     return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
@@ -274,7 +284,7 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
       {/* Victory / Result */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <div className="mt-6 space-y-3">
+          <div ref={resultRef} className="mt-6 space-y-3">
             <GameResultCard
               emoji={gameState.steps.length <= puzzle.par ? "⛳" : "🎉"}
               heading={

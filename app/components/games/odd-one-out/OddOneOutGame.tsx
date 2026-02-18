@@ -45,6 +45,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
   const [lastGuessCorrect, setLastGuessCorrect] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [showExplanations, setShowExplanations] = React.useState(false);
+  const resultRef = React.useRef<HTMLDivElement>(null);
 
   // Cleanup refs — prevent setState after unmount
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,8 +68,16 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
     onGameEndRef.current?.(gameState);
   }, [gameState]);
 
+  // Scroll result card into view when game ends
+  React.useEffect(() => {
+    if (!gameState.isComplete) return;
+    const timer = setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [gameState.isComplete]);
+
   // Victory confetti on win — delayed to hit the emotional peak
-  // (result card appears at ~0.3s, confetti should rain as the player reads "Well done!")
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
     const timer = setTimeout(() => {
@@ -81,7 +90,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
         origin: { y: 0.5 },
         colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
       });
-    }, 450);
+    }, 200);
     return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
@@ -257,7 +266,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
       {/* End of game */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <div className="mt-6 space-y-3">
+          <div ref={resultRef} className="mt-6 space-y-3">
             <GameResultCard
               emoji={gameState.isWon ? "🎉" : "💪"}
               heading={gameState.isWon ? "Well done!" : "Good try!"}

@@ -61,6 +61,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
   const roundStartRef = React.useRef(Date.now());
   const gameStartRef = React.useRef(Date.now());
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultRef = React.useRef<HTMLDivElement>(null);
   // Stable ref to endRound so the timer effect doesn't need it as a dep
   const endRoundRef = React.useRef<() => void>(() => { /* populated after endRound is defined */ });
   React.useEffect(() => {
@@ -68,6 +69,15 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
   }, []);
 
   const chain = puzzle.chains[currentRound];
+
+  // Scroll result card into view when game ends
+  React.useEffect(() => {
+    if (!isComplete) return;
+    const timer = setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [isComplete]);
 
   // Clear feedback after delay
   React.useEffect(() => {
@@ -241,7 +251,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
           origin: { y: 0.5 },
           colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#7c3aed"],
         });
-      }, 450);
+      }, 200);
 
       onGameEnd?.({
         isComplete: true,
@@ -315,7 +325,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
     const secs = totalSec % 60;
 
     return (
-      <div className="space-y-3">
+      <div ref={resultRef} className="space-y-3">
         <GameResultCard
           emoji={avg >= 4 ? "🌟" : avg >= 3 ? "✨" : avg >= 2 ? "💪" : "📚"}
           heading={

@@ -98,6 +98,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
   const [showExplanations, setShowExplanations] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [guessHistory, setGuessHistory] = React.useState<Difficulty[][]>([]);
+  const resultRef = React.useRef<HTMLDivElement>(null);
 
   // LOW-1: Ref to track copy timeout for cleanup
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,6 +118,15 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
     onGameEndRef.current?.(gameState);
   }, [gameState]);
 
+  // Scroll result card into view when game ends
+  React.useEffect(() => {
+    if (!gameState.isComplete) return;
+    const timer = setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [gameState.isComplete]);
+
   // Victory confetti on full win
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
@@ -130,7 +140,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
         origin: { y: 0.5 },
         colors: ["#D36135", "#3E5641", "#D4A843", "#5A8AB5", "#8B5CB5"],
       });
-    }, 400);
+    }, 200);
     return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
@@ -501,7 +511,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
       {/* Victory / Game Over — Design Bible result card */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <div className="mt-6 space-y-3">
+          <div ref={resultRef} className="mt-6 space-y-3">
             {/* Shared result card with emoji grid as children */}
             <GameResultCard
               emoji={gameState.isWon ? "🎉" : "💪"}
