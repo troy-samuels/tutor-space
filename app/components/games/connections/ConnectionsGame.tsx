@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import GameButton from "@/components/games/engine/GameButton";
 import WordTile from "./WordTile";
 import type { TileState } from "./WordTile";
@@ -395,12 +394,21 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
             exit={{ opacity: 0, y: -10 }}
             className="flex justify-center"
           >
-            <Badge
-              variant="outline"
-              className="animate-pulse text-xs border-[var(--game-warning)]/30 text-[var(--game-warning)]"
+            <motion.span
+              animate={{ opacity: [1, 0.6, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              style={{
+                display: "inline-block",
+                fontSize: "12px",
+                fontWeight: 600,
+                padding: "2px 10px",
+                borderRadius: "9999px",
+                border: "1px solid rgba(var(--game-warning-rgb, 212,168,67), 0.3)",
+                color: "var(--game-warning)",
+              }}
             >
               One away! 🤏
-            </Badge>
+            </motion.span>
           </motion.div>
         )}
       </AnimatePresence>

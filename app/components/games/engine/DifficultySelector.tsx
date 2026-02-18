@@ -2,7 +2,6 @@
 
 import { memo, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
 import {
   CEFR_LEVELS,
   CEFR_ORDER,
@@ -83,10 +82,8 @@ function DifficultySelector({
             >
               {/* Level badge */}
               <div
-                className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0",
-                  config.bgClass,
-                )}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                style={{ background: config.colour }}
               >
                 {level}
               </div>
@@ -102,8 +99,7 @@ function DifficultySelector({
                       className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
                       style={{ background: "rgba(211,97,53,0.15)", color: "#D36135" }}
                     >
-                      <Sparkles className="w-2.5 h-2.5" />
-                      Rec
+                      ✨ Rec
                     </span>
                   )}
                   {isCurrent && !isRecommended && (

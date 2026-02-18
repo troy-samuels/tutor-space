@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { SentenceCategory } from "@/lib/games/data/missing-piece/types";
 
@@ -45,9 +44,21 @@ export default function SentenceDisplay({
     <div className="space-y-3">
       {/* Category badge + difficulty */}
       <div className="flex items-center justify-center gap-2">
-        <Badge variant="outline" className="gap-1 text-xs" style={{ color: "#6B6560" }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "12px",
+            fontWeight: 500,
+            padding: "2px 10px",
+            borderRadius: "9999px",
+            border: "1px solid rgba(45, 42, 38, 0.15)",
+            color: "#6B6560",
+          }}
+        >
           {catInfo.emoji} {catInfo.label}
-        </Badge>
+        </span>
         <span className="text-xs tracking-wider" style={{ color: "#9C9590" }}>
           {DIFFICULTY_DOTS[difficulty]}
         </span>
