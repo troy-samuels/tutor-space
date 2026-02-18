@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 interface QuoteRevealProps {
   plaintext: string;
@@ -19,21 +18,26 @@ export default function QuoteReveal({ plaintext, author }: QuoteRevealProps) {
         damping: 20,
         delay: 0.2,
       }}
-      className="rounded-2xl border border-[#A0C35A]/30 bg-[#A0C35A]/[0.06] p-6 text-center"
+      className="rounded-2xl p-6 text-center"
+      style={{
+        background: "rgba(62,86,65,0.06)",
+        border: "1px solid rgba(62,86,65,0.25)",
+      }}
     >
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5, duration: 0.8 }}
       >
-        <p className="font-heading text-lg italic leading-relaxed text-foreground">
+        <p className="text-lg italic leading-relaxed font-medium" style={{ color: "#2D2A26" }}>
           &ldquo;{plaintext}&rdquo;
         </p>
         <motion.p
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.5 }}
-          className="mt-3 text-sm font-medium text-muted-foreground"
+          className="mt-3 text-sm font-medium"
+          style={{ color: "#6B6560" }}
         >
           — {author}
         </motion.p>

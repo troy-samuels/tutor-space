@@ -2,14 +2,13 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import StepChain from "./StepChain";
 import WordInput from "./WordInput";
+import GameResultCard from "@/components/games/engine/GameResultCard";
+import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
-import { validateStep, generateShareText, SUPPORTED_GAME_LANGUAGES } from "@/lib/games/data/word-ladder";
+import { validateStep, generateShareText } from "@/lib/games/data/word-ladder";
 import { haptic } from "@/lib/games/haptics";
-import { cn } from "@/lib/utils";
 import type { WordLadderPuzzle, WordLadderGameState } from "@/lib/games/data/word-ladder/types";
 
 interface WordLadderGameProps {
@@ -33,16 +32,27 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
   const [showOptimalPath, setShowOptimalPath] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
-  // Notify parent on game end
+  // Proper cleanup ref — prevents memory leak on unmount
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => {
-    if (gameState.isComplete && onGameEnd) {
-      onGameEnd({
-        isComplete: gameState.isComplete,
-        isWon: gameState.isWon,
-        mistakes: gameState.mistakes,
-      });
-    }
-  }, [gameState.isComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); };
+  }, []);
+
+  // Stable ref to latest onGameEnd callback + single-fire guard
+  const onGameEndRef = React.useRef(onGameEnd);
+  React.useEffect(() => { onGameEndRef.current = onGameEnd; });
+  const hasNotifiedRef = React.useRef(false);
+
+  // Notify parent on game end (fires exactly once)
+  React.useEffect(() => {
+    if (!gameState.isComplete || hasNotifiedRef.current) return;
+    hasNotifiedRef.current = true;
+    onGameEndRef.current?.({
+      isComplete: gameState.isComplete,
+      isWon: gameState.isWon,
+      mistakes: gameState.mistakes,
+    });
+  }, [gameState]);
 
   // Clear error after a delay
   React.useEffect(() => {
@@ -124,29 +134,32 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
       puzzle.par,
       timeMs,
     );
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Word Ladder", text });
-        return;
-      }
-    } catch {
-      // fallthrough to clipboard
-    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   }, [gameState, puzzle]);
 
   return (
-    <div className="space-y-6">
-      {/* Par info */}
-      <div className="flex items-center justify-center gap-3">
-        <Badge variant="outline" className="gap-1 text-xs">
-          ⛳ Par: {puzzle.par} steps
-        </Badge>
-        <Badge variant="outline" className="gap-1 text-xs">
-          📝 Steps: {gameState.steps.length}
-        </Badge>
+    <div className="space-y-4">
+      {/* Par info — glanceable status row */}
+      <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center gap-1.5">
+          <span className="text-base">⛳</span>
+          <span className="text-sm font-medium tabular-nums" style={{ color: "#6B6560" }}>
+            Par {puzzle.par}
+          </span>
+        </div>
+        <div
+          className="h-4 w-px"
+          style={{ background: "rgba(0,0,0,0.12)" }}
+        />
+        <div className="flex items-center gap-1.5">
+          <span className="text-base">📝</span>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: "#2D2A26" }}>
+            {gameState.steps.length} {gameState.steps.length === 1 ? "step" : "steps"}
+          </span>
+        </div>
       </div>
 
       {/* Step Chain */}
@@ -183,10 +196,17 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3 backdrop-blur-md">
+                <div
+                  className="rounded-xl px-4 py-3"
+                  style={{
+                    background: "rgba(211,97,53,0.06)",
+                    border: "1px solid rgba(211,97,53,0.20)",
+                  }}
+                >
                   <div className="flex items-start gap-2">
-                    
-                    <p className="text-sm italic text-foreground/80">{puzzle.hint}</p>
+                    <p className="text-sm italic" style={{ color: "#6B6560" }}>
+                      {puzzle.hint}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -197,14 +217,12 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <GameButton
                   onClick={() => setShowHint(true)}
-                  className="w-full rounded-xl text-xs text-muted-foreground hover:text-primary"
+                  variant="outline"
                 >
-                  Need a hint?
-                </Button>
+                  💡 Need a hint?
+                </GameButton>
               </motion.div>
             )}
           </AnimatePresence>
@@ -220,54 +238,31 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
             transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
             className="mt-6 space-y-4"
           >
-            <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>
-                {gameState.steps.length <= puzzle.par ? "Perfect!" : "Well done!"}
-              </div>
-              <h2 className="mt-2 font-heading text-xl text-foreground">
-                {gameState.steps.length <= puzzle.par
+            <GameResultCard
+              emoji={gameState.steps.length <= puzzle.par ? "⛳" : "🎉"}
+              heading={
+                gameState.steps.length <= puzzle.par
                   ? "Under par!"
                   : gameState.steps.length === puzzle.par + 1
                     ? "Close to par!"
-                    : "Solved!"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {gameState.steps.length} step{gameState.steps.length !== 1 ? "s" : ""} (par {puzzle.par})
-              </p>
+                    : "Solved!"
+              }
+              subtext={`${gameState.steps.length} step${gameState.steps.length !== 1 ? "s" : ""} · par ${puzzle.par}`}
+              timeSeconds={gameState.endTime
+                ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+                : undefined}
+            />
 
-              {/* Time */}
-              {gameState.endTime && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  
-                  {(() => {
-                    const secs = Math.floor(
-                      (gameState.endTime - gameState.startTime) / 1000,
-                    );
-                    return `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, "0")}`;
-                  })()}
-                </p>
-              )}
-            </div>
-
-            {/* Share button */}
-            <Button
-              onClick={handleShare}
-              variant="default"
-              size="lg"
-              className="w-full rounded-xl"
-            >
+            <GameButton onClick={handleShare} variant="accent">
               {copied ? "✓ Copied!" : "📋 Share Result"}
-            </Button>
+            </GameButton>
 
-            {/* Show optimal path */}
-            <Button
+            <GameButton
               onClick={() => setShowOptimalPath((prev) => !prev)}
               variant="outline"
-              size="lg"
-              className="w-full rounded-xl"
             >
               {showOptimalPath ? "Hide Optimal Path" : "Show Optimal Path"}
-            </Button>
+            </GameButton>
 
             <AnimatePresence>
               {showOptimalPath && (
@@ -277,25 +272,30 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="rounded-xl border border-border/50 bg-card/50 p-4">
-                    <h4 className="text-sm font-bold text-foreground">
+                  <div
+                    className="rounded-xl p-4"
+                    style={{ background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.06)" }}
+                  >
+                    <h4 className="text-sm font-bold" style={{ color: "#2D2A26" }}>
                       ⛳ Optimal Path ({puzzle.par} steps)
                     </h4>
                     <div className="mt-2 flex flex-wrap items-center gap-1">
                       {puzzle.optimalPath.map((word, i) => (
-                        <React.Fragment key={i}>
-                          <span className={cn(
-                            "rounded-md px-2 py-1 font-mono text-xs font-semibold",
-                            i === 0
-                              ? "bg-[#A0C35A]/15 text-[#A0C35A]"
-                              : i === puzzle.optimalPath.length - 1
-                                ? "bg-[#F9DF6D]/15 text-[#F9DF6D]"
-                                : "bg-white/[0.06] text-foreground",
-                          )}>
+                        <React.Fragment key={`path-${word}-${i}`}>
+                          <span
+                            className="rounded-md px-2 py-1 font-mono text-xs font-semibold"
+                            style={
+                              i === 0
+                                ? { background: "rgba(62,86,65,0.12)", color: "#3E5641" }
+                                : i === puzzle.optimalPath.length - 1
+                                  ? { background: "rgba(212,168,67,0.15)", color: "#D4A843" }
+                                  : { background: "rgba(0,0,0,0.04)", color: "#2D2A26" }
+                            }
+                          >
                             {word}
                           </span>
                           {i < puzzle.optimalPath.length - 1 && (
-                            <span className="text-muted-foreground/40">→</span>
+                            <span style={{ color: "rgba(156,149,144,0.6)" }}>→</span>
                           )}
                         </React.Fragment>
                       ))}

@@ -5,64 +5,34 @@ import { haptic } from "@/lib/games/haptics";
 import { fireConfetti } from "@/lib/games/juice";
 import { CONFETTI_SOLVE } from "@/lib/games/animations";
 import * as React from "react";
-import type {
-  ConnectionCategory,
-  Difficulty,
-} from "@/lib/games/data/connections/types";
-import { cn } from "@/lib/utils";
+import type { ConnectionCategory } from "@/lib/games/data/connections/types";
+import { DIFFICULTY_COLOURS } from "@/components/games/engine/colours";
 
 interface CategoryRevealProps {
   category: ConnectionCategory;
   index: number;
 }
 
-/** Category colours — warm, on-brand */
-const COLOUR_MAP: Record<
-  Difficulty,
-  { bg: string; border: string; text: string; glow: string }
-> = {
-  yellow: {
-    bg: "#E8D5A3",
-    border: "#C4A843",
-    text: "#2D2A26",
-    glow: "rgba(212, 168, 67, 0.1)",
-  },
-  green: {
-    bg: "#7BA882",
-    border: "#3E5641",
-    text: "#FFFFFF",
-    glow: "rgba(62, 86, 65, 0.1)",
-  },
-  blue: {
-    bg: "#93B8D7",
-    border: "#5A8AB5",
-    text: "#2D2A26",
-    glow: "rgba(90, 138, 181, 0.1)",
-  },
-  purple: {
-    bg: "#B89CD4",
-    border: "#8B5CB5",
-    text: "#FFFFFF",
-    glow: "rgba(139, 92, 181, 0.1)",
-  },
-};
-
 export default function CategoryReveal({
   category,
   index,
 }: CategoryRevealProps) {
-  const colours = COLOUR_MAP[category.difficulty];
+  const colours = DIFFICULTY_COLOURS[category.difficulty];
+
+  // Capture initial values so the mount effect has stable deps
+  const initialRef = React.useRef({ colours, index });
 
   // Fire haptic + confetti on mount (category revealed)
   React.useEffect(() => {
+    const { colours: c, index: i } = initialRef.current;
     haptic("success");
     // Fire confetti with category-appropriate colour
     void fireConfetti({
       ...CONFETTI_SOLVE,
-      colors: [colours.bg, colours.border, "#FFFFFF"],
-      origin: { y: 0.4 + index * 0.1 },
+      colors: [c.bg, c.border, "#FFFFFF"],
+      origin: { y: 0.4 + i * 0.1 },
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // safe: initialRef captures mount-time values
 
   return (
     <motion.div

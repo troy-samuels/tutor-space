@@ -119,16 +119,17 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
               ))}
             </ol>
 
-            <button
+            <motion.button
               onClick={dismiss}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-transform active:scale-[0.97]"
+              whileTap={{ scale: 0.96 }}
+              className="w-full min-h-[48px] rounded-xl text-sm font-semibold touch-manipulation select-none"
               style={{
                 background: "#D36135",
                 color: "#FFFFFF",
               }}
             >
               Got it
-            </button>
+            </motion.button>
           </motion.div>
         </motion.div>
       )}

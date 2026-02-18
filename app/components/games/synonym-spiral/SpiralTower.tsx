@@ -15,35 +15,36 @@ interface SpiralTowerProps {
   words: TowerWord[];
 }
 
+// Light-theme depth styles — darker text/border so readable on cream bg
 const DEPTH_STYLES: Record<DepthLevel, { bg: string; border: string; text: string; size: string }> = {
   1: {
-    bg: "bg-emerald-500/15",
-    border: "border-emerald-500/40",
-    text: "text-emerald-300",
+    bg: "bg-emerald-100",
+    border: "border-emerald-300",
+    text: "text-emerald-700",
     size: "text-base",
   },
   2: {
-    bg: "bg-cyan-500/15",
-    border: "border-cyan-500/40",
-    text: "text-cyan-300",
+    bg: "bg-sky-100",
+    border: "border-sky-300",
+    text: "text-sky-700",
     size: "text-sm",
   },
   3: {
-    bg: "bg-blue-500/15",
-    border: "border-blue-500/40",
-    text: "text-blue-300",
+    bg: "bg-indigo-100",
+    border: "border-indigo-300",
+    text: "text-indigo-700",
     size: "text-sm",
   },
   4: {
-    bg: "bg-purple-500/15",
-    border: "border-purple-500/40",
-    text: "text-purple-300",
+    bg: "bg-purple-100",
+    border: "border-purple-300",
+    text: "text-purple-700",
     size: "text-xs",
   },
   5: {
-    bg: "bg-amber-500/15",
-    border: "border-amber-500/40",
-    text: "text-amber-300",
+    bg: "bg-amber-100",
+    border: "border-amber-300",
+    text: "text-amber-700",
     size: "text-xs",
   },
 };
@@ -92,10 +93,20 @@ export default function SpiralTower({
         })}
       </AnimatePresence>
 
-      {/* Starter word at the bottom — always visible, biggest */}
-      <div className="w-full rounded-xl border border-white/20 bg-white/[0.06] px-4 py-3 text-center">
-        <p className="text-lg font-bold text-foreground">{starterWord}</p>
-        <p className="text-[10px] text-muted-foreground">{starterTranslation}</p>
+      {/* Starter word at the bottom — brand surface card */}
+      <div
+        className="w-full rounded-xl border px-4 py-3 text-center"
+        style={{
+          background: "#FFFFFF",
+          borderColor: "rgba(0,0,0,0.10)",
+        }}
+      >
+        <p className="text-lg font-bold" style={{ color: "#2D2A26" }}>
+          {starterWord}
+        </p>
+        <p className="text-[10px]" style={{ color: "#9C9590" }}>
+          {starterTranslation}
+        </p>
       </div>
     </div>
   );

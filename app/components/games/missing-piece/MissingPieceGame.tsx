@@ -2,14 +2,15 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import SentenceDisplay from "./SentenceDisplay";
 import OptionButton from "./OptionButton";
 import type { OptionState } from "./OptionButton";
 import ExplanationPanel from "./ExplanationPanel";
+import GameProgressBar from "@/components/games/engine/GameProgressBar";
+import GameResultCard from "@/components/games/engine/GameResultCard";
+import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
-import { cn } from "@/lib/utils";
 import type {
   MissingPiecePuzzle,
   MissingPieceGameState,
@@ -21,9 +22,10 @@ interface MissingPieceGameProps {
 }
 
 const MAX_LIVES = 3;
-const TOTAL_SENTENCES = 15;
 
 export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGameProps) {
+  const sentenceCount = puzzle.sentences.length;
+
   const [gameState, setGameState] = React.useState<MissingPieceGameState>({
     puzzle,
     currentSentence: 0,
@@ -33,7 +35,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
     isComplete: false,
     isWon: false,
     startTime: Date.now(),
-    sentenceResults: Array(TOTAL_SENTENCES).fill(null),
+    sentenceResults: Array(sentenceCount).fill(null),
   });
 
   const [optionStates, setOptionStates] = React.useState<
@@ -44,14 +46,29 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
   const [copied, setCopied] = React.useState(false);
   const [showAllExplanations, setShowAllExplanations] = React.useState(false);
 
-  // Notify parent when game ends
+  // Proper cleanup ref for copy timeout
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   React.useEffect(() => {
-    if (gameState.isComplete && onGameEnd) {
-      onGameEnd(gameState);
-    }
-  }, [gameState.isComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
+
+  // Stable ref to latest onGameEnd callback + single-fire guard
+  const onGameEndRef = React.useRef(onGameEnd);
+  React.useEffect(() => { onGameEndRef.current = onGameEnd; });
+  const hasNotifiedRef = React.useRef(false);
+
+  // Notify parent when game ends (fires exactly once)
+  React.useEffect(() => {
+    if (!gameState.isComplete || hasNotifiedRef.current) return;
+    hasNotifiedRef.current = true;
+    onGameEndRef.current?.(gameState);
+  }, [gameState]);
 
   const currentSentence = puzzle.sentences[gameState.currentSentence];
+  const progress = gameState.currentSentence / sentenceCount;
 
   const handleOptionTap = React.useCallback(
     (tappedIndex: number) => {
@@ -59,14 +76,9 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
 
       const isCorrect = tappedIndex === currentSentence.correctIndex;
 
-      // Set option visual states
       const newStates: [OptionState, OptionState, OptionState, OptionState] = [
-        "disabled",
-        "disabled",
-        "disabled",
-        "disabled",
+        "disabled", "disabled", "disabled", "disabled",
       ];
-
       if (isCorrect) {
         newStates[tappedIndex] = "correct";
       } else {
@@ -84,15 +96,11 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
         newResults[prev.currentSentence] = isCorrect;
         const newScore = isCorrect ? prev.score + 1 : prev.score;
         const newLives = isCorrect ? prev.lives : prev.lives - 1;
-
-        const sentenceCount = puzzle.sentences.length;
         const isLastSentence = prev.currentSentence >= sentenceCount - 1;
         const isGameOver = newLives <= 0 || isLastSentence;
         const isWon = isGameOver && newLives > 0;
 
-        if (isWon) {
-          recordGamePlay("missing-piece");
-        }
+        if (isWon) recordGamePlay("missing-piece");
 
         return {
           ...prev,
@@ -105,131 +113,69 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
         };
       });
     },
-    [gameState.isComplete, showExplanation, currentSentence, puzzle.sentences.length],
+    [gameState.isComplete, showExplanation, currentSentence, sentenceCount],
   );
 
   const handleNextSentence = React.useCallback(() => {
     setShowExplanation(false);
     setOptionStates(["default", "default", "default", "default"]);
-    setGameState((prev) => ({
-      ...prev,
-      currentSentence: prev.currentSentence + 1,
-    }));
+    setGameState((prev) => ({ ...prev, currentSentence: prev.currentSentence + 1 }));
   }, []);
 
   const generateShareText = React.useCallback((): string => {
-    const langFlag =
-      puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
-
+    const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
     const elapsed = gameState.endTime
-      ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
-      : 0;
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
-    const timeStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-
-    const livesLeft = gameState.lives;
-    const hearts = "●".repeat(livesLeft);
-
-    const sentenceCount = puzzle.sentences.length;
-
+      ? Math.floor((gameState.endTime - gameState.startTime) / 1000) : 0;
+    const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
     return [
       `Missing Piece #${puzzle.number} ${langFlag}`,
-      `${gameState.score}/${sentenceCount} · ${livesLeft} ${hearts} remaining · ${timeStr}`,
+      `${gameState.score}/${sentenceCount} · ${gameState.lives}● remaining · ${timeStr}`,
       "",
       "tutorlingua.co/games/missing-piece",
     ].join("\n");
-  }, [puzzle.number, puzzle.language, puzzle.sentences.length, gameState]);
+  }, [puzzle.number, puzzle.language, sentenceCount, gameState]);
 
   const handleShare = React.useCallback(async () => {
     const text = generateShareText();
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Missing Piece", text });
-        return;
-      }
-    } catch {
-      // fallthrough to clipboard
-    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   }, [generateShareText]);
 
-  const sentenceCount = puzzle.sentences.length;
-  const progress = (gameState.currentSentence / sentenceCount) * 100;
+  const timeSeconds = gameState.endTime
+    ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+    : undefined;
 
   return (
     <div className="space-y-4">
-      {/* Progress + Lives */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">
-            Sentence {Math.min(gameState.currentSentence + 1, sentenceCount)}/{sentenceCount}
-          </span>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: MAX_LIVES }).map((_, i) => (
-              <motion.span
-                key={i}
-                initial={false}
-                animate={{
-                  scale: i >= gameState.lives ? 0.8 : 1,
-                  opacity: i >= gameState.lives ? 0.3 : 1,
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="text-sm"
-              >
-                {i < gameState.lives ? "●" : "○"}
-              </motion.span>
-            ))}
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ type: "spring", stiffness: 200, damping: 30 }}
-            className={cn(
-              "h-full rounded-full",
-              gameState.lives === MAX_LIVES
-                ? "bg-emerald-500"
-                : gameState.lives >= 2
-                  ? "bg-primary"
-                  : "bg-amber-500",
-            )}
-          />
-        </div>
-      </div>
-
-      {/* Score */}
-      <div className="flex justify-center">
-        <span className="text-xs text-muted-foreground">
-          Score: {gameState.score}/{sentenceCount}
-        </span>
-      </div>
+      {/* Progress header */}
+      <GameProgressBar
+        label={`Sentence ${Math.min(gameState.currentSentence + 1, sentenceCount)}/${sentenceCount}`}
+        progress={progress}
+        lives={gameState.lives}
+        maxLives={MAX_LIVES}
+      />
 
       {/* Current sentence */}
       <AnimatePresence mode="wait">
         {!gameState.isComplete && currentSentence && (
           <motion.div
             key={gameState.currentSentence}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ type: "spring", stiffness: 320, damping: 28 }}
             className="space-y-4"
           >
-            {/* Sentence with blank */}
             <SentenceDisplay
               sentence={currentSentence.sentence}
               category={currentSentence.category}
               difficulty={currentSentence.difficulty}
             />
 
-            {/* Options — full width */}
-            <div className="grid grid-cols-2 gap-2 w-full">
+            {/* Options */}
+            <div className="grid grid-cols-2 gap-2.5 w-full">
               {currentSentence.options.map((option, i) => (
                 <OptionButton
                   key={`${gameState.currentSentence}-${i}`}
@@ -242,7 +188,6 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
               ))}
             </div>
 
-            {/* Explanation */}
             <AnimatePresence>
               {showExplanation && (
                 <ExplanationPanel
@@ -253,22 +198,16 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
               )}
             </AnimatePresence>
 
-            {/* Next button */}
             <AnimatePresence>
               {showExplanation && !gameState.isComplete && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                  transition={{ delay: 0.25, type: "spring", stiffness: 300, damping: 25 }}
                 >
-                  <Button
-                    onClick={handleNextSentence}
-                    variant="default"
-                    size="lg"
-                    className="w-full rounded-xl"
-                  >
+                  <GameButton onClick={handleNextSentence} variant="primary">
                     Next Sentence →
-                  </Button>
+                  </GameButton>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -279,94 +218,58 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
       {/* End of game */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-            className="mt-6 space-y-4"
-          >
-            {/* Result banner */}
-            <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>{gameState.isWon ? "Well done!" : "Good try"}</div>
-              <h2 className="mt-2 font-heading text-xl text-foreground">
-                {gameState.isWon ? "Brilliant!" : "Good effort!"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {gameState.score}/{sentenceCount} correct ·{" "}
-                {gameState.lives} {gameState.lives === 1 ? "life" : "lives"} remaining
-              </p>
+          <div className="mt-4 space-y-3">
+            <GameResultCard
+              emoji={gameState.isWon ? "🎉" : "💪"}
+              heading={gameState.isWon ? "Brilliant!" : "Good effort!"}
+              subtext={`${gameState.score}/${sentenceCount} correct · ${gameState.lives} ${gameState.lives === 1 ? "life" : "lives"} remaining`}
+              timeSeconds={timeSeconds}
+            />
 
-              {/* Time */}
-              {gameState.endTime && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  
-                  {(() => {
-                    const secs = Math.floor(
-                      (gameState.endTime - gameState.startTime) / 1000,
-                    );
-                    return `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, "0")}`;
-                  })()}
-                </p>
-              )}
-            </div>
-
-            {/* Share */}
-            <Button
-              onClick={handleShare}
-              variant="default"
-              size="lg"
-              className="w-full rounded-xl"
-            >
+            <GameButton onClick={handleShare} variant="accent">
               {copied ? "✓ Copied!" : "📋 Share Result"}
-            </Button>
+            </GameButton>
 
-            {/* Review all */}
-            <Button
-              onClick={() => setShowAllExplanations((prev) => !prev)}
+            <GameButton
+              onClick={() => setShowAllExplanations((p) => !p)}
               variant="outline"
-              size="lg"
-              className="w-full rounded-xl"
             >
               {showAllExplanations ? "Hide Explanations" : "Review All Sentences"}
-            </Button>
+            </GameButton>
 
-            {/* All explanations */}
             <AnimatePresence>
               {showAllExplanations && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 overflow-hidden"
+                  className="space-y-2.5 overflow-hidden"
                 >
                   {puzzle.sentences.map((sent, i) => (
                     <div
-                      key={i}
-                      className={cn(
-                        "rounded-xl border p-4",
-                        gameState.sentenceResults[i]
-                          ? "border-emerald-500/20 bg-emerald-500/5"
+                      key={`sent-${i}`}
+                      className="rounded-xl border p-4"
+                      style={
+                        gameState.sentenceResults[i] === true
+                          ? { background: "rgba(62,86,65,0.07)", borderColor: "rgba(62,86,65,0.20)" }
                           : gameState.sentenceResults[i] === false
-                            ? "border-destructive/20 bg-destructive/5"
-                            : "border-border/20 bg-card/50",
-                      )}
+                            ? { background: "rgba(162,73,54,0.07)", borderColor: "rgba(162,73,54,0.20)" }
+                            : { background: "rgba(0,0,0,0.02)", borderColor: "rgba(0,0,0,0.06)" }
+                      }
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">
-                          {gameState.sentenceResults[i] === true
-                            ? "✅"
-                            : gameState.sentenceResults[i] === false
-                              ? "❌"
-                              : "⚪"}
+                          {gameState.sentenceResults[i] === true ? "✅"
+                            : gameState.sentenceResults[i] === false ? "❌" : "⚪"}
                         </span>
-                        <h4 className="text-sm font-bold text-foreground">
+                        <h4 className="text-sm font-bold" style={{ color: "#2D2A26" }}>
                           #{i + 1}: {sent.options[sent.correctIndex]}
                         </h4>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: "#6B6560" }}>
                         {sent.sentence.replace("___", `[${sent.options[sent.correctIndex]}]`)}
                       </p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: "#6B6560" }}>
                         {sent.explanation}
                       </p>
                     </div>
@@ -374,7 +277,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

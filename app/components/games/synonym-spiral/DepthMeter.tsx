@@ -16,12 +16,13 @@ const DEPTH_LABELS: Record<string, Record<DepthLevel, string>> = {
   de: { 1: "Grundstufe", 2: "Mittelstufe", 3: "Fortgeschritten", 4: "Literarisch", 5: "Poetisch" },
 };
 
-const DEPTH_COLOURS: Record<DepthLevel, { bg: string; border: string; text: string; glow: string }> = {
-  1: { bg: "bg-emerald-500/20", border: "border-emerald-500/50", text: "text-emerald-400", glow: "shadow-emerald-500/20" },
-  2: { bg: "bg-cyan-500/20", border: "border-cyan-500/50", text: "text-cyan-400", glow: "shadow-cyan-500/20" },
-  3: { bg: "bg-blue-500/20", border: "border-blue-500/50", text: "text-blue-400", glow: "shadow-blue-500/20" },
-  4: { bg: "bg-purple-500/20", border: "border-purple-500/50", text: "text-purple-400", glow: "shadow-purple-500/20" },
-  5: { bg: "bg-amber-500/20", border: "border-amber-500/50", text: "text-amber-400", glow: "shadow-amber-500/20" },
+// Light-theme depth colours — readable on cream/white background
+const DEPTH_COLOURS: Record<DepthLevel, { bg: string; border: string; text: string; numBg: string }> = {
+  1: { bg: "bg-emerald-100", border: "border-emerald-300", text: "text-emerald-700", numBg: "bg-emerald-200" },
+  2: { bg: "bg-sky-100", border: "border-sky-300", text: "text-sky-700", numBg: "bg-sky-200" },
+  3: { bg: "bg-indigo-100", border: "border-indigo-300", text: "text-indigo-700", numBg: "bg-indigo-200" },
+  4: { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-700", numBg: "bg-purple-200" },
+  5: { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-700", numBg: "bg-amber-200" },
 };
 
 const CEFR_LABELS: Record<DepthLevel, string> = {
@@ -54,7 +55,7 @@ export default function DepthMeter({ currentDepth, maxDepth = 5, language }: Dep
             initial={false}
             animate={{
               scale: isCurrent ? 1.05 : 1,
-              opacity: isReached ? 1 : isTarget ? 0.7 : 0.3,
+              opacity: isReached ? 1 : isTarget ? 0.7 : 0.35,
             }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className={cn(
@@ -62,15 +63,14 @@ export default function DepthMeter({ currentDepth, maxDepth = 5, language }: Dep
               isReached
                 ? `${colours.bg} ${colours.border}`
                 : isTarget
-                  ? "border-white/20 bg-white/[0.04]"
-                  : "border-white/[0.06] bg-white/[0.02]",
-              isCurrent && `shadow-lg ${colours.glow}`,
+                  ? "border-black/10 bg-[#F5EDE8]/60"
+                  : "border-black/[0.06] bg-black/[0.02]",
             )}
           >
             <div
               className={cn(
-                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
-                isReached ? `${colours.bg} ${colours.text}` : "bg-white/[0.06] text-muted-foreground/50",
+                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold flex-shrink-0",
+                isReached ? `${colours.numBg} ${colours.text}` : "bg-[#F5EDE8] text-[#9C9590]",
               )}
             >
               {level}
@@ -79,16 +79,14 @@ export default function DepthMeter({ currentDepth, maxDepth = 5, language }: Dep
               <p
                 className={cn(
                   "truncate text-[10px] font-medium leading-tight",
-                  isReached ? colours.text : "text-muted-foreground/50",
+                  isReached ? colours.text : "text-[#9C9590]",
                 )}
               >
                 {labels[level]}
               </p>
               <p
-                className={cn(
-                  "text-[8px] leading-tight",
-                  isReached ? "text-muted-foreground" : "text-muted-foreground/30",
-                )}
+                className="text-[8px] leading-tight"
+                style={{ color: isReached ? "#6B6560" : "rgba(156,149,144,0.5)" }}
               >
                 {CEFR_LABELS[level]}
               </p>
@@ -98,7 +96,7 @@ export default function DepthMeter({ currentDepth, maxDepth = 5, language }: Dep
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="text-[10px]"
+                className={cn("text-[10px] flex-shrink-0", colours.text)}
               >
                 ✓
               </motion.span>

@@ -45,10 +45,10 @@ export default function SentenceDisplay({
     <div className="space-y-3">
       {/* Category badge + difficulty */}
       <div className="flex items-center justify-center gap-2">
-        <Badge variant="outline" className="gap-1 text-xs">
+        <Badge variant="outline" className="gap-1 text-xs" style={{ color: "#6B6560" }}>
           {catInfo.emoji} {catInfo.label}
         </Badge>
-        <span className="text-xs text-muted-foreground tracking-wider">
+        <span className="text-xs tracking-wider" style={{ color: "#9C9590" }}>
           {DIFFICULTY_DOTS[difficulty]}
         </span>
       </div>
@@ -58,30 +58,28 @@ export default function SentenceDisplay({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="rounded-2xl border border-border/50 bg-card p-6 text-center"
+        className="rounded-2xl p-6 text-center"
+        style={{ background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.06)" }}
       >
-        <p className="text-lg font-medium leading-relaxed text-foreground sm:text-xl">
+        <p className="text-lg font-medium leading-relaxed sm:text-xl" style={{ color: "#2D2A26" }}>
           {parts.map((part, i) => (
             <span key={i}>
               {part}
               {i < parts.length - 1 && (
                 <motion.span
-                  animate={{
-                    opacity: [0.5, 1, 0.5],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   className={cn(
                     "mx-1 inline-block font-bold",
                     useBlockGap
-                      ? // Block-style gap for CJK languages (no word spaces)
-                        "rounded-lg border-2 border-dashed border-primary/50 bg-primary/[0.08] text-primary w-12 h-8 align-middle"
-                      : // Standard underline-style gap for spaced languages
-                        "rounded-lg border-2 border-dashed border-primary/50 px-4 py-0.5 bg-primary/[0.08] text-primary",
+                      ? "rounded-lg border-2 border-dashed w-12 h-8 align-middle"
+                      : "rounded-lg border-2 border-dashed px-4 py-0.5",
                   )}
+                  style={{
+                    borderColor: "rgba(211,97,53,0.45)",
+                    background: "rgba(211,97,53,0.08)",
+                    color: "#D36135",
+                  }}
                 >
                   {useBlockGap ? "\u3000" : "???"}
                 </motion.span>

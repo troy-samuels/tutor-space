@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import GameResultCard from "@/components/games/engine/GameResultCard";
+import GameButton from "@/components/games/engine/GameButton";
 import SpiralTower from "./SpiralTower";
 import WordInput from "./WordInput";
 import DepthMeter from "./DepthMeter";
@@ -56,6 +57,12 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
 
   const roundStartRef = React.useRef(Date.now());
   const gameStartRef = React.useRef(Date.now());
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable ref to endRound so the timer effect doesn't need it as a dep
+  const endRoundRef = React.useRef<() => void>(() => { /* populated after endRound is defined */ });
+  React.useEffect(() => {
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); };
+  }, []);
 
   const chain = puzzle.chains[currentRound];
 
@@ -66,7 +73,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  // Round timer
+  // Round timer — uses endRoundRef to avoid stale closure without extra deps
   React.useEffect(() => {
     if (showRoundSummary || isComplete) return;
 
@@ -77,12 +84,11 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
 
       if (remaining <= 0) {
         // Time's up — end round
-        endRound();
+        endRoundRef.current();
       }
     }, 100);
 
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showRoundSummary, isComplete, currentRound]);
 
   const endRound = React.useCallback(() => {
@@ -96,6 +102,9 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
     setRoundResults((prev) => [...prev, result]);
     setShowRoundSummary(true);
   }, [currentRound, currentDepth, wordsThisRound]);
+
+  // Keep endRoundRef current so the timer effect always calls latest version
+  React.useEffect(() => { endRoundRef.current = endRound; }, [endRound]);
 
   const handleWordSubmit = React.useCallback(
     (word: string) => {
@@ -268,17 +277,10 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
       "tutorlingua.co/games/synonym-spiral",
     ].join("\n");
 
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Synonym Spiral", text });
-        return;
-      }
-    } catch {
-      // fallthrough
-    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   }, [puzzle, roundResults]);
 
   // Timer display
@@ -299,52 +301,34 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
     const secs = totalSec % 60;
 
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="space-y-4"
-      >
-        <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-          <div className="text-4xl">
-            {avg >= 4 ? "Excellent!" : avg >= 3 ? "Great!" : avg >= 2 ? "Good" : "Keep practising"}
-          </div>
-          <h2 className="mt-2 font-heading text-xl text-foreground">
-            {avg >= 4
-              ? "Vocabulary Master!"
-              : avg >= 3
-                ? "Impressive Depth!"
-                : avg >= 2
-                  ? "Good Progress!"
-                  : "Keep Practising!"}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Average depth: <span className="font-bold text-foreground">{avg.toFixed(1)}/5</span>
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {mins}:{secs.toString().padStart(2, "0")}
-          </p>
-
-          {/* Round-by-round */}
-          <div className="mx-auto mt-4 max-w-[280px] space-y-1.5">
+      <div className="space-y-4">
+        <GameResultCard
+          emoji={avg >= 4 ? "🌟" : avg >= 3 ? "✨" : avg >= 2 ? "💪" : "📚"}
+          heading={
+            avg >= 4 ? "Vocabulary Master!"
+              : avg >= 3 ? "Impressive Depth!"
+                : avg >= 2 ? "Good Progress!"
+                  : "Keep Practising!"
+          }
+          subtext={`Average depth: ${avg.toFixed(1)}/5`}
+          timeSeconds={totalSec}
+        >
+          {/* Round-by-round breakdown */}
+          <div className="space-y-1.5 text-left">
             {roundResults.map((result, i) => {
               const depthColour =
-                result.depthReached >= 4
-                  ? "text-purple-400"
-                  : result.depthReached >= 3
-                    ? "text-blue-400"
-                    : result.depthReached >= 2
-                      ? "text-cyan-400"
-                      : result.depthReached >= 1
-                        ? "text-emerald-400"
-                        : "text-muted-foreground";
-
+                result.depthReached >= 4 ? "#7c3aed"
+                  : result.depthReached >= 3 ? "#4338ca"
+                    : result.depthReached >= 2 ? "#0369a1"
+                      : result.depthReached >= 1 ? "#047857"
+                        : "#9C9590";
               return (
                 <div
-                  key={i}
-                  className="flex items-center justify-between rounded-lg border border-border/30 bg-white/[0.02] px-3 py-1.5"
+                  key={`round-result-${i}`}
+                  className="flex items-center justify-between rounded-lg px-3 py-1.5"
+                  style={{ background: "rgba(0,0,0,0.02)", border: "1px solid rgba(0,0,0,0.06)" }}
                 >
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs" style={{ color: "#6B6560" }}>
                     {puzzle.chains[i].starterWord}
                   </span>
                   <div className="flex items-center gap-2">
@@ -352,14 +336,14 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
                       {[1, 2, 3, 4, 5].map((d) => (
                         <div
                           key={d}
-                          className={cn(
-                            "h-2 w-2 rounded-full transition-colors",
-                            d <= result.depthReached ? "bg-primary" : "bg-white/[0.1]",
-                          )}
+                          className="h-2 w-2 rounded-full"
+                          style={{
+                            background: d <= result.depthReached ? "#D36135" : "rgba(0,0,0,0.08)",
+                          }}
                         />
                       ))}
                     </div>
-                    <span className={cn("text-xs font-bold", depthColour)}>
+                    <span className="text-xs font-bold tabular-nums" style={{ color: depthColour }}>
                       {result.depthReached}/5
                     </span>
                   </div>
@@ -367,17 +351,12 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
               );
             })}
           </div>
-        </div>
+        </GameResultCard>
 
-        <Button
-          onClick={handleShare}
-          variant="default"
-          size="lg"
-          className="w-full rounded-xl"
-        >
+        <GameButton onClick={handleShare} variant="accent">
           {copied ? "✓ Copied!" : "📋 Share Result"}
-        </Button>
-      </motion.div>
+        </GameButton>
+      </div>
     );
   }
 
@@ -400,15 +379,17 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
     <div className="space-y-4">
       {/* Round indicator + timer */}
       <div className="flex items-center justify-between">
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-xs tabular-nums" style={{ color: "#6B6560" }}>
           Round {currentRound + 1}/{TOTAL_ROUNDS}
         </Badge>
         <Badge
           variant="outline"
-          className={cn(
-            "font-mono text-xs tabular-nums",
-            timerIsLow && "animate-pulse border-destructive/50 text-destructive",
-          )}
+          className={cn("font-mono text-xs tabular-nums", timerIsLow && "animate-pulse")}
+          style={
+            timerIsLow
+              ? { borderColor: "rgba(162,73,54,0.5)", color: "#A24936" }
+              : { color: "#6B6560" }
+          }
         >
           {timerSeconds}s
         </Badge>

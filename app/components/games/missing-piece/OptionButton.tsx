@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { motion } from "framer-motion";
 import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
@@ -25,16 +26,35 @@ const shakeAnimation = {
   transition: { duration: 0.5 },
 };
 
-function getStateStyles(state: OptionState): string {
+function getStateStyles(state: OptionState): React.CSSProperties {
   switch (state) {
     case "correct":
-      return "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_-10px_rgba(16,185,129,0.4)]";
+      return {
+        background: "rgba(62,86,65,0.12)",
+        borderColor: "rgba(62,86,65,0.4)",
+        color: "#3E5641",
+      };
     case "wrong":
-      return "bg-destructive/[0.15] border-destructive/40 text-destructive";
+      return {
+        background: "rgba(162,73,54,0.12)",
+        borderColor: "rgba(162,73,54,0.4)",
+        color: "#A24936",
+      };
     case "disabled":
-      return "bg-white/[0.02] border-white/[0.05] text-muted-foreground opacity-40";
+      return {
+        background: "rgba(0,0,0,0.02)",
+        borderColor: "rgba(0,0,0,0.05)",
+        color: "#9C9590",
+        opacity: 0.4,
+      };
     default:
-      return "bg-white/[0.04] border-white/[0.08] text-foreground hover:bg-white/[0.08] active:bg-primary/[0.15] active:border-primary/40";
+      return {
+        background: "#FFFFFF",
+        border: "1px solid rgba(45,42,38,0.10)",
+        borderBottom: "3px solid rgba(45,42,38,0.12)",
+        color: "#2D2A26",
+        boxShadow: "0 2px 6px rgba(45,42,38,0.06)",
+      };
   }
 }
 
@@ -81,12 +101,13 @@ export default function OptionButton({
         delay: index * 0.05,
       }}
       whileTap={!disabled && state === "default" ? { scale: 0.96 } : undefined}
+      style={getStateStyles(state)}
       className={cn(
         "flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl border px-3 font-semibold transition-colors",
         "select-none touch-manipulation",
         "disabled:cursor-not-allowed",
         getAdaptiveFontClass(text),
-        getStateStyles(state),
+        state === "default" && "hover:brightness-95 active:brightness-90",
       )}
     >
       <span className="break-all leading-tight text-center">{text}</span>

@@ -64,9 +64,10 @@ function DifficultySelector({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => handleSelect(level)}
+              whileTap={{ scale: 0.96 }}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-all text-left min-h-[56px] relative",
-                "touch-manipulation active:scale-[0.98]",
+                "touch-manipulation",
                 isSelected
                   ? "border-primary bg-primary/10"
                   : "border-border/50 bg-card hover:border-primary/30",

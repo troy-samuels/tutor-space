@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import CipherText from "./CipherText";
+import GameResultCard from "@/components/games/engine/GameResultCard";
+import GameButton from "@/components/games/engine/GameButton";
 import AlphabetKeyboard from "./AlphabetKeyboard";
 import QuoteReveal from "./QuoteReveal";
 import { recordGamePlay } from "@/lib/games/streaks";
@@ -14,7 +14,6 @@ import {
   stripAccent,
 } from "@/lib/games/data/daily-decode";
 import { haptic } from "@/lib/games/haptics";
-import { cn } from "@/lib/utils";
 import type {
   DecodePuzzle,
   CipherMap,
@@ -49,6 +48,17 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
   const [copied, setCopied] = React.useState(false);
   const [showInlineHint, setShowInlineHint] = React.useState(true);
 
+  // Proper cleanup ref
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); };
+  }, []);
+
+  // Stable ref to latest onGameEnd callback + single-fire guard
+  const onGameEndRef = React.useRef(onGameEnd);
+  React.useEffect(() => { onGameEndRef.current = onGameEnd; });
+  const hasNotifiedRef = React.useRef(false);
+
   // Compute used letters (letters already assigned as guesses)
   const usedLetters = React.useMemo(() => {
     const used = new Set<string>();
@@ -80,16 +90,16 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
     [prepared.encodedText],
   );
 
-  // Notify parent on game end
+  // Notify parent on game end (fires exactly once)
   React.useEffect(() => {
-    if (gameState.isComplete && onGameEnd) {
-      onGameEnd({
-        isComplete: gameState.isComplete,
-        isWon: gameState.isWon,
-        mistakes: gameState.mistakes,
-      });
-    }
-  }, [gameState.isComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!gameState.isComplete || hasNotifiedRef.current) return;
+    hasNotifiedRef.current = true;
+    onGameEndRef.current?.({
+      isComplete: gameState.isComplete,
+      isWon: gameState.isWon,
+      mistakes: gameState.mistakes,
+    });
+  }, [gameState]);
 
   const handleLetterTap = React.useCallback((cipherLetter: string) => {
     if (gameState.isComplete) return;
@@ -234,30 +244,25 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
       gameState.hintsUsed,
       timeMs,
     );
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Daily Decode", text });
-        return;
-      }
-    } catch {
-      // fallthrough
-    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   }, [gameState, puzzle]);
 
   return (
-    <div className="space-y-5">
-      {/* Difficulty & hints bar */}
-      <div className="flex items-center justify-center gap-3">
-        <Badge variant="outline" className="gap-1 text-xs capitalize">
-          {puzzle.difficulty === "easy" ? "Easy" : puzzle.difficulty === "medium" ? "Medium" : "Hard"}{" "}
-          {puzzle.difficulty}
-        </Badge>
-        <Badge variant="outline" className="gap-1 text-xs">
-          Hints: {gameState.hintsUsed}/{MAX_HINTS}
-        </Badge>
+    <div className="space-y-4">
+      {/* Difficulty & hints bar — glanceable */}
+      <div className="flex items-center justify-center gap-4">
+        <span
+          className="rounded-full border px-3 py-0.5 text-xs font-medium capitalize"
+          style={{ color: "#6B6560", borderColor: "rgba(0,0,0,0.10)" }}
+        >
+          {puzzle.difficulty === "easy" ? "Easy 🟢" : puzzle.difficulty === "medium" ? "Medium 🟡" : "Hard 🔴"}
+        </span>
+        <span className="text-xs tabular-nums" style={{ color: "#9C9590" }}>
+          💡 {gameState.hintsUsed}/{MAX_HINTS} hints
+        </span>
       </div>
 
       {/* Inline helper hint — fades after first mapping */}
@@ -276,7 +281,13 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
       </AnimatePresence>
 
       {/* Cipher text display */}
-      <div className="rounded-2xl border border-border/50 bg-card/50 p-3">
+      <div
+        className="rounded-2xl p-3"
+        style={{
+          background: "rgba(245,237,232,0.5)",
+          border: "1px solid rgba(0,0,0,0.06)",
+        }}
+      >
         <CipherText
           encodedText={prepared.encodedText}
           plaintext={puzzle.plaintext}
@@ -303,14 +314,9 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
 
       {/* Hint button */}
       {!gameState.isComplete && gameState.hintsUsed < MAX_HINTS && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleHint}
-          className="w-full rounded-xl text-xs text-muted-foreground hover:text-primary"
-        >
-          Use a hint ({MAX_HINTS - gameState.hintsUsed} remaining)
-        </Button>
+        <GameButton onClick={handleHint} variant="outline">
+          💡 Use a hint ({MAX_HINTS - gameState.hintsUsed} remaining)
+        </GameButton>
       )}
 
       {/* Victory */}
@@ -325,43 +331,22 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
             {/* Quote reveal */}
             <QuoteReveal plaintext={puzzle.plaintext} author={puzzle.author} />
 
-            {/* Result banner */}
-            <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>
-                {gameState.hintsUsed === 0 ? "Perfect!" : "Well done!"}
-              </div>
-              <h2 className="mt-2 font-heading text-xl text-foreground">
-                {gameState.hintsUsed === 0 ? "Perfect decode!" : "Decoded!"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {gameState.hintsUsed === 0
+            <GameResultCard
+              emoji={gameState.hintsUsed === 0 ? "🏆" : "🎉"}
+              heading={gameState.hintsUsed === 0 ? "Perfect decode!" : "Decoded!"}
+              subtext={
+                gameState.hintsUsed === 0
                   ? "No hints used — impressive!"
-                  : `${gameState.hintsUsed} hint${gameState.hintsUsed !== 1 ? "s" : ""} used`}
-              </p>
+                  : `${gameState.hintsUsed} hint${gameState.hintsUsed !== 1 ? "s" : ""} used`
+              }
+              timeSeconds={gameState.endTime
+                ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+                : undefined}
+            />
 
-              {/* Time */}
-              {gameState.endTime && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  
-                  {(() => {
-                    const secs = Math.floor(
-                      (gameState.endTime - gameState.startTime) / 1000,
-                    );
-                    return `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, "0")}`;
-                  })()}
-                </p>
-              )}
-            </div>
-
-            {/* Share button */}
-            <Button
-              onClick={handleShare}
-              variant="default"
-              size="lg"
-              className="w-full rounded-xl"
-            >
+            <GameButton onClick={handleShare} variant="accent">
               {copied ? "✓ Copied!" : "📋 Share Result"}
-            </Button>
+            </GameButton>
           </motion.div>
         )}
       </AnimatePresence>

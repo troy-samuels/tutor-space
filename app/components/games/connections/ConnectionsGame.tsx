@@ -2,15 +2,15 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import GameButton from "@/components/games/engine/GameButton";
 import WordTile from "./WordTile";
 import type { TileState } from "./WordTile";
 import CategoryReveal from "./CategoryReveal";
 import VibeClueBanner from "./VibeClueBanner";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
-import { isTelegram, tgShareInline } from "@/lib/telegram";
+import { shareResult } from "@/components/games/engine/share";
 import { cn } from "@/lib/utils";
 import type {
   ConnectionsPuzzle,
@@ -88,6 +88,8 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
 
   const [wrongGuessWords, setWrongGuessWords] = React.useState<Set<string>>(new Set());
   const [falseFriendWords, setFalseFriendWords] = React.useState<Set<string>>(new Set());
+  // Debounce guard — prevents double-submit on rapid taps
+  const isSubmittingRef = React.useRef(false);
   const [oneAway, setOneAway] = React.useState(false);
   const [showExplanations, setShowExplanations] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -96,15 +98,20 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
   // LOW-1: Ref to track copy timeout for cleanup
   const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Stable ref to latest onGameEnd callback + single-fire guard
+  const onGameEndRef = React.useRef(onGameEnd);
+  React.useEffect(() => { onGameEndRef.current = onGameEnd; });
+  const hasNotifiedRef = React.useRef(false);
+
   // HIGH-2: Build false friend lookup map
   const falseFriendMap = React.useMemo(() => buildFalseFriendMap(puzzle), [puzzle]);
 
-  // Notify parent when game ends
+  // Notify parent when game ends (fires exactly once)
   React.useEffect(() => {
-    if (gameState.isComplete && onGameEnd) {
-      onGameEnd(gameState);
-    }
-  }, [gameState.isComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!gameState.isComplete || hasNotifiedRef.current) return;
+    hasNotifiedRef.current = true;
+    onGameEndRef.current?.(gameState);
+  }, [gameState]);
 
   // HIGH-3: Clear wrong state after 200ms (was 600ms)
   React.useEffect(() => {
@@ -159,6 +166,11 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
   }, [gameState.isComplete]);
 
   const handleSubmit = React.useCallback(() => {
+    // Debounce: block rapid double-taps
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setTimeout(() => { isSubmittingRef.current = false; }, 350);
+
     const { selectedWords, puzzle: puz } = gameState;
     if (selectedWords.length !== MAX_SELECTED) return;
 
@@ -317,31 +329,9 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
     return `${header}\n${mistakeStr} · ${timeStr}${ffStr}\n\n${grid}\n\ntutorlingua.co/games/connections`;
   }, [puzzle.number, puzzle.language, gameState, guessHistory]);
 
-  // CRITICAL-2: Telegram-native share flow
   const handleShare = React.useCallback(async () => {
     const text = generateShareText();
-    haptic("shareGenerated");
-
-    // Try Telegram-native share first
-    if (isTelegram()) {
-      const shared = tgShareInline(text);
-      if (shared) return;
-    }
-
-    // Fallback: navigator.share then clipboard
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Lingua Connections", text });
-        return;
-      }
-    } catch {
-      // fallthrough to clipboard
-    }
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    // LOW-1: Track timeout in ref for cleanup
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    await shareResult(text, "Lingua Connections", setCopied, copyTimeoutRef);
   }, [generateShareText]);
 
   const getTileState = (word: string): TileState => {
@@ -358,7 +348,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
   };
 
   return (
-    <div className="relative space-y-3">
+    <div className="relative space-y-4">
       {/* Mistake dots — minimal */}
       <div className="flex items-center justify-center gap-1.5 mb-3">
         <div className="flex gap-1.5">
@@ -433,29 +423,39 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
           }}
         >
           <div className="flex items-center gap-2">
-            <button
+            {/* Shuffle */}
+            <motion.button
               onClick={handleShuffle}
-              className="flex-1 rounded-xl text-[13px] font-medium min-h-[44px] transition-colors active:scale-[0.97] touch-manipulation"
+              whileTap={{ scale: 0.96 }}
+              className="flex-1 rounded-xl text-[13px] font-medium min-h-[48px] touch-manipulation select-none"
               style={{ color: "#6B6560", background: "#F5EDE8" }}
             >
               Shuffle
-            </button>
-            <button
+            </motion.button>
+            {/* Deselect */}
+            <motion.button
               onClick={handleDeselectAll}
               disabled={gameState.selectedWords.length === 0}
-              className="flex-1 rounded-xl text-[13px] font-medium min-h-[44px] transition-colors active:scale-[0.97] touch-manipulation disabled:opacity-30"
+              whileTap={gameState.selectedWords.length > 0 ? { scale: 0.96 } : undefined}
+              className="flex-1 rounded-xl text-[13px] font-medium min-h-[48px] touch-manipulation select-none disabled:opacity-30"
               style={{ color: "#6B6560", background: "#F5EDE8" }}
             >
               Deselect
-            </button>
-            <button
+            </motion.button>
+            {/* Submit — primary CTA */}
+            <motion.button
               onClick={handleSubmit}
               disabled={gameState.selectedWords.length !== MAX_SELECTED}
-              className="flex-1 rounded-xl text-[13px] font-semibold min-h-[44px] transition-colors active:scale-[0.97] touch-manipulation disabled:opacity-30"
-              style={{ color: "#FFFFFF", background: "#2D2A26" }}
+              whileTap={gameState.selectedWords.length === MAX_SELECTED ? { scale: 0.96 } : undefined}
+              className="flex-1 rounded-xl text-[13px] font-semibold min-h-[48px] touch-manipulation select-none"
+              style={{
+                color: "#FFFFFF",
+                background: gameState.selectedWords.length !== MAX_SELECTED ? "#9C9590" : "#2D2A26",
+                opacity: gameState.selectedWords.length !== MAX_SELECTED ? 0.4 : 1,
+              }}
             >
               Submit
-            </button>
+            </motion.button>
           </div>
         </div>
       )}
@@ -485,14 +485,14 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 border: "1px solid rgba(0,0,0,0.06)",
               }}
             >
-              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>
-                {gameState.isWon ? "Well done!" : "Good try"}
+              <div className="text-2xl">
+                {gameState.isWon ? "🎉" : "💪"}
               </div>
               <h2
                 className="mt-2 text-xl font-bold"
                 style={{ color: "var(--game-text-primary)" }}
               >
-                {gameState.isWon ? "¡Perfecto!" : "Good try!"}
+                {gameState.isWon ? "Well done!" : "Good try!"}
               </h2>
               <p
                 className="mt-1 text-sm"
@@ -599,14 +599,12 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
 
             {/* Explain mistakes */}
             {gameState.mistakes > 0 && (
-              <Button
+              <GameButton
                 onClick={() => setShowExplanations((prev) => !prev)}
                 variant="outline"
-                size="lg"
-                className="w-full rounded-xl border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)] hover:text-[var(--game-text-primary)] hover:bg-[var(--game-bg-elevated)]"
               >
                 {showExplanations ? "Hide Explanations" : "Explain My Mistakes"}
-              </Button>
+              </GameButton>
             )}
 
             {/* Explanations panel */}

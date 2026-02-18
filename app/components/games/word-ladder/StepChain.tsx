@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 interface StepChainProps {
   startWord: string;
@@ -26,20 +25,25 @@ export default function StepChain({
 }: StepChainProps) {
   return (
     <div className="flex flex-col items-center gap-0">
-      {/* Start word */}
+      {/* Start word — brand sage green */}
       <motion.div
         layout
-        className={cn(
-          "flex h-14 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest",
-          "bg-[#A0C35A]/15 border-[#A0C35A]/30 text-[#A0C35A]",
-        )}
+        className="flex h-14 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest"
+        style={{
+          background: "rgba(62,86,65,0.12)",
+          borderColor: "rgba(62,86,65,0.35)",
+          color: "#3E5641",
+        }}
       >
         {startWord}
       </motion.div>
 
       {/* Connecting dot */}
-      <div className="flex h-6 w-px items-center justify-center bg-border/30">
-        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+      <div className="flex h-6 items-center justify-center" style={{ width: 2, background: "rgba(0,0,0,0.15)" }}>
+        <div
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ background: "rgba(0,0,0,0.2)" }}
+        />
       </div>
 
       {/* Steps */}
@@ -52,53 +56,73 @@ export default function StepChain({
             transition={{ ...springTransition, delay: 0.05 }}
             className="flex flex-col items-center"
           >
+            {/* Step word — brand accent orange */}
             <div
-              className={cn(
-                "flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-base font-semibold tracking-widest",
-                "bg-primary/[0.12] border-primary/30 text-primary",
-              )}
+              className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-base font-semibold tracking-widest"
+              style={{
+                background: "rgba(211,97,53,0.10)",
+                borderColor: "rgba(211,97,53,0.30)",
+                color: "#D36135",
+              }}
             >
               {step}
             </div>
-            {/* Connecting dot between steps or before target */}
-            <div className="flex h-6 w-px items-center justify-center bg-border/30">
-              <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+            {/* Connecting dot between steps */}
+            <div className="flex h-6 items-center justify-center" style={{ width: 2, background: "rgba(0,0,0,0.15)" }}>
+              <div
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: "rgba(0,0,0,0.2)" }}
+              />
             </div>
           </motion.div>
         ))}
       </AnimatePresence>
 
-      {/* Empty slots (placeholder) — show steps remaining */}
+      {/* Placeholder — steps remaining */}
       {!isComplete && (
-        <motion.div
-          layout
-          className="flex flex-col items-center"
-        >
-          <div className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border border-dashed border-white/[0.1] px-4 text-sm text-muted-foreground/50 gap-1.5">
+        <motion.div layout className="flex flex-col items-center">
+          <div
+            className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border border-dashed px-4 text-sm gap-1.5"
+            style={{
+              borderColor: "rgba(0,0,0,0.15)",
+              color: "#9C9590",
+            }}
+          >
             {par != null ? (
-              <>
-                
-                <span>{Math.max(0, (par ?? 0) - steps.length)} step{(par ?? 0) - steps.length !== 1 ? "s" : ""} to go</span>
-              </>
+              <span>
+                {Math.max(0, (par ?? 0) - steps.length)} step
+                {(par ?? 0) - steps.length !== 1 ? "s" : ""} to go
+              </span>
             ) : (
               "???"
             )}
           </div>
-          <div className="flex h-6 w-px items-center justify-center bg-border/30">
-            <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+          <div className="flex h-6 items-center justify-center" style={{ width: 2, background: "rgba(0,0,0,0.15)" }}>
+            <div
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "rgba(0,0,0,0.2)" }}
+            />
           </div>
         </motion.div>
       )}
 
-      {/* Target word */}
+      {/* Target word — brand gold/warning */}
       <motion.div
         layout
-        className={cn(
-          "flex h-14 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest",
+        className="flex h-14 w-full max-w-[240px] items-center justify-center rounded-xl border px-4 text-lg font-bold tracking-widest"
+        style={
           isComplete
-            ? "bg-[#F9DF6D]/20 border-[#F9DF6D]/50 text-[#F9DF6D]"
-            : "bg-[#F9DF6D]/10 border-[#F9DF6D]/20 text-[#F9DF6D]/60",
-        )}
+            ? {
+                background: "rgba(212,168,67,0.15)",
+                borderColor: "rgba(212,168,67,0.45)",
+                color: "#D4A843",
+              }
+            : {
+                background: "rgba(212,168,67,0.08)",
+                borderColor: "rgba(212,168,67,0.20)",
+                color: "rgba(212,168,67,0.65)",
+              }
+        }
       >
         {targetWord}
       </motion.div>

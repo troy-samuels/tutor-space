@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import GameButton from "@/components/games/engine/GameButton";
 import { cn } from "@/lib/utils";
 import type { DepthLevel, SynonymChain } from "@/lib/games/data/synonym-spiral/types";
 
@@ -15,25 +15,25 @@ interface RoundSummaryProps {
   onNext: () => void;
 }
 
+// Light-theme depth colours
 const DEPTH_COLOURS: Record<DepthLevel, string> = {
-  1: "text-emerald-400",
-  2: "text-cyan-400",
-  3: "text-blue-400",
-  4: "text-purple-400",
-  5: "text-amber-400",
+  1: "text-emerald-700",
+  2: "text-sky-700",
+  3: "text-indigo-700",
+  4: "text-purple-700",
+  5: "text-amber-700",
 };
 
 const DEPTH_BG: Record<DepthLevel, string> = {
-  1: "bg-emerald-500/10 border-emerald-500/30",
-  2: "bg-cyan-500/10 border-cyan-500/30",
-  3: "bg-blue-500/10 border-blue-500/30",
-  4: "bg-purple-500/10 border-purple-500/30",
-  5: "bg-amber-500/10 border-amber-500/30",
+  1: "bg-emerald-100 border-emerald-300",
+  2: "bg-sky-100 border-sky-300",
+  3: "bg-indigo-100 border-indigo-300",
+  4: "bg-purple-100 border-purple-300",
+  5: "bg-amber-100 border-amber-300",
 };
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
-  const seconds = totalSeconds % 60;
   return `${totalSeconds}s`;
 }
 
@@ -54,14 +54,18 @@ export default function RoundSummary({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="space-y-4 rounded-2xl border border-border/50 bg-card p-5"
+      className="space-y-4 rounded-2xl p-5"
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid rgba(0,0,0,0.06)",
+      }}
     >
       {/* Header */}
       <div className="text-center">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs tabular-nums" style={{ color: "#6B6560" }}>
           Round {roundNumber}/{totalRounds}
         </p>
-        <h3 className="mt-1 font-heading text-lg text-foreground">
+        <h3 className="mt-1 text-lg font-bold" style={{ color: "#2D2A26" }}>
           {depthReached >= 4 ? "Excellent" : depthReached >= 2 ? "Good" : "Keep going"}{" "}
           {depthReached >= 5
             ? "Mastery!"
@@ -71,19 +75,37 @@ export default function RoundSummary({
                 ? "Nice try!"
                 : "Time's up!"}
         </h3>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Depth reached: <span className={cn("font-bold", depthReached > 0 ? DEPTH_COLOURS[depthReached as DepthLevel] : "text-muted-foreground")}>{depthReached}/5</span>
+        <p className="mt-0.5 text-sm" style={{ color: "#6B6560" }}>
+          Depth reached:{" "}
+          <span
+            className={cn(
+              "font-bold tabular-nums",
+              depthReached > 0 ? DEPTH_COLOURS[depthReached as DepthLevel] : "text-[#9C9590]",
+            )}
+          >
+            {depthReached}/5
+          </span>
           {" · "}
-          <span className="font-mono text-xs">{formatTime(timeMs)}</span>
+          <span className="font-mono text-xs tabular-nums">{formatTime(timeMs)}</span>
         </p>
       </div>
 
       {/* Chain visualization */}
       <div className="space-y-1">
         {/* Starter */}
-        <div className="rounded-lg border border-white/20 bg-white/[0.04] px-3 py-1.5 text-center">
-          <span className="text-sm font-bold text-foreground">{chain.starterWord}</span>
-          <span className="ml-2 text-[10px] text-muted-foreground">({chain.starterTranslation})</span>
+        <div
+          className="rounded-lg border px-3 py-1.5 text-center"
+          style={{
+            background: "#FFFFFF",
+            borderColor: "rgba(0,0,0,0.10)",
+          }}
+        >
+          <span className="text-sm font-bold" style={{ color: "#2D2A26" }}>
+            {chain.starterWord}
+          </span>
+          <span className="ml-2 text-[10px]" style={{ color: "#9C9590" }}>
+            ({chain.starterTranslation})
+          </span>
         </div>
 
         {/* Each level */}
@@ -100,7 +122,7 @@ export default function RoundSummary({
                 "rounded-lg border px-3 py-1.5 text-center text-xs transition-all",
                 isReached
                   ? DEPTH_BG[level.depth]
-                  : "border-white/[0.06] bg-white/[0.02] opacity-40",
+                  : "border-black/[0.06] bg-black/[0.02] opacity-40",
               )}
             >
               {playerWord ? (
@@ -108,11 +130,11 @@ export default function RoundSummary({
                   {playerWord}
                 </span>
               ) : (
-                <span className="text-muted-foreground/50 italic">
+                <span className="italic" style={{ color: "rgba(156,149,144,0.6)" }}>
                   {level.validWords[0]}?
                 </span>
               )}
-              <span className="ml-2 text-[10px] text-muted-foreground">
+              <span className="ml-2 text-[10px]" style={{ color: "#9C9590" }}>
                 {level.label}
               </span>
             </div>
@@ -121,14 +143,9 @@ export default function RoundSummary({
       </div>
 
       {/* Next button */}
-      <Button
-        onClick={onNext}
-        variant="default"
-        size="lg"
-        className="w-full rounded-xl"
-      >
+      <GameButton onClick={onNext} variant="primary">
         {roundNumber < totalRounds ? `Next Word (${roundNumber + 1}/${totalRounds})` : "See Results"}
-      </Button>
+      </GameButton>
     </motion.div>
   );
 }

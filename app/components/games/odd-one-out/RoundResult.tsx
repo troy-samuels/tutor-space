@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 interface RoundResultProps {
   isCorrect: boolean;
@@ -23,18 +22,20 @@ export default function RoundResult({
       className="overflow-hidden"
     >
       <div
-        className={cn(
-          "rounded-xl border p-4",
+        className="rounded-xl border p-4"
+        style={
           isCorrect
-            ? "border-emerald-500/30 bg-emerald-500/10"
-            : "border-destructive/30 bg-destructive/10",
-        )}
+            ? { background: "rgba(62,86,65,0.08)", borderColor: "rgba(62,86,65,0.25)" }
+            : { background: "rgba(162,73,54,0.08)", borderColor: "rgba(162,73,54,0.25)" }
+        }
       >
         <div className="flex items-center gap-2">
           <span className="text-lg">{isCorrect ? "✅" : "❌"}</span>
-          <h4 className="text-sm font-bold text-foreground">{category}</h4>
+          <h4 className="text-sm font-bold" style={{ color: "#2D2A26" }}>
+            {category}
+          </h4>
         </div>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-1.5 text-xs leading-relaxed" style={{ color: "#6B6560" }}>
           {explanation}
         </p>
       </div>

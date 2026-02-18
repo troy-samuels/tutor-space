@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import WordCard from "./WordCard";
 import type { CardState } from "./WordCard";
 import RoundResult from "./RoundResult";
-import ProgressBar from "./ProgressBar";
+import GameProgressBar from "@/components/games/engine/GameProgressBar";
+import GameResultCard from "@/components/games/engine/GameResultCard";
+import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
-import { cn } from "@/lib/utils";
 import type { OddOneOutPuzzle, OddOneOutGameState } from "@/lib/games/data/odd-one-out/types";
 
 interface OddOneOutGameProps {
@@ -34,22 +34,33 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
   });
 
   const [cardStates, setCardStates] = React.useState<[CardState, CardState, CardState, CardState]>([
-    "default",
-    "default",
-    "default",
-    "default",
+    "default", "default", "default", "default",
   ]);
   const [showResult, setShowResult] = React.useState(false);
   const [lastGuessCorrect, setLastGuessCorrect] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [showExplanations, setShowExplanations] = React.useState(false);
 
-  // Notify parent when game ends
+  // Cleanup refs — prevent setState after unmount
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   React.useEffect(() => {
-    if (gameState.isComplete && onGameEnd) {
-      onGameEnd(gameState);
-    }
-  }, [gameState.isComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
+
+  // Stable ref to latest onGameEnd callback + single-fire guard
+  const onGameEndRef = React.useRef(onGameEnd);
+  React.useEffect(() => { onGameEndRef.current = onGameEnd; });
+  const hasNotifiedRef = React.useRef(false);
+
+  // Notify parent when game ends (fires exactly once)
+  React.useEffect(() => {
+    if (!gameState.isComplete || hasNotifiedRef.current) return;
+    hasNotifiedRef.current = true;
+    onGameEndRef.current?.(gameState);
+  }, [gameState]);
 
   const currentRound = puzzle.rounds[gameState.currentRound];
 
@@ -59,23 +70,16 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
 
       const isCorrect = tappedIndex === currentRound.oddIndex;
 
-      // Set card visual states
       const newStates: [CardState, CardState, CardState, CardState] = [
-        "default",
-        "default",
-        "default",
-        "default",
+        "default", "default", "default", "default",
       ];
-
       if (isCorrect) {
         newStates[tappedIndex] = "correct";
-        // Mark the other 3 as revealed
         for (let i = 0; i < 4; i++) {
           if (i !== tappedIndex) newStates[i] = "revealed";
         }
       } else {
         newStates[tappedIndex] = "wrong";
-        // Show the actual odd one out
         newStates[currentRound.oddIndex] = "correct";
       }
 
@@ -89,15 +93,11 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
         newResults[prev.currentRound] = isCorrect;
         const newScore = isCorrect ? prev.score + 1 : prev.score;
         const newLives = isCorrect ? prev.lives : prev.lives - 1;
-
-        // Check if game is over
         const isLastRound = prev.currentRound >= TOTAL_ROUNDS - 1;
         const isGameOver = newLives <= 0 || isLastRound;
         const isWon = isGameOver && newLives > 0;
 
-        if (isWon) {
-          recordGamePlay("odd-one-out");
-        }
+        if (isWon) recordGamePlay("odd-one-out");
 
         return {
           ...prev,
@@ -116,34 +116,20 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
   const handleNextRound = React.useCallback(() => {
     setShowResult(false);
     setCardStates(["default", "default", "default", "default"]);
-    setGameState((prev) => ({
-      ...prev,
-      currentRound: prev.currentRound + 1,
-    }));
+    setGameState((prev) => ({ ...prev, currentRound: prev.currentRound + 1 }));
   }, []);
 
   const generateShareText = React.useCallback((): string => {
-    const langFlag =
-      puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
-
+    const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
     const elapsed = gameState.endTime
-      ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
-      : 0;
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
-    const timeStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-
-    const livesLeft = gameState.lives;
-    const hearts = "●".repeat(livesLeft);
-
-    // Build result row
+      ? Math.floor((gameState.endTime - gameState.startTime) / 1000) : 0;
+    const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
     const resultIcons = gameState.roundResults
       .map((r) => (r === true ? "🟢" : r === false ? "🔴" : "⚪"))
       .join("");
-
     return [
       `Odd One Out #${puzzle.number} ${langFlag}`,
-      `${gameState.score}/${TOTAL_ROUNDS} · ${livesLeft} ${hearts} remaining · ${timeStr}`,
+      `${gameState.score}/${TOTAL_ROUNDS} · ${gameState.lives}● remaining · ${timeStr}`,
       "",
       resultIcons,
       "",
@@ -153,34 +139,31 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
 
   const handleShare = React.useCallback(async () => {
     const text = generateShareText();
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Odd One Out", text });
-        return;
-      }
-    } catch {
-      // fallthrough to clipboard
-    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   }, [generateShareText]);
+
+  const timeSeconds = gameState.endTime
+    ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+    : undefined;
 
   return (
     <div className="space-y-4">
-      {/* Progress bar */}
-      <ProgressBar
-        currentRound={gameState.currentRound}
-        totalRounds={TOTAL_ROUNDS}
-        lives={gameState.lives}
-        maxLives={MAX_LIVES}
-      />
-
-      {/* Score */}
-      <div className="flex justify-center">
-        <span className="text-xs text-muted-foreground">
-          Score: {gameState.score}/{TOTAL_ROUNDS}
-        </span>
+      {/* Progress header + instruction subtitle */}
+      <div className="space-y-1">
+        <GameProgressBar
+          label={`Round ${Math.min(gameState.currentRound + 1, TOTAL_ROUNDS)}/${TOTAL_ROUNDS}`}
+          progress={gameState.currentRound / TOTAL_ROUNDS}
+          lives={gameState.lives}
+          maxLives={MAX_LIVES}
+        />
+        {!gameState.isComplete && (
+          <p className="text-center text-xs font-medium" style={{ color: "#9C9590" }}>
+            Find the word that doesn&apos;t belong
+          </p>
+        )}
       </div>
 
       {/* Current round */}
@@ -188,18 +171,14 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
         {!gameState.isComplete && currentRound && (
           <motion.div
             key={gameState.currentRound}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ type: "spring", stiffness: 320, damping: 28 }}
           >
-            {/* Instruction */}
-            <p className="mb-4 text-center text-sm text-muted-foreground">
-              Find the word that doesn&apos;t belong
-            </p>
 
-            {/* 2x2 Word Grid — full width */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* 2×2 Word Grid */}
+            <div className="grid grid-cols-2 gap-2.5">
               {currentRound.words.map((word, i) => (
                 <WordCard
                   key={`${gameState.currentRound}-${i}`}
@@ -211,7 +190,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
               ))}
             </div>
 
-            {/* Round result explanation */}
+            {/* Round result */}
             <div className="mt-4">
               <AnimatePresence>
                 {showResult && (
@@ -230,17 +209,12 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                  transition={{ delay: 0.25, type: "spring", stiffness: 300, damping: 25 }}
                   className="mt-4"
                 >
-                  <Button
-                    onClick={handleNextRound}
-                    variant="default"
-                    size="lg"
-                    className="w-full rounded-xl"
-                  >
+                  <GameButton onClick={handleNextRound} variant="primary">
                     Next Round →
-                  </Button>
+                  </GameButton>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -251,97 +225,63 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
       {/* End of game */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-            className="mt-6 space-y-4"
-          >
-            {/* Result banner */}
-            <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>{gameState.isWon ? "Well done!" : "Good try"}</div>
-              <h2 className="mt-2 font-heading text-xl text-foreground">
-                {gameState.isWon ? "Excellent!" : "Good try!"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {gameState.score}/{TOTAL_ROUNDS} correct ·{" "}
-                {gameState.lives} {gameState.lives === 1 ? "life" : "lives"} remaining
-              </p>
-
-              {/* Result grid */}
-              <div className="mx-auto mt-4 flex justify-center gap-0.5">
+          <div className="mt-4 space-y-3">
+            <GameResultCard
+              emoji={gameState.isWon ? "🎉" : "💪"}
+              heading={gameState.isWon ? "Well done!" : "Good try!"}
+              subtext={`${gameState.score}/${TOTAL_ROUNDS} correct · ${gameState.lives} ${gameState.lives === 1 ? "life" : "lives"} remaining`}
+              timeSeconds={timeSeconds}
+            >
+              {/* Round result grid */}
+              <div className="flex justify-center gap-0.5">
                 {gameState.roundResults.map((r, i) => (
-                  <span key={i} className="text-base">
+                  <span key={i} className="text-sm">
                     {r === true ? "🟢" : r === false ? "🔴" : "⚪"}
                   </span>
                 ))}
               </div>
+            </GameResultCard>
 
-              {/* Time */}
-              {gameState.endTime && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  
-                  {(() => {
-                    const secs = Math.floor(
-                      (gameState.endTime - gameState.startTime) / 1000,
-                    );
-                    return `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, "0")}`;
-                  })()}
-                </p>
-              )}
-            </div>
-
-            {/* Share */}
-            <Button
-              onClick={handleShare}
-              variant="default"
-              size="lg"
-              className="w-full rounded-xl"
-            >
+            <GameButton onClick={handleShare} variant="accent">
               {copied ? "✓ Copied!" : "📋 Share Result"}
-            </Button>
+            </GameButton>
 
-            {/* Explain */}
-            <Button
-              onClick={() => setShowExplanations((prev) => !prev)}
+            <GameButton
+              onClick={() => setShowExplanations((p) => !p)}
               variant="outline"
-              size="lg"
-              className="w-full rounded-xl"
             >
               {showExplanations ? "Hide Explanations" : "Review All Rounds"}
-            </Button>
+            </GameButton>
 
-            {/* All explanations */}
+            {/* Explanations */}
             <AnimatePresence>
               {showExplanations && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 overflow-hidden"
+                  className="space-y-2.5 overflow-hidden"
                 >
                   {puzzle.rounds.map((round, i) => (
                     <div
-                      key={i}
-                      className={cn(
-                        "rounded-xl border p-4",
+                      key={round.category}
+                      className="rounded-xl border p-4"
+                      style={
                         gameState.roundResults[i]
-                          ? "border-emerald-500/20 bg-emerald-500/5"
-                          : "border-destructive/20 bg-destructive/5",
-                      )}
+                          ? { background: "rgba(62,86,65,0.07)", borderColor: "rgba(62,86,65,0.20)" }
+                          : { background: "rgba(162,73,54,0.07)", borderColor: "rgba(162,73,54,0.20)" }
+                      }
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {gameState.roundResults[i] ? "✅" : "❌"}
-                        </span>
-                        <h4 className="text-sm font-bold text-foreground">
+                        <span className="text-sm">{gameState.roundResults[i] ? "✅" : "❌"}</span>
+                        <h4 className="text-sm font-bold" style={{ color: "#2D2A26" }}>
                           Round {i + 1}: {round.category}
                         </h4>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-xs" style={{ color: "#6B6560" }}>
                         {round.words.join(" · ")}
                       </p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: "#6B6560" }}>
                         {round.explanation}
                       </p>
                     </div>
@@ -349,7 +289,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

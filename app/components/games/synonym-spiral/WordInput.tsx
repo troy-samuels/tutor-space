@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import GameButton from "@/components/games/engine/GameButton";
 import { cn } from "@/lib/utils";
 import type { DepthLevel } from "@/lib/games/data/synonym-spiral/types";
 
@@ -53,8 +53,12 @@ export default function WordInput({
   return (
     <div className="space-y-2">
       {/* Target label */}
-      <p className="text-center text-xs text-muted-foreground">
-        Type a <span className="font-semibold text-foreground">{targetDepthLabel}</span> synonym
+      <p className="text-center text-xs" style={{ color: "#6B6560" }}>
+        Type a{" "}
+        <span className="font-semibold" style={{ color: "#2D2A26" }}>
+          {targetDepthLabel}
+        </span>{" "}
+        synonym
       </p>
 
       {/* Input */}
@@ -78,15 +82,15 @@ export default function WordInput({
           )}
           style={{ color: "#2D2A26" }}
         />
-        <Button
+        <GameButton
           type="submit"
-          variant="default"
-          size="sm"
+          variant="primary"
           disabled={disabled || !value.trim()}
-          className="rounded-xl px-4"
+          fullWidth={false}
+          className="px-5 min-w-[48px]"
         >
           →
-        </Button>
+        </GameButton>
       </form>
 
       {/* Feedback toast */}

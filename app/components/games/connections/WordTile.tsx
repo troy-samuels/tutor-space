@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type { Difficulty } from "@/lib/games/data/connections/types";
+import { DIFFICULTY_COLOURS } from "@/components/games/engine/colours";
 
 export type TileState =
   | "default"
@@ -23,37 +24,6 @@ interface WordTileProps {
   /** For false-friend flip: the real meaning text */
   falseFriendBack?: string;
 }
-
-/** Category colours — warm palette aligned with TutorLingua brand */
-const DIFFICULTY_COLOURS: Record<
-  Difficulty,
-  { bg: string; border: string; text: string; glow: string }
-> = {
-  yellow: {
-    bg: "#E8D5A3",
-    border: "#C4A843",
-    text: "#2D2A26",
-    glow: "rgba(212, 168, 67, 0.15)",
-  },
-  green: {
-    bg: "#7BA882",
-    border: "#3E5641",
-    text: "#FFFFFF",
-    glow: "rgba(62, 86, 65, 0.15)",
-  },
-  blue: {
-    bg: "#93B8D7",
-    border: "#5A8AB5",
-    text: "#2D2A26",
-    glow: "rgba(90, 138, 181, 0.15)",
-  },
-  purple: {
-    bg: "#B89CD4",
-    border: "#8B5CB5",
-    text: "#FFFFFF",
-    glow: "rgba(139, 92, 181, 0.15)",
-  },
-};
 
 const springTransition = {
   type: "spring" as const,
@@ -169,7 +139,7 @@ export default function WordTile({
         onClick={handleClick}
         disabled={disabled}
         layout
-        whileTap={!disabled ? { scale: 0.93 } : undefined}
+        whileTap={!disabled ? { scale: 0.96 } : undefined}
         animate={getAnimateProps()}
         transition={springTransition}
         aria-pressed={state === "selected"}
@@ -219,4 +189,4 @@ export default function WordTile({
   );
 }
 
-export { DIFFICULTY_COLOURS };
+export { DIFFICULTY_COLOURS } from "@/components/games/engine/colours";

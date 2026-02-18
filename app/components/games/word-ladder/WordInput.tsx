@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import GameButton from "@/components/games/engine/GameButton";
 import { cn } from "@/lib/utils";
 
 interface WordInputProps {
@@ -78,14 +77,15 @@ export default function WordInput({
           )}
           style={{ color: "#2D2A26" }}
         />
-        <Button
+        <GameButton
           onClick={onSubmit}
           disabled={disabled || value.length !== maxLength}
-          size="lg"
-          className="rounded-xl px-6"
+          variant="primary"
+          fullWidth={false}
+          className="px-6 min-w-[52px]"
         >
           →
-        </Button>
+        </GameButton>
       </div>
 
       {/* Error message */}
@@ -97,9 +97,12 @@ export default function WordInput({
             exit={{ opacity: 0, y: -5 }}
             className="flex justify-center"
           >
-            <Badge variant="outline" className="border-destructive/30 text-destructive text-xs">
+            <span
+              className="rounded-full border px-3 py-0.5 text-xs font-medium"
+              style={{ borderColor: "rgba(162,73,54,0.3)", color: "#A24936", background: "rgba(162,73,54,0.06)" }}
+            >
               {error}
-            </Badge>
+            </span>
           </motion.div>
         )}
       </AnimatePresence>

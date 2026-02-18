@@ -60,39 +60,56 @@ export default function CipherText({
                 key={`${wordIdx}-${charIdx}`}
                 className="flex flex-col items-center"
               >
-                <span className="h-6 text-base text-foreground">{encodedChar}</span>
+                <span className="h-6 text-base" style={{ color: "#2D2A26" }}>
+                  {encodedChar}
+                </span>
                 <span className="h-4" />
               </span>
             );
           }
 
+          // Build background colour based on state
+          const bgStyle: React.CSSProperties = {};
+          if (isSelected) {
+            bgStyle.background = "rgba(211,97,53,0.15)";
+            bgStyle.boxShadow = "0 0 0 1px rgba(211,97,53,0.40)";
+            bgStyle.borderRadius = "6px";
+          } else if (isCorrect && !isHinted) {
+            bgStyle.background = "rgba(62,86,65,0.12)";
+            bgStyle.borderRadius = "6px";
+          } else if (isHinted) {
+            bgStyle.background = "rgba(62,86,65,0.08)";
+            bgStyle.borderRadius = "6px";
+          } else if (!isCorrect && hasGuess) {
+            bgStyle.background = "rgba(162,73,54,0.08)";
+            bgStyle.borderRadius = "6px";
+          }
+
           return (
             <motion.button
-              key={`${wordIdx}-${charIdx}`}
+              key={`${wordIdx}-${charIdx}-${idx}`}
               onClick={() => onLetterTap(upperEncoded)}
               disabled={isComplete || isHinted}
-              whileTap={!isComplete ? { scale: 0.9 } : undefined}
+              whileTap={!isComplete ? { scale: 0.96 } : undefined}
+              style={bgStyle}
               className={cn(
-                "flex flex-col items-center gap-0.5 rounded-md px-1 py-0.5 transition-colors",
+                "flex flex-col items-center gap-0.5 px-1 py-0.5 transition-colors",
                 "touch-manipulation select-none",
-                isSelected && "bg-primary/20 ring-1 ring-primary/50",
-                isCorrect && !isHinted && "bg-[#A0C35A]/15",
-                isHinted && "bg-[#B0C4EF]/15",
-                !isCorrect && hasGuess && !isSelected && "bg-destructive/10",
-                !isComplete && !isHinted && "hover:bg-white/[0.06] cursor-pointer",
+                !isComplete && !isHinted && "hover:brightness-95 cursor-pointer",
                 isComplete && "cursor-default",
               )}
             >
               {/* Player's guess (top) */}
               <span
-                className={cn(
-                  "h-6 min-w-[1.2rem] text-center font-mono text-base font-bold",
-                  isCorrect || isHinted
-                    ? "text-[#A0C35A]"
-                    : hasGuess
-                      ? "text-foreground"
-                      : "text-transparent",
-                )}
+                className="h-6 min-w-[1.2rem] text-center font-mono text-base font-bold"
+                style={{
+                  color:
+                    isCorrect || isHinted
+                      ? "#3E5641" // brand sage green for correct
+                      : hasGuess
+                        ? "#2D2A26" // brand text primary for guesses
+                        : "transparent",
+                }}
               >
                 {isHinted
                   ? cipher.decrypt[upperEncoded] || ""
@@ -101,18 +118,21 @@ export default function CipherText({
 
               {/* Divider line */}
               <div
-                className={cn(
-                  "h-px w-full min-w-[1.2rem]",
-                  isSelected
-                    ? "bg-primary/60"
+                className="h-px w-full min-w-[1.2rem]"
+                style={{
+                  background: isSelected
+                    ? "rgba(211,97,53,0.60)"
                     : isCorrect || isHinted
-                      ? "bg-[#A0C35A]/40"
-                      : "bg-white/[0.15]",
-                )}
+                      ? "rgba(62,86,65,0.40)"
+                      : "rgba(0,0,0,0.15)",
+                }}
               />
 
               {/* Encoded letter (bottom) */}
-              <span className="h-4 min-w-[1.2rem] text-center text-[10px] font-medium text-muted-foreground/70">
+              <span
+                className="h-4 min-w-[1.2rem] text-center text-[10px] font-medium"
+                style={{ color: "rgba(156,149,144,0.8)" }}
+              >
                 {encodedChar.toUpperCase()}
               </span>
             </motion.button>

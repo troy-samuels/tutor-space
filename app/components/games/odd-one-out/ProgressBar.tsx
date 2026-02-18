@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 interface ProgressBarProps {
   currentRound: number;
@@ -18,11 +17,19 @@ export default function ProgressBar({
 }: ProgressBarProps) {
   const progress = (currentRound / totalRounds) * 100;
 
+  // Progress bar fill colour: green → orange → rust as lives decrease
+  const barColour =
+    lives === maxLives
+      ? "#3E5641" // sage green (full health)
+      : lives >= 2
+        ? "#D36135" // brand orange (caution)
+        : "#A24936"; // rust (danger)
+
   return (
     <div className="space-y-2">
       {/* Round counter + Lives */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="text-xs font-medium" style={{ color: "#6B6560" }}>
           Round {Math.min(currentRound + 1, totalRounds)}/{totalRounds}
         </span>
         <div className="flex items-center gap-1">
@@ -35,7 +42,8 @@ export default function ProgressBar({
                 opacity: i >= lives ? 0.3 : 1,
               }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="text-sm"
+              className="text-sm select-none"
+              style={{ color: i < lives ? "#3E5641" : "#9C9590" }}
             >
               {i < lives ? "●" : "○"}
             </motion.span>
@@ -43,20 +51,17 @@ export default function ProgressBar({
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+      {/* Progress bar — visible track on cream background */}
+      <div
+        className="h-2 w-full overflow-hidden rounded-full"
+        style={{ background: "rgba(45,42,38,0.10)" }}
+      >
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ type: "spring", stiffness: 200, damping: 30 }}
-          className={cn(
-            "h-full rounded-full transition-colors",
-            lives === maxLives
-              ? "bg-emerald-500"
-              : lives >= 2
-                ? "bg-primary"
-                : "bg-amber-500",
-          )}
+          className="h-full rounded-full transition-colors"
+          style={{ background: barColour }}
         />
       </div>
     </div>

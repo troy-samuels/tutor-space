@@ -52,7 +52,7 @@ export default function LanguageSelector({
           <button
             key={lang.code}
             onClick={() => onChange(lang.code)}
-            className="rounded-lg px-3 py-2 text-[13px] font-medium transition-all touch-manipulation whitespace-nowrap"
+            className="rounded-lg px-3 py-2 text-[13px] font-medium transition-all touch-manipulation whitespace-nowrap min-h-[44px]"
             style={
               selected === lang.code
                 ? { background: "#FFFFFF", color: "#2D2A26", boxShadow: "0 1px 3px rgba(45,42,38,0.08)" }
