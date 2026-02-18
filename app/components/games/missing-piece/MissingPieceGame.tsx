@@ -154,9 +154,15 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
     const elapsed = gameState.endTime
       ? Math.floor((gameState.endTime - gameState.startTime) / 1000) : 0;
     const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
+    // Build sentence-by-sentence result emoji row
+    const resultIcons = gameState.sentenceResults
+      .map((r) => (r === true ? "🟢" : r === false ? "🔴" : "⚪"))
+      .join("");
     return [
       `Missing Piece #${puzzle.number} ${langFlag}`,
       `${gameState.score}/${sentenceCount} · ${gameState.lives}● remaining · ${timeStr}`,
+      "",
+      resultIcons,
       "",
       "tutorlingua.co/games/missing-piece",
     ].join("\n");

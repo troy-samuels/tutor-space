@@ -90,8 +90,9 @@ export default function StepChain({
           >
             {par != null ? (
               <span>
-                {Math.max(0, (par ?? 0) - steps.length)} step
-                {(par ?? 0) - steps.length !== 1 ? "s" : ""} to go
+                {steps.length >= par
+                  ? "keep going"
+                  : `${par - steps.length} step${par - steps.length !== 1 ? "s" : ""} to go`}
               </span>
             ) : (
               "???"

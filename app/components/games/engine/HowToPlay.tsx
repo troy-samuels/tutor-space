@@ -57,6 +57,16 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
     setVisible(false);
   }, [gameSlug]);
 
+  // Dismiss on Escape key
+  React.useEffect(() => {
+    if (!visible) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [visible, dismiss]);
+
   const steps = GAME_STEPS[gameSlug];
   if (!steps) return null;
 
