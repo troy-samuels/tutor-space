@@ -10,13 +10,13 @@ export const metadata: Metadata = {
     description: "Spot the word that doesn't belong. Play free in 4 languages.",
     url: "/games/odd-one-out",
     type: "website",
-    images: [{ url: "/og-image.png?v=2", width: 1200, height: 630, alt: "Odd One Out word game" }],
+    images: [{ url: "/api/og/games?game=odd-one-out", width: 1200, height: 630, alt: "Odd One Out word game" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Odd One Out | Daily Word Puzzle",
     description: "Spot the word that doesn't belong. Play free in 4 languages.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games?game=odd-one-out"],
   },
 };
 

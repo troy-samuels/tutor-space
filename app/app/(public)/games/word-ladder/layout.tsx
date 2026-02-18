@@ -10,13 +10,13 @@ export const metadata: Metadata = {
     description: "Change one letter at a time to reach the target word. Play free in 4 languages.",
     url: "/games/word-ladder",
     type: "website",
-    images: [{ url: "/og-image.png?v=2", width: 1200, height: 630, alt: "Word Ladder puzzle game" }],
+    images: [{ url: "/api/og/games?game=word-ladder", width: 1200, height: 630, alt: "Word Ladder puzzle game" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Word Ladder | Daily Word Puzzle",
     description: "Change one letter at a time. Play free in 4 languages.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games?game=word-ladder"],
   },
 };
 

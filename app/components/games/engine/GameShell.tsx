@@ -262,7 +262,7 @@ export default function GameShell({
       </header>
 
       {/* Game Content — full width */}
-      <main className={cn("game-content px-5 pt-4", inTg ? "pb-20" : "pb-24")}>
+      <main className={cn("game-content px-4 pt-3", inTg ? "pb-20" : "pb-24")}>
         {children}
       </main>
 

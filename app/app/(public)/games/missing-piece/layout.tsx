@@ -10,13 +10,13 @@ export const metadata: Metadata = {
     description: "Fill in the missing word. Test your grammar in 4 languages.",
     url: "/games/missing-piece",
     type: "website",
-    images: [{ url: "/og-image.png?v=2", width: 1200, height: 630, alt: "Missing Piece grammar game" }],
+    images: [{ url: "/api/og/games?game=missing-piece", width: 1200, height: 630, alt: "Missing Piece grammar game" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Missing Piece | Grammar Puzzle",
     description: "Fill in the missing word. Play free in 4 languages.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games?game=missing-piece"],
   },
 };
 

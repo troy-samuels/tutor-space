@@ -10,13 +10,13 @@ export const metadata: Metadata = {
     description: "Crack the cipher to reveal a famous quote. Play free in 4 languages.",
     url: "/games/daily-decode",
     type: "website",
-    images: [{ url: "/og-image.png?v=2", width: 1200, height: 630, alt: "Daily Decode cryptogram game" }],
+    images: [{ url: "/api/og/games?game=daily-decode", width: 1200, height: 630, alt: "Daily Decode cryptogram game" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Daily Decode | Cryptogram Puzzle",
     description: "Crack the cipher, reveal the quote. Play free in 4 languages.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games?game=daily-decode"],
   },
 };
 

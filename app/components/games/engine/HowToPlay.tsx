@@ -17,7 +17,7 @@ const GAME_CONTENT: Record<string, HowToPlayContent> = {
     steps: [
       { emoji: "🔍", text: "Tap 4 words that go together" },
       { emoji: "✅", text: "Hit Submit to check your guess" },
-      { emoji: "💛💚💙💜", text: "Find all 4 groups to win!" },
+      { emoji: "🏆", text: "Find all 4 colour groups to win!" },
     ],
   },
   "word-ladder": {
@@ -100,7 +100,7 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+          className="fixed inset-0 z-[100] flex items-center justify-center px-5"
           style={{ background: "rgba(0, 0, 0, 0.7)" }}
           onClick={dismiss}
         >

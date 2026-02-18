@@ -10,13 +10,13 @@ export const metadata: Metadata = {
     description: "Climb from basic to literary synonyms. Expand your vocabulary in 4 languages.",
     url: "/games/synonym-spiral",
     type: "website",
-    images: [{ url: "/og-image.png?v=2", width: 1200, height: 630, alt: "Synonym Spiral vocabulary game" }],
+    images: [{ url: "/api/og/games?game=synonym-spiral", width: 1200, height: 630, alt: "Synonym Spiral vocabulary game" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Synonym Spiral | Vocabulary Builder",
     description: "Climb the tower of synonyms. Play free in 4 languages.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games?game=synonym-spiral"],
   },
 };
 

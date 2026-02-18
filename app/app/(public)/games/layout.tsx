@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     locale: "en_GB",
     images: [
       {
-        url: "/og-image.png?v=2",
+        url: "/api/og/games",
         width: 1200,
         height: 630,
         alt: "TutorLingua Games — daily word puzzles for language learners",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     title: "Daily Language Games — Free Word Puzzles",
     description:
       "6 word games for language learners. Play in 4 languages. Free, no ads.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games"],
   },
   robots: {
     index: true,

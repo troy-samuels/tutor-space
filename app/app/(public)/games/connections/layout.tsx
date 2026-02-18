@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.png?v=2",
+        url: "/api/og/games?game=connections",
         width: 1200,
         height: 630,
         alt: "Lingua Connections word puzzle game",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Lingua Connections | Daily Word Puzzle",
     description: "Group 16 words into 4 hidden categories. Play free in 4 languages.",
-    images: ["/og-image.png?v=2"],
+    images: ["/api/og/games?game=connections"],
   },
 };
 
