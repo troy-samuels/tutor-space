@@ -200,7 +200,7 @@ export default function GameHub() {
     <div ref={containerRef} className="min-h-[100dvh]" style={{ background: "#FDF8F5" }}>
       <div
         className={cn(
-          "relative z-10 pt-5",
+          "relative z-10 pt-5 max-w-md mx-auto",
           inTg && "tg-content-safe-top",
         )}
         style={{

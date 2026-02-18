@@ -128,7 +128,7 @@ export default function GameShell({
       {/* Nav — hidden in Telegram (BackButton replaces it) */}
       {!inTg && (
         <nav
-          className="px-4 py-3"
+          className="px-4 py-3 max-w-lg mx-auto"
           style={{
             borderBottom: "1px solid rgba(45, 42, 38, 0.06)",
           }}
@@ -161,7 +161,7 @@ export default function GameShell({
 
       {/* Game header — clean, minimal */}
       <header className={cn(
-        "game-header px-4 pb-2",
+        "game-header px-4 pb-2 max-w-lg mx-auto",
         inTg ? "pt-2" : "pt-3",
       )}>
         <div className="flex items-center justify-between">
@@ -184,8 +184,8 @@ export default function GameShell({
         </div>
       </header>
 
-      {/* Game Content — full width */}
-      <main className={cn("game-content px-4 pt-3", inTg ? "pb-20" : "pb-24")}>
+      {/* Game Content — constrained on desktop */}
+      <main className={cn("game-content px-4 pt-3 max-w-lg mx-auto", inTg ? "pb-20" : "pb-24")}>
         {children}
       </main>
     </div>
