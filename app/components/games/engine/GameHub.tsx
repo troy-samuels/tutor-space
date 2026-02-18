@@ -218,7 +218,7 @@ export default function GameHub() {
                 Games
               </h1>
               <p
-                className="text-xs mt-0.5 font-medium"
+                className="text-xs mt-0.5 font-medium tabular-nums"
                 style={{ color: allComplete ? "#D36135" : "#9C9590" }}
               >
                 {allComplete ? "🏆 All complete! " : `${completedCount}/${GAMES.length} completed `}today

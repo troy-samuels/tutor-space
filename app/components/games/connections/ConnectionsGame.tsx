@@ -462,7 +462,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
             paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
           }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-w-lg mx-auto">
             {/* Shuffle */}
             <motion.button
               onClick={handleShuffle}
