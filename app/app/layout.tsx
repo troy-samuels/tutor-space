@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Geist_Mono,
-  Manrope,
-  Mansalva,
-} from "next/font/google";
+import type { CSSProperties } from "react";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
@@ -15,21 +11,11 @@ import { CampaignBannerSlot } from "@/components/marketing/CampaignBannerSlot";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-});
-
-const mansalva = Mansalva({
-  variable: "--font-mansalva",
-  weight: "400",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const OFFLINE_FONT_VARS: CSSProperties = {
+  "--font-manrope": "Manrope, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-mansalva": "Mansalva, 'Comic Sans MS', 'Marker Felt', cursive",
+  "--font-geist-mono": "'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace",
+} as CSSProperties;
 
 export const metadata: Metadata = {
   title: "Language Tutor Platform - Bookings, Payments & CRM for Independent Tutors | TutorLingua",
@@ -136,14 +122,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body
-        className={[
-          manrope.variable,
-          mansalva.variable,
-          geistMono.variable,
-          "antialiased",
-        ].join(" ")}
-      >
+      <body className="antialiased" style={OFFLINE_FONT_VARS}>
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="lazyOnload"

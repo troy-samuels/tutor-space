@@ -34,7 +34,7 @@ export default function CipherText({
   let globalCharIndex = 0;
 
   return (
-    <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
+    <div className="flex flex-wrap justify-center gap-x-2 gap-y-4 overflow-hidden px-1 sm:gap-x-3">
       {encodedWords.map((word, wordIdx) => {
         const plaintextWord = plaintextWords[wordIdx] || "";
         const startIdx = globalCharIndex;
@@ -93,7 +93,7 @@ export default function CipherText({
               whileTap={!isComplete ? { scale: 0.96 } : undefined}
               style={bgStyle}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-1 py-1 transition-colors min-w-[2rem]",
+                "flex flex-col items-center gap-0.5 px-0.5 py-1 transition-colors min-w-[1.5rem] sm:min-w-[2rem] sm:px-1",
                 "touch-manipulation select-none cursor-pointer",
                 !isComplete && !isHinted && "hover:brightness-95",
                 (isComplete || isHinted) && "cursor-default",
@@ -101,7 +101,7 @@ export default function CipherText({
             >
               {/* Player's guess (top) */}
               <span
-                className="h-6 min-w-[1.75rem] text-center font-mono text-base font-bold"
+                className="h-6 min-w-[1.25rem] sm:min-w-[1.75rem] text-center font-mono text-sm sm:text-base font-bold"
                 style={{
                   color:
                     isCorrect || isHinted
@@ -118,7 +118,7 @@ export default function CipherText({
 
               {/* Divider line */}
               <div
-                className="h-px w-full min-w-[1.75rem]"
+                className="h-px w-full min-w-[1.25rem] sm:min-w-[1.75rem]"
                 style={{
                   background: isSelected
                     ? "rgba(211,97,53,0.60)"
@@ -130,7 +130,7 @@ export default function CipherText({
 
               {/* Encoded letter (bottom) */}
               <span
-                className="h-4 min-w-[1.75rem] text-center text-[11px] font-medium"
+                className="h-4 min-w-[1.25rem] sm:min-w-[1.75rem] text-center text-[10px] sm:text-[11px] font-medium"
                 style={{ color: "rgba(156,149,144,0.8)" }}
               >
                 {encodedChar.toUpperCase()}

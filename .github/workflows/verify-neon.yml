@@ -1,0 +1,65 @@
+name: Verify Neon Intercept
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/app/(public)/games/neon-intercept/**"
+      - "app/components/games/neon-intercept/**"
+      - "app/lib/games/data/neon-intercept/**"
+      - "app/tests/unit/games/**"
+      - "app/components/games/engine/GameHub.tsx"
+      - "app/components/games/engine/HowToPlay.tsx"
+      - "app/components/games/engine/GameButton.tsx"
+      - "app/app/(public)/games/TelegramProvider.tsx"
+      - "app/app/(public)/games/layout.tsx"
+      - "app/app/(public)/games/page.tsx"
+      - "app/app/api/og/games/route.tsx"
+      - "app/app/layout.tsx"
+      - "app/app/(dashboard)/pages/layout.tsx"
+      - "app/package.json"
+      - ".github/workflows/verify-neon.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/app/(public)/games/neon-intercept/**"
+      - "app/components/games/neon-intercept/**"
+      - "app/lib/games/data/neon-intercept/**"
+      - "app/tests/unit/games/**"
+      - "app/components/games/engine/GameHub.tsx"
+      - "app/components/games/engine/HowToPlay.tsx"
+      - "app/components/games/engine/GameButton.tsx"
+      - "app/app/(public)/games/TelegramProvider.tsx"
+      - "app/app/(public)/games/layout.tsx"
+      - "app/app/(public)/games/page.tsx"
+      - "app/app/api/og/games/route.tsx"
+      - "app/app/layout.tsx"
+      - "app/app/(dashboard)/pages/layout.tsx"
+      - "app/package.json"
+      - ".github/workflows/verify-neon.yml"
+
+jobs:
+  neon-quality:
+    name: Neon Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Neon Intercept checks
+        run: npm run verify:neon
+
+      - name: Build application (offline-safe fonts fallback)
+        run: npm run build
+

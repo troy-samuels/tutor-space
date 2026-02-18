@@ -29,6 +29,8 @@ interface GameButtonProps {
   fullWidth?: boolean;
   /** aria-label for icon-only buttons */
   "aria-label"?: string;
+  /** Optional test id for automation */
+  "data-testid"?: string;
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
@@ -63,6 +65,7 @@ export default function GameButton({
   type = "button",
   fullWidth = true,
   "aria-label": ariaLabel,
+  "data-testid": dataTestId,
 }: GameButtonProps) {
   const baseStyle = VARIANT_STYLES[variant];
 
@@ -73,6 +76,7 @@ export default function GameButton({
       disabled={disabled}
       whileTap={!disabled ? { scale: 0.96 } : undefined}
       aria-label={ariaLabel}
+      data-testid={dataTestId}
       className={`
         inline-flex items-center justify-center gap-2
         min-h-[48px] rounded-xl px-5

@@ -6,6 +6,7 @@ export const runtime = "edge";
 const GAMES = [
   { emoji: "🧩", name: "Connections", color: "#C4A835" },
   { emoji: "🪜", name: "Word Ladder", color: "#0D9668" },
+  { emoji: "🚀", name: "Neon Intercept", color: "#D36135" },
   { emoji: "🔐", name: "Daily Decode", color: "#8B5CB5" },
   { emoji: "🎯", name: "Odd One Out", color: "#D48C09" },
   { emoji: "📝", name: "Missing Piece", color: "#C93D82" },
@@ -226,7 +227,7 @@ export async function GET(request: NextRequest) {
             right: 0,
             height: "6px",
             background:
-              "linear-gradient(90deg, #C4A835, #0D9668, #8B5CB5, #D48C09, #C93D82, #7C4FD0)",
+              "linear-gradient(90deg, #C4A835, #0D9668, #D36135, #8B5CB5, #D48C09, #C93D82, #7C4FD0)",
           }}
         />
       </div>

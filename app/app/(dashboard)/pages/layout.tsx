@@ -1,70 +1,20 @@
-import {
-  DM_Sans,
-  DM_Serif_Display,
-  Inter,
-  Merriweather,
-  Plus_Jakarta_Sans,
-  Source_Sans_3,
-  Space_Grotesk,
-} from "next/font/google";
+import type { CSSProperties } from "react";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
-  subsets: ["latin"],
-});
-
-const dmSerifDisplay = DM_Serif_Display({
-  variable: "--font-dm-serif-display",
-  weight: ["400"],
-  subsets: ["latin"],
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
-
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
-  subsets: ["latin"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-});
-
-const merriweather = Merriweather({
-  variable: "--font-merriweather",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
+const OFFLINE_FONT_VARS: CSSProperties = {
+  "--font-inter": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  "--font-plus-jakarta": "'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-dm-serif-display": "'DM Serif Display', Georgia, Cambria, 'Times New Roman', serif",
+  "--font-dm-sans": "'DM Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-source-sans": "'Source Sans 3', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-space-grotesk": "'Space Grotesk', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-merriweather": "Merriweather, Georgia, Cambria, 'Times New Roman', serif",
+} as CSSProperties;
 
 export default function PagesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div
-      className={[
-        inter.variable,
-        plusJakarta.variable,
-        dmSerifDisplay.variable,
-        dmSans.variable,
-        sourceSans.variable,
-        spaceGrotesk.variable,
-        merriweather.variable,
-      ].join(" ")}
-    >
-      {children}
-    </div>
-  );
+  // Keep CSS variable contracts stable without build-time Google font fetches.
+  return <div style={OFFLINE_FONT_VARS}>{children}</div>;
 }
-

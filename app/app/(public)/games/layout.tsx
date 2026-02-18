@@ -5,7 +5,7 @@ import { TelegramProvider } from "./TelegramProvider";
 export const metadata: Metadata = {
   title: "Language Games | Free Daily Word Puzzles | TutorLingua",
   description:
-    "Play 6 free daily word games for language learners. Lingua Connections, Word Ladder, Daily Decode, and more — in English, Spanish, French, and German. Like NYT Games, but for every language.",
+    "Play 7 free daily word games for language learners. Lingua Connections, Word Ladder, Neon Intercept, Daily Decode, and more — in English, Spanish, French, and German. Like NYT Games, but for every language.",
   keywords: [
     "language learning games",
     "word games",
@@ -66,7 +66,7 @@ const jsonLd = {
   name: "TutorLingua Games",
   alternateName: "TutorLingua Language Games",
   description:
-    "Free daily word puzzles for language learners. 6 games in English, Spanish, French, and German.",
+    "Free daily word puzzles for language learners. 7 games in English, Spanish, French, and German.",
   url: "https://tutorlingua.co/games",
   applicationCategory: "EducationalApplication",
   operatingSystem: "All",

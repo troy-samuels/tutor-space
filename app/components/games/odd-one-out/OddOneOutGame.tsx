@@ -218,7 +218,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
             exit={{ opacity: 0, x: -24, transition: { duration: 0.15, ease: "easeIn" } }}
           >
 
-            {/* 2×2 Word Grid — larger cards to fill viewport */}
+            {/* 2×2 Word Grid — taller cards to fill viewport */}
             <div className="grid grid-cols-2 gap-3">
               {currentRound.words.map((word, i) => (
                 <WordCard
@@ -231,15 +231,50 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
               ))}
             </div>
 
-            {/* Round result */}
+            {/* Round result OR thinking prompt — fills dead space below grid */}
             <div className="mt-4">
-              <AnimatePresence>
-                {showResult && (
+              <AnimatePresence mode="wait">
+                {showResult ? (
                   <RoundResult
+                    key="result"
                     isCorrect={lastGuessCorrect}
                     category={currentRound.category}
                     explanation={currentRound.explanation}
                   />
+                ) : (
+                  <motion.div
+                    key="prompt"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, transition: { delay: 0.3, duration: 0.4 } }}
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                    className="flex flex-col items-center gap-3 py-6"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🤔</span>
+                      <p className="text-sm font-medium" style={{ color: "#9C9590" }}>
+                        Three belong together. One doesn&apos;t.
+                      </p>
+                    </div>
+                    {/* Score tracker dots */}
+                    <div className="flex gap-1">
+                      {gameState.roundResults.map((r, i) => (
+                        <span
+                          key={i}
+                          className="inline-block h-2 w-2 rounded-full transition-colors"
+                          style={{
+                            background:
+                              r === true
+                                ? "rgba(62,86,65,0.6)"
+                                : r === false
+                                  ? "rgba(162,73,54,0.5)"
+                                  : i === gameState.currentRound
+                                    ? "rgba(211,97,53,0.4)"
+                                    : "rgba(0,0,0,0.08)",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>

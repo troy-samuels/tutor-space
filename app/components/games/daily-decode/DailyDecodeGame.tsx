@@ -323,7 +323,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
 
       {/* Cipher text display */}
       <div
-        className="rounded-2xl p-3"
+        className="overflow-hidden rounded-2xl p-2 sm:p-3"
         style={{
           background: "rgba(245,237,232,0.5)",
           border: "1px solid rgba(0,0,0,0.06)",

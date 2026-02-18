@@ -26,7 +26,15 @@ function updateSafeAreaProperties() {
 }
 
 /** Valid game slugs for deep linking */
-const VALID_GAMES = ["connections", "word-ladder", "daily-decode", "missing-piece", "odd-one-out", "synonym-spiral"];
+const VALID_GAMES = [
+  "connections",
+  "word-ladder",
+  "daily-decode",
+  "missing-piece",
+  "odd-one-out",
+  "synonym-spiral",
+  "neon-intercept",
+];
 const VALID_LANGUAGES = ["en", "es", "fr", "de"];
 
 /** Parse Telegram startapp deep link parameter */
@@ -57,6 +65,9 @@ function parseDeepLink(startParam: string | undefined): { path: string; lang?: s
     oddoneout: "odd-one-out",
     "synonym-spiral": "synonym-spiral",
     synonymspiral: "synonym-spiral",
+    "neon-intercept": "neon-intercept",
+    neonintercept: "neon-intercept",
+    neon: "neon-intercept",
   };
 
   const resolvedSlug = slugMap[gameSlug];
