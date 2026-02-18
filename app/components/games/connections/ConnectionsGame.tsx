@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import GameButton from "@/components/games/engine/GameButton";
+import GameResultCard from "@/components/games/engine/GameResultCard";
 import WordTile from "./WordTile";
 import type { TileState } from "./WordTile";
 import CategoryReveal from "./CategoryReveal";
@@ -505,34 +506,23 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
             transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
             className="mt-6 space-y-4"
           >
-            {/* Result card — dark surface with glow */}
-            <div
-              className="rounded-2xl p-6 text-center"
-              style={{
-                background: "var(--game-bg-surface)",
-                border: "1px solid rgba(0,0,0,0.06)",
-              }}
-            >
-              <div className="text-2xl">
-                {gameState.isWon ? "🎉" : "💪"}
-              </div>
-              <h2
-                className="mt-2 text-xl font-bold"
-                style={{ color: "var(--game-text-primary)" }}
-              >
-                {gameState.isWon ? "Well done!" : "Good try!"}
-              </h2>
-              <p
-                className="mt-1 text-sm"
-                style={{ color: "var(--game-text-secondary)" }}
-              >
-                {gameState.isWon
+            {/* Shared result card with emoji grid as children */}
+            <GameResultCard
+              emoji={gameState.isWon ? "🎉" : "💪"}
+              heading={gameState.isWon ? "Well done!" : "Good try!"}
+              subtext={
+                gameState.isWon
                   ? `Solved with ${gameState.mistakes} mistake${gameState.mistakes !== 1 ? "s" : ""}`
-                  : "You'll get it next time"}
-              </p>
-
+                  : "You'll get it next time"
+              }
+              timeSeconds={
+                gameState.endTime
+                  ? Math.floor((gameState.endTime - gameState.startTime) / 1000)
+                  : undefined
+              }
+            >
               {/* Emoji grid */}
-              <div className="mx-auto mt-4 max-w-[200px] space-y-1">
+              <div className="mx-auto max-w-[200px] space-y-1">
                 {guessHistory.map((row, i) => (
                   <div key={i} className="flex justify-center gap-0.5 text-lg">
                     {row.map((d, j) => (
@@ -541,23 +531,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
                   </div>
                 ))}
               </div>
-
-              {/* Time */}
-              {gameState.endTime && (
-                <p
-                  className="mt-3 text-xs font-mono tabular-nums"
-                  style={{ color: "var(--game-text-muted)" }}
-                >
-                  
-                  {(() => {
-                    const secs = Math.floor(
-                      (gameState.endTime - gameState.startTime) / 1000,
-                    );
-                    return `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, "0")}`;
-                  })()}
-                </p>
-              )}
-            </div>
+            </GameResultCard>
 
             {/* HIGH-2: False Friends Gallery */}
             {gameState.falseFriendsEncountered && gameState.falseFriendsEncountered.length > 0 && (
