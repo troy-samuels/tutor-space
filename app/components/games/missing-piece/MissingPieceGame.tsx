@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import SentenceDisplay from "./SentenceDisplay";
 import OptionButton from "./OptionButton";
 import type { OptionState } from "./OptionButton";
@@ -195,7 +196,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -24 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            transition={SPRING.standard}
             className="space-y-4"
           >
             <SentenceDisplay
@@ -233,7 +234,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, type: "spring", stiffness: 300, damping: 25 }}
+                  transition={{ ...SPRING.standard, delay: 0.25 }}
                 >
                   <GameButton onClick={handleNextSentence} variant="primary">
                     Next Sentence →
@@ -248,7 +249,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
       {/* End of game */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-6 space-y-3">
             <GameResultCard
               emoji={gameState.isWon ? "🎉" : "💪"}
               heading={gameState.isWon ? "Brilliant!" : "Good effort!"}

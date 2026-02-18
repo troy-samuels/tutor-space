@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { haptic } from "@/lib/games/haptics";
 import { fireConfetti } from "@/lib/games/juice";
 import { CONFETTI_SOLVE } from "@/lib/games/animations";
@@ -39,9 +40,7 @@ export default function CategoryReveal({
       initial={{ opacity: 0, scale: 0.9, y: -12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{
-        type: "spring",
-        stiffness: 350,
-        damping: 22,
+        ...SPRING.standard,
         delay: index * 0.08,
       }}
       className="rounded-xl px-4 py-3 origin-top"

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import WordCard from "./WordCard";
 import type { CardState } from "./WordCard";
 import RoundResult from "./RoundResult";
@@ -198,7 +199,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -24 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            transition={SPRING.standard}
           >
 
             {/* 2×2 Word Grid */}
@@ -233,7 +234,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, type: "spring", stiffness: 300, damping: 25 }}
+                  transition={{ ...SPRING.standard, delay: 0.25 }}
                   className="mt-4"
                 >
                   <GameButton onClick={handleNextRound} variant="primary">
@@ -249,7 +250,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
       {/* End of game */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-6 space-y-3">
             <GameResultCard
               emoji={gameState.isWon ? "🎉" : "💪"}
               heading={gameState.isWon ? "Well done!" : "Good try!"}

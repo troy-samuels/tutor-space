@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +15,7 @@ interface WordCardProps {
   disabled?: boolean;
 }
 
-const springTransition = {
-  type: "spring" as const,
-  stiffness: 380,
-  damping: 28,
-};
+const springTransition = SPRING.snappy;
 
 const shakeAnimation = {
   x: [0, -10, 10, -8, 8, -4, 4, 0] as number[],

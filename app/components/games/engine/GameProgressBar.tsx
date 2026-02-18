@@ -8,6 +8,7 @@
  */
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import GameLives from "./GameLives";
 
 interface GameProgressBarProps {
@@ -54,7 +55,7 @@ export default function GameProgressBar({
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress * 100}%` }}
-          transition={{ type: "spring", stiffness: 180, damping: 28 }}
+          transition={SPRING.gentle}
           className="h-full rounded-full"
           style={{ background: fillColour }}
         />

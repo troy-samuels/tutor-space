@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 
 interface AlphabetKeyboardProps {
   selectedLetter: string | null;
@@ -62,7 +63,7 @@ export default function AlphabetKeyboard({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          transition={SPRING.snappy}
           className="rounded-2xl p-3 shadow-lg"
           style={{
             background: "rgba(255,255,255,0.98)",

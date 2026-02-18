@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { cn } from "@/lib/utils";
 import type { DepthLevel } from "@/lib/games/data/synonym-spiral/types";
 
@@ -58,7 +59,7 @@ export default function DepthMeter({ currentDepth, maxDepth = 5, language }: Dep
               scale: isCurrent ? 1.05 : 1,
               opacity: isReached ? 1 : isTarget ? 0.7 : 0.35,
             }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            transition={SPRING.standard}
             className={cn(
               "flex w-full items-center gap-2 rounded-lg border px-2 py-1 transition-all",
               isReached
@@ -96,7 +97,7 @@ export default function DepthMeter({ currentDepth, maxDepth = 5, language }: Dep
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                transition={{ ...SPRING.snappy, damping: 15 }} /* underdamped for bouncy check */
                 className={cn("text-[10px] flex-shrink-0", colours.text)}
               >
                 ✓

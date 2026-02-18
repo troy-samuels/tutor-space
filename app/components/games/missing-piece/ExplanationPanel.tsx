@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 
 interface ExplanationPanelProps {
   isCorrect: boolean;
@@ -18,7 +19,7 @@ export default function ExplanationPanel({
       initial={{ opacity: 0, y: 20, height: 0 }}
       animate={{ opacity: 1, y: 0, height: "auto" }}
       exit={{ opacity: 0, y: -10, height: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      transition={SPRING.standard}
       className="overflow-hidden"
     >
       <div

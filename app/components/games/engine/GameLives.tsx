@@ -8,6 +8,7 @@
  */
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 
 interface GameLivesProps {
   lives: number;
@@ -27,7 +28,7 @@ export default function GameLives({ lives, maxLives }: GameLivesProps) {
               scale: active ? 1 : 0.75,
               opacity: active ? 1 : 0.25,
             }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            transition={SPRING.snappy}
             className="text-base select-none leading-none"
             style={{ color: active ? "#3E5641" : "#9C9590" }}
             aria-hidden

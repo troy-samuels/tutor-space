@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 import type { Difficulty } from "@/lib/games/data/connections/types";
@@ -25,11 +26,7 @@ interface WordTileProps {
   falseFriendBack?: string;
 }
 
-const springTransition = {
-  type: "spring" as const,
-  stiffness: 400,
-  damping: 30,
-};
+const springTransition = SPRING.snappy;
 
 const shakeAnimation = {
   x: [0, -8, 8, -4, 4, 0],

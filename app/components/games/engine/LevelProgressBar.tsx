@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { CEFR_LEVELS, type CefrLevel } from "@/lib/games/cefr";
 
 interface LevelProgressBarProps {
@@ -46,7 +47,7 @@ function LevelProgressBar({
             style={{ background: config.colour }}
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, progress)}%` }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            transition={SPRING.standard}
           />
         </div>
       </div>

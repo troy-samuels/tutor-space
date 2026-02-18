@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 
 interface QuoteRevealProps {
   plaintext: string;
@@ -13,9 +14,7 @@ export default function QuoteReveal({ plaintext, author }: QuoteRevealProps) {
       initial={{ opacity: 0, scale: 0.95, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 20,
+        ...SPRING.gentle,
         delay: 0.2,
       }}
       className="rounded-2xl p-6 text-center"

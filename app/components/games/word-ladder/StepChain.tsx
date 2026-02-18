@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 
 interface StepChainProps {
   startWord: string;
@@ -10,11 +11,7 @@ interface StepChainProps {
   par?: number;
 }
 
-const springTransition = {
-  type: "spring" as const,
-  stiffness: 300,
-  damping: 25,
-};
+const springTransition = SPRING.standard;
 
 export default function StepChain({
   startWord,

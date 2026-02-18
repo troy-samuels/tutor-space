@@ -8,6 +8,7 @@
  */
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import * as React from "react";
 
 interface GameResultCardProps {
@@ -37,7 +38,7 @@ export default function GameResultCard({
     <motion.div
       initial={{ opacity: 0, scale: 0.92, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 280, damping: 22, delay: 0.15 }}
+      transition={{ ...SPRING.gentle, delay: 0.15 }}
       className="rounded-2xl p-6 text-center"
       aria-live="polite"
       style={{

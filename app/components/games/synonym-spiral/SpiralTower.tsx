@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { cn } from "@/lib/utils";
 import type { DepthLevel } from "@/lib/games/data/synonym-spiral/types";
 
@@ -72,12 +73,7 @@ export default function SpiralTower({
               initial={{ opacity: 0, scale: 0.8, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              transition={{
-                type: "spring",
-                stiffness: 350,
-                damping: 25,
-                delay: idx === 0 ? 0 : 0,
-              }}
+              transition={SPRING.standard}
               style={{ width: `${widthPercent}%` }}
               className={cn(
                 "rounded-xl border px-3 py-2 text-center font-semibold",

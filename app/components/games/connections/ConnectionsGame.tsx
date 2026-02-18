@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import GameButton from "@/components/games/engine/GameButton";
 import GameResultCard from "@/components/games/engine/GameResultCard";
 import WordTile from "./WordTile";
@@ -503,8 +504,8 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-            className="mt-6 space-y-4"
+            transition={{ ...SPRING.gentle, delay: 0.15 }}
+            className="mt-6 space-y-3"
           >
             {/* Shared result card with emoji grid as children */}
             <GameResultCard

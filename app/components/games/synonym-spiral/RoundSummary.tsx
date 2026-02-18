@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import GameButton from "@/components/games/engine/GameButton";
 import { cn } from "@/lib/utils";
 import type { DepthLevel, SynonymChain } from "@/lib/games/data/synonym-spiral/types";
@@ -53,7 +54,7 @@ export default function RoundSummary({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      transition={SPRING.standard}
       className="space-y-4 rounded-2xl p-5"
       style={{
         background: "#FFFFFF",

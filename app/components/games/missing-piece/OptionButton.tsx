@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { haptic } from "@/lib/games/haptics";
 import { cn } from "@/lib/utils";
 
@@ -15,11 +16,7 @@ interface OptionButtonProps {
   index: number;
 }
 
-const springTransition = {
-  type: "spring" as const,
-  stiffness: 400,
-  damping: 30,
-};
+const springTransition = SPRING.snappy;
 
 const shakeAnimation = {
   x: [0, -6, 6, -6, 6, -3, 3, 0],

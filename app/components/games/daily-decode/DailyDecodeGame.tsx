@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import CipherText from "./CipherText";
 import GameResultCard from "@/components/games/engine/GameResultCard";
 import GameButton from "@/components/games/engine/GameButton";
@@ -353,8 +354,8 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
-            className="mt-4 space-y-4"
+            transition={{ ...SPRING.gentle, delay: 0.15 }}
+            className="mt-6 space-y-3"
           >
             {/* Quote reveal */}
             <QuoteReveal plaintext={puzzle.plaintext} author={puzzle.author} />

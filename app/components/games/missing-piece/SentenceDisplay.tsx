@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 import { cn } from "@/lib/utils";
 import type { SentenceCategory } from "@/lib/games/data/missing-piece/types";
 
@@ -68,7 +69,7 @@ export default function SentenceDisplay({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        transition={SPRING.standard}
         className="rounded-2xl p-6 text-center"
         style={{ background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.06)" }}
       >

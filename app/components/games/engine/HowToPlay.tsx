@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/games/springs";
 
 interface HowToPlayProps {
   gameSlug: string;
@@ -86,7 +87,7 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            transition={SPRING.snappy}
             className="w-full max-w-[300px] rounded-2xl p-6"
             style={{
               background: "#FFFFFF",

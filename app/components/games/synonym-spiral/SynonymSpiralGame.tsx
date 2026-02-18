@@ -312,7 +312,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
     const secs = totalSec % 60;
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <GameResultCard
           emoji={avg >= 4 ? "🌟" : avg >= 3 ? "✨" : avg >= 2 ? "💪" : "📚"}
           heading={
