@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Mansalva&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -511,14 +511,21 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   /* MEDIUM-1: Surface gradient */
   --surface-gradient: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, transparent 100%);
 
-  /* HIGH-6: Game typography — Inter Tight for display, Inter for body */
-  font-family: 'Inter', 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Game typography — Mansalva for display, Plus Jakarta Sans for body */
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 .game-mode h1,
 .game-mode h2,
 .game-mode h3 {
-  font-family: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 700;
+}
+
+/* Mansalva for playful display text — game hub title, result headings */
+.game-mode .font-display,
+.game-mode [data-font="display"] {
+  font-family: 'Mansalva', 'Comic Sans MS', 'Marker Felt', cursive;
 }
 
 .game-mode code,

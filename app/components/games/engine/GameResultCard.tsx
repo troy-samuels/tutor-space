@@ -52,10 +52,10 @@ export default function GameResultCard({
         {emoji}
       </div>
 
-      {/* Heading */}
+      {/* Heading — Mansalva for that playful celebration feel */}
       <h2
-        className="mt-3 text-xl font-bold tracking-tight"
-        style={{ color: "#2D2A26" }}
+        className="mt-3 text-2xl tracking-tight"
+        style={{ color: "#2D2A26", fontFamily: "'Mansalva', cursive" }}
       >
         {heading}
       </h2>

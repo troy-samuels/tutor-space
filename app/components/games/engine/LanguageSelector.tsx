@@ -51,16 +51,16 @@ export default function LanguageSelector({
 
   return (
     <div
-      className="mb-4 flex justify-center transition-opacity duration-200"
+      className="mb-3 flex justify-center transition-opacity duration-200"
       style={disabled ? { opacity: 0.4, pointerEvents: "none" } : undefined}
     >
-      <div className="inline-flex items-center gap-0.5 rounded-xl p-1" style={{ background: "#F5EDE8" }}>
+      <div className="inline-flex items-center gap-0.5 rounded-lg p-0.5" style={{ background: "#F5EDE8" }}>
         {languages.map((lang) => (
           <button
             key={lang.code}
             onClick={() => !disabled && onChange(lang.code)}
             disabled={disabled}
-            className="rounded-lg px-3 py-2 text-[13px] font-medium transition-all touch-manipulation whitespace-nowrap min-h-[44px]"
+            className="rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-all touch-manipulation whitespace-nowrap min-h-[40px]"
             style={
               selected === lang.code
                 ? { background: "#FFFFFF", color: "#2D2A26", boxShadow: "0 1px 3px rgba(45,42,38,0.08)" }

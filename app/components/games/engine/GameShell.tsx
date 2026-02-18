@@ -128,7 +128,7 @@ export default function GameShell({
       {/* Nav — hidden in Telegram (BackButton replaces it) */}
       {!inTg && (
         <nav
-          className="px-4 py-3"
+          className="px-4 py-2.5"
           style={{
             borderBottom: "1px solid rgba(45, 42, 38, 0.06)",
           }}
@@ -136,7 +136,7 @@ export default function GameShell({
           <div className="flex items-center justify-between max-w-lg mx-auto">
             <Link
               href="/games"
-              className="flex items-center gap-1.5 touch-manipulation"
+              className="flex items-center gap-1 touch-manipulation min-h-[44px] -ml-2 px-2 rounded-lg active:bg-black/[0.04] transition-colors"
             >
               <svg
                 className="h-4 w-4"
@@ -144,12 +144,12 @@ export default function GameShell({
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                strokeWidth={2}
+                strokeWidth={2.5}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
               <span
-                className="text-sm font-medium"
+                className="text-[13px] font-medium"
                 style={{ color: "#6B6560" }}
               >
                 Games
@@ -166,19 +166,19 @@ export default function GameShell({
       )}>
         <div className="flex items-center justify-between">
           <h1
-            className="font-semibold truncate text-[15px]"
+            className="font-bold truncate text-base"
             style={{ color: "var(--game-text-primary)" }}
           >
             {gameName}
           </h1>
           <div
-            className="flex items-center gap-1.5 text-xs flex-shrink-0 tabular-nums"
+            className="flex items-center gap-1 text-[11px] flex-shrink-0 tabular-nums font-medium"
             style={{ color: "var(--game-text-muted)" }}
           >
             <span>#{puzzleNumber}</span>
-            <span>·</span>
+            <span style={{ opacity: 0.4 }}>·</span>
             <span>{languageLabel}</span>
-            <span>·</span>
+            <span style={{ opacity: 0.4 }}>·</span>
             <span>{formatTime(elapsed)}</span>
           </div>
         </div>

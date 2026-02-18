@@ -44,10 +44,17 @@ function getDifficultyFromState(
 }
 
 /**
- * Dynamically scale font size based on word length.
+ * Dynamically scale font size based on word/phrase length.
+ * Multi-word phrases get smaller text to prevent overflow.
  */
 function getAdaptiveFontClass(word: string): string {
   const len = word.length;
+  const isMultiWord = word.includes(" ");
+  if (isMultiWord) {
+    if (len <= 8) return "text-xs sm:text-sm";
+    if (len <= 12) return "text-[11px] sm:text-xs";
+    return "text-[9px] sm:text-[10px]";
+  }
   if (len <= 4) return "text-sm sm:text-base";
   if (len <= 8) return "text-xs sm:text-sm";
   if (len <= 12) return "text-[11px] sm:text-xs";
@@ -155,7 +162,7 @@ export default function WordTile({
         style={tileStyle}
       >
         {/* Front face */}
-        <span className="break-all leading-tight text-center">{word}</span>
+        <span className="break-words leading-tight text-center hyphens-auto">{word}</span>
 
         {/* False Friend overlay — trap icon + meaning on back */}
         <AnimatePresence>

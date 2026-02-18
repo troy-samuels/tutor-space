@@ -10,8 +10,9 @@ import { isTelegram, tgBackButton } from "@/lib/telegram";
 import { haptic } from "@/lib/games/haptics";
 import { fireConfetti } from "@/lib/games/juice";
 import { cn } from "@/lib/utils";
+import { GAME_ICON_MAP } from "./GameIcons";
 
-/* ——— Game list — clean, no accent colours or taglines ——— */
+/* ——— Game list ——— */
 const GAMES = [
   {
     slug: "connections",
@@ -49,6 +50,12 @@ const GAMES = [
     description: "Climb from basic to literary synonyms",
     ready: true,
   },
+  {
+    slug: "neon-intercept",
+    name: "Neon Intercept",
+    description: "Tap the right lane before words land",
+    ready: true,
+  },
 ] as const;
 
 /* ——— Game Card ——— */
@@ -64,56 +71,65 @@ function GameCard({
   statusesLoaded: boolean;
 }) {
   const isDone = status === "won" || status === "played";
+  const IconComponent = GAME_ICON_MAP[game.slug];
 
   return (
     <Link
       href={`/games/${game.slug}`}
       data-card-index={index}
-      className="game-card block rounded-2xl transition-all active:scale-[0.98] hover:shadow-md hover:border-[rgba(45,42,38,0.12)] cursor-pointer touch-manipulation"
+      className="game-card block rounded-2xl transition-all active:scale-[0.97] hover:shadow-md cursor-pointer touch-manipulation"
       style={{
         background: "#FFFFFF",
-        border: "1px solid rgba(45, 42, 38, 0.06)",
-        boxShadow: "0 1px 3px rgba(45, 42, 38, 0.04)",
+        border: "1px solid rgba(45, 42, 38, 0.08)",
+        boxShadow: "0 1px 3px rgba(45, 42, 38, 0.06), 0 1px 2px rgba(45, 42, 38, 0.04)",
       }}
       onClick={() => haptic("tap")}
     >
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="min-w-0">
+      <div className="flex items-center gap-3.5 px-4 py-3.5">
+        {/* Game icon — premium SVG */}
+        <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden"
+          style={{ background: "#FDF8F5" }}
+        >
+          {IconComponent ? <IconComponent size={36} /> : <span className="text-lg">🎮</span>}
+        </div>
+
+        {/* Game info */}
+        <div className="min-w-0 flex-1">
           <h3
-            className="text-[15px] font-semibold"
-            style={{ color: "#2D2A26" }}
+            className="text-[14px] font-semibold leading-tight"
+            style={{ color: "#2D2A26", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {game.name}
           </h3>
           <p
-            className="text-[13px] mt-0.5"
-            style={{ color: "#9C9590" }}
+            className="text-[12px] mt-0.5 leading-snug"
+            style={{ color: "#9C9590", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {game.description}
           </p>
         </div>
 
-        {/* Status indicator — smooth opacity transition on load */}
+        {/* Status indicator */}
         <div
-          className="flex-shrink-0 ml-4 transition-opacity duration-300"
+          className="flex-shrink-0 transition-opacity duration-300"
           style={{ opacity: statusesLoaded ? 1 : 0 }}
         >
           {isDone ? (
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(62, 86, 65, 0.1)" }}
+              className="w-7 h-7 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(62, 86, 65, 0.12)" }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M20 6L9 17L4 12" stroke="#3E5641" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
           ) : (
             <svg
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
-              style={{ color: "#9C9590" }}
+              style={{ color: "#C5BFBA" }}
             >
               <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -145,22 +161,26 @@ export default function GameHub() {
     }
   }, []);
 
-  /* GSAP entrance */
+  /* GSAP entrance — use `to` from safe defaults so cards are always visible */
   useGSAP(
     () => {
-      gsap.from(".hub-header", {
-        y: -20,
-        opacity: 0,
-        duration: 0.4,
+      // Set initial state via GSAP (not CSS) so cards are visible without JS
+      gsap.set(".game-card", { y: 20, opacity: 0.3 });
+      gsap.set(".hub-header", { y: -10, opacity: 0.3 });
+
+      gsap.to(".hub-header", {
+        y: 0,
+        opacity: 1,
+        duration: 0.35,
         ease: "power3.out",
       });
-      gsap.from(".game-card", {
-        y: 40,
-        opacity: 0,
-        stagger: 0.06,
-        duration: 0.5,
+      gsap.to(".game-card", {
+        y: 0,
+        opacity: 1,
+        stagger: 0.05,
+        duration: 0.4,
         ease: "power3.out",
-        delay: 0.1,
+        delay: 0.08,
       });
     },
     { scope: containerRef },
@@ -208,21 +228,37 @@ export default function GameHub() {
         }}
       >
         {/* Header */}
-        <div className="hub-header px-5 mb-4">
+        <div className="hub-header px-5 mb-3">
           <div className="flex items-center justify-between">
             <div>
               <h1
-                className="text-xl font-bold"
-                style={{ color: "#2D2A26" }}
+                className="text-[26px] tracking-tight"
+                style={{ color: "#2D2A26", fontFamily: "'Mansalva', cursive" }}
               >
                 Games
               </h1>
-              <p
-                className="text-xs mt-0.5 font-medium tabular-nums"
-                style={{ color: allComplete ? "#D36135" : "#9C9590" }}
-              >
-                {allComplete ? "🏆 All complete! " : `${completedCount}/${GAMES.length} completed `}today
-              </p>
+              {/* Progress bar + text */}
+              <div className="flex items-center gap-2 mt-1.5">
+                <div
+                  className="h-1.5 rounded-full flex-1 max-w-[120px] overflow-hidden"
+                  style={{ background: "rgba(45, 42, 38, 0.06)" }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-500 ease-out"
+                    style={{
+                      width: `${(completedCount / GAMES.length) * 100}%`,
+                      background: allComplete ? "#3E5641" : "#D36135",
+                      minWidth: completedCount > 0 ? "8px" : "0px",
+                    }}
+                  />
+                </div>
+                <p
+                  className="text-[11px] font-medium tabular-nums"
+                  style={{ color: allComplete ? "#3E5641" : "#9C9590" }}
+                >
+                  {allComplete ? "All done! 🏆" : `${completedCount} of ${GAMES.length}`}
+                </p>
+              </div>
             </div>
 
             {/* Streak */}
@@ -261,10 +297,10 @@ export default function GameHub() {
 
         {/* Footer */}
         <p
-          className="mt-6 text-center text-[11px]"
-          style={{ color: "#9C9590" }}
+          className="mt-5 text-center text-[11px]"
+          style={{ color: "#C5BFBA" }}
         >
-          New puzzles daily
+          New puzzles every day · tutorlingua.co
         </p>
       </div>
 
