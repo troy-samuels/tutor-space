@@ -145,7 +145,7 @@ export default function WordTile({
         aria-pressed={state === "selected"}
         role="gridcell"
         className={cn(
-          "relative flex min-h-[52px] w-full items-center justify-center",
+          "relative flex min-h-[56px] w-full items-center justify-center",
           "rounded-lg px-2",
           "font-semibold uppercase tracking-wide",
           "select-none touch-manipulation",

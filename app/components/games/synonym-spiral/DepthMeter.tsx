@@ -11,6 +11,7 @@ interface DepthMeterProps {
 }
 
 const DEPTH_LABELS: Record<string, Record<DepthLevel, string>> = {
+  en: { 1: "Basic", 2: "Intermediate", 3: "Advanced", 4: "Literary", 5: "Poetic" },
   es: { 1: "Básico", 2: "Intermedio", 3: "Avanzado", 4: "Literario", 5: "Poético" },
   fr: { 1: "Basique", 2: "Intermédiaire", 3: "Avancé", 4: "Littéraire", 5: "Poétique" },
   de: { 1: "Grundstufe", 2: "Mittelstufe", 3: "Fortgeschritten", 4: "Literarisch", 5: "Poetisch" },
@@ -34,7 +35,7 @@ const CEFR_LABELS: Record<DepthLevel, string> = {
 };
 
 export default function DepthMeter({ currentDepth, maxDepth = 5, language }: DepthMeterProps) {
-  const labels = DEPTH_LABELS[language] || DEPTH_LABELS.es;
+  const labels = DEPTH_LABELS[language] || DEPTH_LABELS.en;
 
   // Render from top (5) to bottom (1)
   const levels: DepthLevel[] = [5, 4, 3, 2, 1];

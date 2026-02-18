@@ -176,7 +176,7 @@ export default function GameHub() {
         }}
       >
         {/* Header */}
-        <div className="hub-header px-5 mb-6">
+        <div className="hub-header px-5 mb-4">
           <div className="flex items-center justify-between">
             <div>
               <h1

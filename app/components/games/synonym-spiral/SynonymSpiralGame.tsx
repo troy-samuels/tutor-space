@@ -427,7 +427,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
         </div>
 
         {/* Depth meter */}
-        <div className="w-24 flex-shrink-0">
+        <div className="w-28 flex-shrink-0">
           <DepthMeter
             currentDepth={currentDepth}
             language={puzzle.language}
