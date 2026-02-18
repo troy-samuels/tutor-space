@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import GameResultCard from "@/components/games/engine/GameResultCard";
 import GameButton from "@/components/games/engine/GameButton";
 import SpiralTower from "./SpiralTower";
@@ -13,6 +12,7 @@ import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
 import { fireConfetti } from "@/lib/games/juice";
+import { getLanguageFlag } from "@/lib/games/language-utils";
 import { cn } from "@/lib/utils";
 import type {
   SynonymSpiralPuzzle,
@@ -263,7 +263,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
   }, [currentRound, roundResults, onGameEnd]);
 
   const handleShare = React.useCallback(async () => {
-    const flag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
+    const flag = getLanguageFlag(puzzle.language);
     const depths = roundResults.map((r) => Number(r.depthReached));
     const avg = depths.length > 0 ? (depths.reduce((a: number, b: number) => a + b, 0) / depths.length).toFixed(1) : "0";
     const totalMs = Date.now() - gameStartRef.current;
@@ -397,20 +397,22 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
     <div className="space-y-4">
       {/* Round indicator + timer */}
       <div className="flex items-center justify-between">
-        <Badge variant="outline" className="text-xs tabular-nums" style={{ color: "#6B6560" }}>
+        <span
+          className="text-xs tabular-nums rounded-full px-2.5 py-0.5 border"
+          style={{ color: "#6B6560", borderColor: "rgba(0,0,0,0.12)", background: "transparent" }}
+        >
           Round {currentRound + 1}/{TOTAL_ROUNDS}
-        </Badge>
-        <Badge
-          variant="outline"
-          className={cn("font-mono text-xs tabular-nums", timerIsLow && "animate-pulse")}
+        </span>
+        <span
+          className={cn("font-mono text-xs tabular-nums rounded-full px-2.5 py-0.5 border", timerIsLow && "animate-pulse")}
           style={
             timerIsLow
-              ? { borderColor: "rgba(162,73,54,0.5)", color: "#A24936" }
-              : { color: "#6B6560" }
+              ? { borderColor: "rgba(162,73,54,0.5)", color: "#A24936", background: "transparent" }
+              : { color: "#6B6560", borderColor: "rgba(0,0,0,0.12)", background: "transparent" }
           }
         >
           {timerSeconds}s
-        </Badge>
+        </span>
       </div>
 
       {/* Main game area: Tower + Depth Meter side by side */}

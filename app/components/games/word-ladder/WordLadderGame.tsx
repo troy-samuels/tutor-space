@@ -198,29 +198,28 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
 
       {/* Input area */}
       {!gameState.isComplete && (
-        <div className="space-y-2">
-          {/* Undo button — only visible once steps have been taken */}
-          {gameState.steps.length > 0 && (
-            <GameButton
-              onClick={handleUndo}
-              variant="outline"
-              fullWidth={false}
-              className="px-3 min-w-[48px]"
-              aria-label="Undo last step"
-            >
-              ↩ Undo
-            </GameButton>
-          )}
-          <WordInput
-            value={gameState.currentInput}
-            onChange={handleInputChange}
-            onSubmit={handleSubmit}
-            maxLength={puzzle.startWord.length}
-            error={gameState.error}
-            disabled={gameState.isComplete}
-            lastWord={lastWord}
-          />
-        </div>
+        <WordInput
+          value={gameState.currentInput}
+          onChange={handleInputChange}
+          onSubmit={handleSubmit}
+          maxLength={puzzle.startWord.length}
+          error={gameState.error}
+          disabled={gameState.isComplete}
+          lastWord={lastWord}
+          leftSlot={
+            gameState.steps.length > 0 ? (
+              <GameButton
+                onClick={handleUndo}
+                variant="outline"
+                fullWidth={false}
+                className="px-3 min-w-[48px] flex-shrink-0"
+                aria-label="Undo last step"
+              >
+                ↩
+              </GameButton>
+            ) : undefined
+          }
+        />
       )}
 
       {/* Hint button */}

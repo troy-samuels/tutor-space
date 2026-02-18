@@ -12,6 +12,7 @@ import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
 import { fireConfetti } from "@/lib/games/juice";
+import { getLanguageFlag } from "@/lib/games/language-utils";
 import type { OddOneOutPuzzle, OddOneOutGameState } from "@/lib/games/data/odd-one-out/types";
 
 interface OddOneOutGameProps {
@@ -146,7 +147,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
   }, [showResult, gameState.isComplete, lastGuessCorrect, handleNextRound]);
 
   const generateShareText = React.useCallback((): string => {
-    const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
+    const langFlag = getLanguageFlag(puzzle.language);
     const elapsed = gameState.endTime
       ? Math.floor((gameState.endTime - gameState.startTime) / 1000) : 0;
     const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;

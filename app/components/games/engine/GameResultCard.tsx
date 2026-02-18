@@ -39,6 +39,7 @@ export default function GameResultCard({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 280, damping: 22, delay: 0.15 }}
       className="rounded-2xl p-6 text-center"
+      aria-live="polite"
       style={{
         background: "#FFFFFF",
         border: "1px solid rgba(0,0,0,0.06)",

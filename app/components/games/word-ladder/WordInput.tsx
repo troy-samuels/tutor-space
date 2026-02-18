@@ -13,6 +13,8 @@ interface WordInputProps {
   error: string | null;
   disabled: boolean;
   lastWord: string;
+  /** Optional element rendered to the left of the input field (e.g. undo button) */
+  leftSlot?: React.ReactNode;
 }
 
 export default function WordInput({
@@ -23,6 +25,7 @@ export default function WordInput({
   error,
   disabled,
   lastWord,
+  leftSlot,
 }: WordInputProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -56,6 +59,7 @@ export default function WordInput({
     <div className="space-y-3">
       {/* Input field */}
       <div className="flex items-center gap-2">
+        {leftSlot}
         <input
           ref={inputRef}
           type="text"

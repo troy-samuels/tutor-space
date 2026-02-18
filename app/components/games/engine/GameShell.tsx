@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { getStreakData, getStreakTier } from "@/lib/games/streaks";
 import { getLanguageLabel, isRtl } from "@/lib/games/language-utils";
 import { haptic } from "@/lib/games/haptics";
 import { recordDailyProgress } from "@/lib/games/progress";
@@ -47,17 +46,8 @@ export default function GameShell({
 }: GameShellProps) {
   const router = useRouter();
   const [elapsed, setElapsed] = React.useState(0);
-  const [streak, setStreak] = React.useState({ current: 0, longest: 0 });
-  const [streakTier, setStreakTier] = React.useState({ name: "New", emoji: "🌱" });
   const startTimeRef = React.useRef(Date.now());
   const inTg = React.useMemo(() => typeof window !== "undefined" && isTelegram(), []);
-
-  // Read streak from localStorage on mount
-  React.useEffect(() => {
-    const data = getStreakData();
-    setStreak({ current: data.current, longest: data.longest });
-    setStreakTier(getStreakTier(data.current));
-  }, []);
 
   // Telegram BackButton: show on game pages, navigate to hub
   React.useEffect(() => {

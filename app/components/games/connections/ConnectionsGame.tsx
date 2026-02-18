@@ -12,6 +12,7 @@ import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
 import { fireConfetti } from "@/lib/games/juice";
+import { getLanguageFlag } from "@/lib/games/language-utils";
 import { cn } from "@/lib/utils";
 import type {
   ConnectionsPuzzle,
@@ -324,7 +325,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
   }, []);
 
   const generateShareText = React.useCallback((): string => {
-    const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
+    const langFlag = getLanguageFlag(puzzle.language);
     const header = `Lingua Connections #${puzzle.number} ${langFlag}`;
     const mistakeStr = gameState.isWon
       ? `${gameState.mistakes}/${MAX_MISTAKES} mistakes`

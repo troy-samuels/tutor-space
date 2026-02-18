@@ -273,6 +273,14 @@ export function getLanguageLabel(code: string): string {
 }
 
 /**
+ * Get the flag emoji for a language code.
+ * Uses the existing LANGUAGE_CONFIGS flag data.
+ */
+export function getLanguageFlag(code: string): string {
+  return LANGUAGE_CONFIGS[code]?.flag ?? "🌐";
+}
+
+/**
  * Check if a language uses RTL direction.
  */
 export function isRtl(code: string): boolean {

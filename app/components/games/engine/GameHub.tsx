@@ -8,7 +8,6 @@ import { getStreakData } from "@/lib/games/streaks";
 import { getDailyProgress, type GameStatus } from "@/lib/games/progress";
 import { isTelegram, tgBackButton } from "@/lib/telegram";
 import { haptic } from "@/lib/games/haptics";
-import GameTabBar from "./GameTabBar";
 import { cn } from "@/lib/utils";
 
 /* ——— Game list — clean, no accent colours or taglines ——— */
@@ -123,7 +122,6 @@ function GameCard({
 export default function GameHub() {
   const [streak, setStreak] = React.useState({ current: 0, longest: 0 });
   const [gameStatuses, setGameStatuses] = React.useState<Record<string, GameStatus>>({});
-  const [activeTab, setActiveTab] = React.useState("play");
   const inTg = React.useMemo(() => typeof window !== "undefined" && isTelegram(), []);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -237,8 +235,6 @@ export default function GameHub() {
         </p>
       </div>
 
-      {/* Tab bar */}
-      <GameTabBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
