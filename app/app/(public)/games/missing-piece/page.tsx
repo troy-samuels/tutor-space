@@ -61,6 +61,11 @@ export default function MissingPiecePage() {
     });
   }, []);
 
+  const handlePlayAgain = React.useCallback(() => {
+    setGameKey((k) => k + 1);
+    setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+  }, []);
+
   return (
     <GameShell
       gameName="Missing Piece"
@@ -80,7 +85,7 @@ export default function MissingPiecePage() {
         onChange={handleLanguageChange}
       />
 
-      <MissingPieceGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} />
+      <MissingPieceGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
     </GameShell>
   );
 }

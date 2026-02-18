@@ -61,6 +61,11 @@ export default function ConnectionsPage() {
     });
   }, []);
 
+  const handlePlayAgain = React.useCallback(() => {
+    setGameKey((k) => k + 1);
+    setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+  }, []);
+
   return (
     <GameShell
       gameName="Lingua Connections"
@@ -80,7 +85,7 @@ export default function ConnectionsPage() {
         onChange={handleLanguageChange}
       />
 
-      <ConnectionsGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} />
+      <ConnectionsGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
     </GameShell>
   );
 }

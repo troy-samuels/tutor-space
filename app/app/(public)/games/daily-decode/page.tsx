@@ -60,6 +60,11 @@ export default function DailyDecodePage() {
     [],
   );
 
+  const handlePlayAgain = React.useCallback(() => {
+    setGameKey((k) => k + 1);
+    setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+  }, []);
+
   return (
     <GameShell
       gameName="Daily Decode"
@@ -79,7 +84,7 @@ export default function DailyDecodePage() {
         onChange={handleLanguageChange}
       />
 
-      <DailyDecodeGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} />
+      <DailyDecodeGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
     </GameShell>
   );
 }

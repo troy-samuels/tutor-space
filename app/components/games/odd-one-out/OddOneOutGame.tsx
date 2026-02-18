@@ -11,17 +11,19 @@ import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
+import { fireConfetti } from "@/lib/games/juice";
 import type { OddOneOutPuzzle, OddOneOutGameState } from "@/lib/games/data/odd-one-out/types";
 
 interface OddOneOutGameProps {
   puzzle: OddOneOutPuzzle;
   onGameEnd?: (state: OddOneOutGameState) => void;
+  onPlayAgain?: () => void;
 }
 
 const MAX_LIVES = 3;
 const TOTAL_ROUNDS = 10;
 
-export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps) {
+export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOneOutGameProps) {
   const [gameState, setGameState] = React.useState<OddOneOutGameState>({
     puzzle,
     currentRound: 0,
@@ -62,6 +64,20 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
     hasNotifiedRef.current = true;
     onGameEndRef.current?.(gameState);
   }, [gameState]);
+
+  // Victory confetti on win
+  React.useEffect(() => {
+    if (!gameState.isComplete || !gameState.isWon) return;
+    void fireConfetti({
+      particleCount: 60,
+      spread: 80,
+      startVelocity: 30,
+      gravity: 0.8,
+      ticks: 80,
+      origin: { y: 0.5 },
+      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
+    });
+  }, [gameState.isComplete, gameState.isWon]);
 
   const currentRound = puzzle.rounds[gameState.currentRound];
 
@@ -119,6 +135,15 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
     setCardStates(["default", "default", "default", "default"]);
     setGameState((prev) => ({ ...prev, currentRound: prev.currentRound + 1 }));
   }, []);
+
+  // Auto-advance after 2.5s on correct answer
+  React.useEffect(() => {
+    if (!showResult || gameState.isComplete || !lastGuessCorrect) return;
+    const timer = setTimeout(() => {
+      handleNextRound();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [showResult, gameState.isComplete, lastGuessCorrect, handleNextRound]);
 
   const generateShareText = React.useCallback((): string => {
     const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
@@ -250,6 +275,13 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
             >
               {showExplanations ? "Hide Explanations" : "Review All Rounds"}
             </GameButton>
+
+            {/* Play Again */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
 
             {/* Explanations */}
             <AnimatePresence>

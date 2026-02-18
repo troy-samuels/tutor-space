@@ -12,6 +12,7 @@ import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
+import { fireConfetti } from "@/lib/games/juice";
 import type {
   MissingPiecePuzzle,
   MissingPieceGameState,
@@ -20,11 +21,12 @@ import type {
 interface MissingPieceGameProps {
   puzzle: MissingPiecePuzzle;
   onGameEnd?: (state: MissingPieceGameState) => void;
+  onPlayAgain?: () => void;
 }
 
 const MAX_LIVES = 3;
 
-export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGameProps) {
+export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: MissingPieceGameProps) {
   const sentenceCount = puzzle.sentences.length;
 
   const [gameState, setGameState] = React.useState<MissingPieceGameState>({
@@ -67,6 +69,20 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
     hasNotifiedRef.current = true;
     onGameEndRef.current?.(gameState);
   }, [gameState]);
+
+  // Victory confetti on win
+  React.useEffect(() => {
+    if (!gameState.isComplete || !gameState.isWon) return;
+    void fireConfetti({
+      particleCount: 60,
+      spread: 80,
+      startVelocity: 30,
+      gravity: 0.8,
+      ticks: 80,
+      origin: { y: 0.5 },
+      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
+    });
+  }, [gameState.isComplete, gameState.isWon]);
 
   const currentSentence = puzzle.sentences[gameState.currentSentence];
   const progress = gameState.currentSentence / sentenceCount;
@@ -122,6 +138,15 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
     setOptionStates(["default", "default", "default", "default"]);
     setGameState((prev) => ({ ...prev, currentSentence: prev.currentSentence + 1 }));
   }, []);
+
+  // Auto-advance after 2.5s on correct answer
+  React.useEffect(() => {
+    if (!showExplanation || gameState.isComplete || !lastGuessCorrect) return;
+    const timer = setTimeout(() => {
+      handleNextSentence();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [showExplanation, gameState.isComplete, lastGuessCorrect, handleNextSentence]);
 
   const generateShareText = React.useCallback((): string => {
     const langFlag = puzzle.language === "fr" ? "🇫🇷" : puzzle.language === "de" ? "🇩🇪" : "🇪🇸";
@@ -234,6 +259,13 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
             >
               {showAllExplanations ? "Hide Explanations" : "Review All Sentences"}
             </GameButton>
+
+            {/* Play Again */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
 
             <AnimatePresence>
               {showAllExplanations && (

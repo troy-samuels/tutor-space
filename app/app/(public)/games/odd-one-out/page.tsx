@@ -62,6 +62,11 @@ export default function OddOneOutPage() {
     });
   }, []);
 
+  const handlePlayAgain = React.useCallback(() => {
+    setGameKey((k) => k + 1);
+    setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+  }, []);
+
   return (
     <GameShell
       gameName="Odd One Out"
@@ -81,7 +86,7 @@ export default function OddOneOutPage() {
         onChange={handleLanguageChange}
       />
 
-      <OddOneOutGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} />
+      <OddOneOutGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
     </GameShell>
   );
 }

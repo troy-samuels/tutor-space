@@ -71,6 +71,11 @@ export default function SynonymSpiralPage() {
     []
   );
 
+  const handlePlayAgain = React.useCallback(() => {
+    setGameKey((k) => k + 1);
+    setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+  }, []);
+
   return (
     <GameShell
       gameName="Synonym Spiral"
@@ -94,6 +99,7 @@ export default function SynonymSpiralPage() {
         key={gameKey}
         puzzle={puzzle}
         onGameEnd={handleGameEnd}
+        onPlayAgain={handlePlayAgain}
       />
     </GameShell>
   );

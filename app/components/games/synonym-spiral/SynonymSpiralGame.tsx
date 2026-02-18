@@ -12,6 +12,7 @@ import RoundSummary from "./RoundSummary";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
+import { fireConfetti } from "@/lib/games/juice";
 import { cn } from "@/lib/utils";
 import type {
   SynonymSpiralPuzzle,
@@ -29,6 +30,7 @@ interface SynonymSpiralGameProps {
     roundDepths: number[];
     totalTimeMs: number;
   }) => void;
+  onPlayAgain?: () => void;
 }
 
 const ROUND_TIME_MS = 60_000; // 60 seconds per round
@@ -44,7 +46,7 @@ interface Feedback {
   message: string;
 }
 
-export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGameProps) {
+export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: SynonymSpiralGameProps) {
   const [currentRound, setCurrentRound] = React.useState(0);
   const [currentDepth, setCurrentDepth] = React.useState<DepthLevel | 0>(0);
   const [towerWords, setTowerWords] = React.useState<TowerWord[]>([]);
@@ -228,6 +230,17 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
       const avgDepth = allDepths.reduce((a: number, b: number) => a + b, 0) / allDepths.length;
       const totalTime = Date.now() - gameStartRef.current;
 
+      // Victory confetti
+      void fireConfetti({
+        particleCount: 70,
+        spread: 90,
+        startVelocity: 32,
+        gravity: 0.75,
+        ticks: 90,
+        origin: { y: 0.5 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#7c3aed"],
+      });
+
       onGameEnd?.({
         isComplete: true,
         isWon: avgDepth >= 3,
@@ -354,6 +367,13 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
         <GameButton onClick={handleShare} variant="accent">
           {copied ? "✓ Copied!" : "📋 Share Result"}
         </GameButton>
+
+        {/* Play Again */}
+        {onPlayAgain && (
+          <GameButton onClick={onPlayAgain} variant="secondary">
+            🔄 Play Again
+          </GameButton>
+        )}
       </div>
     );
   }

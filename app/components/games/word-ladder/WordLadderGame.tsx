@@ -10,14 +10,16 @@ import { recordGamePlay } from "@/lib/games/streaks";
 import { validateStep, generateShareText } from "@/lib/games/data/word-ladder";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
+import { fireConfetti } from "@/lib/games/juice";
 import type { WordLadderPuzzle, WordLadderGameState } from "@/lib/games/data/word-ladder/types";
 
 interface WordLadderGameProps {
   puzzle: WordLadderPuzzle;
   onGameEnd?: (state: { isComplete: boolean; isWon: boolean; mistakes: number }) => void;
+  onPlayAgain?: () => void;
 }
 
-export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProps) {
+export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordLadderGameProps) {
   const [gameState, setGameState] = React.useState<WordLadderGameState>(() => ({
     puzzle,
     steps: [],
@@ -55,6 +57,20 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
     });
   }, [gameState]);
 
+  // Victory confetti on win
+  React.useEffect(() => {
+    if (!gameState.isComplete || !gameState.isWon) return;
+    void fireConfetti({
+      particleCount: 70,
+      spread: 90,
+      startVelocity: 32,
+      gravity: 0.75,
+      ticks: 90,
+      origin: { y: 0.5 },
+      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
+    });
+  }, [gameState.isComplete, gameState.isWon]);
+
   // Clear error after a delay
   React.useEffect(() => {
     if (!gameState.error) return;
@@ -71,6 +87,17 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
   const handleInputChange = React.useCallback((value: string) => {
     setGameState((prev) => ({ ...prev, currentInput: value, error: null }));
   }, []);
+
+  const handleUndo = React.useCallback(() => {
+    if (gameState.steps.length === 0 || gameState.isComplete) return;
+    haptic("tap");
+    setGameState((prev) => ({
+      ...prev,
+      steps: prev.steps.slice(0, -1),
+      currentInput: "",
+      error: null,
+    }));
+  }, [gameState.steps.length, gameState.isComplete]);
 
   const handleSubmit = React.useCallback(() => {
     const { currentInput } = gameState;
@@ -171,15 +198,29 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
 
       {/* Input area */}
       {!gameState.isComplete && (
-        <WordInput
-          value={gameState.currentInput}
-          onChange={handleInputChange}
-          onSubmit={handleSubmit}
-          maxLength={puzzle.startWord.length}
-          error={gameState.error}
-          disabled={gameState.isComplete}
-          lastWord={lastWord}
-        />
+        <div className="space-y-2">
+          {/* Undo button — only visible once steps have been taken */}
+          {gameState.steps.length > 0 && (
+            <GameButton
+              onClick={handleUndo}
+              variant="outline"
+              fullWidth={false}
+              className="px-3 min-w-[48px]"
+              aria-label="Undo last step"
+            >
+              ↩ Undo
+            </GameButton>
+          )}
+          <WordInput
+            value={gameState.currentInput}
+            onChange={handleInputChange}
+            onSubmit={handleSubmit}
+            maxLength={puzzle.startWord.length}
+            error={gameState.error}
+            disabled={gameState.isComplete}
+            lastWord={lastWord}
+          />
+        </div>
       )}
 
       {/* Hint button */}
@@ -261,6 +302,13 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
             >
               {showOptimalPath ? "Hide Optimal Path" : "Show Optimal Path"}
             </GameButton>
+
+            {/* Play Again */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
 
             <AnimatePresence>
               {showOptimalPath && (

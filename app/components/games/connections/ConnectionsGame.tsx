@@ -11,6 +11,7 @@ import VibeClueBanner from "./VibeClueBanner";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
+import { fireConfetti } from "@/lib/games/juice";
 import { cn } from "@/lib/utils";
 import type {
   ConnectionsPuzzle,
@@ -21,6 +22,7 @@ import type {
 interface ConnectionsGameProps {
   puzzle: ConnectionsPuzzle;
   onGameEnd?: (state: ConnectionsGameState) => void;
+  onPlayAgain?: () => void;
 }
 
 const MAX_MISTAKES = 4;
@@ -68,7 +70,7 @@ function buildFalseFriendMap(puzzle: ConnectionsPuzzle): Map<string, { word: str
   return map;
 }
 
-export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGameProps) {
+export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: ConnectionsGameProps) {
   const [gameState, setGameState] = React.useState<ConnectionsGameState>(() => {
     const allWords = puzzle.categories.flatMap((c) => c.words);
     return {
@@ -112,6 +114,23 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
     hasNotifiedRef.current = true;
     onGameEndRef.current?.(gameState);
   }, [gameState]);
+
+  // Victory confetti on full win
+  React.useEffect(() => {
+    if (!gameState.isComplete || !gameState.isWon) return;
+    const timer = setTimeout(() => {
+      void fireConfetti({
+        particleCount: 80,
+        spread: 100,
+        startVelocity: 35,
+        gravity: 0.7,
+        ticks: 100,
+        origin: { y: 0.5 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#5A8AB5", "#8B5CB5"],
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [gameState.isComplete, gameState.isWon]);
 
   // HIGH-3: Clear wrong state after 200ms (was 600ms)
   React.useEffect(() => {
@@ -595,6 +614,13 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 variant="outline"
               >
                 {showExplanations ? "Hide Explanations" : "Explain My Mistakes"}
+              </GameButton>
+            )}
+
+            {/* Play Again */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
               </GameButton>
             )}
 

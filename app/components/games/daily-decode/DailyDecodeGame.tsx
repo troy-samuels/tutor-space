@@ -15,6 +15,7 @@ import {
 } from "@/lib/games/data/daily-decode";
 import { haptic } from "@/lib/games/haptics";
 import { shareResult } from "@/components/games/engine/share";
+import { fireConfetti } from "@/lib/games/juice";
 import type {
   DecodePuzzle,
   CipherMap,
@@ -24,11 +25,12 @@ import type {
 interface DailyDecodeGameProps {
   puzzle: DecodePuzzle;
   onGameEnd?: (state: { isComplete: boolean; isWon: boolean; mistakes: number }) => void;
+  onPlayAgain?: () => void;
 }
 
 const MAX_HINTS = 3;
 
-export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGameProps) {
+export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: DailyDecodeGameProps) {
   const prepared = React.useMemo(() => preparePuzzle(puzzle), [puzzle]);
 
   const [gameState, setGameState] = React.useState<DailyDecodeGameState>(() => ({
@@ -101,6 +103,20 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
       mistakes: gameState.mistakes,
     });
   }, [gameState]);
+
+  // Victory confetti on win
+  React.useEffect(() => {
+    if (!gameState.isComplete || !gameState.isWon) return;
+    void fireConfetti({
+      particleCount: 65,
+      spread: 85,
+      startVelocity: 30,
+      gravity: 0.8,
+      ticks: 85,
+      origin: { y: 0.5 },
+      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
+    });
+  }, [gameState.isComplete, gameState.isWon]);
 
   const handleLetterTap = React.useCallback((cipherLetter: string) => {
     if (gameState.isComplete) return;
@@ -345,6 +361,13 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
             <GameButton onClick={handleShare} variant="accent">
               {copied ? "✓ Copied!" : "📋 Share Result"}
             </GameButton>
+
+            {/* Play Again */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

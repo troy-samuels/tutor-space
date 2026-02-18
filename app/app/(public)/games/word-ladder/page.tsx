@@ -60,6 +60,11 @@ export default function WordLadderPage() {
     [],
   );
 
+  const handlePlayAgain = React.useCallback(() => {
+    setGameKey((k) => k + 1);
+    setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+  }, []);
+
   return (
     <GameShell
       gameName="Word Ladder"
@@ -79,7 +84,7 @@ export default function WordLadderPage() {
         onChange={handleLanguageChange}
       />
 
-      <WordLadderGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} />
+      <WordLadderGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
     </GameShell>
   );
 }

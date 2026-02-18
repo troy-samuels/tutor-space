@@ -5,9 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { getStreakData, getStreakTier } from "@/lib/games/streaks";
 import { getLanguageLabel, isRtl } from "@/lib/games/language-utils";
 import { haptic } from "@/lib/games/haptics";
@@ -15,12 +12,8 @@ import { recordDailyProgress } from "@/lib/games/progress";
 import {
   isTelegram,
   tgBackButton,
-  tgMainButton,
-  tgSecondaryButton,
   enableClosingConfirmation,
   disableClosingConfirmation,
-  setBottomBarColor,
-  tgThemeParams,
 } from "@/lib/telegram";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +25,6 @@ interface GameShellProps {
   isComplete: boolean;
   isWon: boolean;
   mistakes: number;
-  onShare?: () => void;
-  onExplainMistakes?: () => void;
   children: React.ReactNode;
 }
 
@@ -52,8 +43,6 @@ export default function GameShell({
   isComplete,
   isWon,
   mistakes,
-  onShare,
-  onExplainMistakes,
   children,
 }: GameShellProps) {
   const router = useRouter();
@@ -115,39 +104,6 @@ export default function GameShell({
       haptic(isWon ? "success" : "gameOver");
     }
   }, [isComplete, isWon, gameSlug]);
-
-  // Telegram MainButton for "Share Result" + SecondaryButton for "Explain Mistakes"
-  React.useEffect(() => {
-    if (!inTg || !isComplete) return;
-
-    // Set bottom bar colour when buttons are visible
-    const theme = tgThemeParams();
-    if (theme) {
-      const barColor = theme.bottom_bar_bg_color || theme.secondary_bg_color || theme.bg_color || "#1c1c1d";
-      setBottomBarColor(barColor);
-    }
-
-    // Main button: Share Result
-    if (onShare) {
-      tgMainButton.show("📋 Share Result", onShare);
-    }
-
-    // Secondary button: Explain Mistakes
-    if (mistakes > 0 && onExplainMistakes && tgSecondaryButton.isAvailable()) {
-      tgSecondaryButton.show("Explain Mistakes", onExplainMistakes);
-    }
-
-    return () => {
-      if (onShare) {
-        tgMainButton.offClick(onShare);
-        tgMainButton.hide();
-      }
-      if (onExplainMistakes) {
-        tgSecondaryButton.offClick(onExplainMistakes);
-        tgSecondaryButton.hide();
-      }
-    };
-  }, [inTg, isComplete, onShare, onExplainMistakes, mistakes]);
 
   const shellRef = React.useRef<HTMLDivElement>(null);
   const languageLabel = getLanguageLabel(language);
@@ -242,75 +198,6 @@ export default function GameShell({
       <main className={cn("game-content px-4 pt-3", inTg ? "pb-20" : "pb-24")}>
         {children}
       </main>
-
-      {/* End-of-game CTAs — skip in Telegram if MainButton is handling share */}
-      <AnimatePresence>
-        {isComplete && !inTg && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="fixed inset-x-0 bottom-0 z-50 px-4 py-4"
-            style={{
-              background: "rgba(255, 255, 255, 0.92)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              borderTop: "1px solid rgba(0,0,0,0.08)",
-              paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
-            }}
-          >
-            <div className="flex flex-col gap-2.5">
-              {onShare && (
-                <Button
-                  onClick={onShare}
-                  variant="default"
-                  size="lg"
-                  className="w-full rounded-xl min-h-[48px]"
-                >
-                  📋 Share Result
-                </Button>
-              )}
-              {mistakes > 0 && onExplainMistakes && (
-                <Button
-                  onClick={onExplainMistakes}
-                  variant="outline"
-                  size="lg"
-                  className="w-full rounded-xl min-h-[48px] border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)]"
-                >
-                  Explain My Mistakes
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* In Telegram, show Explain Mistakes as inline button only if SecondaryButton isn't available */}
-      <AnimatePresence>
-        {isComplete && inTg && mistakes > 0 && onExplainMistakes && !tgSecondaryButton.isAvailable() && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="fixed inset-x-0 bottom-0 z-50 px-4 py-3"
-            style={{
-              background: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
-            }}
-          >
-            <Button
-              onClick={onExplainMistakes}
-              variant="outline"
-              size="lg"
-              className="w-full rounded-xl min-h-[48px] border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)]"
-            >
-              Explain My Mistakes
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
