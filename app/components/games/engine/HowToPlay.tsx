@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SPRING } from "@/lib/games/springs";
+import { GAME_ICON_MAP } from "./GameIcons";
 
 interface HowToPlayProps {
   gameSlug: string;
@@ -45,6 +46,7 @@ const GAME_TIPS: Record<string, { goal: string; tip: string }> = {
 
 export default function HowToPlay({ gameSlug, gameName, onDismiss }: HowToPlayProps) {
   const [visible, setVisible] = React.useState(false);
+  const IconComponent = GAME_ICON_MAP[gameSlug];
 
   React.useEffect(() => {
     const key = `howToPlay_${gameSlug}_seen`;
@@ -60,10 +62,10 @@ export default function HowToPlay({ gameSlug, gameName, onDismiss }: HowToPlayPr
     onDismiss?.();
   }, [gameSlug, onDismiss]);
 
-  // Auto-dismiss after 6 seconds if user doesn't interact
+  // Auto-dismiss after 8 seconds if user doesn't interact
   React.useEffect(() => {
     if (!visible) return;
-    const timer = setTimeout(dismiss, 6000);
+    const timer = setTimeout(dismiss, 8000);
     return () => clearTimeout(timer);
   }, [visible, dismiss]);
 
@@ -88,40 +90,34 @@ export default function HowToPlay({ gameSlug, gameName, onDismiss }: HowToPlayPr
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={SPRING.snappy}
-          className="mb-3 rounded-xl px-4 py-3 cursor-pointer touch-manipulation"
+          className="mb-3 rounded-2xl px-4 py-3.5 cursor-pointer touch-manipulation"
           style={{
-            background: "rgba(45, 42, 38, 0.04)",
-            border: "1px solid rgba(45, 42, 38, 0.08)",
+            background: "linear-gradient(135deg, rgba(211,97,53,0.04) 0%, rgba(45,42,38,0.03) 100%)",
+            border: "1px solid rgba(211, 97, 53, 0.12)",
           }}
           onClick={dismiss}
         >
           <div className="flex items-start gap-3">
-            <div
-              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5"
-              style={{ background: "rgba(211, 97, 53, 0.1)" }}
+            {/* Game-specific icon */}
+            <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5 overflow-hidden"
+              style={{ background: "rgba(253, 248, 245, 0.8)" }}
             >
-              <span className="text-sm">💡</span>
+              {IconComponent ? <IconComponent size={30} /> : <span className="text-sm">💡</span>}
             </div>
             <div className="min-w-0 flex-1">
               <p
-                className="text-[13px] font-semibold leading-tight"
-                style={{ color: "#2D2A26" }}
+                className="text-[13px] font-bold leading-tight"
+                style={{ color: "#2D2A26", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 {tip.goal}
               </p>
               <p
-                className="text-[12px] mt-0.5 leading-snug"
-                style={{ color: "#9C9590" }}
+                className="text-[11px] mt-1 leading-snug"
+                style={{ color: "#7A756F", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 {tip.tip}
               </p>
             </div>
-            <span
-              className="flex-shrink-0 text-[11px] font-medium mt-0.5"
-              style={{ color: "#C5BFBA" }}
-            >
-              tap to dismiss
-            </span>
           </div>
         </motion.div>
       )}

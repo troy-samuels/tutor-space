@@ -164,21 +164,21 @@ export default function GameShell({
         "game-header px-4 pb-2 max-w-lg mx-auto",
         inTg ? "pt-2" : "pt-3",
       )}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-baseline justify-between">
           <h1
-            className="font-bold truncate text-base"
-            style={{ color: "var(--game-text-primary)" }}
+            className="truncate text-lg"
+            style={{ color: "var(--game-text-primary)", fontFamily: "'Mansalva', cursive" }}
           >
             {gameName}
           </h1>
           <div
-            className="flex items-center gap-1 text-[11px] flex-shrink-0 tabular-nums font-medium"
-            style={{ color: "var(--game-text-muted)" }}
+            className="flex items-center gap-1.5 text-[11px] flex-shrink-0 tabular-nums font-semibold"
+            style={{ color: "var(--game-text-muted)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             <span>#{puzzleNumber}</span>
-            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ opacity: 0.35 }}>·</span>
             <span>{languageLabel}</span>
-            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ opacity: 0.35 }}>·</span>
             <span>{formatTime(elapsed)}</span>
           </div>
         </div>

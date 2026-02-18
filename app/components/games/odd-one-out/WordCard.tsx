@@ -103,7 +103,7 @@ export default function WordCard({
       }
       transition={springTransition}
       className={cn(
-        "relative flex min-h-[72px] w-full items-center justify-center rounded-2xl px-3",
+        "relative flex min-h-[90px] w-full items-center justify-center rounded-2xl px-3",
         "font-bold select-none touch-manipulation cursor-pointer",
         "disabled:cursor-not-allowed",
         isInteractive && "active:brightness-95",

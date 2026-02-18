@@ -86,11 +86,14 @@ function GameCard({
       onClick={() => haptic("tap")}
     >
       <div className="flex items-center gap-3.5 px-4 py-3.5">
-        {/* Game icon — premium SVG */}
-        <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden"
-          style={{ background: "#FDF8F5" }}
+        {/* Game icon — premium SVG on warm tinted surface */}
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden"
+          style={{
+            background: "#F5EDE8",
+            boxShadow: "inset 0 1px 2px rgba(45, 42, 38, 0.04)",
+          }}
         >
-          {IconComponent ? <IconComponent size={36} /> : <span className="text-lg">🎮</span>}
+          {IconComponent ? <IconComponent size={38} /> : <span className="text-lg">🎮</span>}
         </div>
 
         {/* Game info */}
@@ -103,7 +106,7 @@ function GameCard({
           </h3>
           <p
             className="text-[12px] mt-0.5 leading-snug"
-            style={{ color: "#9C9590", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            style={{ color: "#7A756F", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {game.description}
           </p>
@@ -125,13 +128,13 @@ function GameCard({
             </div>
           ) : (
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
-              style={{ color: "#C5BFBA" }}
+              style={{ color: "#9C9590" }}
             >
-              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </div>
@@ -238,10 +241,10 @@ export default function GameHub() {
                 Games
               </h1>
               {/* Progress bar + text */}
-              <div className="flex items-center gap-2 mt-1.5">
+              <div className="flex items-center gap-2.5 mt-2">
                 <div
-                  className="h-1.5 rounded-full flex-1 max-w-[120px] overflow-hidden"
-                  style={{ background: "rgba(45, 42, 38, 0.06)" }}
+                  className="h-[5px] rounded-full flex-1 max-w-[100px] overflow-hidden"
+                  style={{ background: "rgba(45, 42, 38, 0.08)" }}
                 >
                   <div
                     className="h-full rounded-full transition-all duration-500 ease-out"
@@ -253,10 +256,10 @@ export default function GameHub() {
                   />
                 </div>
                 <p
-                  className="text-[11px] font-medium tabular-nums"
-                  style={{ color: allComplete ? "#3E5641" : "#9C9590" }}
+                  className="text-[12px] font-semibold tabular-nums"
+                  style={{ color: allComplete ? "#3E5641" : "#6B6560", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                 >
-                  {allComplete ? "All done! 🏆" : `${completedCount} of ${GAMES.length}`}
+                  {allComplete ? "All done! 🏆" : `${completedCount}/${GAMES.length}`}
                 </p>
               </div>
             </div>

@@ -380,17 +380,17 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
 
   return (
     <div className="relative space-y-4">
-      {/* Mistake dots — minimal */}
-      <div className="flex items-center justify-center gap-1.5 mb-3">
-        <div className="flex gap-1.5">
+      {/* Mistake dots */}
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <div className="flex gap-2">
           {Array.from({ length: MAX_MISTAKES }).map((_, i) => (
             <div
               key={i}
               className={cn(
-                "h-2 w-2 rounded-full transition-colors duration-200",
+                "h-2.5 w-2.5 rounded-full transition-all duration-300",
                 i < gameState.mistakes
-                  ? "bg-[var(--game-wrong)]"
-                  : "bg-black/[0.08]",
+                  ? "bg-[var(--game-wrong)] scale-110"
+                  : "bg-black/[0.1]",
               )}
             />
           ))}

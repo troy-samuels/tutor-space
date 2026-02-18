@@ -218,8 +218,8 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
             exit={{ opacity: 0, x: -24, transition: { duration: 0.15, ease: "easeIn" } }}
           >
 
-            {/* 2×2 Word Grid */}
-            <div className="grid grid-cols-2 gap-2.5">
+            {/* 2×2 Word Grid — larger cards to fill viewport */}
+            <div className="grid grid-cols-2 gap-3">
               {currentRound.words.map((word, i) => (
                 <WordCard
                   key={`${gameState.currentRound}-${i}`}
