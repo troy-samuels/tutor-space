@@ -131,10 +131,10 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
       : 0;
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
-    const timeStr = `⏱ ${minutes}:${seconds.toString().padStart(2, "0")}`;
+    const timeStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
     const livesLeft = gameState.lives;
-    const hearts = "❤️".repeat(livesLeft);
+    const hearts = "●".repeat(livesLeft);
 
     // Build result row
     const resultIcons = gameState.roundResults
@@ -259,7 +259,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
           >
             {/* Result banner */}
             <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-4xl">{gameState.isWon ? "🎉" : "💪"}</div>
+              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>{gameState.isWon ? "Well done!" : "Good try"}</div>
               <h2 className="mt-2 font-heading text-xl text-foreground">
                 {gameState.isWon ? "Excellent!" : "Good try!"}
               </h2>
@@ -280,7 +280,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
               {/* Time */}
               {gameState.endTime && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  ⏱{" "}
+                  
                   {(() => {
                     const secs = Math.floor(
                       (gameState.endTime - gameState.startTime) / 1000,
@@ -308,7 +308,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
               size="lg"
               className="w-full rounded-xl"
             >
-              {showExplanations ? "Hide Explanations" : "🧠 Review All Rounds"}
+              {showExplanations ? "Hide Explanations" : "Review All Rounds"}
             </Button>
 
             {/* All explanations */}

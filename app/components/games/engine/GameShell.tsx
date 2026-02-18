@@ -134,7 +134,7 @@ export default function GameShell({
 
     // Secondary button: Explain Mistakes
     if (mistakes > 0 && onExplainMistakes && tgSecondaryButton.isAvailable()) {
-      tgSecondaryButton.show("🧠 Explain Mistakes", onExplainMistakes);
+      tgSecondaryButton.show("Explain Mistakes", onExplainMistakes);
     }
 
     return () => {
@@ -277,7 +277,7 @@ export default function GameShell({
                   size="lg"
                   className="w-full rounded-xl min-h-[48px] border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)]"
                 >
-                  🧠 Explain My Mistakes
+                  Explain My Mistakes
                 </Button>
               )}
             </div>
@@ -306,7 +306,7 @@ export default function GameShell({
               size="lg"
               className="w-full rounded-xl min-h-[48px] border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)]"
             >
-              🧠 Explain My Mistakes
+              Explain My Mistakes
             </Button>
           </motion.div>
         )}

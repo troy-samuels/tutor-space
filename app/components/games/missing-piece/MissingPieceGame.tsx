@@ -126,10 +126,10 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
       : 0;
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
-    const timeStr = `⏱ ${minutes}:${seconds.toString().padStart(2, "0")}`;
+    const timeStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
     const livesLeft = gameState.lives;
-    const hearts = "❤️".repeat(livesLeft);
+    const hearts = "●".repeat(livesLeft);
 
     const sentenceCount = puzzle.sentences.length;
 
@@ -179,7 +179,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="text-sm"
               >
-                {i < gameState.lives ? "❤️" : "🖤"}
+                {i < gameState.lives ? "●" : "○"}
               </motion.span>
             ))}
           </div>
@@ -287,7 +287,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
           >
             {/* Result banner */}
             <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-4xl">{gameState.isWon ? "🎉" : "💪"}</div>
+              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>{gameState.isWon ? "Well done!" : "Good try"}</div>
               <h2 className="mt-2 font-heading text-xl text-foreground">
                 {gameState.isWon ? "Brilliant!" : "Good effort!"}
               </h2>
@@ -299,7 +299,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
               {/* Time */}
               {gameState.endTime && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  ⏱{" "}
+                  
                   {(() => {
                     const secs = Math.floor(
                       (gameState.endTime - gameState.startTime) / 1000,
@@ -327,7 +327,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
               size="lg"
               className="w-full rounded-xl"
             >
-              {showAllExplanations ? "Hide Explanations" : "🧠 Review All Sentences"}
+              {showAllExplanations ? "Hide Explanations" : "Review All Sentences"}
             </Button>
 
             {/* All explanations */}

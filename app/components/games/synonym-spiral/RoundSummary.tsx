@@ -62,7 +62,7 @@ export default function RoundSummary({
           Round {roundNumber}/{totalRounds}
         </p>
         <h3 className="mt-1 font-heading text-lg text-foreground">
-          {depthReached >= 4 ? "🌟" : depthReached >= 2 ? "👏" : "💪"}{" "}
+          {depthReached >= 4 ? "Excellent" : depthReached >= 2 ? "Good" : "Keep going"}{" "}
           {depthReached >= 5
             ? "Mastery!"
             : depthReached >= 3

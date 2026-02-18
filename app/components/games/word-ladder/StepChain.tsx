@@ -77,7 +77,7 @@ export default function StepChain({
           <div className="flex h-12 w-full max-w-[240px] items-center justify-center rounded-xl border border-dashed border-white/[0.1] px-4 text-sm text-muted-foreground/50 gap-1.5">
             {par != null ? (
               <>
-                <span className="text-base">🪜</span>
+                
                 <span>{Math.max(0, (par ?? 0) - steps.length)} step{(par ?? 0) - steps.length !== 1 ? "s" : ""} to go</span>
               </>
             ) : (

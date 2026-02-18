@@ -37,7 +37,7 @@ export default function ProgressBar({
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className="text-sm"
             >
-              {i < lives ? "❤️" : "🖤"}
+              {i < lives ? "●" : "○"}
             </motion.span>
           ))}
         </div>

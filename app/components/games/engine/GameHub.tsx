@@ -174,7 +174,7 @@ export default function GameHub() {
           inTg && "tg-content-safe-top",
         )}
         style={{
-          paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
         }}
       >
         {/* Header */}

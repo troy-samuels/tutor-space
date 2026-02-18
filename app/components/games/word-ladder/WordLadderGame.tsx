@@ -185,7 +185,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
               >
                 <div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3 backdrop-blur-md">
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-sm">💡</span>
+                    
                     <p className="text-sm italic text-foreground/80">{puzzle.hint}</p>
                   </div>
                 </div>
@@ -203,7 +203,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
                   onClick={() => setShowHint(true)}
                   className="w-full rounded-xl text-xs text-muted-foreground hover:text-primary"
                 >
-                  💡 Need a hint?
+                  Need a hint?
                 </Button>
               </motion.div>
             )}
@@ -221,8 +221,8 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
             className="mt-6 space-y-4"
           >
             <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-4xl">
-                {gameState.steps.length <= puzzle.par ? "🏆" : "🎉"}
+              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>
+                {gameState.steps.length <= puzzle.par ? "Perfect!" : "Well done!"}
               </div>
               <h2 className="mt-2 font-heading text-xl text-foreground">
                 {gameState.steps.length <= puzzle.par
@@ -238,7 +238,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
               {/* Time */}
               {gameState.endTime && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  ⏱{" "}
+                  
                   {(() => {
                     const secs = Math.floor(
                       (gameState.endTime - gameState.startTime) / 1000,
@@ -266,7 +266,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
               size="lg"
               className="w-full rounded-xl"
             >
-              {showOptimalPath ? "Hide Optimal Path" : "🧠 Show Optimal Path"}
+              {showOptimalPath ? "Hide Optimal Path" : "Show Optimal Path"}
             </Button>
 
             <AnimatePresence>

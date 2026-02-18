@@ -252,11 +252,11 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
       {/* Difficulty & hints bar */}
       <div className="flex items-center justify-center gap-3">
         <Badge variant="outline" className="gap-1 text-xs capitalize">
-          {puzzle.difficulty === "easy" ? "🟢" : puzzle.difficulty === "medium" ? "🟡" : "🔴"}{" "}
+          {puzzle.difficulty === "easy" ? "Easy" : puzzle.difficulty === "medium" ? "Medium" : "Hard"}{" "}
           {puzzle.difficulty}
         </Badge>
         <Badge variant="outline" className="gap-1 text-xs">
-          💡 Hints: {gameState.hintsUsed}/{MAX_HINTS}
+          Hints: {gameState.hintsUsed}/{MAX_HINTS}
         </Badge>
       </div>
 
@@ -270,7 +270,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
             className="text-xs text-center"
             style={{ color: "var(--game-text-muted)" }}
           >
-            💡 Tap any letter below, then type what you think it really is
+            Tap any letter below, then type what you think it really is
           </motion.p>
         )}
       </AnimatePresence>
@@ -309,7 +309,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
           onClick={handleHint}
           className="w-full rounded-xl text-xs text-muted-foreground hover:text-primary"
         >
-          💡 Use a hint ({MAX_HINTS - gameState.hintsUsed} remaining)
+          Use a hint ({MAX_HINTS - gameState.hintsUsed} remaining)
         </Button>
       )}
 
@@ -327,8 +327,8 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
 
             {/* Result banner */}
             <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
-              <div className="text-4xl">
-                {gameState.hintsUsed === 0 ? "🏆" : "🎉"}
+              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>
+                {gameState.hintsUsed === 0 ? "Perfect!" : "Well done!"}
               </div>
               <h2 className="mt-2 font-heading text-xl text-foreground">
                 {gameState.hintsUsed === 0 ? "Perfect decode!" : "Decoded!"}
@@ -342,7 +342,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
               {/* Time */}
               {gameState.endTime && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  ⏱{" "}
+                  
                   {(() => {
                     const secs = Math.floor(
                       (gameState.endTime - gameState.startTime) / 1000,

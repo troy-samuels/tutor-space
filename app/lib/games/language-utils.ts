@@ -34,6 +34,19 @@ export interface LanguageConfig {
 }
 
 export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
+  en: {
+    code: "en",
+    name: "English",
+    nativeName: "EN",
+    flag: "🇬🇧",
+    writingSystem: "latin",
+    direction: "ltr",
+    usesWordSpaces: true,
+    isAgglutinative: false,
+    supportsWordLadder: true,
+    supportsSubstitutionCipher: true,
+    tileFontScale: 1,
+  },
   es: {
     code: "es",
     name: "Spanish",
@@ -253,11 +266,10 @@ export function getLanguageConfig(code: string): LanguageConfig {
 }
 
 /**
- * Get the language label with flag for display.
+ * Get the language label for display (code only, no flag — flag is in selector).
  */
 export function getLanguageLabel(code: string): string {
-  const config = getLanguageConfig(code);
-  return `${config.flag} ${config.nativeName}`;
+  return code.toUpperCase();
 }
 
 /**

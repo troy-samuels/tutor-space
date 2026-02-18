@@ -15,11 +15,11 @@ interface WordInputProps {
 }
 
 const DEPTH_ACCENT: Record<DepthLevel, string> = {
-  1: "focus-visible:ring-emerald-500/50 border-emerald-500/30",
-  2: "focus-visible:ring-cyan-500/50 border-cyan-500/30",
-  3: "focus-visible:ring-blue-500/50 border-blue-500/30",
-  4: "focus-visible:ring-purple-500/50 border-purple-500/30",
-  5: "focus-visible:ring-amber-500/50 border-amber-500/30",
+  1: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
+  2: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
+  3: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
+  4: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
+  5: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
 };
 
 export default function WordInput({
@@ -71,11 +71,12 @@ export default function WordInput({
           autoCapitalize="off"
           spellCheck={false}
           className={cn(
-            "flex-1 rounded-xl border bg-white/[0.04] px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50",
+            "flex-1 rounded-xl border bg-white px-4 py-3 text-sm placeholder:text-[#9C9590]/60",
             "outline-none focus-visible:ring-2 transition-all",
             "disabled:opacity-40 disabled:cursor-not-allowed",
             DEPTH_ACCENT[targetDepth],
           )}
+          style={{ color: "#2D2A26" }}
         />
         <Button
           type="submit"
@@ -99,9 +100,9 @@ export default function WordInput({
             transition={{ duration: 0.2 }}
             className={cn(
               "rounded-lg px-3 py-2 text-center text-xs font-medium",
-              feedback.type === "success" && "bg-emerald-500/10 text-emerald-400",
-              feedback.type === "skip" && "bg-amber-500/10 text-amber-400",
-              feedback.type === "error" && "bg-destructive/10 text-destructive",
+              feedback.type === "success" && "bg-[#3E5641]/10 text-[#3E5641]",
+              feedback.type === "skip" && "bg-[#D4A843]/10 text-[#96782E]",
+              feedback.type === "error" && "bg-[#A24936]/10 text-[#A24936]",
             )}
           >
             {feedback.message}

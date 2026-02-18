@@ -55,13 +55,6 @@ export default function WordInput({
 
   return (
     <div className="space-y-3">
-      {/* Current word context */}
-      <div className="text-center">
-        <span className="text-xs text-muted-foreground">
-          Current: <span className="font-mono font-semibold text-foreground">{lastWord}</span>
-        </span>
-      </div>
-
       {/* Input field */}
       <div className="flex items-center gap-2">
         <input
@@ -76,13 +69,14 @@ export default function WordInput({
           autoCapitalize="characters"
           spellCheck={false}
           className={cn(
-            "flex-1 rounded-xl border bg-white/[0.04] px-4 py-3 text-center font-mono text-lg font-bold tracking-widest text-foreground placeholder:text-muted-foreground/40",
-            "focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50",
+            "flex-1 rounded-xl border px-4 py-3 text-center text-lg font-semibold tracking-widest placeholder:text-[#9C9590]/60",
+            "focus:outline-none focus:ring-2 focus:ring-[#2D2A26]/10 focus:border-[#2D2A26]/20",
             "disabled:opacity-40 disabled:cursor-not-allowed",
             error
-              ? "border-destructive/50 bg-destructive/[0.06]"
-              : "border-white/[0.08]",
+              ? "border-[#A24936]/40 bg-[#A24936]/[0.04]"
+              : "border-[#E8DDD6] bg-white",
           )}
+          style={{ color: "#2D2A26" }}
         />
         <Button
           onClick={onSubmit}

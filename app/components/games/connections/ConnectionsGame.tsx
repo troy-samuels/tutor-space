@@ -303,7 +303,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
       : 0;
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
-    const timeStr = `⏱ ${minutes}:${seconds.toString().padStart(2, "0")}`;
+    const timeStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
     // Build the emoji grid from guessHistory
     const grid = guessHistory
@@ -485,8 +485,8 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 border: "1px solid rgba(0,0,0,0.06)",
               }}
             >
-              <div className="text-4xl">
-                {gameState.isWon ? "🎉" : "💪"}
+              <div className="text-lg font-semibold" style={{ color: "#2D2A26" }}>
+                {gameState.isWon ? "Well done!" : "Good try"}
               </div>
               <h2
                 className="mt-2 text-xl font-bold"
@@ -520,7 +520,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                   className="mt-3 text-xs font-mono tabular-nums"
                   style={{ color: "var(--game-text-muted)" }}
                 >
-                  ⏱{" "}
+                  
                   {(() => {
                     const secs = Math.floor(
                       (gameState.endTime - gameState.startTime) / 1000,
@@ -605,7 +605,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
                 size="lg"
                 className="w-full rounded-xl border-[rgba(0,0,0,0.1)] text-[var(--game-text-secondary)] hover:text-[var(--game-text-primary)] hover:bg-[var(--game-bg-elevated)]"
               >
-                {showExplanations ? "Hide Explanations" : "🧠 Explain My Mistakes"}
+                {showExplanations ? "Hide Explanations" : "Explain My Mistakes"}
               </Button>
             )}
 

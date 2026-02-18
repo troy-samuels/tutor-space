@@ -159,7 +159,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
         } else {
           setFeedback({
             type: "success",
-            message: matchedDepth === 5 ? "🌟 Maximum depth!" : `✓ Level ${matchedDepth}!`,
+            message: matchedDepth === 5 ? "Maximum depth!" : `✓ Level ${matchedDepth}!`,
           });
         }
 
@@ -253,8 +253,8 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
       .map((d) => {
         if (d >= 5) return "🟣";
         if (d >= 4) return "🔵";
-        if (d >= 3) return "🟢";
-        if (d >= 2) return "🟡";
+        if (d >= 3) return "●";
+        if (d >= 2) return "◐";
         if (d >= 1) return "⚪";
         return "⬜";
       })
@@ -262,7 +262,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
 
     const text = [
       `Synonym Spiral #${puzzle.number} ${flag}`,
-      `Depth ${avg}/5 avg · ⏱ ${timeStr}`,
+      `Depth ${avg}/5 avg · ${timeStr}`,
       depthEmojis,
       "🌀",
       "tutorlingua.co/games/synonym-spiral",
@@ -307,7 +307,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
       >
         <div className="rounded-2xl border border-border/50 bg-card p-6 text-center">
           <div className="text-4xl">
-            {avg >= 4 ? "🌟" : avg >= 3 ? "🎉" : avg >= 2 ? "👏" : "💪"}
+            {avg >= 4 ? "Excellent!" : avg >= 3 ? "Great!" : avg >= 2 ? "Good" : "Keep practising"}
           </div>
           <h2 className="mt-2 font-heading text-xl text-foreground">
             {avg >= 4
@@ -322,7 +322,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
             Average depth: <span className="font-bold text-foreground">{avg.toFixed(1)}/5</span>
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            ⏱ {mins}:{secs.toString().padStart(2, "0")}
+            {mins}:{secs.toString().padStart(2, "0")}
           </p>
 
           {/* Round-by-round */}
@@ -410,7 +410,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
             timerIsLow && "animate-pulse border-destructive/50 text-destructive",
           )}
         >
-          ⏱ {timerSeconds}s
+          {timerSeconds}s
         </Badge>
       </div>
 

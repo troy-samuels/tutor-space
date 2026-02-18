@@ -49,7 +49,7 @@ export default function VibeClueBanner({ clues, solvedCount }: VibeClueBannerPro
           >
             <div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3 backdrop-blur-md">
               <div className="flex items-start gap-2">
-                <span className="mt-0.5 text-sm">💡</span>
+                
                 <div>
                   <p className="text-sm italic text-foreground/80">{currentClue}</p>
                   <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -76,7 +76,7 @@ export default function VibeClueBanner({ clues, solvedCount }: VibeClueBannerPro
                   "hover:text-primary",
                 )}
               >
-                💡 Need a hint? ({Math.min(availableClues.length, MAX_HINTS) - hintsUsed} remaining)
+                Need a hint? ({Math.min(availableClues.length, MAX_HINTS) - hintsUsed} remaining)
               </Button>
             </motion.div>
           )
