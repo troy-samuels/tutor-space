@@ -45,12 +45,14 @@ export default function SynonymSpiralPage() {
     isWon: boolean;
     mistakes: number;
   }>({ isComplete: false, isWon: false, mistakes: 0 });
+  const [gameInProgress, setGameInProgress] = React.useState(false);
 
   const handleLanguageChange = React.useCallback((newLang: string) => {
     setLanguage(newLang);
     setPuzzle(getPuzzleForLanguage(newLang));
     setGameKey((k) => k + 1);
     setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+    setGameInProgress(false);
   }, []);
 
   const handleGameEnd = React.useCallback(
@@ -67,6 +69,7 @@ export default function SynonymSpiralPage() {
         isWon: state.isWon,
         mistakes: state.mistakes,
       });
+      setGameInProgress(false);
     },
     []
   );
@@ -74,6 +77,7 @@ export default function SynonymSpiralPage() {
   const handlePlayAgain = React.useCallback(() => {
     setGameKey((k) => k + 1);
     setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+    setGameInProgress(false);
   }, []);
 
   return (
@@ -88,19 +92,22 @@ export default function SynonymSpiralPage() {
     >
       <HowToPlay gameSlug="synonym-spiral" gameName="Synonym Spiral" />
 
-      {/* Language selector */}
+      {/* Language selector — disabled during active play */}
       <LanguageSelector
         languages={SUPPORTED_SPIRAL_LANGUAGES}
         selected={language}
         onChange={handleLanguageChange}
+        disabled={gameInProgress}
       />
 
-      <SynonymSpiralGame
-        key={gameKey}
-        puzzle={puzzle}
-        onGameEnd={handleGameEnd}
-        onPlayAgain={handlePlayAgain}
-      />
+      <div onPointerDownCapture={() => !gameInProgress && !endState.isComplete && setGameInProgress(true)}>
+        <SynonymSpiralGame
+          key={gameKey}
+          puzzle={puzzle}
+          onGameEnd={handleGameEnd}
+          onPlayAgain={handlePlayAgain}
+        />
+      </div>
     </GameShell>
   );
 }

@@ -267,13 +267,6 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
               {showAllExplanations ? "Hide Explanations" : "Review All Sentences"}
             </GameButton>
 
-            {/* Play Again */}
-            {onPlayAgain && (
-              <GameButton onClick={onPlayAgain} variant="secondary">
-                🔄 Play Again
-              </GameButton>
-            )}
-
             <AnimatePresence>
               {showAllExplanations && (
                 <motion.div
@@ -314,6 +307,13 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Play Again — always last */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
           </div>
         )}
       </AnimatePresence>

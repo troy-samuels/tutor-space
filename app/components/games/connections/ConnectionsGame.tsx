@@ -600,13 +600,6 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
               </GameButton>
             )}
 
-            {/* Play Again */}
-            {onPlayAgain && (
-              <GameButton onClick={onPlayAgain} variant="secondary">
-                🔄 Play Again
-              </GameButton>
-            )}
-
             {/* Explanations panel */}
             <AnimatePresence>
               {showExplanations && (
@@ -642,6 +635,13 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Play Again — always last */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

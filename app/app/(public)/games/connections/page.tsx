@@ -45,12 +45,14 @@ export default function ConnectionsPage() {
     isWon: boolean;
     mistakes: number;
   }>({ isComplete: false, isWon: false, mistakes: 0 });
+  const [gameInProgress, setGameInProgress] = React.useState(false);
 
   const handleLanguageChange = React.useCallback((newLang: string) => {
     setLanguage(newLang);
     setPuzzle(getPuzzleForLanguage(newLang));
     setGameKey((k) => k + 1);
     setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+    setGameInProgress(false);
   }, []);
 
   const handleGameEnd = React.useCallback((state: ConnectionsGameState) => {
@@ -59,11 +61,13 @@ export default function ConnectionsPage() {
       isWon: state.isWon,
       mistakes: state.mistakes,
     });
+    setGameInProgress(false);
   }, []);
 
   const handlePlayAgain = React.useCallback(() => {
     setGameKey((k) => k + 1);
     setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+    setGameInProgress(false);
   }, []);
 
   return (
@@ -78,14 +82,18 @@ export default function ConnectionsPage() {
     >
       <HowToPlay gameSlug="connections" gameName="Lingua Connections" />
 
-      {/* Language selector */}
+      {/* Language selector — disabled during active play */}
       <LanguageSelector
         languages={SUPPORTED_GAME_LANGUAGES}
         selected={language}
         onChange={handleLanguageChange}
+        disabled={gameInProgress}
       />
 
-      <ConnectionsGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
+      {/* Capture first interaction to lock language selector */}
+      <div onPointerDownCapture={() => !gameInProgress && !endState.isComplete && setGameInProgress(true)}>
+        <ConnectionsGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
+      </div>
     </GameShell>
   );
 }

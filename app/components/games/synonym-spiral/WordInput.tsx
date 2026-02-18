@@ -64,6 +64,7 @@ export default function WordInput({
           onChange={(e) => setValue(e.target.value)}
           disabled={disabled}
           placeholder="Type a synonym..."
+          aria-label={`Enter synonym at ${targetDepthLabel} level`}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

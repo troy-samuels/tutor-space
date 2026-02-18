@@ -302,13 +302,6 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
               {showOptimalPath ? "Hide Optimal Path" : "Show Optimal Path"}
             </GameButton>
 
-            {/* Play Again */}
-            {onPlayAgain && (
-              <GameButton onClick={onPlayAgain} variant="secondary">
-                🔄 Play Again
-              </GameButton>
-            )}
-
             <AnimatePresence>
               {showOptimalPath && (
                 <motion.div
@@ -349,6 +342,13 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Play Again — always last */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

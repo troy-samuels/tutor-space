@@ -277,13 +277,6 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
               {showExplanations ? "Hide Explanations" : "Review All Rounds"}
             </GameButton>
 
-            {/* Play Again */}
-            {onPlayAgain && (
-              <GameButton onClick={onPlayAgain} variant="secondary">
-                🔄 Play Again
-              </GameButton>
-            )}
-
             {/* Explanations */}
             <AnimatePresence>
               {showExplanations && (
@@ -320,6 +313,13 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Play Again — always last */}
+            {onPlayAgain && (
+              <GameButton onClick={onPlayAgain} variant="secondary">
+                🔄 Play Again
+              </GameButton>
+            )}
           </div>
         )}
       </AnimatePresence>

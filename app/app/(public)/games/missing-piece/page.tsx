@@ -45,12 +45,14 @@ export default function MissingPiecePage() {
     isWon: boolean;
     mistakes: number;
   }>({ isComplete: false, isWon: false, mistakes: 0 });
+  const [gameInProgress, setGameInProgress] = React.useState(false);
 
   const handleLanguageChange = React.useCallback((newLang: string) => {
     setLanguage(newLang);
     setPuzzle(getPuzzleForLanguage(newLang));
     setGameKey((k) => k + 1);
     setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+    setGameInProgress(false);
   }, []);
 
   const handleGameEnd = React.useCallback((state: MissingPieceGameState) => {
@@ -59,11 +61,13 @@ export default function MissingPiecePage() {
       isWon: state.isWon,
       mistakes: state.maxLives - state.lives,
     });
+    setGameInProgress(false);
   }, []);
 
   const handlePlayAgain = React.useCallback(() => {
     setGameKey((k) => k + 1);
     setEndState({ isComplete: false, isWon: false, mistakes: 0 });
+    setGameInProgress(false);
   }, []);
 
   return (
@@ -78,14 +82,17 @@ export default function MissingPiecePage() {
     >
       <HowToPlay gameSlug="missing-piece" gameName="Missing Piece" />
 
-      {/* Language selector */}
+      {/* Language selector — disabled during active play */}
       <LanguageSelector
         languages={SUPPORTED_GAME_LANGUAGES}
         selected={language}
         onChange={handleLanguageChange}
+        disabled={gameInProgress}
       />
 
-      <MissingPieceGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
+      <div onPointerDownCapture={() => !gameInProgress && !endState.isComplete && setGameInProgress(true)}>
+        <MissingPieceGame key={gameKey} puzzle={puzzle} onGameEnd={handleGameEnd} onPlayAgain={handlePlayAgain} />
+      </div>
     </GameShell>
   );
 }
