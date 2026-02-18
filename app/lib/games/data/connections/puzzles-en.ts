@@ -843,4 +843,9 @@ export const PUZZLES_EN: ConnectionsPuzzle[] = [
       },
     ],
     vibeClues: [
-      "One group are rebels that refuse the '-
+      "One group are rebels that refuse the '-ed' ending and do their own thing",
+      "These all start with 'get' but they're not phrasal verbs — they're about changing state",
+      "One group will make your academic essays sound much more sophisticated",
+    ],
+  },
+];

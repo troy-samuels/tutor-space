@@ -3,21 +3,37 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { type ToolLang } from "@/lib/tools/types";
 
 interface EmailGateProps {
   previewContent?: React.ReactNode;
   benefit?: string;
+  ctaLabel?: string;
+  lang?: ToolLang;
+  tool?: string;
   onSubmit: (email: string) => void;
 }
 
+const BENEFIT_BY_LANG: Record<ToolLang, string> = {
+  en: "Get daily English challenges sent to your inbox — free",
+  es: "Recibe ejercicios de español cada día — gratis",
+  fr: "Recevez des exercices de français chaque jour — gratuit",
+  de: "Täglich Deutsch-Übungen per E-Mail — kostenlos",
+};
+
 export function EmailGate({
   previewContent,
-  benefit = "Get daily English challenges sent to your inbox",
+  benefit,
+  ctaLabel = "Unlock My Result →",
+  lang = "en",
+  tool,
   onSubmit,
 }: EmailGateProps) {
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+
+  const displayBenefit = benefit ?? BENEFIT_BY_LANG[lang];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,15 +44,14 @@ export function EmailGate({
     setError("");
     setLoading(true);
 
-    // Fire-and-forget to our API (gracefully degrades if not set up)
     try {
-      await fetch("/api/english/subscribe", {
+      await fetch("/api/tools/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "english-tools" }),
+        body: JSON.stringify({ email, lang, tool }),
       });
     } catch {
-      // Ignore network errors — still unlock results
+      // Graceful degradation — still unlock results
     }
 
     setLoading(false);
@@ -74,7 +89,9 @@ export function EmailGate({
             <h3 className="text-lg font-bold text-foreground mb-1">
               Unlock your result
             </h3>
-            <p className="text-sm text-foreground/60 leading-relaxed">{benefit}</p>
+            <p className="text-sm text-foreground/60 leading-relaxed">
+              {displayBenefit}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -86,16 +103,14 @@ export function EmailGate({
               required
               className="w-full px-4 py-3 rounded-xl border border-black/12 bg-gray-50 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
             />
-            {error && (
-              <p className="text-xs text-red-500">{error}</p>
-            )}
+            {error && <p className="text-xs text-red-500">{error}</p>}
             <Button
               type="submit"
               size="lg"
               className="w-full rounded-xl min-h-[48px]"
               disabled={loading}
             >
-              {loading ? "Sending…" : "See My Result →"}
+              {loading ? "Sending…" : ctaLabel}
             </Button>
           </form>
 
