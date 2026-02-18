@@ -848,4 +848,220 @@ export const PUZZLES_EN: ConnectionsPuzzle[] = [
       "One group will make your academic essays sound much more sophisticated",
     ],
   },
+  {
+    number: 22,
+    language: "en",
+    date: "2026-03-09",
+    categories: [
+      {
+        name: "Animals that are also verbs",
+        words: ["bat", "crane", "seal", "bark"],
+        difficulty: "yellow",
+        explanation: "Bat (to hit), crane (to stretch your neck), seal (to close), bark (a dog barks) — all animal names that double as verbs.",
+      },
+      {
+        name: "Things in a boxing ring",
+        words: ["ring", "match", "strike", "light"],
+        difficulty: "green",
+        explanation: "Ring (boxing ring), match (a bout), strike (a punch), light (lightweight category).",
+      },
+      {
+        name: "Found at a park",
+        words: ["bank", "spring", "rock", "pen"],
+        difficulty: "blue",
+        explanation: "Bank (river bank), spring (water spring), rock (a rock), pen (enclosure for animals).",
+      },
+      {
+        name: "Words with 3+ unrelated meanings",
+        words: ["pupil", "date", "right", "saw"],
+        difficulty: "purple",
+        explanation: "Pupil (student/eye), date (day/fruit/romantic), right (correct/direction/entitlement), saw (past tense see/cutting tool/proverb).",
+      },
+    ],
+    vibeClues: [
+      "Think about words that are creatures but also actions you can do",
+      "One group connects to a fighting sport — look beyond literal meaning",
+      "The hardest group is about words that mean at least 3 completely different things",
+    ],
+  },
+  {
+    number: 23,
+    language: "en",
+    date: "2026-03-10",
+    categories: [
+      {
+        name: "Breakfast table",
+        words: ["jam", "toast", "butter", "spread"],
+        difficulty: "yellow",
+        explanation: "Classic English breakfast items: jam, toast, butter, spread — all found on the breakfast table.",
+      },
+      {
+        name: "Electricity words",
+        words: ["current", "socket", "fuse", "bolt"],
+        difficulty: "green",
+        explanation: "Current (flow of electricity), socket (plug point), fuse (circuit protector), bolt (lightning bolt).",
+      },
+      {
+        name: "Physics terms",
+        words: ["wave", "charge", "resistance", "conductor"],
+        difficulty: "blue",
+        explanation: "Wave, charge, resistance, conductor — fundamental physics/electrical concepts.",
+      },
+      {
+        name: "___ phone",
+        words: ["cell", "power", "bill", "shock"],
+        difficulty: "purple",
+        explanation: "Cell phone, power phone (bank), phone bill, shock (phone shock) — all compound with 'phone' or relate to phone context.",
+      },
+    ],
+    vibeClues: [
+      "Think about what you'd find on a breakfast table in an English B&B",
+      "Two groups are science-related but from different branches",
+      "The trickiest group involves a hidden connection to a common device",
+    ],
+  },
+  {
+    number: 24,
+    language: "en",
+    date: "2026-03-11",
+    categories: [
+      {
+        name: "Heteronyms: noun/verb stress shift",
+        words: ["present", "refuse", "record", "object"],
+        difficulty: "yellow",
+        explanation: "PREsent/preSENT, REfuse/reFUSE, REcord/reCORD, OBject/obJECT — stress shifts between noun and verb forms.",
+      },
+      {
+        name: "Heteronyms: completely different sounds",
+        words: ["bow", "tear", "wind", "lead"],
+        difficulty: "green",
+        explanation: "Bow (/baʊ/ or /bəʊ/), tear (/tɪə/ or /tɛə/), wind (/wɪnd/ or /waɪnd/), lead (/liːd/ or /lɛd/).",
+      },
+      {
+        name: "Heteronyms: past/present confusion",
+        words: ["read", "wound", "live", "close"],
+        difficulty: "blue",
+        explanation: "Read (reed/red), wound (woond/wownd), live (liv/lyve), close (cloze/cloce) — tense or adjective changes pronunciation.",
+      },
+      {
+        name: "Heteronyms: size/quality shift",
+        words: ["minute", "row", "bass", "desert"],
+        difficulty: "purple",
+        explanation: "Minute (time/tiny), row (line/argument), bass (fish/music), desert (Sahara/abandon) — meaning shifts are dramatic.",
+      },
+    ],
+    vibeClues: [
+      "ALL of these words change pronunciation with meaning — the puzzle is grouping HOW they change",
+      "One group shifts stress between first and second syllable",
+      "One group changes pronunciation based on tense or part of speech",
+    ],
+  },
+  {
+    number: 25,
+    language: "en",
+    date: "2026-03-12",
+    categories: [
+      {
+        name: "French false friends for English learners",
+        words: ["receipt", "journey", "résumé", "chef"],
+        difficulty: "yellow",
+        explanation: "Receipt ≠ recette, journey ≠ journée, résumé ≠ résumé (CV vs summary), chef ≠ chef (cook vs boss).",
+      },
+      {
+        name: "German false friends",
+        words: ["gymnasium", "camping", "fabric", "college"],
+        difficulty: "green",
+        explanation: "Gymnasium (gym vs grammar school in German), camping (same word, different meaning), Fabrik (factory not fabric), Kolleg (course not college).",
+      },
+      {
+        name: "Spanish false friends",
+        words: ["actually", "embarrassed", "sensible", "library"],
+        difficulty: "blue",
+        explanation: "Actually ≠ actualmente (currently), embarrassed ≠ embarazada (pregnant!), sensible ≠ sensible (sensitive), library ≠ librería (bookshop).",
+      },
+      {
+        name: "Italian false friends",
+        words: ["eventually", "sympathetic", "lecture", "preservative"],
+        difficulty: "purple",
+        explanation: "Eventually ≠ eventualmente (possibly), sympathetic ≠ simpatico (nice), lecture ≠ lettura (reading), preservative ≠ preservativo (condom!).",
+      },
+    ],
+    vibeClues: [
+      "These are all words that trip up learners of specific languages — group by WHICH language gets confused",
+      "One group is famously embarrassing for Spanish speakers in English",
+      "Think about which languages these words look similar to but mean something completely different",
+    ],
+  },
+  {
+    number: 26,
+    language: "en",
+    date: "2026-03-13",
+    categories: [
+      {
+        name: "Words with 50+ dictionary meanings",
+        words: ["run", "break", "set", "get"],
+        difficulty: "yellow",
+        explanation: "Run (645 meanings in OED), set (430), break (400+), get (300+) — the most polysemous words in English.",
+      },
+      {
+        name: "Homophones of simpler words",
+        words: ["piece", "weather", "whole", "flour"],
+        difficulty: "green",
+        explanation: "Piece/peace, weather/whether, whole/hole, flour/flower — homophones where the spelling doesn't help.",
+      },
+      {
+        name: "Silent K/W words",
+        words: ["knight", "know", "wrap", "wrist"],
+        difficulty: "blue",
+        explanation: "Knight (silent k), know (silent k), wrap (silent w), wrist (silent w) — letters from Old English that went silent.",
+      },
+      {
+        name: "-ough words (all different!)",
+        words: ["cough", "dough", "rough", "through"],
+        difficulty: "purple",
+        explanation: "Cough (/ɒf/), dough (/əʊ/), rough (/ʌf/), through (/uː/) — same spelling, FOUR different pronunciations. English is chaos.",
+      },
+    ],
+    vibeClues: [
+      "One group contains the words with the MOST meanings in the English language",
+      "One group sounds identical to a much simpler word",
+      "The purple group all share the same 4 letters but sound completely different",
+    ],
+  },
+  {
+    number: 27,
+    language: "en",
+    date: "2026-03-14",
+    categories: [
+      {
+        name: "Same word singular and plural",
+        words: ["fish", "sheep", "deer", "aircraft"],
+        difficulty: "yellow",
+        explanation: "Fish, sheep, deer, aircraft — no change in plural form. One fish, two fish.",
+      },
+      {
+        name: "-is → -es plurals (Greek origin)",
+        words: ["crisis", "analysis", "thesis", "oasis"],
+        difficulty: "green",
+        explanation: "Crises, analyses, theses, oases — Greek-origin words change -is to -es.",
+      },
+      {
+        name: "Bizarre irregular plurals",
+        words: ["child", "ox", "goose", "mouse"],
+        difficulty: "blue",
+        explanation: "Children, oxen, geese, mice — each has a completely different plural pattern.",
+      },
+      {
+        name: "Latin plurals still used in English",
+        words: ["data", "medium", "curriculum", "alumni"],
+        difficulty: "purple",
+        explanation: "Data/datum, media/medium, curricula/curriculum, alumni/alumnus — Latin plurals that survive in formal English.",
+      },
+    ],
+    vibeClues: [
+      "This entire puzzle is about how English makes plurals — group by the TYPE of plural rule",
+      "One group doesn't change at all in the plural",
+      "Two groups come from ancient languages — one Greek, one Latin",
+    ],
+  },
 ];
