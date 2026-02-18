@@ -55,10 +55,12 @@ function GameCard({
   game,
   status,
   index,
+  statusesLoaded,
 }: {
   game: (typeof GAMES)[number];
   status: GameStatus;
   index: number;
+  statusesLoaded: boolean;
 }) {
   const isDone = status === "won" || status === "played";
 
@@ -90,8 +92,11 @@ function GameCard({
           </p>
         </div>
 
-        {/* Status indicator */}
-        <div className="flex-shrink-0 ml-4">
+        {/* Status indicator — smooth opacity transition on load */}
+        <div
+          className="flex-shrink-0 ml-4 transition-opacity duration-300"
+          style={{ opacity: statusesLoaded ? 1 : 0 }}
+        >
           {isDone ? (
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center"
@@ -122,6 +127,7 @@ function GameCard({
 export default function GameHub() {
   const [streak, setStreak] = React.useState({ current: 0, longest: 0 });
   const [gameStatuses, setGameStatuses] = React.useState<Record<string, GameStatus>>({});
+  const [statusesLoaded, setStatusesLoaded] = React.useState(false);
   const inTg = React.useMemo(() => typeof window !== "undefined" && isTelegram(), []);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -131,6 +137,7 @@ export default function GameHub() {
 
     const progress = getDailyProgress();
     setGameStatuses(progress.games);
+    setStatusesLoaded(true);
 
     if (isTelegram()) {
       tgBackButton.hide();
@@ -222,6 +229,7 @@ export default function GameHub() {
               game={game}
               status={getStatus(game.slug)}
               index={i}
+              statusesLoaded={statusesLoaded}
             />
           ))}
         </div>

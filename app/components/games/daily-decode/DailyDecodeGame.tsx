@@ -71,6 +71,19 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
     return used;
   }, [gameState.playerMappings]);
 
+  // Compute correctly mapped letters for keyboard highlighting
+  const correctLetters = React.useMemo(() => {
+    const correct = new Set<string>();
+    for (const [cipherLetter, guess] of Object.entries(gameState.playerMappings)) {
+      if (!guess) continue;
+      const expected = gameState.cipher.decrypt[cipherLetter];
+      if (expected && guess.toUpperCase() === expected) {
+        correct.add(guess.toUpperCase());
+      }
+    }
+    return correct;
+  }, [gameState.playerMappings, gameState.cipher.decrypt]);
+
   // Check for win
   const checkWin = React.useCallback(
     (mappings: Record<string, string>, hinted: Set<string>, cipher: CipherMap): boolean => {
@@ -320,6 +333,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
           selectedLetter={gameState.selectedLetter}
           language={puzzle.language}
           usedLetters={usedLetters}
+          correctLetters={correctLetters}
           onLetterPick={handleLetterPick}
           onClear={handleClear}
           onClose={handleCloseKeyboard}

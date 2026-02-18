@@ -102,6 +102,7 @@ export default function OptionButton({
         ...springTransition,
         delay: index * 0.05,
       }}
+      whileHover={!disabled && state === "default" ? { y: -2 } : undefined}
       whileTap={!disabled && state === "default" ? { scale: 0.96 } : undefined}
       style={getStateStyles(state)}
       className={cn(

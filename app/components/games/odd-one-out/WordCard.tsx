@@ -95,6 +95,7 @@ export default function WordCard({
     <motion.button
       onClick={handleClick}
       disabled={disabled || state !== "default"}
+      whileHover={isInteractive ? { y: -2 } : undefined}
       whileTap={isInteractive ? { scale: 0.96 } : undefined}
       animate={
         state === "wrong"

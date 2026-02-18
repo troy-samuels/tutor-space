@@ -7,6 +7,8 @@ interface AlphabetKeyboardProps {
   selectedLetter: string | null;
   language: string;
   usedLetters: Set<string>;
+  /** Letters the player has correctly mapped */
+  correctLetters?: Set<string>;
   onLetterPick: (letter: string) => void;
   onClear: () => void;
   onClose: () => void;
@@ -46,6 +48,7 @@ export default function AlphabetKeyboard({
   selectedLetter,
   language,
   usedLetters,
+  correctLetters,
   onLetterPick,
   onClear,
   onClose,
@@ -89,6 +92,7 @@ export default function AlphabetKeyboard({
               <div key={rowIdx} className="flex justify-center gap-1">
                 {row.map((letter) => {
                   const isUsed = usedLetters.has(letter);
+                  const isCorrect = correctLetters?.has(letter) ?? false;
                   return (
                     <motion.button
                       key={letter}
@@ -96,15 +100,20 @@ export default function AlphabetKeyboard({
                       onClick={() => onLetterPick(letter)}
                       className="flex min-h-[44px] min-w-[2.2rem] items-center justify-center rounded-lg text-sm font-semibold transition-colors touch-manipulation select-none"
                       style={
-                        isUsed
+                        isCorrect
                           ? {
-                              background: "rgba(0,0,0,0.03)",
-                              color: "rgba(156,149,144,0.4)",
+                              background: "rgba(62,86,65,0.15)",
+                              color: "#3E5641",
                             }
-                          : {
-                              background: "rgba(0,0,0,0.05)",
-                              color: "#2D2A26",
-                            }
+                          : isUsed
+                            ? {
+                                background: "rgba(0,0,0,0.03)",
+                                color: "rgba(156,149,144,0.4)",
+                              }
+                            : {
+                                background: "rgba(0,0,0,0.05)",
+                                color: "#2D2A26",
+                              }
                       }
                     >
                       {letter}

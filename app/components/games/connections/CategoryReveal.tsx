@@ -42,7 +42,7 @@ export default function CategoryReveal({
         type: "spring",
         stiffness: 350,
         damping: 22,
-        delay: index * 0.05,
+        delay: index * 0.08,
       }}
       className="rounded-xl px-4 py-3 origin-top"
       style={{
