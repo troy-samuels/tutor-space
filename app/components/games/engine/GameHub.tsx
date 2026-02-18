@@ -506,9 +506,25 @@ export default function GameHub() {
           </div>
         </div>
 
+        {/* English tools promo */}
+        <Link
+          href="/english"
+          className="mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition-all active:scale-[0.98]"
+          style={{
+            background: "rgba(211,97,53,0.06)",
+            border: "1px solid rgba(211,97,53,0.14)",
+            color: "#D36135",
+          }}
+        >
+          <span>🎯 English Level Test &amp; Tools</span>
+          <svg className="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+
         {/* Footer */}
         <p
-          className="mt-6 text-center text-[10px]"
+          className="mt-4 text-center text-[10px]"
           style={{ color: "#939598", opacity: 0.5 }}
         >
           TutorLingua · New puzzles daily
