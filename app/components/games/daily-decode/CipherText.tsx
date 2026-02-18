@@ -93,7 +93,7 @@ export default function CipherText({
               whileTap={!isComplete ? { scale: 0.96 } : undefined}
               style={bgStyle}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-1 py-0.5 transition-colors",
+                "flex flex-col items-center gap-0.5 px-1 py-1 transition-colors min-w-[2rem]",
                 "touch-manipulation select-none",
                 !isComplete && !isHinted && "hover:brightness-95 cursor-pointer",
                 isComplete && "cursor-default",
@@ -101,7 +101,7 @@ export default function CipherText({
             >
               {/* Player's guess (top) */}
               <span
-                className="h-6 min-w-[1.6rem] text-center font-mono text-base font-bold"
+                className="h-6 min-w-[1.75rem] text-center font-mono text-base font-bold"
                 style={{
                   color:
                     isCorrect || isHinted
@@ -118,7 +118,7 @@ export default function CipherText({
 
               {/* Divider line */}
               <div
-                className="h-px w-full min-w-[1.6rem]"
+                className="h-px w-full min-w-[1.75rem]"
                 style={{
                   background: isSelected
                     ? "rgba(211,97,53,0.60)"
@@ -130,7 +130,7 @@ export default function CipherText({
 
               {/* Encoded letter (bottom) */}
               <span
-                className="h-4 min-w-[1.6rem] text-center text-[11px] font-medium"
+                className="h-4 min-w-[1.75rem] text-center text-[11px] font-medium"
                 style={{ color: "rgba(156,149,144,0.8)" }}
               >
                 {encodedChar.toUpperCase()}

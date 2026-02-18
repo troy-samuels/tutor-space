@@ -99,7 +99,7 @@ export default function AlphabetKeyboard({
                       key={letter}
                       whileTap={{ scale: 0.96 }}
                       onClick={() => onLetterPick(letter)}
-                      className="flex min-h-[44px] min-w-[2.2rem] items-center justify-center rounded-lg text-sm font-semibold transition-colors touch-manipulation select-none"
+                      className="flex min-h-[44px] min-w-[2.75rem] items-center justify-center rounded-lg text-sm font-semibold transition-colors touch-manipulation select-none"
                       style={
                         isCorrect
                           ? {

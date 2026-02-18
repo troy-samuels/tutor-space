@@ -114,6 +114,7 @@ export function generateShareText(
     `Word Ladder ${flag} #${puzzleNumber}`,
     chain,
     `${steps} steps (${parStr}) · ⏱ ${timeStr}`,
+    "",
     `tutorlingua.co/games/word-ladder`,
   ].join("\n");
 }

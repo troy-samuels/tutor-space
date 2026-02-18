@@ -103,7 +103,7 @@ export default function WordCard({
       }
       transition={springTransition}
       className={cn(
-        "flex min-h-[72px] w-full items-center justify-center rounded-2xl px-3",
+        "relative flex min-h-[72px] w-full items-center justify-center rounded-2xl px-3",
         "font-bold select-none touch-manipulation",
         "disabled:cursor-not-allowed",
         isInteractive && "active:brightness-95",
@@ -113,6 +113,13 @@ export default function WordCard({
       aria-pressed={state === "correct" || state === "wrong"}
     >
       <span className="break-words text-center leading-tight">{word}</span>
+      {/* A11y: icon indicator for colorblind players */}
+      {state === "correct" && (
+        <span className="absolute top-1.5 right-2 text-[11px] font-bold" style={{ color: "#3E5641" }} aria-hidden>✓</span>
+      )}
+      {state === "wrong" && (
+        <span className="absolute top-1.5 right-2 text-[11px] font-bold" style={{ color: "#A24936" }} aria-hidden>✗</span>
+      )}
     </motion.button>
   );
 }

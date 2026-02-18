@@ -67,18 +67,22 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
     onGameEndRef.current?.(gameState);
   }, [gameState]);
 
-  // Victory confetti on win
+  // Victory confetti on win — delayed to hit the emotional peak
+  // (result card appears at ~0.3s, confetti should rain as the player reads "Well done!")
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
-    void fireConfetti({
-      particleCount: 60,
-      spread: 80,
-      startVelocity: 30,
-      gravity: 0.8,
-      ticks: 80,
-      origin: { y: 0.5 },
-      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
-    });
+    const timer = setTimeout(() => {
+      void fireConfetti({
+        particleCount: 60,
+        spread: 80,
+        startVelocity: 30,
+        gravity: 0.8,
+        ticks: 80,
+        origin: { y: 0.5 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
+      });
+    }, 450);
+    return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
   const currentRound = puzzle.rounds[gameState.currentRound];
@@ -138,12 +142,13 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
     setGameState((prev) => ({ ...prev, currentRound: prev.currentRound + 1 }));
   }, []);
 
-  // Auto-advance after 2.5s on correct answer
+  // Auto-advance after 1.8s on correct answer only — wrong answers
+  // require manual tap so the player has time to read the explanation
   React.useEffect(() => {
     if (!showResult || gameState.isComplete || !lastGuessCorrect) return;
     const timer = setTimeout(() => {
       handleNextRound();
-    }, 2500);
+    }, 1800);
     return () => clearTimeout(timer);
   }, [showResult, gameState.isComplete, lastGuessCorrect, handleNextRound]);
 
@@ -152,14 +157,17 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
     const elapsed = gameState.endTime
       ? Math.floor((gameState.endTime - gameState.startTime) / 1000) : 0;
     const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
-    const resultIcons = gameState.roundResults
-      .map((r) => (r === true ? "🟢" : r === false ? "🔴" : "⚪"))
-      .join("");
+    const emojis = gameState.roundResults
+      .map((r) => (r === true ? "🟢" : r === false ? "🔴" : "⚪"));
+    // Two rows of 5 for visual balance
+    const row1 = emojis.slice(0, 5).join("");
+    const row2 = emojis.slice(5, 10).join("");
     return [
       `Odd One Out #${puzzle.number} ${langFlag}`,
       `${gameState.score}/${TOTAL_ROUNDS} · ${gameState.lives}● remaining · ${timeStr}`,
       "",
-      resultIcons,
+      row1,
+      row2,
       "",
       "tutorlingua.co/games/odd-one-out",
     ].join("\n");
@@ -197,9 +205,8 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
           <motion.div
             key={gameState.currentRound}
             initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={SPRING.standard}
+            animate={{ opacity: 1, x: 0, transition: SPRING.standard }}
+            exit={{ opacity: 0, x: -24, transition: { duration: 0.15, ease: "easeIn" } }}
           >
 
             {/* 2×2 Word Grid */}
@@ -228,17 +235,17 @@ export default function OddOneOutGame({ puzzle, onGameEnd, onPlayAgain }: OddOne
               </AnimatePresence>
             </div>
 
-            {/* Next button */}
+            {/* Next button — always shown on wrong (no auto-advance), shown briefly on correct before auto-advance */}
             <AnimatePresence>
               {showResult && !gameState.isComplete && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...SPRING.standard, delay: 0.25 }}
+                  transition={{ ...SPRING.standard, delay: lastGuessCorrect ? 0.15 : 0.4 }}
                   className="mt-4"
                 >
                   <GameButton onClick={handleNextRound} variant="primary">
-                    Next Round →
+                    {lastGuessCorrect ? "Next Round →" : "Continue →"}
                   </GameButton>
                 </motion.div>
               )}

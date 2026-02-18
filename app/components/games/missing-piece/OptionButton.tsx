@@ -103,7 +103,7 @@ export default function OptionButton({
       whileTap={!disabled && state === "default" ? { scale: 0.96 } : undefined}
       style={getStateStyles(state)}
       className={cn(
-        "flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl px-3 font-semibold transition-colors",
+        "relative flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl px-3 font-semibold transition-colors",
         "select-none touch-manipulation",
         "disabled:cursor-not-allowed",
         getAdaptiveFontClass(text),
@@ -111,6 +111,13 @@ export default function OptionButton({
       )}
     >
       <span className="break-all leading-tight text-center">{text}</span>
+      {/* A11y: icon indicator for colorblind players */}
+      {state === "correct" && (
+        <span className="absolute top-1 right-2 text-[11px] font-bold" style={{ color: "#3E5641" }} aria-hidden>✓</span>
+      )}
+      {state === "wrong" && (
+        <span className="absolute top-1 right-2 text-[11px] font-bold" style={{ color: "#A24936" }} aria-hidden>✗</span>
+      )}
     </motion.button>
   );
 }

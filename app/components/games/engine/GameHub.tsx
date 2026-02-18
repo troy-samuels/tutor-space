@@ -8,6 +8,7 @@ import { getStreakData } from "@/lib/games/streaks";
 import { getDailyProgress, type GameStatus } from "@/lib/games/progress";
 import { isTelegram, tgBackButton } from "@/lib/telegram";
 import { haptic } from "@/lib/games/haptics";
+import { fireConfetti } from "@/lib/games/juice";
 import { cn } from "@/lib/utils";
 
 /* ——— Game list — clean, no accent colours or taglines ——— */
@@ -169,6 +170,30 @@ export default function GameHub() {
     (s) => s === "won" || s === "played",
   ).length;
 
+  const allComplete = completedCount === GAMES.length;
+
+  // 🎉 Celebrate when all games completed — fire once per day
+  React.useEffect(() => {
+    if (!allComplete || !statusesLoaded) return;
+    const today = new Date().toISOString().split("T")[0];
+    const key = `hub_celebrated_${today}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+    // Small delay so the UI has rendered
+    const timer = setTimeout(() => {
+      void fireConfetti({
+        particleCount: 100,
+        spread: 120,
+        startVelocity: 35,
+        gravity: 0.7,
+        ticks: 120,
+        origin: { y: 0.3 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [allComplete, statusesLoaded]);
+
   const getStatus = (slug: string): GameStatus => gameStatuses[slug] ?? "unplayed";
 
   return (
@@ -193,10 +218,10 @@ export default function GameHub() {
                 Games
               </h1>
               <p
-                className="text-xs mt-0.5"
-                style={{ color: "#9C9590" }}
+                className="text-xs mt-0.5 font-medium"
+                style={{ color: allComplete ? "#D36135" : "#9C9590" }}
               >
-                {completedCount}/{GAMES.length} completed today
+                {allComplete ? "🏆 All complete! " : `${completedCount}/${GAMES.length} completed `}today
               </p>
             </div>
 

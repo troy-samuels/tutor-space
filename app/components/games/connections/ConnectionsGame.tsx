@@ -501,12 +501,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
       {/* Victory / Game Over — Design Bible result card */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...SPRING.gentle, delay: 0.15 }}
-            className="mt-6 space-y-3"
-          >
+          <div className="mt-6 space-y-3">
             {/* Shared result card with emoji grid as children */}
             <GameResultCard
               emoji={gameState.isWon ? "🎉" : "💪"}
@@ -643,7 +638,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
                 🔄 Play Again
               </GameButton>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

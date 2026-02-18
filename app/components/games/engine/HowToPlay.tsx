@@ -139,7 +139,7 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
                 color: "#FFFFFF",
               }}
             >
-              Got it
+              Let's play →
             </motion.button>
           </motion.div>
         </motion.div>

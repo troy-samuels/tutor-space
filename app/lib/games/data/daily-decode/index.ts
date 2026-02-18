@@ -88,6 +88,7 @@ export function generateShareText(
     `Daily Decode ${flag} #${puzzleNumber}`,
     blocks,
     `${hintStr} · ⏱ ${timeStr}`,
+    "",
     `tutorlingua.co/games/daily-decode`,
   ].join("\n");
 }

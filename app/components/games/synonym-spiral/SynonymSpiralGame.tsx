@@ -230,16 +230,18 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
       const avgDepth = allDepths.reduce((a: number, b: number) => a + b, 0) / allDepths.length;
       const totalTime = Date.now() - gameStartRef.current;
 
-      // Victory confetti
-      void fireConfetti({
-        particleCount: 70,
-        spread: 90,
-        startVelocity: 32,
-        gravity: 0.75,
-        ticks: 90,
-        origin: { y: 0.5 },
-        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#7c3aed"],
-      });
+      // Victory confetti — delayed to hit as result card is mid-entrance
+      setTimeout(() => {
+        void fireConfetti({
+          particleCount: 70,
+          spread: 90,
+          startVelocity: 32,
+          gravity: 0.75,
+          ticks: 90,
+          origin: { y: 0.5 },
+          colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#7c3aed"],
+        });
+      }, 450);
 
       onGameEnd?.({
         isComplete: true,
@@ -286,8 +288,9 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd, onPlayAgain }: Sy
     const text = [
       `Synonym Spiral #${puzzle.number} ${flag}`,
       `Depth ${avg}/5 avg · ${timeStr}`,
-      depthEmojis,
-      "🌀",
+      "",
+      `${depthEmojis} 🌀`,
+      "",
       "tutorlingua.co/games/synonym-spiral",
     ].join("\n");
 

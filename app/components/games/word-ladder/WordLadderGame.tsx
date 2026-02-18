@@ -58,18 +58,21 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
     });
   }, [gameState]);
 
-  // Victory confetti on win
+  // Victory confetti on win — delayed to hit as result card is mid-entrance
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
-    void fireConfetti({
-      particleCount: 70,
-      spread: 90,
-      startVelocity: 32,
-      gravity: 0.75,
-      ticks: 90,
-      origin: { y: 0.5 },
-      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
-    });
+    const timer = setTimeout(() => {
+      void fireConfetti({
+        particleCount: 70,
+        spread: 90,
+        startVelocity: 32,
+        gravity: 0.75,
+        ticks: 90,
+        origin: { y: 0.5 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
+      });
+    }, 450);
+    return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
   // Clear error after a delay
@@ -271,12 +274,7 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
       {/* Victory / Result */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ ...SPRING.gentle, delay: 0.15 }}
-            className="mt-6 space-y-3"
-          >
+          <div className="mt-6 space-y-3">
             <GameResultCard
               emoji={gameState.steps.length <= puzzle.par ? "⛳" : "🎉"}
               heading={
@@ -350,7 +348,7 @@ export default function WordLadderGame({ puzzle, onGameEnd, onPlayAgain }: WordL
                 🔄 Play Again
               </GameButton>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

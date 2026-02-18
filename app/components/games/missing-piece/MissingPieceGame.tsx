@@ -72,18 +72,21 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
     onGameEndRef.current?.(gameState);
   }, [gameState]);
 
-  // Victory confetti on win
+  // Victory confetti on win — delayed to hit the emotional peak
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
-    void fireConfetti({
-      particleCount: 60,
-      spread: 80,
-      startVelocity: 30,
-      gravity: 0.8,
-      ticks: 80,
-      origin: { y: 0.5 },
-      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
-    });
+    const timer = setTimeout(() => {
+      void fireConfetti({
+        particleCount: 60,
+        spread: 80,
+        startVelocity: 30,
+        gravity: 0.8,
+        ticks: 80,
+        origin: { y: 0.5 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF"],
+      });
+    }, 450);
+    return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
   const currentSentence = puzzle.sentences[gameState.currentSentence];
@@ -141,12 +144,13 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
     setGameState((prev) => ({ ...prev, currentSentence: prev.currentSentence + 1 }));
   }, []);
 
-  // Auto-advance after 2.5s on correct answer
+  // Auto-advance after 1.8s on correct answer only — wrong answers
+  // require manual tap so the player has time to read the explanation
   React.useEffect(() => {
     if (!showExplanation || gameState.isComplete || !lastGuessCorrect) return;
     const timer = setTimeout(() => {
       handleNextSentence();
-    }, 2500);
+    }, 1800);
     return () => clearTimeout(timer);
   }, [showExplanation, gameState.isComplete, lastGuessCorrect, handleNextSentence]);
 
@@ -155,15 +159,18 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
     const elapsed = gameState.endTime
       ? Math.floor((gameState.endTime - gameState.startTime) / 1000) : 0;
     const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
-    // Build sentence-by-sentence result emoji row
-    const resultIcons = gameState.sentenceResults
-      .map((r) => (r === true ? "🟢" : r === false ? "🔴" : "⚪"))
-      .join("");
+    // Build emoji rows — split in half for visual balance
+    const emojis = gameState.sentenceResults
+      .map((r) => (r === true ? "🟢" : r === false ? "🔴" : "⚪"));
+    const mid = Math.ceil(emojis.length / 2);
+    const row1 = emojis.slice(0, mid).join("");
+    const row2 = emojis.slice(mid).join("");
     return [
       `Missing Piece #${puzzle.number} ${langFlag}`,
       `${gameState.score}/${sentenceCount} · ${gameState.lives}● remaining · ${timeStr}`,
       "",
-      resultIcons,
+      row1,
+      ...(row2 ? [row2] : []),
       "",
       "tutorlingua.co/games/missing-piece",
     ].join("\n");
@@ -194,9 +201,8 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
           <motion.div
             key={gameState.currentSentence}
             initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={SPRING.standard}
+            animate={{ opacity: 1, x: 0, transition: SPRING.standard }}
+            exit={{ opacity: 0, x: -24, transition: { duration: 0.15, ease: "easeIn" } }}
             className="space-y-4"
           >
             <SentenceDisplay
@@ -229,15 +235,16 @@ export default function MissingPieceGame({ puzzle, onGameEnd, onPlayAgain }: Mis
               )}
             </AnimatePresence>
 
+            {/* Next button — always shown on wrong (no auto-advance), shown briefly on correct before auto-advance */}
             <AnimatePresence>
               {showExplanation && !gameState.isComplete && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...SPRING.standard, delay: 0.25 }}
+                  transition={{ ...SPRING.standard, delay: lastGuessCorrect ? 0.15 : 0.4 }}
                 >
                   <GameButton onClick={handleNextSentence} variant="primary">
-                    Next Sentence →
+                    {lastGuessCorrect ? "Next Sentence →" : "Continue →"}
                   </GameButton>
                 </motion.div>
               )}

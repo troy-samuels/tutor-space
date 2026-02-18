@@ -118,18 +118,21 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
     });
   }, [gameState]);
 
-  // Victory confetti on win
+  // Victory confetti on win — delayed to hit as result card is mid-entrance
   React.useEffect(() => {
     if (!gameState.isComplete || !gameState.isWon) return;
-    void fireConfetti({
-      particleCount: 65,
-      spread: 85,
-      startVelocity: 30,
-      gravity: 0.8,
-      ticks: 85,
-      origin: { y: 0.5 },
-      colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
-    });
+    const timer = setTimeout(() => {
+      void fireConfetti({
+        particleCount: 65,
+        spread: 85,
+        startVelocity: 30,
+        gravity: 0.8,
+        ticks: 85,
+        origin: { y: 0.5 },
+        colors: ["#D36135", "#3E5641", "#D4A843", "#FFFFFF", "#5A8AB5"],
+      });
+    }, 450);
+    return () => clearTimeout(timer);
   }, [gameState.isComplete, gameState.isWon]);
 
   const handleLetterTap = React.useCallback((cipherLetter: string) => {
@@ -351,12 +354,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
       {/* Victory */}
       <AnimatePresence>
         {gameState.isComplete && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ ...SPRING.gentle, delay: 0.15 }}
-            className="mt-6 space-y-3"
-          >
+          <div className="mt-6 space-y-3">
             {/* Quote reveal */}
             <QuoteReveal plaintext={puzzle.plaintext} author={puzzle.author} />
 
@@ -383,7 +381,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
                 🔄 Play Again
               </GameButton>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
