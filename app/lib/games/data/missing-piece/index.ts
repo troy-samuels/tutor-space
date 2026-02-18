@@ -6,6 +6,7 @@
 
 import type { MissingPiecePuzzle } from "./types";
 import { CEFR_ORDER, type CefrLevel } from "@/lib/games/cefr";
+import { PUZZLES_EN } from "./puzzles-en";
 import { PUZZLES_ES } from "./puzzles-es";
 import { PUZZLES_FR } from "./puzzles-fr";
 import { PUZZLES_DE } from "./puzzles-de";
@@ -17,6 +18,7 @@ import { getDailySeed, getPuzzleNumber, seededShuffle } from "../../daily-seed";
 
 /** Legacy puzzles (mixed difficulty) */
 const ALL_PUZZLES: Record<string, MissingPiecePuzzle[]> = {
+  en: PUZZLES_EN,
   es: PUZZLES_ES,
   fr: PUZZLES_FR,
   de: PUZZLES_DE,
@@ -33,6 +35,7 @@ const CEFR_PUZZLES: Record<string, Record<CefrLevel, MissingPiecePuzzle[]>> = {
 };
 
 export const SUPPORTED_GAME_LANGUAGES = [
+  { code: "en", name: "English", flag: "🇬🇧" },
   { code: "es", name: "Español", flag: "🇪🇸" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
   { code: "de", name: "Deutsch", flag: "🇩🇪" },

@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { TOOL_LANGUAGES, type ToolLang } from "@/lib/tools/types";
 import { cn } from "@/lib/utils";
 
 interface LanguageSelectorProps {
   value: ToolLang;
   onChange: (lang: ToolLang) => void;
-  /** Compact pill style (in-tool header) vs full cards (hub page) */
   variant?: "pills" | "cards";
   className?: string;
 }
@@ -74,7 +73,6 @@ export function LanguageSelector({
     );
   }
 
-  // Pills variant — compact, for use inside tools
   return (
     <div
       className={cn(
@@ -106,9 +104,6 @@ export function LanguageSelector({
   );
 }
 
-/**
- * Inline language switcher bar — shown at the top of each tool.
- */
 export function ToolLanguageBar({
   lang,
   onChangeLang,

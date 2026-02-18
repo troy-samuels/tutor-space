@@ -59,7 +59,7 @@ function WordCard({ word }: { word: VocabWord }) {
       </div>
 
       {/* Synonyms & Antonyms */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border border-black/8 p-4 shadow-soft">
           <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-2">Synonyms</p>
           <div className="flex flex-wrap gap-1.5">
@@ -186,7 +186,7 @@ export default function VocabBuilder() {
     if (navigator.share) {
       navigator.share({ title: `${meta.title}: ${word.word}`, text }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+      navigator.clipboard.writeText(text).then(() => alert("Word copied to clipboard."));
     }
   }
 
@@ -251,13 +251,13 @@ export default function VocabBuilder() {
               <p className="text-sm text-foreground/60">
                 {quizResult
                   ? `You correctly defined "${word.word}".`
-                  : `"${word.word}" means: ${word.definition}`}
+                  : `Today's target: "${word.word}" means ${word.definition}`}
               </p>
             </div>
 
             <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4">
               <p className="text-sm text-amber-800">
-                📬 <strong>Come back tomorrow</strong> for a new word — we&apos;ll email it too!
+                📬 <strong>Come back tomorrow</strong> for a fresh advanced word and usage context.
               </p>
             </div>
 

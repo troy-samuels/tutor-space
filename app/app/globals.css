@@ -588,3 +588,50 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   color: var(--tg-theme-button-text-color, #ffffff);
   box-shadow: none;
 }
+
+/* ——— Telegram viewport optimisations ——— */
+
+/* Compact game hub cards in Telegram — tighter spacing */
+.tg-app .game-hero-card {
+  aspect-ratio: auto !important;
+  min-height: 72px;
+}
+
+/* Reduce hub header spacing in Telegram */
+.tg-app .hub-header {
+  margin-bottom: 12px !important;
+}
+
+/* Tighter card gap in Telegram */
+.tg-app .game-hero-card + .game-hero-card {
+  margin-top: -2px;
+}
+
+/* Compact tab bar in Telegram (48px vs 56px) */
+.tg-app nav[role="tablist"] {
+  height: calc(48px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.tg-app nav[role="tablist"] .flex.h-14 {
+  height: 48px !important;
+}
+
+/* Game tiles scale with viewport in Telegram */
+.tg-app .game-tile {
+  min-height: max(38px, 7dvh);
+  font-size: clamp(0.75rem, 2.2dvh, 1rem);
+}
+
+/* Reduce main content padding in Telegram */
+.tg-app .game-content {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  padding-top: 8px !important;
+}
+
+/* Stats card more compact in Telegram */
+.tg-app .stats-card {
+  margin-top: 16px !important;
+  margin-left: 12px !important;
+  margin-right: 12px !important;
+}

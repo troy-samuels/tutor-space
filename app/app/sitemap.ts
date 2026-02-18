@@ -137,6 +137,68 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Games pages — daily changing content, high SEO value
+  const gamesSlugs = ["connections", "daily-decode", "word-ladder", "odd-one-out", "missing-piece", "synonym-spiral"];
+  const gamesUrls = [
+    {
+      url: `${baseUrl}/games`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.95,
+    },
+    ...gamesSlugs.map((slug) => ({
+      url: `${baseUrl}/games/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
+    // Language-specific game URLs for better SEO targeting
+    ...gamesSlugs.flatMap((slug) =>
+      ["en", "es", "fr", "de"].map((lang) => ({
+        url: `${baseUrl}/games/${slug}?lang=${lang}`,
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.85,
+      }))
+    ),
+  ];
+
+  // Tools pages
+  const toolsUrls = [
+    {
+      url: `${baseUrl}/tools`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/tools/level-test`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/tools/daily-challenge`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/tools/vocab`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.85,
+    },
+  ];
+
+  // Comparison pages — high intent SEO
+  const comparisonUrls = ["preply", "italki", "cambly"].map((platform) => ({
+    url: `${baseUrl}/compare/${platform}`,
+    lastModified: new Date(),
+    changeFrequency: "monthly" as const,
+    priority: 0.85,
+  }));
+
   return [
     {
       url: baseUrl,
@@ -155,6 +217,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,
+    },
+    // Calculator — high-value lead gen tool
+    {
+      url: `${baseUrl}/calculator`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.9,
     },
     // FAQ page
     {
@@ -201,6 +270,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.8,
     },
+    // Games, tools, comparisons
+    ...gamesUrls,
+    ...toolsUrls,
+    ...comparisonUrls,
     ...miniSiteUrls,
     ...tutorUrls,
     ...bioUrls,

@@ -79,7 +79,7 @@ function QuestionCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {question.options.map((opt, idx) => {
           const isCorrect = idx === question.correct;
           const isSelected = idx === selected;
@@ -174,7 +174,7 @@ export default function DailyChallenge() {
     if (navigator.share) {
       navigator.share({ title: meta.title, text }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+      navigator.clipboard.writeText(text).then(() => alert("Result copied to clipboard."));
     }
   }
 
@@ -189,6 +189,7 @@ export default function DailyChallenge() {
         <div className="text-center">
           <div className="text-5xl mb-3">🧩</div>
           <h1 className="text-2xl font-bold text-foreground mb-1">{meta.title}</h1>
+          <p className="text-sm font-medium text-primary/80 mb-1">{meta.subtitle}</p>
           <p className="text-foreground/40 text-sm">{today}</p>
         </div>
 
@@ -196,9 +197,9 @@ export default function DailyChallenge() {
           <p className="text-sm text-foreground/70 leading-relaxed mb-4">{meta.intro}</p>
           <ul className="space-y-2.5">
             {[
-              ["🎯", "5 questions, new every day"],
-              ["💡", "Instant explanation after each answer"],
-              ["📤", "Share your score like Wordle"],
+              ["🎯", "5 targeted traps learners miss in real conversations"],
+              ["💡", "Instant corrections with context after every answer"],
+              ["📤", "Share your score card and challenge a friend"],
             ].map(([icon, text]) => (
               <li key={String(text)} className="flex items-center gap-3 text-sm text-foreground/70">
                 <span>{icon}</span>{text}
@@ -256,7 +257,14 @@ export default function DailyChallenge() {
   const correct = results.filter(Boolean).length;
   const pct = Math.round((correct / questions.length) * 100);
   const medal = pct === 100 ? "🏆" : pct >= 80 ? "🥇" : pct >= 60 ? "🥈" : pct >= 40 ? "🥉" : "📚";
-  const message = pct === 100 ? "Perfect! 🎉" : pct >= 80 ? "Excellent work!" : pct >= 60 ? "Good effort!" : "Keep practising — you'll get there!";
+  const message =
+    pct === 100
+      ? "Perfect score. You're reading nuance like a native."
+      : pct >= 80
+        ? "Strong accuracy. Keep this streak going."
+        : pct >= 60
+          ? "Solid base. One more round and you'll level up fast."
+          : "Great practice set. Review the notes and run it again.";
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">

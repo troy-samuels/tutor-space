@@ -7,6 +7,7 @@ import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import ConnectionsGame from "@/components/games/connections/ConnectionsGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
+import { PUZZLES_EN } from "@/lib/games/data/connections/puzzles-en";
 import { PUZZLES_ES } from "@/lib/games/data/connections/puzzles-es";
 import { PUZZLES_FR } from "@/lib/games/data/connections/puzzles-fr";
 import { PUZZLES_DE } from "@/lib/games/data/connections/puzzles-de";
@@ -14,6 +15,7 @@ import { SUPPORTED_GAME_LANGUAGES } from "@/lib/games/data/connections";
 import type { ConnectionsPuzzle, ConnectionsGameState } from "@/lib/games/data/connections/types";
 
 const ALL_PUZZLES: Record<string, ConnectionsPuzzle[]> = {
+  en: PUZZLES_EN,
   es: PUZZLES_ES,
   fr: PUZZLES_FR,
   de: PUZZLES_DE,
@@ -32,7 +34,7 @@ export default function ConnectionsPage() {
   const langParam = searchParams.get("lang");
 
   const [language, setLanguage] = React.useState(
-    langParam && ALL_PUZZLES[langParam] ? langParam : "es"
+    langParam && ALL_PUZZLES[langParam] ? langParam : "en"
   );
   const [puzzle, setPuzzle] = React.useState<ConnectionsPuzzle>(() =>
     getPuzzleForLanguage(language)

@@ -9,7 +9,33 @@ export const metadata: Metadata = {
     default: "Language Learning Tools | TutorLingua",
   },
   description:
-    "Free tools for language learners. Test your level, master idioms and expressions, build vocabulary — in English, Spanish, French, German and more.",
+    "Free learner tools to test your CEFR level, practise daily language traps, and build active vocabulary in English, Spanish, French, and German.",
+  alternates: {
+    canonical: "/tools",
+  },
+  openGraph: {
+    title: "Language Learning Tools | TutorLingua",
+    description:
+      "Train with a CEFR level test, daily challenge sets, and advanced vocabulary drills.",
+    url: "/tools",
+    type: "website",
+    siteName: "TutorLingua",
+    images: [
+      {
+        url: "/og-image.png?v=2",
+        width: 1200,
+        height: 630,
+        alt: "TutorLingua language learning tools",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Language Learning Tools | TutorLingua",
+    description:
+      "CEFR level test, daily challenge sets, and vocabulary drills for serious language learners.",
+    images: ["/og-image.png?v=2"],
+  },
 };
 
 const TOOLS = [
@@ -25,7 +51,6 @@ export default function ToolsLayout({
 }) {
   return (
     <div className="min-h-[100dvh]" style={{ background: "var(--background)" }}>
-      {/* Nav */}
       <nav
         className="sticky top-0 z-40 px-4 py-3 backdrop-blur-sm"
         style={{
@@ -50,7 +75,6 @@ export default function ToolsLayout({
         </div>
       </nav>
 
-      {/* Content — Suspense needed for useSearchParams in client hooks */}
       <main className="max-w-lg mx-auto px-4 py-6 pb-24">
         <Suspense>{children}</Suspense>
       </main>

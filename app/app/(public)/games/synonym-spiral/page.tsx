@@ -7,6 +7,7 @@ import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import SynonymSpiralGame from "@/components/games/synonym-spiral/SynonymSpiralGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
+import { PUZZLES_EN } from "@/lib/games/data/synonym-spiral/puzzles-en";
 import { PUZZLES_ES } from "@/lib/games/data/synonym-spiral/puzzles-es";
 import { PUZZLES_FR } from "@/lib/games/data/synonym-spiral/puzzles-fr";
 import { PUZZLES_DE } from "@/lib/games/data/synonym-spiral/puzzles-de";
@@ -14,13 +15,14 @@ import { SUPPORTED_SPIRAL_LANGUAGES } from "@/lib/games/data/synonym-spiral";
 import type { SynonymSpiralPuzzle } from "@/lib/games/data/synonym-spiral/types";
 
 const ALL_PUZZLES: Record<string, SynonymSpiralPuzzle[]> = {
+  en: PUZZLES_EN,
   es: PUZZLES_ES,
   fr: PUZZLES_FR,
   de: PUZZLES_DE,
 };
 
 function getPuzzleForLanguage(lang: string): SynonymSpiralPuzzle {
-  const puzzles = ALL_PUZZLES[lang] || PUZZLES_ES;
+  const puzzles = ALL_PUZZLES[lang] || PUZZLES_EN;
   const seed = getDailySeed("synonym-spiral", lang);
   const puzzleNumber = getPuzzleNumber();
   const index = seed % puzzles.length;
@@ -32,7 +34,7 @@ export default function SynonymSpiralPage() {
   const langParam = searchParams.get("lang");
 
   const [language, setLanguage] = React.useState(
-    langParam && ALL_PUZZLES[langParam] ? langParam : "es"
+    langParam && ALL_PUZZLES[langParam] ? langParam : "en"
   );
   const [puzzle, setPuzzle] = React.useState<SynonymSpiralPuzzle>(() =>
     getPuzzleForLanguage(language)

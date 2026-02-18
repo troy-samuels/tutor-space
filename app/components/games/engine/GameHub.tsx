@@ -26,30 +26,7 @@ const GAMES = [
     accent: "#C4A835",
     accentGlow: "rgba(196, 168, 53, 0.08)",
     tagline: "Find the link",
-  },
-  {
-    slug: "strands",
-    name: "Lingua Strands",
-    description: "Find themed words hidden in a letter grid",
-    accent: "#4A7EC5",
-    accentGlow: "rgba(74, 126, 197, 0.08)",
-    tagline: "Trace the path",
-  },
-  {
-    slug: "spell-cast",
-    name: "Spell Cast",
-    description: "Form words from 7 letters in a honeycomb",
-    accent: "#4A8C5C",
-    accentGlow: "rgba(74, 140, 92, 0.08)",
-    tagline: "Unlock the hive",
-  },
-  {
-    slug: "speed-clash",
-    name: "Speed Clash",
-    description: "Pick natural responses in 60 seconds",
-    accent: "#DC3545",
-    accentGlow: "rgba(220, 53, 69, 0.08)",
-    tagline: "Beat the clock",
+    ready: true,
   },
   {
     slug: "daily-decode",
@@ -58,6 +35,7 @@ const GAMES = [
     accent: "#8B5CB5",
     accentGlow: "rgba(139, 92, 181, 0.08)",
     tagline: "Solve the mystery",
+    ready: true,
   },
   {
     slug: "word-ladder",
@@ -66,6 +44,7 @@ const GAMES = [
     accent: "#0D9668",
     accentGlow: "rgba(13, 150, 104, 0.08)",
     tagline: "Climb the chain",
+    ready: true,
   },
   {
     slug: "odd-one-out",
@@ -74,6 +53,7 @@ const GAMES = [
     accent: "#D48C09",
     accentGlow: "rgba(212, 140, 9, 0.08)",
     tagline: "Trust your instincts",
+    ready: true,
   },
   {
     slug: "missing-piece",
@@ -82,6 +62,7 @@ const GAMES = [
     accent: "#C93D82",
     accentGlow: "rgba(201, 61, 130, 0.08)",
     tagline: "Complete the sentence",
+    ready: true,
   },
   {
     slug: "synonym-spiral",
@@ -90,6 +71,34 @@ const GAMES = [
     accent: "#7C4FD0",
     accentGlow: "rgba(124, 79, 208, 0.08)",
     tagline: "Expand your vocabulary",
+    ready: true,
+  },
+  {
+    slug: "strands",
+    name: "Lingua Strands",
+    description: "Find themed words hidden in a letter grid",
+    accent: "#4A7EC5",
+    accentGlow: "rgba(74, 126, 197, 0.08)",
+    tagline: "Trace the path",
+    ready: false,
+  },
+  {
+    slug: "spell-cast",
+    name: "Spell Cast",
+    description: "Form words from 7 letters in a honeycomb",
+    accent: "#4A8C5C",
+    accentGlow: "rgba(74, 140, 92, 0.08)",
+    tagline: "Unlock the hive",
+    ready: false,
+  },
+  {
+    slug: "speed-clash",
+    name: "Speed Clash",
+    description: "Pick natural responses in 60 seconds",
+    accent: "#DC3545",
+    accentGlow: "rgba(220, 53, 69, 0.08)",
+    tagline: "Beat the clock",
+    ready: false,
   },
 ] as const;
 
@@ -104,8 +113,147 @@ function HeroGameCard({
   index: number;
 }) {
   const isDone = status === "won" || status === "played";
+  const isComingSoon = !game.ready;
   const IconComponent = GAME_ICON_MAP[game.slug];
   const cardRef = React.useRef<HTMLAnchorElement>(null);
+
+  const cardContent = (
+    <div
+      className="relative h-full w-full overflow-hidden"
+      style={{
+        background: isComingSoon ? "#F8F8F8" : "#FFFFFF",
+        border: "1px solid rgba(0, 0, 0, 0.08)",
+        borderRadius: "24px",
+        boxShadow: `0 2px 12px rgba(0, 0, 0, 0.06)`,
+        opacity: isComingSoon ? 0.6 : 1,
+      }}
+    >
+      {/* Content layout */}
+      <div className="relative z-10 flex h-full items-center px-6 gap-5">
+        {/* Icon — large, prominent */}
+        <div
+          className="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-2xl"
+          style={{
+            background: `rgba(0, 0, 0, 0.03)`,
+            border: `1px solid rgba(0, 0, 0, 0.06)`,
+          }}
+        >
+          {IconComponent ? <IconComponent size={36} /> : null}
+        </div>
+
+        {/* Text content */}
+        <div className="flex-1 min-w-0">
+          {/* Tagline */}
+          <p
+            className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1"
+            style={{ color: game.accent, opacity: 0.8 }}
+          >
+            {game.tagline}
+          </p>
+          {/* Game name */}
+          <h3
+            className="text-xl font-extrabold tracking-tight leading-tight"
+            style={{ color: "#1A1A1B" }}
+          >
+            {game.name}
+          </h3>
+          {/* Description */}
+          <p
+            className="text-[13px] mt-1 leading-snug"
+            style={{ color: "#5A5A5C" }}
+          >
+            {game.description}
+          </p>
+        </div>
+
+        {/* Play / Done / Coming Soon badge */}
+        <div className="flex-shrink-0">
+          {isComingSoon ? (
+            <div
+              className="flex items-center justify-center px-3 py-1.5 rounded-full"
+              style={{
+                background: "rgba(0, 0, 0, 0.05)",
+                border: "1px solid rgba(0, 0, 0, 0.08)",
+              }}
+            >
+              <span className="text-[11px] font-semibold" style={{ color: "#939598" }}>
+                Soon
+              </span>
+            </div>
+          ) : isDone ? (
+            <div
+              className="flex items-center justify-center w-12 h-12 rounded-full"
+              style={{
+                background: "rgba(34, 197, 94, 0.15)",
+                border: "2px solid rgba(34, 197, 94, 0.3)",
+              }}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M20 6L9 17L4 12"
+                  stroke="#22c55e"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          ) : (
+            <div
+              className="play-button flex items-center justify-center w-12 h-12 rounded-full"
+              style={{
+                background: game.accent,
+                boxShadow: `0 2px 8px rgba(0,0,0,0.12)`,
+              }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M5 3L19 12L5 21V3Z"
+                  fill="#FFFFFF"
+                  stroke="#FFFFFF"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom accent line */}
+      <div
+        className="absolute bottom-0 left-6 right-6 h-[2px]"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${game.accent}25, transparent)`,
+        }}
+        aria-hidden
+      />
+    </div>
+  );
+
+  if (isComingSoon) {
+    return (
+      <div
+        data-card-index={index}
+        className="game-hero-card relative block w-[92%] mx-auto"
+        style={{ aspectRatio: "16 / 9" }}
+      >
+        {cardContent}
+      </div>
+    );
+  }
 
   return (
     <Link
@@ -116,118 +264,7 @@ function HeroGameCard({
       style={{ aspectRatio: "16 / 9" }}
       onClick={() => haptic("tap")}
     >
-      {/* Card body */}
-      <div
-        className="relative h-full w-full overflow-hidden"
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid rgba(0, 0, 0, 0.08)",
-          borderRadius: "24px",
-          boxShadow: `0 2px 12px rgba(0, 0, 0, 0.06)`,
-        }}
-      >
-
-        {/* Content layout */}
-        <div className="relative z-10 flex h-full items-center px-6 gap-5">
-          {/* Icon — large, prominent */}
-          <div
-            className="flex-shrink-0 w-16 h-16 flex items-center justify-center rounded-2xl"
-            style={{
-              background: `rgba(0, 0, 0, 0.03)`,
-              border: `1px solid rgba(0, 0, 0, 0.06)`,
-            }}
-          >
-            {IconComponent ? <IconComponent size={36} /> : null}
-          </div>
-
-          {/* Text content */}
-          <div className="flex-1 min-w-0">
-            {/* Tagline */}
-            <p
-              className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1"
-              style={{ color: game.accent, opacity: 0.8 }}
-            >
-              {game.tagline}
-            </p>
-            {/* Game name */}
-            <h3
-              className="text-xl font-extrabold tracking-tight leading-tight"
-              style={{ color: "#1A1A1B" }}
-            >
-              {game.name}
-            </h3>
-            {/* Description */}
-            <p
-              className="text-[13px] mt-1 leading-snug"
-              style={{ color: "#5A5A5C" }}
-            >
-              {game.description}
-            </p>
-          </div>
-
-          {/* Play / Done badge */}
-          <div className="flex-shrink-0">
-            {isDone ? (
-              <div
-                className="flex items-center justify-center w-12 h-12 rounded-full"
-                style={{
-                  background: "rgba(34, 197, 94, 0.15)",
-                  border: "2px solid rgba(34, 197, 94, 0.3)",
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden
-                >
-                  <path
-                    d="M20 6L9 17L4 12"
-                    stroke="#22c55e"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            ) : (
-              <div
-                className="play-button flex items-center justify-center w-12 h-12 rounded-full"
-                style={{
-                  background: game.accent,
-                  boxShadow: `0 2px 8px rgba(0,0,0,0.12)`,
-                }}
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden
-                >
-                  <path
-                    d="M5 3L19 12L5 21V3Z"
-                    fill="#FFFFFF"
-                    stroke="#FFFFFF"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom accent line */}
-        <div
-          className="absolute bottom-0 left-6 right-6 h-[2px]"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${game.accent}25, transparent)`,
-          }}
-          aria-hidden
-        />
-      </div>
+      {cardContent}
     </Link>
   );
 }
@@ -334,7 +371,7 @@ export default function GameHub() {
               {Object.values(gameStatuses).filter(
                 (s) => s === "won" || s === "played",
               ).length}
-              /{GAMES.length} completed today
+              /{GAMES.filter(g => g.ready).length} completed today
             </p>
           </div>
 

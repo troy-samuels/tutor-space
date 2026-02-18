@@ -117,7 +117,7 @@ export default function LevelTestGame() {
     if (navigator.share) {
       navigator.share({ title: `My ${langNames[lang]} Level`, text }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+      navigator.clipboard.writeText(text).then(() => alert("Result copied to clipboard."));
     }
   }
 
@@ -143,7 +143,7 @@ export default function LevelTestGame() {
 
         <div className="bg-white rounded-2xl border border-black/8 p-5 shadow-soft">
           <ul className="space-y-3">
-            {[["📝","Grammar, vocabulary & natural usage"],["📊","Mapped to the CEFR standard used worldwide"],["🔒","Free — no login required"],["📤","Share your result like Wordle"]].map(([icon,text]) => (
+            {[["📝","20 mixed items across grammar, vocabulary and natural usage"],["📊","Scored against the CEFR scale used by schools and exam boards"],["⚡","Finish in about 5 minutes, no login required"],["📤","Share your score card with one tap"]].map(([icon,text]) => (
               <li key={String(text)} className="flex items-center gap-3 text-sm text-foreground/70">
                 <span>{icon}</span>{text}
               </li>
@@ -152,7 +152,7 @@ export default function LevelTestGame() {
         </div>
 
         <Button size="lg" className="w-full rounded-xl min-h-[52px] text-base" onClick={() => setPhase("quiz")}>
-          Start the Test →
+          Start 5-Minute Test →
         </Button>
         <p className="text-xs text-center text-foreground/40">
           Results based on the Common European Framework of Reference (CEFR)

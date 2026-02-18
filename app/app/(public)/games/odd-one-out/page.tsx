@@ -7,6 +7,7 @@ import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import OddOneOutGame from "@/components/games/odd-one-out/OddOneOutGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
+import { PUZZLES_EN } from "@/lib/games/data/odd-one-out/puzzles-en";
 import { PUZZLES_ES } from "@/lib/games/data/odd-one-out/puzzles-es";
 import { PUZZLES_FR } from "@/lib/games/data/odd-one-out/puzzles-fr";
 import { PUZZLES_DE } from "@/lib/games/data/odd-one-out/puzzles-de";
@@ -14,13 +15,14 @@ import { SUPPORTED_GAME_LANGUAGES, getShuffledPuzzle } from "@/lib/games/data/od
 import type { OddOneOutPuzzle, OddOneOutGameState } from "@/lib/games/data/odd-one-out/types";
 
 const ALL_PUZZLES: Record<string, OddOneOutPuzzle[]> = {
+  en: PUZZLES_EN,
   es: PUZZLES_ES,
   fr: PUZZLES_FR,
   de: PUZZLES_DE,
 };
 
 function getPuzzleForLanguage(lang: string): OddOneOutPuzzle {
-  const puzzles = ALL_PUZZLES[lang] || PUZZLES_ES;
+  const puzzles = ALL_PUZZLES[lang] || PUZZLES_EN;
   const seed = getDailySeed("odd-one-out", lang);
   const puzzleNumber = getPuzzleNumber();
   const index = seed % puzzles.length;
@@ -33,7 +35,7 @@ export default function OddOneOutPage() {
   const langParam = searchParams.get("lang");
 
   const [language, setLanguage] = React.useState(
-    langParam && ALL_PUZZLES[langParam] ? langParam : "es",
+    langParam && ALL_PUZZLES[langParam] ? langParam : "en",
   );
   const [puzzle, setPuzzle] = React.useState<OddOneOutPuzzle>(() =>
     getPuzzleForLanguage(language),

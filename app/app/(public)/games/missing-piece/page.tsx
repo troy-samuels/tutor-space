@@ -7,6 +7,7 @@ import HowToPlay from "@/components/games/engine/HowToPlay";
 import LanguageSelector from "@/components/games/engine/LanguageSelector";
 import MissingPieceGame from "@/components/games/missing-piece/MissingPieceGame";
 import { getDailySeed, getPuzzleNumber } from "@/lib/games/daily-seed";
+import { PUZZLES_EN } from "@/lib/games/data/missing-piece/puzzles-en";
 import { PUZZLES_ES } from "@/lib/games/data/missing-piece/puzzles-es";
 import { PUZZLES_FR } from "@/lib/games/data/missing-piece/puzzles-fr";
 import { PUZZLES_DE } from "@/lib/games/data/missing-piece/puzzles-de";
@@ -14,13 +15,14 @@ import { SUPPORTED_GAME_LANGUAGES } from "@/lib/games/data/missing-piece";
 import type { MissingPiecePuzzle, MissingPieceGameState } from "@/lib/games/data/missing-piece/types";
 
 const ALL_PUZZLES: Record<string, MissingPiecePuzzle[]> = {
+  en: PUZZLES_EN,
   es: PUZZLES_ES,
   fr: PUZZLES_FR,
   de: PUZZLES_DE,
 };
 
 function getPuzzleForLanguage(lang: string): MissingPiecePuzzle {
-  const puzzles = ALL_PUZZLES[lang] || PUZZLES_ES;
+  const puzzles = ALL_PUZZLES[lang] || PUZZLES_EN;
   const seed = getDailySeed("missing-piece", lang);
   const puzzleNumber = getPuzzleNumber();
   const index = seed % puzzles.length;
@@ -32,7 +34,7 @@ export default function MissingPiecePage() {
   const langParam = searchParams.get("lang");
 
   const [language, setLanguage] = React.useState(
-    langParam && ALL_PUZZLES[langParam] ? langParam : "es",
+    langParam && ALL_PUZZLES[langParam] ? langParam : "en",
   );
   const [puzzle, setPuzzle] = React.useState<MissingPiecePuzzle>(() =>
     getPuzzleForLanguage(language),

@@ -3,9 +3,35 @@ import Link from "next/link";
 import { TOOL_LANGUAGES } from "@/lib/tools/types";
 
 export const metadata: Metadata = {
-  title: "Language Learning Tools",
+  title: "Free Language Learning Tools | CEFR Test, Daily Challenge, Word Builder",
   description:
-    "Free daily tools for language learners. Test your level (A1–C2), master idioms and expressions, and build vocabulary — in English, Spanish, French, German and more.",
+    "Train with three focused tools: a 20-question CEFR level test, a daily trap challenge, and a word builder with collocations. Free in English, Spanish, French, and German.",
+  alternates: {
+    canonical: "/tools",
+  },
+  openGraph: {
+    title: "Free Language Tools for Serious Learners | TutorLingua",
+    description:
+      "Measure your CEFR level, fix daily language traps, and build active vocabulary with practical usage examples.",
+    url: "/tools",
+    type: "website",
+    siteName: "TutorLingua",
+    images: [
+      {
+        url: "/og-image.png?v=2",
+        width: 1200,
+        height: 630,
+        alt: "TutorLingua learner tools",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Free Language Tools for Serious Learners | TutorLingua",
+    description:
+      "CEFR level test, daily challenge, and word builder in English, Spanish, French, and German.",
+    images: ["/og-image.png?v=2"],
+  },
 };
 
 const TOOLS = [
@@ -13,7 +39,7 @@ const TOOLS = [
     href: "/tools/level-test",
     emoji: "🎯",
     title: "Level Test",
-    description: "Find out your CEFR level in 20 questions",
+    description: "20 CEFR-calibrated questions with instant A1-C2 placement",
     accent: "#D36135",
     accentBg: "rgba(211,97,53,0.08)",
     badge: "Most popular",
@@ -22,7 +48,7 @@ const TOOLS = [
     href: "/tools/daily-challenge",
     emoji: "🧩",
     title: "Daily Challenge",
-    description: "Phrasal verbs, false friends & expressions — 5 every day",
+    description: "5 daily traps: phrasal verbs, false friends, and usage errors",
     accent: "#7C4FD0",
     accentBg: "rgba(124,79,208,0.08)",
     badge: "Daily",
@@ -31,7 +57,7 @@ const TOOLS = [
     href: "/tools/vocab",
     emoji: "📖",
     title: "Word of the Day",
-    description: "Advanced vocabulary with etymology & a mini quiz",
+    description: "Advanced word + etymology + collocations + mini retrieval quiz",
     accent: "#0D9668",
     accentBg: "rgba(13,150,104,0.08)",
     badge: "Daily",
@@ -41,20 +67,18 @@ const TOOLS = [
 export default function ToolsHubPage() {
   return (
     <div className="flex flex-col gap-6">
-      {/* Hero */}
       <div className="text-center py-4">
         <div className="text-4xl mb-3">🌍</div>
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Language Learning Tools
+          Train Smarter in 10 Minutes a Day
         </h1>
         <p className="text-foreground/60 text-base leading-relaxed">
-          Free daily tools to take your language skills to the next level.
+          Take a CEFR placement test, solve five daily traps, and lock in one high-value word.
           <br />
           No login required.
         </p>
       </div>
 
-      {/* Language pills */}
       <div className="bg-white rounded-2xl border border-black/8 p-4 shadow-soft">
         <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider text-center mb-3">
           Supported Languages
@@ -69,7 +93,6 @@ export default function ToolsHubPage() {
         </div>
       </div>
 
-      {/* Tool cards */}
       <div className="flex flex-col gap-3">
         {TOOLS.map((tool) => (
           <Link
@@ -104,17 +127,16 @@ export default function ToolsHubPage() {
         ))}
       </div>
 
-      {/* How each tool adapts */}
       <div className="bg-white rounded-2xl border border-black/8 p-5 shadow-soft">
         <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-4 text-center">
-          How tools adapt per language
+          Built Around Real Learner Mistakes
         </p>
         <div className="space-y-3 text-sm">
           {[
-            { flag:"🇬🇧", lang:"English", note:"Phrasal verbs · Advanced vocab · CEFR grammar" },
-            { flag:"🇪🇸", lang:"Spanish", note:"Falsos amigos · Ser vs estar · Subjunctive" },
-            { flag:"🇫🇷", lang:"French", note:"Faux amis · Passé composé vs imparfait · Subjonctif" },
-            { flag:"🇩🇪", lang:"German", note:"Falsche Freunde · Cases & word order · Konjunktiv" },
+            { flag:"🇬🇧", lang:"English", note:"Phrasal verbs, collocations, and CEFR grammar patterns" },
+            { flag:"🇪🇸", lang:"Spanish", note:"Falsos amigos, ser/estar control, and subjunctive triggers" },
+            { flag:"🇫🇷", lang:"French", note:"Faux amis, tense contrasts, and precision in register" },
+            { flag:"🇩🇪", lang:"German", note:"Case control, word order shifts, and false-friend traps" },
           ].map(({ flag, lang, note }) => (
             <div key={lang} className="flex items-start gap-3">
               <span className="text-base flex-shrink-0">{flag}</span>
@@ -127,9 +149,8 @@ export default function ToolsHubPage() {
         </div>
       </div>
 
-      {/* Trust bar */}
-      <div className="grid grid-cols-3 gap-3">
-        {[["📊","CEFR-aligned"],["🔒","Free forever"],["🌍","50+ countries"]].map(([icon, label]) => (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[["📊","CEFR calibrated"],["⚡","10-minute sessions"],["🌍","Used by learners worldwide"]].map(([icon, label]) => (
           <div key={String(label)} className="bg-white rounded-xl border border-black/8 p-3 text-center shadow-soft">
             <div className="text-xl mb-1">{icon}</div>
             <p className="text-xs font-medium text-foreground/60">{label}</p>
@@ -137,7 +158,6 @@ export default function ToolsHubPage() {
         ))}
       </div>
 
-      {/* Cross-link to games */}
       <div className="text-center">
         <p className="text-sm text-foreground/40">
           Also try our{" "}
