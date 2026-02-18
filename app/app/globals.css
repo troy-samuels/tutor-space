@@ -403,34 +403,34 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 .tg-app,
 .dark,
 :root {
-  /* Canvas colours — NYT Games inspired light theme */
-  --game-bg-deep: #F0F0EE;
-  --game-bg-primary: #F7F7F5;
+  /* Canvas colours — aligned to TutorLingua warm palette */
+  --game-bg-deep: #FDF8F5;
+  --game-bg-primary: #FDF8F5;
   --game-bg-surface: #FFFFFF;
-  --game-bg-elevated: #F0F0EE;
-  --game-bg-active: #E2E2E0;
+  --game-bg-elevated: #F5EDE8;
+  --game-bg-active: #EDE3DC;
 
-  /* Game semantic colours — slightly muted for light bg */
-  --game-yellow: #C4A835;
-  --game-green: #4A8C5C;
-  --game-blue: #4A7EC5;
+  /* Category colours — warmer tones matching brand */
+  --game-yellow: #D4A843;
+  --game-green: #3E5641;
+  --game-blue: #5A8AB5;
   --game-purple: #8B5CB5;
 
-  /* State colours — keep vibrant for feedback */
-  --game-correct: #6AAA64;
-  --game-wrong: #DC3545;
-  --game-warning: #C9B458;
-  --game-streak: #E67E22;
+  /* State colours */
+  --game-correct: #3E5641;
+  --game-wrong: #A24936;
+  --game-warning: #D4A843;
+  --game-streak: #D36135;
 
-  /* Text — dark on light */
-  --game-text-primary: #1A1A1B;
-  --game-text-secondary: #5A5A5C;
-  --game-text-muted: #939598;
-  --game-text-accent: #6AAA64;
+  /* Text — TutorLingua dark on warm cream */
+  --game-text-primary: #2D2A26;
+  --game-text-secondary: #6B6560;
+  --game-text-muted: #9C9590;
+  --game-text-accent: #D36135;
 
-  /* Glow / depth — subtle shadows instead of glows */
+  /* Depth — warm shadows */
   --game-glow-primary: none;
-  --game-shadow-glow: 0 2px 8px rgba(0,0,0,0.08);
+  --game-shadow-glow: 0 2px 8px rgba(45, 42, 38, 0.06);
 
   /* Animation easings */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);

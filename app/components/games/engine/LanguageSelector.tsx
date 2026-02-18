@@ -47,20 +47,16 @@ export default function LanguageSelector({
 
   return (
     <div className="mb-4 flex justify-center">
-      <div className="inline-flex items-center gap-1 rounded-2xl p-1" style={{ background: "rgba(0,0,0,0.04)" }}>
+      <div className="inline-flex items-center gap-0.5 rounded-xl p-1" style={{ background: "#F5EDE8" }}>
         {languages.map((lang) => (
           <button
             key={lang.code}
             onClick={() => onChange(lang.code)}
-            className={`rounded-xl px-3 py-2 text-[13px] font-semibold transition-all touch-manipulation whitespace-nowrap ${
-              selected === lang.code
-                ? "bg-white shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className="rounded-lg px-3 py-2 text-[13px] font-medium transition-all touch-manipulation whitespace-nowrap"
             style={
               selected === lang.code
-                ? { color: "#1A1A1B", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
-                : {}
+                ? { background: "#FFFFFF", color: "#2D2A26", boxShadow: "0 1px 3px rgba(45,42,38,0.08)" }
+                : { color: "#9C9590" }
             }
           >
             {lang.flag} {lang.name}

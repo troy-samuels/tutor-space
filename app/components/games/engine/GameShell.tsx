@@ -184,7 +184,7 @@ export default function GameShell({
         <nav
           className="px-4 py-3"
           style={{
-            borderBottom: "1px solid rgba(0,0,0,0.08)",
+            borderBottom: "1px solid rgba(45, 42, 38, 0.06)",
           }}
         >
           <div className="flex items-center justify-between">
@@ -194,7 +194,7 @@ export default function GameShell({
             >
               <svg
                 className="h-4 w-4"
-                style={{ color: "var(--game-text-muted)" }}
+                style={{ color: "#9C9590" }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -204,59 +204,36 @@ export default function GameShell({
               </svg>
               <span
                 className="text-sm font-medium"
-                style={{ color: "var(--game-text-secondary)" }}
+                style={{ color: "#6B6560" }}
               >
                 Games
               </span>
             </Link>
-            <div className="flex items-center gap-2">
-              {streak.current > 0 && (
-                <Badge
-                  variant="outline"
-                  className="gap-1 text-xs border-[rgba(0,0,0,0.1)]"
-                  style={{ color: "var(--game-text-secondary)" }}
-                >
-                  {streakTier.emoji} {streak.current}
-                </Badge>
-              )}
-            </div>
           </div>
         </nav>
       )}
 
-      {/* Compact Game Header — single line, Design Bible style */}
+      {/* Game header — clean, minimal */}
       <header className={cn(
         "game-header px-4 pb-2",
         inTg ? "pt-2" : "pt-3",
       )}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <h1
-              className="font-bold truncate text-base"
-              style={{ color: "var(--game-text-primary)" }}
-            >
-              {gameName}
-            </h1>
-          </div>
+          <h1
+            className="font-semibold truncate text-[15px]"
+            style={{ color: "var(--game-text-primary)" }}
+          >
+            {gameName}
+          </h1>
           <div
-            className="flex items-center gap-2 text-xs flex-shrink-0"
-            style={{ color: "var(--game-text-secondary)" }}
+            className="flex items-center gap-1.5 text-xs flex-shrink-0 tabular-nums"
+            style={{ color: "var(--game-text-muted)" }}
           >
             <span>#{puzzleNumber}</span>
-            <span style={{ opacity: 0.3 }}>·</span>
+            <span>·</span>
             <span>{languageLabel}</span>
-            <span style={{ opacity: 0.3 }}>·</span>
-            <span
-              className={cn(
-                "font-mono tabular-nums",
-                !isComplete && "game-text-glow",
-              )}
-              style={{
-                color: !isComplete ? "var(--game-text-accent)" : "var(--game-text-secondary)",
-              }}
-            >
-              {formatTime(elapsed)}
-            </span>
+            <span>·</span>
+            <span>{formatTime(elapsed)}</span>
           </div>
         </div>
       </header>

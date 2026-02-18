@@ -3,73 +3,43 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface HowToPlayStep {
-  emoji: string;
-  text: string;
-}
-
-interface HowToPlayContent {
-  steps: HowToPlayStep[];
-}
-
-const GAME_CONTENT: Record<string, HowToPlayContent> = {
-  connections: {
-    steps: [
-      { emoji: "🔍", text: "Tap 4 words that go together" },
-      { emoji: "✅", text: "Hit Submit to check your guess" },
-      { emoji: "🏆", text: "Find all 4 colour groups to win!" },
-    ],
-  },
-  "word-ladder": {
-    steps: [
-      { emoji: "🔤", text: "Change ONE letter at a time" },
-      { emoji: "🪜", text: "Get from the top word to the bottom" },
-      { emoji: "⭐", text: "Fewer steps = better score!" },
-    ],
-  },
-  "daily-decode": {
-    steps: [
-      { emoji: "🔐", text: "Each letter is disguised as another" },
-      { emoji: "👆", text: "Tap a letter, then type the real one" },
-      { emoji: "💡", text: "Use hints if you're stuck!" },
-    ],
-  },
-  "odd-one-out": {
-    steps: [
-      { emoji: "👀", text: "Look at the 4 words" },
-      { emoji: "🚫", text: "Tap the one that doesn't belong" },
-      { emoji: "❤️", text: "Don't lose all 3 lives!" },
-    ],
-  },
-  "missing-piece": {
-    steps: [
-      { emoji: "📝", text: "Read the sentence with a gap" },
-      { emoji: "👆", text: "Pick the word that fits" },
-      { emoji: "🎯", text: "Get as many right as you can!" },
-    ],
-  },
-  "synonym-spiral": {
-    steps: [
-      { emoji: "📖", text: "You'll see a word with its meaning" },
-      { emoji: "✍️", text: "Type a word that means the same thing" },
-      { emoji: "🗼", text: "Climb higher with harder synonyms!" },
-    ],
-  },
-};
-
-const GAME_ICONS: Record<string, string> = {
-  connections: "🔗",
-  "word-ladder": "🪜",
-  "daily-decode": "🔐",
-  "odd-one-out": "🚫",
-  "missing-piece": "🧩",
-  "synonym-spiral": "🌀",
-};
-
 interface HowToPlayProps {
   gameSlug: string;
   gameName: string;
 }
+
+const GAME_STEPS: Record<string, string[]> = {
+  connections: [
+    "Tap 4 words that share a hidden connection",
+    "Hit Submit to check your guess",
+    "Find all 4 groups to win",
+  ],
+  "word-ladder": [
+    "Change one letter at a time",
+    "Each step must be a real word",
+    "Reach the target in as few steps as possible",
+  ],
+  "daily-decode": [
+    "Each letter has been swapped for another",
+    "Tap a letter, then type the real one",
+    "Decode the full quote to win",
+  ],
+  "odd-one-out": [
+    "Four words — three share a connection",
+    "Tap the one that doesn't belong",
+    "You have 3 lives",
+  ],
+  "missing-piece": [
+    "Read the sentence with a gap",
+    "Pick the word that fits",
+    "Get as many right as you can",
+  ],
+  "synonym-spiral": [
+    "You'll see a word and its meaning",
+    "Type a synonym at each level",
+    "Climb from basic to literary",
+  ],
+};
 
 export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
   const [visible, setVisible] = React.useState(false);
@@ -87,10 +57,8 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
     setVisible(false);
   }, [gameSlug]);
 
-  const content = GAME_CONTENT[gameSlug];
-  if (!content) return null;
-
-  const icon = GAME_ICONS[gameSlug] || "🎮";
+  const steps = GAME_STEPS[gameSlug];
+  if (!steps) return null;
 
   return (
     <AnimatePresence>
@@ -99,77 +67,67 @@ export default function HowToPlay({ gameSlug, gameName }: HowToPlayProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center px-5"
-          style={{ background: "rgba(0, 0, 0, 0.7)" }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+          style={{ background: "rgba(45, 42, 38, 0.5)" }}
           onClick={dismiss}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.85 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="w-full max-w-[320px] rounded-3xl p-6"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="w-full max-w-[300px] rounded-2xl p-6"
             style={{
               background: "#FFFFFF",
-              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.4)",
+              boxShadow: "0 16px 48px rgba(45, 42, 38, 0.16)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Game icon + name */}
-            <div className="flex flex-col items-center mb-5">
-              <span className="text-4xl mb-2" role="img" aria-label={gameName}>
-                {icon}
-              </span>
-              <h2
-                className="text-lg font-extrabold tracking-tight"
-                style={{ color: "#1a1a2e" }}
-              >
-                {gameName}
-              </h2>
-              <p
-                className="text-xs mt-0.5 font-medium"
-                style={{ color: "#8B8FA3" }}
-              >
-                How to play
-              </p>
-            </div>
+            <h2
+              className="text-base font-bold tracking-tight mb-1"
+              style={{ color: "#2D2A26", fontFamily: "var(--font-manrope), sans-serif" }}
+            >
+              {gameName}
+            </h2>
+            <p
+              className="text-xs mb-5"
+              style={{ color: "#9C9590" }}
+            >
+              How to play
+            </p>
 
-            {/* Steps */}
-            <div className="space-y-4 mb-6">
-              {content.steps.map((step, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div
-                    className="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+            <ol className="space-y-3 mb-6">
+              {steps.map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span
+                    className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold mt-0.5"
                     style={{
-                      background: "#F4F4FF",
+                      background: "#F5EDE8",
+                      color: "#6B6560",
                     }}
                   >
-                    {step.emoji}
-                  </div>
-                  <div className="flex-1 pt-2">
-                    <p
-                      className="text-sm font-semibold leading-snug"
-                      style={{ color: "#2D2D3F" }}
-                    >
-                      {step.text}
-                    </p>
-                  </div>
-                </div>
+                    {i + 1}
+                  </span>
+                  <p
+                    className="text-[13px] leading-relaxed"
+                    style={{ color: "#2D2A26" }}
+                  >
+                    {step}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ol>
 
-            {/* Got it button */}
             <button
               onClick={dismiss}
-              className="w-full py-3 rounded-2xl text-sm font-bold transition-transform active:scale-[0.97]"
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-transform active:scale-[0.97]"
               style={{
-                background: "linear-gradient(135deg, #6C63FF 0%, #4F46E5 100%)",
+                background: "#D36135",
                 color: "#FFFFFF",
-                boxShadow: "0 4px 14px rgba(79, 70, 229, 0.4)",
               }}
             >
-              Got it! 👍
+              Got it
             </button>
           </motion.div>
         </motion.div>

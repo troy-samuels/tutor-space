@@ -359,23 +359,14 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
 
   return (
     <div className="relative space-y-3">
-      {/* Subtle radial spotlight behind the grid */}
-      <div
-        className="pointer-events-none absolute inset-0 -top-16 game-glow opacity-60"
-        aria-hidden
-      />
-
-      {/* Mistake dots — Design Bible: 10px, prominent, spaced */}
-      <div className="flex items-center justify-center gap-2 mb-4">
-        <span className="text-xs font-medium" style={{ color: "var(--game-text-secondary)" }}>
-          Mistakes:
-        </span>
-        <div className="flex gap-2">
+      {/* Mistake dots — minimal */}
+      <div className="flex items-center justify-center gap-1.5 mb-3">
+        <div className="flex gap-1.5">
           {Array.from({ length: MAX_MISTAKES }).map((_, i) => (
             <div
               key={i}
               className={cn(
-                "h-2.5 w-2.5 rounded-full transition-colors duration-200",
+                "h-2 w-2 rounded-full transition-colors duration-200",
                 i < gameState.mistakes
                   ? "bg-[var(--game-wrong)]"
                   : "bg-black/[0.08]",
@@ -429,45 +420,42 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
         </div>
       )}
 
-      {/* Action buttons — glass effect, sticky at bottom */}
+      {/* Action buttons */}
       {!gameState.isComplete && (
         <div
-          className="sticky bottom-0 z-10 -mx-4 mt-5 px-4 py-3"
+          className="sticky bottom-0 z-10 -mx-4 mt-4 px-4 py-3"
           style={{
-            background: "rgba(255, 255, 255, 0.92)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            borderTop: "1px solid rgba(0,0,0,0.08)",
+            background: "rgba(253, 248, 245, 0.95)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            borderTop: "1px solid rgba(45, 42, 38, 0.06)",
             paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
           }}
         >
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={handleShuffle}
-              className="flex-1 rounded-lg text-sm min-h-[44px] text-[var(--game-text-secondary)] hover:text-[var(--game-text-primary)] hover:bg-[var(--game-bg-elevated)]"
+              className="flex-1 rounded-xl text-[13px] font-medium min-h-[44px] transition-colors active:scale-[0.97] touch-manipulation"
+              style={{ color: "#6B6560", background: "#F5EDE8" }}
             >
-              🔀 Shuffle
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+              Shuffle
+            </button>
+            <button
               onClick={handleDeselectAll}
               disabled={gameState.selectedWords.length === 0}
-              className="flex-1 rounded-lg text-sm min-h-[44px] text-[var(--game-text-secondary)] hover:text-[var(--game-text-primary)] hover:bg-[var(--game-bg-elevated)]"
+              className="flex-1 rounded-xl text-[13px] font-medium min-h-[44px] transition-colors active:scale-[0.97] touch-manipulation disabled:opacity-30"
+              style={{ color: "#6B6560", background: "#F5EDE8" }}
             >
-              ✕ Deselect
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
+              Deselect
+            </button>
+            <button
               onClick={handleSubmit}
               disabled={gameState.selectedWords.length !== MAX_SELECTED}
-              className="flex-1 rounded-lg text-sm min-h-[44px] font-bold"
+              className="flex-1 rounded-xl text-[13px] font-semibold min-h-[44px] transition-colors active:scale-[0.97] touch-manipulation disabled:opacity-30"
+              style={{ color: "#FFFFFF", background: "#2D2A26" }}
             >
               Submit
-            </Button>
+            </button>
           </div>
         </div>
       )}

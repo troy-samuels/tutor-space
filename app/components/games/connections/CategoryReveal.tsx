@@ -16,38 +16,34 @@ interface CategoryRevealProps {
   index: number;
 }
 
-/** Gemini directive: solid category colours with glow + faux 3D */
+/** Category colours — warm, on-brand */
 const COLOUR_MAP: Record<
   Difficulty,
-  { bg: string; border: string; text: string; glow: string; label: string }
+  { bg: string; border: string; text: string; glow: string }
 > = {
   yellow: {
-    bg: "#F9DF6D",
-    border: "#D4B62C",
-    text: "#1A1A1B",
-    glow: "rgba(249, 223, 109, 0.15)",
-    label: "🟨",
+    bg: "#E8D5A3",
+    border: "#C4A843",
+    text: "#2D2A26",
+    glow: "rgba(212, 168, 67, 0.1)",
   },
   green: {
-    bg: "#6AAA64",
-    border: "#538D4E",
+    bg: "#7BA882",
+    border: "#3E5641",
     text: "#FFFFFF",
-    glow: "rgba(106, 170, 100, 0.15)",
-    label: "🟩",
+    glow: "rgba(62, 86, 65, 0.1)",
   },
   blue: {
-    bg: "#85C0F9",
-    border: "#5A9BD5",
-    text: "#1A1A1B",
-    glow: "rgba(133, 192, 249, 0.15)",
-    label: "🟦",
+    bg: "#93B8D7",
+    border: "#5A8AB5",
+    text: "#2D2A26",
+    glow: "rgba(90, 138, 181, 0.1)",
   },
   purple: {
-    bg: "#B484D6",
+    bg: "#B89CD4",
     border: "#8B5CB5",
     text: "#FFFFFF",
-    glow: "rgba(180, 132, 214, 0.15)",
-    label: "🟪",
+    glow: "rgba(139, 92, 181, 0.1)",
   },
 };
 
@@ -78,24 +74,20 @@ export default function CategoryReveal({
         damping: 22,
         delay: index * 0.05,
       }}
-      className={cn("rounded-xl px-4 py-3.5 origin-top")}
+      className="rounded-xl px-4 py-3 origin-top"
       style={{
         background: colours.bg,
-        borderBottom: `4px solid ${colours.border}`,
-        boxShadow: `0 2px 8px ${colours.glow}, 0 2px 6px rgba(0,0,0,0.08)`,
+        borderBottom: `3px solid ${colours.border}`,
       }}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-base">{colours.label}</span>
-        <h3
-          className="text-sm font-extrabold uppercase tracking-wide"
-          style={{ color: colours.text }}
-        >
-          {category.name}
-        </h3>
-      </div>
+      <h3
+        className="text-[13px] font-bold uppercase tracking-wide"
+        style={{ color: colours.text }}
+      >
+        {category.name}
+      </h3>
       <p
-        className="mt-1.5 text-xs font-bold uppercase tracking-wider"
+        className="mt-1 text-xs font-medium uppercase tracking-wider"
         style={{ color: colours.text, opacity: 0.6 }}
       >
         {category.words.join(" · ")}

@@ -24,34 +24,34 @@ interface WordTileProps {
   falseFriendBack?: string;
 }
 
-/** Difficulty colours — Gemini directive: category fills */
+/** Category colours — warm palette aligned with TutorLingua brand */
 const DIFFICULTY_COLOURS: Record<
   Difficulty,
   { bg: string; border: string; text: string; glow: string }
 > = {
   yellow: {
-    bg: "#F9DF6D",
-    border: "#D4B62C",
-    text: "#1A1A1B",
-    glow: "rgba(249, 223, 109, 0.2)",
+    bg: "#E8D5A3",
+    border: "#C4A843",
+    text: "#2D2A26",
+    glow: "rgba(212, 168, 67, 0.15)",
   },
   green: {
-    bg: "#6AAA64",
-    border: "#538D4E",
+    bg: "#7BA882",
+    border: "#3E5641",
     text: "#FFFFFF",
-    glow: "rgba(106, 170, 100, 0.2)",
+    glow: "rgba(62, 86, 65, 0.15)",
   },
   blue: {
-    bg: "#85C0F9",
-    border: "#5A9BD5",
-    text: "#1A1A1B",
-    glow: "rgba(133, 192, 249, 0.2)",
+    bg: "#93B8D7",
+    border: "#5A8AB5",
+    text: "#2D2A26",
+    glow: "rgba(90, 138, 181, 0.15)",
   },
   purple: {
-    bg: "#B484D6",
+    bg: "#B89CD4",
     border: "#8B5CB5",
     text: "#FFFFFF",
-    glow: "rgba(180, 132, 214, 0.2)",
+    glow: "rgba(139, 92, 181, 0.15)",
   },
 };
 
@@ -125,43 +125,42 @@ export default function WordTile({
     return { scale: 1 };
   };
 
-  /* ——— Inline styles for the NYT-inspired tile look ——— */
+  /* ——— Tile styles — TutorLingua brand palette ——— */
   const tileStyle: React.CSSProperties = colours
     ? {
-        // Correct / solved state — full category colour
+        // Correct / solved — category colour
         background: colours.bg,
-        borderBottom: `4px solid ${colours.border}`,
+        borderBottom: `3px solid ${colours.border}`,
         color: colours.text,
-        boxShadow: `0 2px 8px rgba(0,0,0,0.1)`,
+        boxShadow: `0 1px 4px rgba(45,42,38,0.08)`,
       }
     : state === "selected"
       ? {
-          // Selected — dark fill with white text (NYT style)
-          background: "#5A5A5C",
-          borderBottom: "4px solid #3A3A3C",
+          // Selected — brand dark
+          background: "#2D2A26",
+          borderBottom: "3px solid #1A1917",
           color: "#FFFFFF",
-          transform: "translateY(1px)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          boxShadow: "0 2px 8px rgba(45,42,38,0.2)",
         }
       : state === "wrong"
         ? {
-            // Wrong — red flash
-            background: "#DC3545",
-            borderBottom: "4px solid #B02A37",
+            // Wrong — brand rust
+            background: "#A24936",
+            borderBottom: "3px solid #8A3D2E",
             color: "#FFFFFF",
           }
         : state === "false-friend"
           ? {
-              // False friend — amber warning on light
-              background: "#FEF3C7",
-              borderBottom: "4px solid #C9B458",
-              color: "#1A1A1B",
+              // False friend — warm amber
+              background: "#FDF3E3",
+              borderBottom: "3px solid #D4A843",
+              color: "#2D2A26",
             }
           : {
-              // Default — clean white tile with subtle border + shadow
-              background: "#EFEFE6",
-              borderBottom: "4px solid #DEDAD2",
-              color: "#1A1A1B",
+              // Default — warm cream
+              background: "#F5EDE8",
+              borderBottom: "3px solid #E8DDD6",
+              color: "#2D2A26",
             };
 
   return (
@@ -176,19 +175,16 @@ export default function WordTile({
         aria-pressed={state === "selected"}
         role="gridcell"
         className={cn(
-          "relative flex min-h-[56px] h-[3.5rem] w-full items-center justify-center",
-          "rounded-xl px-2",
-          "font-bold uppercase tracking-wide",
+          "relative flex min-h-[52px] w-full items-center justify-center",
+          "rounded-lg px-2",
+          "font-semibold uppercase tracking-wide",
           "select-none touch-manipulation",
           "transition-all duration-100",
           "disabled:opacity-40 disabled:cursor-not-allowed",
           "active:brightness-90",
           getAdaptiveFontClass(word),
         )}
-        style={{
-          fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
-          ...tileStyle,
-        }}
+        style={tileStyle}
       >
         {/* Front face */}
         <span className="break-all leading-tight text-center">{word}</span>
