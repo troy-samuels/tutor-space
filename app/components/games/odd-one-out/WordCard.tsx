@@ -57,7 +57,9 @@ function getCardStyle(state: CardState): React.CSSProperties {
     default:
       return {
         background: "#FFFFFF",
-        border: "1px solid rgba(45,42,38,0.10)",
+        borderTop: "1px solid rgba(45,42,38,0.06)",
+        borderLeft: "1px solid rgba(45,42,38,0.06)",
+        borderRight: "1px solid rgba(45,42,38,0.06)",
         borderBottom: "3px solid rgba(45,42,38,0.12)",
         color: "#2D2A26",
         boxShadow: "0 2px 8px rgba(45,42,38,0.08)",

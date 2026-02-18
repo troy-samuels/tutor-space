@@ -11,6 +11,7 @@ import DepthMeter from "./DepthMeter";
 import RoundSummary from "./RoundSummary";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
+import { shareResult } from "@/components/games/engine/share";
 import { cn } from "@/lib/utils";
 import type {
   SynonymSpiralPuzzle,
@@ -277,10 +278,7 @@ export default function SynonymSpiralGame({ puzzle, onGameEnd }: SynonymSpiralGa
       "tutorlingua.co/games/synonym-spiral",
     ].join("\n");
 
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    await shareResult(text, "Synonym Spiral", setCopied, copyTimeoutRef);
   }, [puzzle, roundResults]);
 
   // Timer display

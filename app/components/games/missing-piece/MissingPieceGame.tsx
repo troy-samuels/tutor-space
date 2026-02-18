@@ -11,6 +11,7 @@ import GameResultCard from "@/components/games/engine/GameResultCard";
 import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
+import { shareResult } from "@/components/games/engine/share";
 import type {
   MissingPiecePuzzle,
   MissingPieceGameState,
@@ -137,10 +138,7 @@ export default function MissingPieceGame({ puzzle, onGameEnd }: MissingPieceGame
 
   const handleShare = React.useCallback(async () => {
     const text = generateShareText();
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    await shareResult(text, "Missing Piece", setCopied, copyTimeoutRef);
   }, [generateShareText]);
 
   const timeSeconds = gameState.endTime

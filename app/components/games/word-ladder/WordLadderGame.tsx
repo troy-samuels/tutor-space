@@ -9,6 +9,7 @@ import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { validateStep, generateShareText } from "@/lib/games/data/word-ladder";
 import { haptic } from "@/lib/games/haptics";
+import { shareResult } from "@/components/games/engine/share";
 import type { WordLadderPuzzle, WordLadderGameState } from "@/lib/games/data/word-ladder/types";
 
 interface WordLadderGameProps {
@@ -134,10 +135,7 @@ export default function WordLadderGame({ puzzle, onGameEnd }: WordLadderGameProp
       puzzle.par,
       timeMs,
     );
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    await shareResult(text, "Word Ladder", setCopied, copyTimeoutRef);
   }, [gameState, puzzle]);
 
   return (

@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface VibeClueBannerProps {
   clues: string[];
@@ -47,12 +45,22 @@ export default function VibeClueBanner({ clues, solvedCount }: VibeClueBannerPro
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="rounded-xl border border-primary/20 bg-primary/[0.06] px-4 py-3 backdrop-blur-md">
+            <div
+              className="rounded-xl px-4 py-3 backdrop-blur-md"
+              style={{
+                border: "1px solid rgba(211,97,53,0.20)",
+                background: "rgba(211,97,53,0.06)",
+              }}
+            >
               <div className="flex items-start gap-2">
-                
                 <div>
-                  <p className="text-sm italic text-foreground/80">{currentClue}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <p className="text-sm italic" style={{ color: "rgba(45,42,38,0.80)" }}>
+                    {currentClue}
+                  </p>
+                  <p
+                    className="mt-1 text-[10px] uppercase tracking-wider"
+                    style={{ color: "#9C9590" }}
+                  >
                     Hint {hintsUsed}/{Math.min(availableClues.length, MAX_HINTS)}
                   </p>
                 </div>
@@ -67,17 +75,15 @@ export default function VibeClueBanner({ clues, solvedCount }: VibeClueBannerPro
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={handleUseHint}
-                className={cn(
-                  "w-full rounded-xl text-xs text-muted-foreground",
-                  "hover:text-primary",
-                )}
+                className="w-full rounded-xl px-4 py-2 text-xs font-medium min-h-[44px] touch-manipulation transition-colors"
+                style={{ color: "#9C9590" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#D36135"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#9C9590"; }}
               >
                 Need a hint? ({Math.min(availableClues.length, MAX_HINTS) - hintsUsed} remaining)
-              </Button>
+              </button>
             </motion.div>
           )
         )}

@@ -50,7 +50,9 @@ function getStateStyles(state: OptionState): React.CSSProperties {
     default:
       return {
         background: "#FFFFFF",
-        border: "1px solid rgba(45,42,38,0.10)",
+        borderTop: "1px solid rgba(45,42,38,0.06)",
+        borderLeft: "1px solid rgba(45,42,38,0.06)",
+        borderRight: "1px solid rgba(45,42,38,0.06)",
         borderBottom: "3px solid rgba(45,42,38,0.12)",
         color: "#2D2A26",
         boxShadow: "0 2px 6px rgba(45,42,38,0.06)",
@@ -103,7 +105,7 @@ export default function OptionButton({
       whileTap={!disabled && state === "default" ? { scale: 0.96 } : undefined}
       style={getStateStyles(state)}
       className={cn(
-        "flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl border px-3 font-semibold transition-colors",
+        "flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl px-3 font-semibold transition-colors",
         "select-none touch-manipulation",
         "disabled:cursor-not-allowed",
         getAdaptiveFontClass(text),

@@ -14,13 +14,7 @@ interface WordInputProps {
   feedback: { type: "success" | "error" | "skip"; message: string } | null;
 }
 
-const DEPTH_ACCENT: Record<DepthLevel, string> = {
-  1: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
-  2: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
-  3: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
-  4: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
-  5: "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]",
-};
+const INPUT_ACCENT = "focus-visible:ring-[#2D2A26]/10 border-[#E8DDD6]";
 
 export default function WordInput({
   targetDepthLabel,
@@ -78,7 +72,7 @@ export default function WordInput({
             "flex-1 rounded-xl border bg-white px-4 py-3 text-sm placeholder:text-[#9C9590]/60",
             "outline-none focus-visible:ring-2 transition-all",
             "disabled:opacity-40 disabled:cursor-not-allowed",
-            DEPTH_ACCENT[targetDepth],
+            INPUT_ACCENT,
           )}
           style={{ color: "#2D2A26" }}
         />

@@ -10,6 +10,7 @@ import GameResultCard from "@/components/games/engine/GameResultCard";
 import GameButton from "@/components/games/engine/GameButton";
 import { recordGamePlay } from "@/lib/games/streaks";
 import { haptic } from "@/lib/games/haptics";
+import { shareResult } from "@/components/games/engine/share";
 import type { OddOneOutPuzzle, OddOneOutGameState } from "@/lib/games/data/odd-one-out/types";
 
 interface OddOneOutGameProps {
@@ -139,10 +140,7 @@ export default function OddOneOutGame({ puzzle, onGameEnd }: OddOneOutGameProps)
 
   const handleShare = React.useCallback(async () => {
     const text = generateShareText();
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    await shareResult(text, "Odd One Out", setCopied, copyTimeoutRef);
   }, [generateShareText]);
 
   const timeSeconds = gameState.endTime

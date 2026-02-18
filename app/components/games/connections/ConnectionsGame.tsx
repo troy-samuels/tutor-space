@@ -583,19 +583,10 @@ export default function ConnectionsGame({ puzzle, onGameEnd }: ConnectionsGamePr
               </div>
             )}
 
-            {/* Share button — with shimmer effect */}
-            <button
-              onClick={handleShare}
-              className={cn(
-                "w-full rounded-xl py-3.5 font-bold text-sm min-h-[48px]",
-                "transition-all duration-200",
-                copied
-                  ? "bg-[var(--game-correct)] text-white"
-                  : "bg-[var(--game-text-accent)] text-white hover:opacity-90",
-              )}
-            >
+            {/* Share button */}
+            <GameButton onClick={handleShare} variant="accent">
               {copied ? "✓ Copied!" : "📋 Share Result"}
-            </button>
+            </GameButton>
 
             {/* Explain mistakes */}
             {gameState.mistakes > 0 && (

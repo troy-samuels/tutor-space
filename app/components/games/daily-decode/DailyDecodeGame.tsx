@@ -14,6 +14,7 @@ import {
   stripAccent,
 } from "@/lib/games/data/daily-decode";
 import { haptic } from "@/lib/games/haptics";
+import { shareResult } from "@/components/games/engine/share";
 import type {
   DecodePuzzle,
   CipherMap,
@@ -244,10 +245,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd }: DailyDecodeGamePr
       gameState.hintsUsed,
       timeMs,
     );
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    await shareResult(text, "Daily Decode", setCopied, copyTimeoutRef);
   }, [gameState, puzzle]);
 
   return (

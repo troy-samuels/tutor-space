@@ -76,7 +76,7 @@ export default function AlphabetKeyboard({
             </span>
             <button
               onClick={onClose}
-              className="rounded-md px-2 py-0.5 text-xs transition-colors touch-manipulation min-h-[44px]"
+              className="rounded-md px-2 py-0.5 text-xs transition-colors touch-manipulation min-h-[44px] min-w-[44px]"
               style={{ color: "#9C9590" }}
             >
               ✕

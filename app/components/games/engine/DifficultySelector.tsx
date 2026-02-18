@@ -40,11 +40,11 @@ function DifficultySelector({
         animate={{ opacity: 1, y: 0 }}
         className="mb-5"
       >
-        <h2 className="text-lg font-bold text-foreground">
+        <h2 className="text-lg font-bold" style={{ color: "#2D2A26" }}>
           Choose your level
         </h2>
         {gameName && (
-          <p className="text-xs text-muted-foreground mt-0.5">{gameName}</p>
+          <p className="text-xs mt-0.5" style={{ color: "#9C9590" }}>{gameName}</p>
         )}
       </motion.div>
 
@@ -68,10 +68,18 @@ function DifficultySelector({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-all text-left min-h-[56px] relative",
                 "touch-manipulation",
-                isSelected
-                  ? "border-primary bg-primary/10"
-                  : "border-border/50 bg-card hover:border-primary/30",
               )}
+              style={
+                isSelected
+                  ? {
+                      borderColor: "#D36135",
+                      background: "rgba(211,97,53,0.1)",
+                    }
+                  : {
+                      borderColor: "rgba(45,42,38,0.12)",
+                      background: "#FFFFFF",
+                    }
+              }
             >
               {/* Level badge */}
               <div
@@ -86,29 +94,36 @@ function DifficultySelector({
               {/* Label + description */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-sm text-foreground">
+                  <span className="font-semibold text-sm" style={{ color: "#2D2A26" }}>
                     {config.label}
                   </span>
                   {isRecommended && (
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary flex items-center gap-0.5">
+                    <span
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                      style={{ background: "rgba(211,97,53,0.15)", color: "#D36135" }}
+                    >
                       <Sparkles className="w-2.5 h-2.5" />
                       Rec
                     </span>
                   )}
                   {isCurrent && !isRecommended && (
-                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">
+                    <span
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: "rgba(211,97,53,0.15)", color: "#D36135" }}
+                    >
                       Current
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-[11px] mt-0.5 truncate" style={{ color: "#9C9590" }}>
                   {config.description}
                 </p>
               </div>
 
               {/* Chevron */}
               <svg
-                className="w-4 h-4 text-muted-foreground/40 flex-shrink-0"
+                className="w-4 h-4 flex-shrink-0"
+                style={{ color: "rgba(156,149,144,0.4)" }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -126,7 +141,8 @@ function DifficultySelector({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="text-[10px] text-muted-foreground/60 text-center mt-4"
+        className="text-[10px] text-center mt-4"
+        style={{ color: "rgba(156,149,144,0.6)" }}
       >
         Graded using the CEFR international standard
       </motion.p>
