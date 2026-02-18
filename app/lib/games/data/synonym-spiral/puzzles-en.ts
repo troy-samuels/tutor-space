@@ -502,4 +502,252 @@ export const PUZZLES_EN: SynonymSpiralPuzzle[] = [
       },
     ],
   },
+  {
+    number: 9,
+    language: "en",
+    date: "2026-02-25",
+    chains: [
+      {
+        starterWord: "slow",
+        starterTranslation: "lento",
+        levels: [
+          { depth: 1, validWords: ["steady", "gradual", "gentle"], label: "Basic" },
+          { depth: 2, validWords: ["sluggish", "leisurely", "unhurried"], label: "Intermediate" },
+          { depth: 3, validWords: ["languid", "ponderous", "deliberate"], label: "Advanced" },
+          { depth: 4, validWords: ["torpid", "phlegmatic", "lethargic"], label: "Literary" },
+          { depth: 5, validWords: ["dilatory", "somnambulant", "glacial"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "stupid",
+        starterTranslation: "estúpido",
+        levels: [
+          { depth: 1, validWords: ["dumb", "silly", "foolish"], label: "Basic" },
+          { depth: 2, validWords: ["idiotic", "moronic", "senseless"], label: "Intermediate" },
+          { depth: 3, validWords: ["asinine", "obtuse", "fatuous"], label: "Advanced" },
+          { depth: 4, validWords: ["imbecilic", "vacuous", "witless"], label: "Literary" },
+          { depth: 5, validWords: ["cretinous", "puerile", "benighted"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "old",
+        starterTranslation: "viejo",
+        levels: [
+          { depth: 1, validWords: ["aged", "elderly", "ancient"], label: "Basic" },
+          { depth: 2, validWords: ["vintage", "antique", "mature"], label: "Intermediate" },
+          { depth: 3, validWords: ["archaic", "venerable", "decrepit"], label: "Advanced" },
+          { depth: 4, validWords: ["primordial", "primeval", "antiquated"], label: "Literary" },
+          { depth: 5, validWords: ["antediluvian", "hoary", "immemorial"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "crazy",
+        starterTranslation: "loco",
+        levels: [
+          { depth: 1, validWords: ["mad", "wild", "insane"], label: "Basic" },
+          { depth: 2, validWords: ["deranged", "unhinged", "frenzied"], label: "Intermediate" },
+          { depth: 3, validWords: ["manic", "demented", "delirious"], label: "Advanced" },
+          { depth: 4, validWords: ["unbalanced", "psychotic", "certifiable"], label: "Literary" },
+          { depth: 5, validWords: ["lunatic", "bedlamite", "maniacal"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "shy",
+        starterTranslation: "tímido",
+        levels: [
+          { depth: 1, validWords: ["quiet", "timid", "reserved"], label: "Basic" },
+          { depth: 2, validWords: ["bashful", "withdrawn", "introverted"], label: "Intermediate" },
+          { depth: 3, validWords: ["reticent", "diffident", "demure"], label: "Advanced" },
+          { depth: 4, validWords: ["self-effacing", "retiring", "coy"], label: "Literary" },
+          { depth: 5, validWords: ["pusillanimous", "mousy", "wallflower"], label: "Poetic" },
+        ],
+      },
+    ],
+  },
+  {
+    number: 10,
+    language: "en",
+    date: "2026-02-26",
+    chains: [
+      {
+        starterWord: "cheap",
+        starterTranslation: "barato",
+        levels: [
+          { depth: 1, validWords: ["low-cost", "budget", "affordable"], label: "Basic" },
+          { depth: 2, validWords: ["inexpensive", "economical", "bargain"], label: "Intermediate" },
+          { depth: 3, validWords: ["frugal", "thrifty", "cut-rate"], label: "Advanced" },
+          { depth: 4, validWords: ["penny-pinching", "parsimonious", "miserly"], label: "Literary" },
+          { depth: 5, validWords: ["penurious", "niggardly", "cheese-paring"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "young",
+        starterTranslation: "joven",
+        levels: [
+          { depth: 1, validWords: ["fresh", "junior", "teenage"], label: "Basic" },
+          { depth: 2, validWords: ["youthful", "juvenile", "adolescent"], label: "Intermediate" },
+          { depth: 3, validWords: ["nascent", "fledgling", "budding"], label: "Advanced" },
+          { depth: 4, validWords: ["callow", "verdant", "neophyte"], label: "Literary" },
+          { depth: 5, validWords: ["jejune", "embryonic", "pubescent"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "rude",
+        starterTranslation: "grosero",
+        levels: [
+          { depth: 1, validWords: ["mean", "impolite", "cheeky"], label: "Basic" },
+          { depth: 2, validWords: ["disrespectful", "insolent", "offensive"], label: "Intermediate" },
+          { depth: 3, validWords: ["impudent", "discourteous", "boorish"], label: "Advanced" },
+          { depth: 4, validWords: ["uncouth", "churlish", "loutish"], label: "Literary" },
+          { depth: 5, validWords: ["philistine", "troglodyte", "boorish"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "fat",
+        starterTranslation: "gordo",
+        levels: [
+          { depth: 1, validWords: ["chubby", "plump", "heavy"], label: "Basic" },
+          { depth: 2, validWords: ["overweight", "stout", "portly"], label: "Intermediate" },
+          { depth: 3, validWords: ["corpulent", "rotund", "stocky"], label: "Advanced" },
+          { depth: 4, validWords: ["obese", "adipose", "paunchy"], label: "Literary" },
+          { depth: 5, validWords: ["Falstaffian", "Rubenesque", "elephantine"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "poor",
+        starterTranslation: "pobre",
+        levels: [
+          { depth: 1, validWords: ["broke", "needy", "skint"], label: "Basic" },
+          { depth: 2, validWords: ["impoverished", "destitute", "bankrupt"], label: "Intermediate" },
+          { depth: 3, validWords: ["indigent", "penniless", "insolvent"], label: "Advanced" },
+          { depth: 4, validWords: ["penurious", "impecunious", "bereft"], label: "Literary" },
+          { depth: 5, validWords: ["mendicant", "pauperised", "necessitous"], label: "Poetic" },
+        ],
+      },
+    ],
+  },
+  {
+    number: 11,
+    language: "en",
+    date: "2026-02-27",
+    chains: [
+      {
+        starterWord: "careful",
+        starterTranslation: "cuidadoso",
+        levels: [
+          { depth: 1, validWords: ["cautious", "safe", "aware"], label: "Basic" },
+          { depth: 2, validWords: ["wary", "attentive", "vigilant"], label: "Intermediate" },
+          { depth: 3, validWords: ["prudent", "circumspect", "meticulous"], label: "Advanced" },
+          { depth: 4, validWords: ["scrupulous", "judicious", "punctilious"], label: "Literary" },
+          { depth: 5, validWords: ["assiduous", "sedulous", "fastidious"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "empty",
+        starterTranslation: "vacío",
+        levels: [
+          { depth: 1, validWords: ["blank", "bare", "hollow"], label: "Basic" },
+          { depth: 2, validWords: ["vacant", "deserted", "barren"], label: "Intermediate" },
+          { depth: 3, validWords: ["desolate", "devoid", "forsaken"], label: "Advanced" },
+          { depth: 4, validWords: ["bereft", "vacuous", "void"], label: "Literary" },
+          { depth: 5, validWords: ["tenantless", "unpeopled", "evacuated"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "shiny",
+        starterTranslation: "brillante",
+        levels: [
+          { depth: 1, validWords: ["bright", "glossy", "sparkly"], label: "Basic" },
+          { depth: 2, validWords: ["gleaming", "polished", "glittering"], label: "Intermediate" },
+          { depth: 3, validWords: ["luminous", "radiant", "lustrous"], label: "Advanced" },
+          { depth: 4, validWords: ["resplendent", "scintillating", "incandescent"], label: "Literary" },
+          { depth: 5, validWords: ["coruscating", "effulgent", "lambent"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "soft",
+        starterTranslation: "suave",
+        levels: [
+          { depth: 1, validWords: ["smooth", "gentle", "tender"], label: "Basic" },
+          { depth: 2, validWords: ["silky", "velvety", "plush"], label: "Intermediate" },
+          { depth: 3, validWords: ["supple", "yielding", "malleable"], label: "Advanced" },
+          { depth: 4, validWords: ["downy", "gossamer", "diaphanous"], label: "Literary" },
+          { depth: 5, validWords: ["ethereal", "gossamer", "zephyr-like"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "sharp",
+        starterTranslation: "afilado",
+        levels: [
+          { depth: 1, validWords: ["keen", "pointed", "cutting"], label: "Basic" },
+          { depth: 2, validWords: ["razor-sharp", "piercing", "incisive"], label: "Intermediate" },
+          { depth: 3, validWords: ["trenchant", "acerbic", "caustic"], label: "Advanced" },
+          { depth: 4, validWords: ["mordant", "vitriolic", "astringent"], label: "Literary" },
+          { depth: 5, validWords: ["excoriating", "corrosive", "aculeate"], label: "Poetic" },
+        ],
+      },
+    ],
+  },
+  {
+    number: 12,
+    language: "en",
+    date: "2026-02-28",
+    chains: [
+      {
+        starterWord: "scared",
+        starterTranslation: "asustado",
+        levels: [
+          { depth: 1, validWords: ["afraid", "nervous", "worried"], label: "Basic" },
+          { depth: 2, validWords: ["terrified", "horrified", "petrified"], label: "Intermediate" },
+          { depth: 3, validWords: ["panic-stricken", "aghast", "appalled"], label: "Advanced" },
+          { depth: 4, validWords: ["terror-struck", "unnerved", "mortified"], label: "Literary" },
+          { depth: 5, validWords: ["trepidatious", "pusillanimous", "tremulous"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "delicious",
+        starterTranslation: "delicioso",
+        levels: [
+          { depth: 1, validWords: ["tasty", "yummy", "lovely"], label: "Basic" },
+          { depth: 2, validWords: ["scrumptious", "mouth-watering", "flavourful"], label: "Intermediate" },
+          { depth: 3, validWords: ["delectable", "palatable", "savoury"], label: "Advanced" },
+          { depth: 4, validWords: ["ambrosial", "toothsome", "piquant"], label: "Literary" },
+          { depth: 5, validWords: ["nectareous", "sapid", "luscious"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "honest",
+        starterTranslation: "honesto",
+        levels: [
+          { depth: 1, validWords: ["truthful", "fair", "real"], label: "Basic" },
+          { depth: 2, validWords: ["sincere", "genuine", "trustworthy"], label: "Intermediate" },
+          { depth: 3, validWords: ["forthright", "candid", "transparent"], label: "Advanced" },
+          { depth: 4, validWords: ["veracious", "guileless", "unimpeachable"], label: "Literary" },
+          { depth: 5, validWords: ["incorruptible", "irreproachable", "probity"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "deep",
+        starterTranslation: "profundo",
+        levels: [
+          { depth: 1, validWords: ["low", "sunken", "buried"], label: "Basic" },
+          { depth: 2, validWords: ["bottomless", "cavernous", "fathomless"], label: "Intermediate" },
+          { depth: 3, validWords: ["profound", "abyssal", "unfathomable"], label: "Advanced" },
+          { depth: 4, validWords: ["inscrutable", "recondite", "impenetrable"], label: "Literary" },
+          { depth: 5, validWords: ["Hadean", "abysmal", "bathypelagic"], label: "Poetic" },
+        ],
+      },
+      {
+        starterWord: "crazy",
+        starterTranslation: "loco",
+        levels: [
+          { depth: 1, validWords: ["nuts", "bonkers", "loopy"], label: "Basic" },
+          { depth: 2, validWords: ["barmy", "potty", "crackers"], label: "Intermediate" },
+          { depth: 3, validWords: ["unhinged", "demented", "deranged"], label: "Advanced" },
+          { depth: 4, validWords: ["non compos mentis", "certifiable", "psychotic"], label: "Literary" },
+          { depth: 5, validWords: ["insensate", "touched", "distrait"], label: "Poetic" },
+        ],
+      },
+    ],
+  },
 ];
