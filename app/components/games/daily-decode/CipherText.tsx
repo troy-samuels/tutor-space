@@ -34,7 +34,7 @@ export default function CipherText({
   let globalCharIndex = 0;
 
   return (
-    <div className="flex flex-wrap justify-center gap-x-2 gap-y-4 overflow-hidden px-1 sm:gap-x-3">
+    <div className="flex flex-wrap justify-center gap-x-4 gap-y-5 overflow-hidden px-1 sm:gap-x-6">
       {encodedWords.map((word, wordIdx) => {
         const plaintextWord = plaintextWords[wordIdx] || "";
         const startIdx = globalCharIndex;

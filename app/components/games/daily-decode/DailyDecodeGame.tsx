@@ -306,6 +306,13 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
         </span>
       </div>
 
+      {/* Author attribution — gives context without spoiling */}
+      {!gameState.isComplete && puzzle.author && (
+        <p className="text-center text-xs font-medium italic" style={{ color: "#9C9590" }}>
+          A quote by {puzzle.author}
+        </p>
+      )}
+
       {/* Inline helper hint — fades after first mapping */}
       <AnimatePresence>
         {showInlineHint && !gameState.isComplete && (
@@ -316,7 +323,7 @@ export default function DailyDecodeGame({ puzzle, onGameEnd, onPlayAgain }: Dail
             className="text-xs text-center"
             style={{ color: "var(--game-text-muted)" }}
           >
-            Tap any letter below, then type what you think it really is
+            Each letter has been swapped for another. Tap a letter to decode it.
           </motion.p>
         )}
       </AnimatePresence>
