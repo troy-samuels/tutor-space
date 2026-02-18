@@ -457,7 +457,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
             <motion.button
               onClick={handleShuffle}
               whileTap={{ scale: 0.96 }}
-              className="flex-1 rounded-xl text-[13px] font-medium min-h-[48px] touch-manipulation select-none"
+              className="flex-1 rounded-xl text-[13px] font-medium min-h-[48px] touch-manipulation select-none cursor-pointer"
               style={{ color: "#6B6560", background: "#F5EDE8" }}
             >
               Shuffle
@@ -467,7 +467,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
               onClick={handleDeselectAll}
               disabled={gameState.selectedWords.length === 0}
               whileTap={gameState.selectedWords.length > 0 ? { scale: 0.96 } : undefined}
-              className="flex-1 rounded-xl text-[13px] font-medium min-h-[48px] touch-manipulation select-none disabled:opacity-30"
+              className="flex-1 rounded-xl text-[13px] font-medium min-h-[48px] touch-manipulation select-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ color: "#6B6560", background: "#F5EDE8" }}
             >
               Deselect
@@ -477,7 +477,7 @@ export default function ConnectionsGame({ puzzle, onGameEnd, onPlayAgain }: Conn
               onClick={handleSubmit}
               disabled={gameState.selectedWords.length !== MAX_SELECTED}
               whileTap={gameState.selectedWords.length === MAX_SELECTED ? { scale: 0.96 } : undefined}
-              className="flex-1 rounded-xl text-[13px] font-semibold min-h-[48px] touch-manipulation select-none"
+              className="flex-1 rounded-xl text-[13px] font-semibold min-h-[48px] touch-manipulation select-none cursor-pointer disabled:cursor-not-allowed"
               style={{
                 color: "#FFFFFF",
                 background: gameState.selectedWords.length !== MAX_SELECTED ? "#9C9590" : "#2D2A26",

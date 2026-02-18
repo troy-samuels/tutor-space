@@ -136,6 +136,7 @@ export default function WordTile({
         onClick={handleClick}
         disabled={disabled}
         layout
+        whileHover={!disabled ? { y: -2 } : undefined}
         whileTap={!disabled ? { scale: 0.96 } : undefined}
         animate={getAnimateProps()}
         transition={springTransition}
@@ -145,7 +146,7 @@ export default function WordTile({
           "relative flex min-h-[56px] w-full items-center justify-center",
           "rounded-lg px-2",
           "font-semibold uppercase tracking-wide",
-          "select-none touch-manipulation",
+          "select-none touch-manipulation cursor-pointer",
           "transition-all duration-100",
           "disabled:opacity-40 disabled:cursor-not-allowed",
           "active:brightness-90",

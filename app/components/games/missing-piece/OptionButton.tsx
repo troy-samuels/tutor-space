@@ -104,7 +104,7 @@ export default function OptionButton({
       style={getStateStyles(state)}
       className={cn(
         "relative flex min-h-[52px] h-14 w-full items-center justify-center rounded-xl px-3 font-semibold transition-colors",
-        "select-none touch-manipulation",
+        "select-none touch-manipulation cursor-pointer",
         "disabled:cursor-not-allowed",
         getAdaptiveFontClass(text),
         state === "default" && "hover:brightness-95 active:brightness-90",

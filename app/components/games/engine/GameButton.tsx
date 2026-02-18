@@ -77,7 +77,7 @@ export default function GameButton({
         inline-flex items-center justify-center gap-2
         min-h-[48px] rounded-xl px-5
         text-[14px] font-semibold
-        select-none touch-manipulation
+        select-none touch-manipulation cursor-pointer
         transition-opacity duration-100
         disabled:opacity-30 disabled:cursor-not-allowed
         ${fullWidth ? "w-full" : ""}

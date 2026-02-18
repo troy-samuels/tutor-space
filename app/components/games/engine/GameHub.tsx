@@ -69,7 +69,7 @@ function GameCard({
     <Link
       href={`/games/${game.slug}`}
       data-card-index={index}
-      className="game-card block rounded-2xl transition-transform active:scale-[0.98] touch-manipulation"
+      className="game-card block rounded-2xl transition-all active:scale-[0.98] hover:shadow-md hover:border-[rgba(45,42,38,0.12)] cursor-pointer touch-manipulation"
       style={{
         background: "#FFFFFF",
         border: "1px solid rgba(45, 42, 38, 0.06)",

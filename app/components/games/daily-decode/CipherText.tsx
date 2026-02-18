@@ -94,9 +94,9 @@ export default function CipherText({
               style={bgStyle}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-1 py-1 transition-colors min-w-[2rem]",
-                "touch-manipulation select-none",
-                !isComplete && !isHinted && "hover:brightness-95 cursor-pointer",
-                isComplete && "cursor-default",
+                "touch-manipulation select-none cursor-pointer",
+                !isComplete && !isHinted && "hover:brightness-95",
+                (isComplete || isHinted) && "cursor-default",
               )}
             >
               {/* Player's guess (top) */}
