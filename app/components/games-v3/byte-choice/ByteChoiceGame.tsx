@@ -39,6 +39,7 @@ type Stage = "countdown" | "active" | "summary";
 
 interface RoundResult {
   prompt: string;
+  answer: string;
   correct: boolean;
 }
 
@@ -230,7 +231,10 @@ export default function ByteChoiceGame({
       setRecentResponses((prev) => [...prev.slice(-4), responseMs]);
 
       // Record round result
-      setRoundResults((prev) => [...prev, { prompt: question.prompt, correct }]);
+      setRoundResults((prev) => [
+        ...prev,
+        { prompt: question.prompt, answer: question.options[question.correctIndex], correct },
+      ]);
 
       // Calibration
       const nextSamples =
@@ -342,84 +346,139 @@ export default function ByteChoiceGame({
 
   // Summary / Results
   if (stage === "summary") {
+    const isExcellent = accuracyPct >= 90;
+    const WORDS_COLLAPSED_LIMIT = 6;
+    const hasOverflow = roundResults.length > WORDS_COLLAPSED_LIMIT;
+
     return (
       <div className={styles.arena}>
         <div className={styles.results}>
-          {/* Header */}
-          <div className={styles.resultsHeader}>
+          {/* Confetti burst for excellent results */}
+          {isExcellent && (
+            <div className={styles.confettiContainer} aria-hidden="true">
+              {Array.from({ length: 24 }, (_, i) => (
+                <span
+                  key={i}
+                  className={styles.confettiPiece}
+                  style={{
+                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                    ["--ci" as string]: i,
+                    left: `${4 + (i * 17) % 92}%`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Header — stagger 1 */}
+          <div className={styles.resultsHeader} data-excellent={isExcellent ? "true" : "false"}>
+            <div className={styles.resultsHeaderGlow} aria-hidden="true" />
             <p className={styles.resultsEmoji}>{getResultEmoji()}</p>
             <h2 className={styles.resultsTitle}>{getResultTitle()}</h2>
             <p className={styles.resultsSubtitle}>{copy.progress}</p>
           </div>
 
-          {/* Stats Grid */}
+          {/* Stats Grid — stagger 2 */}
           <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
+            {/* Accuracy — radial gauge */}
+            <div className={styles.statCard} data-variant="gauge">
+              <div className={styles.gaugeWrap}>
+                <svg className={styles.gaugeSvg} viewBox="0 0 80 80">
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="34"
+                    fill="none"
+                    stroke="#E2D8CA"
+                    strokeWidth="6"
+                  />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="34"
+                    fill="none"
+                    stroke={accuracyPct >= 70 ? "var(--bc-green)" : "var(--bc-gold)"}
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(accuracyPct / 100) * 213.6} 213.6`}
+                    className={styles.gaugeArc}
+                    transform="rotate(-90 40 40)"
+                  />
+                </svg>
+                <span className={styles.gaugeValue}>{accuracyPct}%</span>
+              </div>
               <p className={styles.statLabel}>Accuracy</p>
-              <p className={styles.statValue} data-accent="green">
-                {accuracyPct}%
-              </p>
             </div>
+
+            {/* Best Streak */}
             <div className={styles.statCard}>
+              <p className={styles.statValueLg} data-accent="gold">
+                {bestStreak}<span className={styles.statIcon}>🔥</span>
+              </p>
               <p className={styles.statLabel}>Best Streak</p>
-              <p className={styles.statValue} data-accent="gold">
-                {bestStreak}🔥
-              </p>
             </div>
+
+            {/* Time */}
             <div className={styles.statCard}>
+              <p className={styles.statValueLg}>{formatTime(elapsedTotal)}</p>
               <p className={styles.statLabel}>Time</p>
-              <p className={styles.statValue}>{formatTime(elapsedTotal)}</p>
             </div>
+
+            {/* Score */}
             <div className={styles.statCard}>
-              <p className={styles.statLabel}>Score</p>
-              <p className={styles.statValue}>
-                {score}/{totalQuestions}
+              <p className={styles.statValueLg}>
+                {score}<span className={styles.statDenom}>/{totalQuestions}</span>
               </p>
+              <p className={styles.statLabel}>Score</p>
             </div>
           </div>
 
-          {/* Words Learned */}
+          {/* Words Learned — stagger 3 */}
           {roundResults.length > 0 && (
-            <div className={styles.wordsLearned}>
-              <p className={styles.wordsLearnedTitle}>Words This Round</p>
-              <div className={styles.wordChips}>
-                {roundResults.map((r, i) => (
-                  <span
-                    key={`${r.prompt}-${i}`}
-                    className={styles.wordChip}
-                    data-correct={r.correct ? "true" : "false"}
-                  >
-                    {r.prompt}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <WordsSection results={roundResults} limit={WORDS_COLLAPSED_LIMIT} hasOverflow={hasOverflow} />
           )}
 
-          {/* Share */}
-          <SharePanel
-            gameSlug="byte-choice"
-            seed={puzzle.seed}
-            mode={mode}
-            score={score}
-            streak={bestStreak}
-            difficultyBand={difficulty}
-            locale={language}
-            shareWin={copy.shareWin}
-            shareStumble={copy.shareStumble}
-            uiVersion={UI_VERSION}
-            curveVersion={CURVE_VERSION}
-          />
-
-          {/* Actions */}
-          <div className={styles.actions}>
+          {/* CTAs — stagger 4 */}
+          <div className={styles.ctaStack}>
+            {/* Primary: Play Again */}
             <button
               type="button"
-              className={styles.playAgainBtn}
+              className={styles.ctaPrimary}
               onPointerDown={() => location.reload()}
             >
               Play Again
             </button>
+
+            {/* Secondary: Try Another Game */}
+            <a href="/games" className={styles.ctaSecondary}>
+              Try Another Game
+            </a>
+
+            {/* Share Panel */}
+            <div className={styles.shareSection}>
+              <SharePanel
+                gameSlug="byte-choice"
+                seed={puzzle.seed}
+                mode={mode}
+                score={score}
+                streak={bestStreak}
+                difficultyBand={difficulty}
+                locale={language}
+                shareWin={copy.shareWin}
+                shareStumble={copy.shareStumble}
+                uiVersion={UI_VERSION}
+                curveVersion={CURVE_VERSION}
+              />
+            </div>
+
+            {/* Soft conversion CTA */}
+            <a href="/signup" className={styles.tutorCta}>
+              <span className={styles.tutorCtaBrand}>TutorLingua</span>
+              <span className={styles.tutorCtaText}>
+                Want a tutor who teaches like this?
+              </span>
+              <span className={styles.tutorCtaArrow}>→</span>
+            </a>
           </div>
         </div>
       </div>
@@ -500,6 +559,48 @@ export default function ByteChoiceGame({
             })}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+/* ── Collapsible words sub-component ── */
+function WordsSection({
+  results,
+  limit,
+  hasOverflow,
+}: {
+  results: RoundResult[];
+  limit: number;
+  hasOverflow: boolean;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  const visible = expanded ? results : results.slice(0, limit);
+
+  return (
+    <div className={styles.wordsLearned}>
+      <p className={styles.wordsLearnedTitle}>Words This Round</p>
+      <div className={styles.wordChips}>
+        {visible.map((r, i) => (
+          <span
+            key={`${r.prompt}-${i}`}
+            className={styles.wordChip}
+            data-correct={r.correct ? "true" : "false"}
+          >
+            <span className={styles.wordChipPrompt}>{r.prompt}</span>
+            <span className={styles.wordChipSep}>→</span>
+            <span className={styles.wordChipAnswer}>{r.answer}</span>
+          </span>
+        ))}
+      </div>
+      {hasOverflow && !expanded && (
+        <button
+          type="button"
+          className={styles.showAllBtn}
+          onPointerDown={() => setExpanded(true)}
+        >
+          Show all {results.length} words
+        </button>
       )}
     </div>
   );
