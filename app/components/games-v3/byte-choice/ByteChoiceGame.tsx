@@ -6,7 +6,6 @@ import { recordDailyProgress } from "@/lib/games/progress";
 import { recordWordResult, recordGamePlayed } from "@/lib/games/v3/progress/word-tracker";
 import { startGameRun, completeGameRun } from "@/lib/games/runtime/run-lifecycle";
 import type { DifficultyTier } from "@/lib/games/runtime/types";
-import { getCopy } from "@/lib/games/v3/copy";
 import { getByteChoicePuzzle, type GameLanguage } from "@/lib/games/v3/data/byte-choice";
 import {
   buildSkillTrackDeltas,
@@ -17,10 +16,25 @@ import {
   type CefrLevel,
 } from "@/lib/games/v3/adaptation/engine";
 import { computeCognitiveGovernor } from "@/lib/games/v3/adaptation/cognitive-governor";
-import SharePanel from "@/components/games-v3/core/SharePanel";
 import styles from "./ByteChoiceGame.module.css";
 
 type ByteChoiceBand = "A1" | "A2" | "B1" | "B2";
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+};
+
+const CEFR_FRIENDLY: Record<string, string> = {
+  A1: "Beginner",
+  A2: "Elementary",
+  B1: "Intermediate",
+  B2: "Advanced",
+};
 
 function clampCefrToBand(level: CefrLevel | null | undefined): ByteChoiceBand | null {
   if (!level) return null;
@@ -62,7 +76,6 @@ export default function ByteChoiceGame({
   challengeSeed = null,
   challengeDifficulty = null,
 }: ByteChoiceGameProps) {
-  const copy = React.useMemo(() => getCopy(language), [language]);
   const cefrBand = React.useMemo(() => clampCefrToBand(cefr), [cefr]);
   const puzzle = React.useMemo(
     () => getByteChoicePuzzle(language, challengeSeed, cefrBand),
@@ -350,6 +363,23 @@ export default function ByteChoiceGame({
   );
 
   // ── Results data ──
+  // ── Share handler (replaces SharePanel) ──
+  const handleShare = React.useCallback(async () => {
+    const text = `I scored ${score}/${totalQuestions} on Byte Choice! 🎯\nPlay at tutorlingua.co/games/byte-choice`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text, title: "Byte Choice" });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+  }, [score, totalQuestions]);
+
+  // ── Language direction labels ──
+  const targetLabel = LANGUAGE_LABELS[language] ?? language.toUpperCase();
+  const sourceLabel = language === "en" ? "Spanish" : "English";
+  const directionLabel = `${sourceLabel} → ${targetLabel}`;
+
   const elapsedTotal = Date.now() - startedAtRef.current;
   const accuracyPct = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
 
@@ -386,7 +416,7 @@ export default function ByteChoiceGame({
               <div className={styles.countdownBrief}>
                 <p className={styles.briefIcon}>🎯</p>
                 <p className={styles.briefTitle}>Translate the word</p>
-                <p className={styles.briefDesc}>Pick the correct translation from three options. {totalQuestions} rounds, 8 seconds each.</p>
+                <p className={styles.briefDesc}>Translate {sourceLabel} words to {targetLabel}. {totalQuestions} rounds, 8 seconds each.</p>
               </div>
               <button
                 type="button"
@@ -424,6 +454,15 @@ export default function ByteChoiceGame({
       suggestedBand = CEFR_BANDS[bandIndex - 1];
     }
 
+    const suggestedFriendly = suggestedBand ? (CEFR_FRIENDLY[suggestedBand] ?? suggestedBand) : null;
+
+    // Contextual subtitle instead of jargon
+    let resultsSubtitle: string;
+    if (score >= 9) resultsSubtitle = "Almost perfect! 🎯";
+    else if (score >= 7) resultsSubtitle = "You\u2019re getting the hang of it!";
+    else if (score >= 5) resultsSubtitle = "Good start \u2014 keep going!";
+    else resultsSubtitle = "Every mistake is a lesson 💡";
+
     return (
       <div className={styles.arena}>
         <div className={styles.results}>
@@ -431,7 +470,7 @@ export default function ByteChoiceGame({
           <div className={styles.resultsHeader}>
             <p className={styles.resultsEmoji}>{getResultEmoji()}</p>
             <h2 className={styles.resultsTitle}>{getResultTitle()}</h2>
-            <p className={styles.resultsSubtitle}>{copy.progress}</p>
+            <p className={styles.resultsSubtitle}>{resultsSubtitle}</p>
           </div>
 
           {/* Two stats: Score + Time */}
@@ -449,15 +488,15 @@ export default function ByteChoiceGame({
           </div>
 
           {/* Level nudge */}
-          {suggestedBand && (
+          {suggestedBand && suggestedFriendly && (
             <div
               className={styles.levelNudge}
               data-direction={didWell ? "up" : "down"}
             >
               <p className={styles.levelNudgeText}>
                 {didWell
-                  ? `🚀 Ready for harder words? You crushed ${currentBand}!`
-                  : `💡 Try an easier level? Build up from ${suggestedBand}.`}
+                  ? `Ready for ${suggestedFriendly}? 🚀`
+                  : `Try ${suggestedFriendly} level? Build your foundation 💡`}
               </p>
             </div>
           )}
@@ -472,34 +511,29 @@ export default function ByteChoiceGame({
               Play Again
             </button>
 
-            {suggestedBand && (
+            {suggestedBand && suggestedFriendly && (
               <a
                 href={`/games/byte-choice?cefr=${suggestedBand}`}
                 className={styles.ctaSecondary}
               >
-                Try {suggestedBand} {didWell ? "→" : "←"}
+                Try {suggestedFriendly} →
               </a>
             )}
 
-            <a href="/games" className={styles.ctaTextLink}>
-              More Games
-            </a>
+            <div className={styles.ctaTextRow}>
+              <a href="/games" className={styles.ctaTextLink}>
+                More Games
+              </a>
+              <span className={styles.ctaTextDot}>·</span>
+              <button
+                type="button"
+                className={styles.ctaTextLink}
+                onClick={handleShare}
+              >
+                Share
+              </button>
+            </div>
           </div>
-
-          {/* Share */}
-          <SharePanel
-            gameSlug="byte-choice"
-            seed={puzzle.seed}
-            mode={mode}
-            score={score}
-            streak={bestStreak}
-            difficultyBand={difficulty}
-            locale={language as "en" | "es"}
-            shareWin={copy.shareWin}
-            shareStumble={copy.shareStumble}
-            uiVersion={UI_VERSION}
-            curveVersion={CURVE_VERSION}
-          />
         </div>
       </div>
     );
@@ -507,7 +541,7 @@ export default function ByteChoiceGame({
 
   // Active game
   return (
-    <div className={styles.arena} style={{ opacity: governor.decorOpacity }}>
+    <div className={styles.arena}>
       {/* Round Progress */}
       <div className={styles.progressTrack}>
         {Array.from({ length: totalQuestions }, (_, i) => {
@@ -534,7 +568,7 @@ export default function ByteChoiceGame({
       </div>
 
       {/* Streak Fire */}
-      <div className={styles.streakBar} data-active={streak >= 2 ? "true" : "false"}>
+      <div className={styles.streakBar} data-active={streak >= 2 ? "true" : "false"} style={{ opacity: governor.decorOpacity }}>
         <span className={styles.streakEmoji}>🔥</span>
         <span className={styles.streakText} data-hot={streak >= 5 ? "true" : "false"}>
           {streak}× streak{streak >= 5 ? "!" : ""}
@@ -552,10 +586,11 @@ export default function ByteChoiceGame({
       {question && (
         <div key={questionKey} className={styles.questionTransition}>
           <div className={styles.promptSection}>
+            <p className={styles.directionHint}>{directionLabel}</p>
             <p className={styles.promptLabel}>Translate</p>
             <p className={styles.promptWord}>{question.prompt}</p>
             {question.band && (
-              <span className={styles.cefrBadge}>{question.band}</span>
+              <span className={styles.cefrBadge}>{CEFR_FRIENDLY[question.band] ?? question.band}</span>
             )}
           </div>
 

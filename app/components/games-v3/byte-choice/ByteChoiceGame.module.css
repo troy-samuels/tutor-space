@@ -26,15 +26,15 @@
 /* ── Round Progress Bar ── */
 .progressTrack {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   padding: 0 2px;
   margin-bottom: 16px;
 }
 
 .progressPip {
   flex: 1;
-  height: 6px;
-  border-radius: 3px;
+  height: 7px;
+  border-radius: 4px;
   background: var(--bc-warm-tan);
   transition: background 0.3s ease, box-shadow 0.3s ease, width 0.4s ease;
 }
@@ -45,10 +45,12 @@
 
 .progressPip[data-status="correct"] {
   background: var(--bc-green);
+  box-shadow: 0 0 6px rgba(46, 125, 90, 0.4);
 }
 
 .progressPip[data-status="wrong"] {
   background: var(--bc-red);
+  box-shadow: 0 0 6px rgba(192, 57, 43, 0.4);
 }
 
 .progressPip[data-status="current"] {
@@ -171,6 +173,15 @@
   background: linear-gradient(90deg, transparent, var(--bc-gold), transparent);
 }
 
+.directionHint {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--bc-muted);
+  opacity: 0.6;
+}
+
 .promptLabel {
   margin: 0 0 4px;
   font-size: 11px;
@@ -234,9 +245,9 @@
   min-height: 60px;
   padding: 14px 18px;
   border-radius: 12px;
-  border: 2px solid #D8CCBD;
-  background: linear-gradient(180deg, #FAF6F1, #F3EDE6);
-  color: var(--bc-charcoal);
+  border: 2px solid #D4C9BB;
+  background: linear-gradient(180deg, #FDFAF7, #F5EDE6);
+  color: #2D2A26;
   font-size: 21px;
   font-weight: 700;
   cursor: pointer;
@@ -563,15 +574,31 @@
   }
 }
 
-/* ── More Games text link ── */
+/* ── More Games / Share text links ── */
+.ctaTextRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ctaTextDot {
+  font-size: 14px;
+  color: var(--bc-muted);
+  opacity: 0.5;
+  user-select: none;
+}
+
 .ctaTextLink {
-  display: block;
+  display: inline;
   text-align: center;
   padding: 8px;
   font-size: 14px;
   font-weight: 600;
   color: var(--bc-muted);
   text-decoration: none;
+  background: none;
+  border: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.15s ease;
@@ -604,10 +631,10 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 320px;
-  height: 320px;
+  width: 360px;
+  height: 360px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(217, 164, 65, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 40%, rgba(217, 164, 65, 0.06) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -621,7 +648,7 @@
 
 .briefIcon {
   margin: 0;
-  font-size: 36px;
+  font-size: 42px;
   line-height: 1;
 }
 
