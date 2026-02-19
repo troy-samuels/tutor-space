@@ -158,15 +158,19 @@ function GameCard({
   const canAfford = tokenBalance >= unlockCost;
   const [pressed, setPressed] = React.useState(false);
 
+  const CARD_HEIGHT = 200;
+
   const cardStyle: React.CSSProperties = {
     position: "relative",
     borderRadius: 16,
-    border: `1px solid ${isComingSoon || isLocked ? "#E2D8CA" : "#E2D8CA"}`,
+    border: `1px solid #E2D8CA`,
     background: isComingSoon ? "#F2EDE7" : isLocked ? "#F5F0EA" : "#FFFFFF",
     padding: "16px 14px",
     display: "flex",
     flexDirection: "column",
+    justifyContent: "space-between",
     gap: 10,
+    height: CARD_HEIGHT,
     textDecoration: "none",
     color: "#1E2B36",
     cursor: isComingSoon ? "default" : isLocked ? "pointer" : "pointer",
@@ -215,70 +219,73 @@ function GameCard({
       {/* Shimmer */}
       {!isComingSoon && isUnlocked && <div style={shimmerOverlay} />}
 
-      {/* Top row: icon + badge */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          {IconComponent ? <IconComponent size={48} /> : <div style={{ width: 48, height: 48, borderRadius: 12, background: game.colourLight }} />}
+      {/* Top section */}
+      <div style={{ display: "grid", gap: 10 }}>
+        {/* Icon + badge row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {IconComponent ? <IconComponent size={48} /> : <div style={{ width: 48, height: 48, borderRadius: 12, background: game.colourLight }} />}
+          </div>
+
+          {/* Badge: Coming Soon / Locked / Status */}
+          {isComingSoon ? (
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: "#9C9590", background: "#E8E2DA",
+              padding: "3px 8px", borderRadius: 9999, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap",
+            }}>
+              Coming Soon
+            </span>
+          ) : isLocked ? (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "3px 8px", borderRadius: 9999,
+              background: canAfford ? "rgba(217,164,65,0.12)" : "rgba(156,149,144,0.1)",
+              border: canAfford ? "1px solid rgba(217,164,65,0.3)" : "1px solid rgba(156,149,144,0.2)",
+              animation: isLocked ? "hub-lock-breathe 3s ease-in-out infinite" : undefined,
+            }}>
+              <CoinIcon size={12} />
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: canAfford ? "#D9A441" : "#9C9590",
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              }}>
+                {unlockCost}
+              </span>
+            </div>
+          ) : status !== "unplayed" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <div style={{ width: 8, height: 8, borderRadius: 9999, ...statusDot(status, game.colour) }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: status === "won" ? "#2E7D5A" : game.colour }}>
+                {statusText(status)}
+              </span>
+            </div>
+          ) : null}
         </div>
 
-        {/* Badge: Coming Soon / Locked / Status */}
-        {isComingSoon ? (
-          <span style={{
-            fontSize: 10, fontWeight: 700, color: "#9C9590", background: "#E8E2DA",
-            padding: "3px 8px", borderRadius: 9999, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap",
+        {/* Name + description */}
+        <div style={{ display: "grid", gap: 3, position: "relative" }}>
+          <p style={{
+            margin: 0, fontWeight: 800, fontSize: 16, lineHeight: 1.25,
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+            color: isComingSoon ? "#9C9590" : isLocked ? "#7A7470" : "#1E2B36",
           }}>
-            Coming Soon
-          </span>
-        ) : isLocked ? (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 4,
-            padding: "3px 8px", borderRadius: 9999,
-            background: canAfford ? "rgba(217,164,65,0.12)" : "rgba(156,149,144,0.1)",
-            border: canAfford ? "1px solid rgba(217,164,65,0.3)" : "1px solid rgba(156,149,144,0.2)",
-            animation: isLocked ? "hub-lock-breathe 3s ease-in-out infinite" : undefined,
+            {game.name}
+          </p>
+          <p style={{
+            margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.4,
+            color: isComingSoon ? "#B0A99F" : isLocked ? "#9C9590" : "#697B89",
           }}>
-            <CoinIcon size={12} />
-            <span style={{
-              fontSize: 11, fontWeight: 700,
-              color: canAfford ? "#D9A441" : "#9C9590",
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-            }}>
-              {unlockCost}
-            </span>
-          </div>
-        ) : status !== "unplayed" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 9999, ...statusDot(status, game.colour) }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: status === "won" ? "#2E7D5A" : game.colour }}>
-              {statusText(status)}
-            </span>
-          </div>
-        ) : null}
+            {game.description}
+          </p>
+        </div>
       </div>
 
-      {/* Name + description */}
-      <div style={{ display: "grid", gap: 3, position: "relative" }}>
-        <p style={{
-          margin: 0, fontWeight: 800, fontSize: 16, lineHeight: 1.25,
-          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-          color: isComingSoon ? "#9C9590" : isLocked ? "#7A7470" : "#1E2B36",
-        }}>
-          {game.name}
-        </p>
-        <p style={{
-          margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.4,
-          color: isComingSoon ? "#B0A99F" : isLocked ? "#9C9590" : "#697B89",
-        }}>
-          {game.description}
-        </p>
-      </div>
-
-      {/* Unlock button for locked, affordable games */}
-      {isLocked && canAfford && (
+      {/* Bottom action — pinned to bottom via space-between */}
+      {isLocked && canAfford ? (
         <button
           onClick={handleUnlockClick}
           style={{
-            marginTop: 2, padding: "8px 0", borderRadius: 10,
+            padding: "8px 0", borderRadius: 10,
             border: "none", cursor: "pointer",
             background: "linear-gradient(135deg, #D9A441, #C49835)",
             color: "#FFFFFF", fontSize: 12, fontWeight: 700,
@@ -289,12 +296,9 @@ function GameCard({
           <CoinIcon size={14} />
           Unlock for {unlockCost}
         </button>
-      )}
-
-      {/* Lock overlay for locked, can't-afford games */}
-      {isLocked && !canAfford && (
+      ) : isLocked && !canAfford ? (
         <div style={{
-          marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
           padding: "6px 0", borderRadius: 10,
           background: "rgba(156,149,144,0.08)", border: "1px dashed #D5D0CA",
         }}>
@@ -303,6 +307,9 @@ function GameCard({
             {unlockCost - tokenBalance} more to unlock
           </span>
         </div>
+      ) : (
+        /* Invisible spacer to keep all cards the same height */
+        <div style={{ height: 30 }} />
       )}
     </div>
   );
