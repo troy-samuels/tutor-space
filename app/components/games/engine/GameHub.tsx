@@ -163,7 +163,7 @@ function GameCard({
   const cardStyle: React.CSSProperties = {
     position: "relative",
     borderRadius: 16,
-    border: `1px solid #E2D8CA`,
+    border: "1px solid #E2D8CA",
     background: isComingSoon ? "#F2EDE7" : isLocked ? "#F5F0EA" : "#FFFFFF",
     padding: "16px 14px",
     display: "flex",
@@ -173,15 +173,14 @@ function GameCard({
     height: CARD_HEIGHT,
     textDecoration: "none",
     color: "#1E2B36",
-    cursor: isComingSoon ? "default" : isLocked ? "pointer" : "pointer",
+    cursor: isComingSoon ? "default" : "pointer",
     opacity: isComingSoon ? 0.55 : isLocked ? 0.75 : 1,
     filter: isComingSoon ? "saturate(0.3)" : isLocked ? "saturate(0.5)" : "none",
     transform: pressed ? "scale(0.97)" : "scale(1)",
-    transition: "transform 80ms ease-out, box-shadow 80ms ease-out, opacity 250ms ease-out",
+    transition: "transform 80ms ease-out, box-shadow 80ms ease-out",
     boxShadow: pressed
       ? "none"
       : "0 1px 3px rgba(30,43,54,0.06), 0 1px 2px rgba(30,43,54,0.04)",
-    animation: `hub-card-enter 300ms cubic-bezier(0.16, 1, 0.3, 1) ${index * 60}ms both`,
     overflow: "hidden",
     WebkitTapHighlightColor: "transparent",
     touchAction: "manipulation",
@@ -220,59 +219,33 @@ function GameCard({
       {!isComingSoon && isUnlocked && <div style={shimmerOverlay} />}
 
       {/* Top section */}
-      <div style={{ display: "grid", gap: 10 }}>
-        {/* Icon + badge row */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
+      <div style={{ display: "grid", gap: 8 }}>
+        {/* Icon row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             {IconComponent ? <IconComponent size={48} /> : <div style={{ width: 48, height: 48, borderRadius: 12, background: game.colourLight }} />}
           </div>
-
-          {/* Badge: Coming Soon / Locked / Status */}
-          {isComingSoon ? (
-            <span style={{
-              fontSize: 10, fontWeight: 700, color: "#9C9590", background: "#E8E2DA",
-              padding: "3px 8px", borderRadius: 9999, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap",
-            }}>
-              Coming Soon
-            </span>
-          ) : isLocked ? (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "3px 8px", borderRadius: 9999,
-              background: canAfford ? "rgba(217,164,65,0.12)" : "rgba(156,149,144,0.1)",
-              border: canAfford ? "1px solid rgba(217,164,65,0.3)" : "1px solid rgba(156,149,144,0.2)",
-              animation: isLocked ? "hub-lock-breathe 3s ease-in-out infinite" : undefined,
-            }}>
-              <CoinIcon size={12} />
-              <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: canAfford ? "#D9A441" : "#9C9590",
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-              }}>
-                {unlockCost}
-              </span>
-            </div>
-          ) : status !== "unplayed" ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: 9999, ...statusDot(status, game.colour) }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: status === "won" ? "#2E7D5A" : game.colour }}>
-                {statusText(status)}
-              </span>
-            </div>
-          ) : null}
         </div>
 
-        {/* Name + description */}
-        <div style={{ display: "grid", gap: 3, position: "relative" }}>
+        {/* Name + description + badge */}
+        <div style={{ display: "grid", gap: 4, textAlign: "center", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <p style={{
+              margin: 0, fontWeight: 800, fontSize: 15, lineHeight: 1.25,
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+              color: isComingSoon ? "#9C9590" : isLocked ? "#7A7470" : "#1E2B36",
+            }}>
+              {game.name}
+            </p>
+            {/* Status dot for played/mastered */}
+            {!isComingSoon && !isLocked && status !== "unplayed" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                <div style={{ width: 7, height: 7, borderRadius: 9999, ...statusDot(status, game.colour) }} />
+              </div>
+            )}
+          </div>
           <p style={{
-            margin: 0, fontWeight: 800, fontSize: 16, lineHeight: 1.25,
-            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-            color: isComingSoon ? "#9C9590" : isLocked ? "#7A7470" : "#1E2B36",
-          }}>
-            {game.name}
-          </p>
-          <p style={{
-            margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.4,
+            margin: 0, fontSize: 11, fontWeight: 500, lineHeight: 1.35,
             color: isComingSoon ? "#B0A99F" : isLocked ? "#9C9590" : "#697B89",
           }}>
             {game.description}
@@ -281,7 +254,20 @@ function GameCard({
       </div>
 
       {/* Bottom action — pinned to bottom via space-between */}
-      {isLocked && canAfford ? (
+      {isComingSoon ? (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "6px 0", borderRadius: 10,
+          background: "rgba(156,149,144,0.06)",
+        }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, color: "#9C9590",
+            letterSpacing: "0.04em", textTransform: "uppercase",
+          }}>
+            Coming Soon
+          </span>
+        </div>
+      ) : isLocked && canAfford ? (
         <button
           onClick={handleUnlockClick}
           style={{
@@ -300,15 +286,15 @@ function GameCard({
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
           padding: "6px 0", borderRadius: 10,
-          background: "rgba(156,149,144,0.08)", border: "1px dashed #D5D0CA",
+          background: "rgba(156,149,144,0.06)", border: "1px dashed #E2D8CA",
         }}>
           <LockIcon size={14} />
           <span style={{ fontSize: 11, fontWeight: 600, color: "#9C9590" }}>
-            {unlockCost - tokenBalance} more to unlock
+            <CoinIcon size={11} /> {unlockCost - tokenBalance} more
           </span>
         </div>
       ) : (
-        /* Invisible spacer to keep all cards the same height */
+        /* Spacer for free/unlocked cards */
         <div style={{ height: 30 }} />
       )}
     </div>
