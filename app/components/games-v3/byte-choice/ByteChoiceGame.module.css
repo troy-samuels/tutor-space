@@ -1,0 +1,505 @@
+/* ═══════════════════════════════════════════════
+   BYTE CHOICE — Vocabulary Flash Challenge
+   Colour Identity: Warm Amber / Gold / Charcoal
+   ═══════════════════════════════════════════════ */
+
+.arena {
+  --bc-gold: #D9A441;
+  --bc-gold-light: #F2D888;
+  --bc-gold-dim: #B8872F;
+  --bc-charcoal: #1E2B36;
+  --bc-cream: #F7F3EE;
+  --bc-warm-tan: #EFE8DE;
+  --bc-muted: #697B89;
+  --bc-green: #2E7D5A;
+  --bc-green-light: #3DA672;
+  --bc-red: #C0392B;
+  --bc-red-light: #E74C3C;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 420px;
+  position: relative;
+}
+
+/* ── Round Progress Bar ── */
+.progressTrack {
+  display: flex;
+  gap: 4px;
+  padding: 0 2px;
+  margin-bottom: 16px;
+}
+
+.progressPip {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bc-warm-tan);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.progressPip[data-status="done"] {
+  background: var(--bc-gold);
+}
+
+.progressPip[data-status="correct"] {
+  background: var(--bc-green);
+}
+
+.progressPip[data-status="wrong"] {
+  background: var(--bc-red);
+}
+
+.progressPip[data-status="current"] {
+  background: var(--bc-gold-light);
+  box-shadow: 0 0 8px rgba(217, 164, 65, 0.5);
+}
+
+/* ── Timer Bar ── */
+.timerTrack {
+  height: 4px;
+  background: var(--bc-warm-tan);
+  border-radius: 2px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.timerFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--bc-gold), var(--bc-gold-light));
+  transition: width 0.1s linear;
+  will-change: width;
+}
+
+.timerFill[data-urgent="true"] {
+  background: linear-gradient(90deg, var(--bc-red), var(--bc-red-light));
+}
+
+/* ── Streak Fire ── */
+.streakBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-bottom: 8px;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.streakBar[data-active="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.streakEmoji {
+  font-size: 18px;
+  animation: bc-flame-pulse 0.6s ease-in-out infinite alternate;
+}
+
+.streakText {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--bc-gold-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.streakText[data-hot="true"] {
+  color: var(--bc-red);
+  text-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+}
+
+@keyframes bc-flame-pulse {
+  from { transform: scale(1) rotate(-4deg); }
+  to { transform: scale(1.15) rotate(4deg); }
+}
+
+/* ── Prompt Word ── */
+.promptSection {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 16px 12px;
+  background: var(--bc-charcoal);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.promptSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--bc-gold), transparent);
+}
+
+.promptLabel {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bc-gold);
+  opacity: 0.8;
+}
+
+.promptWord {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--bc-cream);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* ── Option Cards ── */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.optionCard {
+  position: relative;
+  min-height: 60px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 2px solid #D8CCBD;
+  background: var(--bc-cream);
+  color: var(--bc-charcoal);
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.optionCard::before {
+  content: '';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid #C4B8A8;
+  background: var(--bc-warm-tan);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--bc-muted);
+  transition: all 0.15s ease;
+}
+
+.optionCard:nth-child(1)::before { content: 'A'; }
+.optionCard:nth-child(2)::before { content: 'B'; }
+.optionCard:nth-child(3)::before { content: 'C'; }
+
+.optionCard:active:not([data-state="correct"]):not([data-state="wrong"]) {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .optionCard:hover:not([data-state="correct"]):not([data-state="wrong"]) {
+    border-color: var(--bc-gold);
+    box-shadow: 0 2px 12px rgba(217, 164, 65, 0.2);
+  }
+
+  .optionCard:hover:not([data-state="correct"]):not([data-state="wrong"])::before {
+    border-color: var(--bc-gold);
+    color: var(--bc-gold-dim);
+  }
+}
+
+/* Correct state */
+.optionCard[data-state="correct"] {
+  border-color: var(--bc-green);
+  background: var(--bc-green);
+  color: #fff;
+  animation: bc-correct-pulse 0.4s ease;
+}
+
+.optionCard[data-state="correct"]::before {
+  content: '✓';
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+@keyframes bc-correct-pulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Wrong state */
+.optionCard[data-state="wrong"] {
+  border-color: var(--bc-red);
+  background: var(--bc-red);
+  color: #fff;
+  animation: bc-wrong-shake 0.4s ease;
+}
+
+.optionCard[data-state="wrong"]::before {
+  content: '✗';
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+@keyframes bc-wrong-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
+
+/* Reveal correct (when a wrong answer is picked, highlight the right one) */
+.optionCard[data-state="reveal"] {
+  border-color: var(--bc-green);
+  background: rgba(46, 125, 90, 0.12);
+  color: var(--bc-green);
+}
+
+.optionCard[data-state="reveal"]::before {
+  content: '✓';
+  border-color: var(--bc-green);
+  background: rgba(46, 125, 90, 0.15);
+  color: var(--bc-green);
+}
+
+/* ═══════════════════════════════════════════════
+   RESULTS SCREEN
+   ═══════════════════════════════════════════════ */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: bc-results-enter 0.5s ease;
+}
+
+@keyframes bc-results-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.resultsHeader {
+  text-align: center;
+  padding: 20px 16px;
+  background: var(--bc-charcoal);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.resultsHeader::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--bc-gold), transparent);
+}
+
+.resultsEmoji {
+  font-size: 40px;
+  margin: 0 0 8px;
+  line-height: 1;
+}
+
+.resultsTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--bc-cream);
+  letter-spacing: 0.01em;
+}
+
+.resultsSubtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--bc-gold);
+  font-weight: 600;
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.statCard {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #E2D8CA;
+  background: var(--bc-cream);
+}
+
+.statLabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bc-muted);
+}
+
+.statValue {
+  margin: 4px 0 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--bc-charcoal);
+  font-variant-numeric: tabular-nums;
+}
+
+.statValue[data-accent="gold"] {
+  color: var(--bc-gold-dim);
+}
+
+.statValue[data-accent="green"] {
+  color: var(--bc-green);
+}
+
+/* Words Learned strip */
+.wordsLearned {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #E2D8CA;
+  background: var(--bc-cream);
+}
+
+.wordsLearnedTitle {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bc-muted);
+}
+
+.wordChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wordChip {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wordChip[data-correct="true"] {
+  background: rgba(46, 125, 90, 0.1);
+  color: var(--bc-green);
+  border: 1px solid rgba(46, 125, 90, 0.2);
+}
+
+.wordChip[data-correct="false"] {
+  background: rgba(192, 57, 43, 0.08);
+  color: var(--bc-red);
+  border: 1px solid rgba(192, 57, 43, 0.15);
+}
+
+/* Action Buttons */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playAgainBtn {
+  min-height: 52px;
+  border-radius: 12px;
+  border: none;
+  background: var(--bc-gold);
+  color: var(--bc-charcoal);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.playAgainBtn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .playAgainBtn:hover {
+    box-shadow: 0 4px 16px rgba(217, 164, 65, 0.3);
+  }
+}
+
+/* ── Countdown ── */
+.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 340px;
+}
+
+.countdownNumbers {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.countdownButton {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  border: 2px solid #D8CCBD;
+  background: var(--bc-cream);
+  color: var(--bc-charcoal);
+  font-weight: 800;
+  font-size: 28px;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.countdownButton[data-tapped="true"] {
+  background: var(--bc-gold);
+  border-color: var(--bc-gold);
+  color: var(--bc-charcoal);
+  transform: scale(0.92);
+}
+
+.countdownButton:active:not([data-tapped="true"]) {
+  transform: scale(0.95);
+}
+
+.countdownHint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bc-muted);
+}

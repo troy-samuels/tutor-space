@@ -1,0 +1,416 @@
+/* ═══════════════════════════════════════════════
+   RELAY SPRINT — Speed Intercept Arcade
+   Colour Identity: Deep Navy / Charcoal / Neon Amber & Coral
+   ═══════════════════════════════════════════════ */
+
+.arena {
+  --rs-dark: #141C24;
+  --rs-navy: #1A2634;
+  --rs-charcoal: #1E2B36;
+  --rs-amber: #F0A030;
+  --rs-amber-dim: #C48420;
+  --rs-coral: #E85D4A;
+  --rs-coral-dim: #B84838;
+  --rs-cream: #F7F3EE;
+  --rs-muted: #5A6C7C;
+  --rs-green: #3DA672;
+  --rs-green-dim: #2E7D5A;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 420px;
+  position: relative;
+  background: var(--rs-navy);
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 12px;
+}
+
+/* ── HUD Overlay ── */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(20, 28, 36, 0.85);
+  border-radius: 10px;
+  border: 1px solid rgba(240, 160, 48, 0.15);
+  margin-bottom: 10px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.hudLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hudRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Lives as hearts */
+.lives {
+  display: flex;
+  gap: 3px;
+}
+
+.heart {
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+.heart[data-lost="true"] {
+  opacity: 0.2;
+  transform: scale(0.8);
+  filter: grayscale(1);
+}
+
+.heart[data-lost="false"] {
+  animation: rs-heart-beat 0.4s ease;
+}
+
+@keyframes rs-heart-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Score & Wave */
+.hudStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.hudLabel {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--rs-amber);
+  opacity: 0.7;
+}
+
+.hudValue {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--rs-cream);
+  font-variant-numeric: tabular-nums;
+}
+
+.hudDivider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Streak Bar ── */
+.streakBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  margin-bottom: 6px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.streakBar[data-active="true"] {
+  opacity: 1;
+}
+
+.streakEmoji {
+  font-size: 14px;
+}
+
+.streakText {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--rs-amber);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Phaser Viewport ── */
+.viewport {
+  flex: 1;
+  min-height: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(240, 160, 48, 0.12);
+  position: relative;
+}
+
+/* Feedback flash overlays */
+.viewport[data-flash="correct"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--rs-green);
+  border-radius: 10px;
+  pointer-events: none;
+  animation: rs-flash-correct 0.4s ease forwards;
+  z-index: 5;
+}
+
+.viewport[data-flash="wrong"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--rs-coral);
+  border-radius: 10px;
+  pointer-events: none;
+  animation: rs-flash-wrong 0.4s ease forwards;
+  z-index: 5;
+}
+
+@keyframes rs-flash-correct {
+  0% { opacity: 1; box-shadow: inset 0 0 20px rgba(61, 166, 114, 0.4); }
+  100% { opacity: 0; box-shadow: inset 0 0 0px transparent; }
+}
+
+@keyframes rs-flash-wrong {
+  0% { opacity: 1; box-shadow: inset 0 0 20px rgba(232, 93, 74, 0.4); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  100% { opacity: 0; transform: translateX(0); }
+}
+
+/* ── Audio Toggle ── */
+.audioToggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 160, 48, 0.2);
+  background: rgba(20, 28, 36, 0.8);
+  color: var(--rs-amber);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: border-color 0.15s ease;
+}
+
+.audioToggle:active {
+  border-color: var(--rs-amber);
+}
+
+/* ═══════════════════════════════════════════════
+   GAME OVER / RESULTS — within the arcade aesthetic
+   ═══════════════════════════════════════════════ */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: rs-results-enter 0.5s ease;
+}
+
+@keyframes rs-results-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.resultsHeader {
+  text-align: center;
+  padding: 20px 16px;
+  background: var(--rs-dark);
+  border-radius: 14px;
+  border: 1px solid rgba(240, 160, 48, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.resultsHeader::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--rs-amber), transparent);
+}
+
+.resultsEmoji {
+  font-size: 40px;
+  margin: 0 0 8px;
+  line-height: 1;
+}
+
+.resultsTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--rs-cream);
+}
+
+.resultsSubtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--rs-amber);
+  font-weight: 600;
+}
+
+/* Stats */
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.statCard {
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(240, 160, 48, 0.12);
+  background: var(--rs-dark);
+  text-align: center;
+}
+
+.statLabel {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rs-muted);
+}
+
+.statValue {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--rs-cream);
+  font-variant-numeric: tabular-nums;
+}
+
+.statValue[data-accent="amber"] {
+  color: var(--rs-amber);
+}
+
+.statValue[data-accent="green"] {
+  color: var(--rs-green);
+}
+
+.statValue[data-accent="coral"] {
+  color: var(--rs-coral);
+}
+
+/* Action buttons in dark theme */
+.playAgainBtn {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 2px solid var(--rs-amber);
+  background: var(--rs-amber);
+  color: var(--rs-dark);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.playAgainBtn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .playAgainBtn:hover {
+    box-shadow: 0 4px 16px rgba(240, 160, 48, 0.3);
+  }
+}
+
+/* ── Countdown (dark arcade version) ── */
+.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 340px;
+}
+
+.countdownNumbers {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.countdownButton {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  border: 2px solid rgba(240, 160, 48, 0.3);
+  background: var(--rs-dark);
+  color: var(--rs-cream);
+  font-weight: 800;
+  font-size: 28px;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.countdownButton[data-tapped="true"] {
+  background: var(--rs-amber);
+  border-color: var(--rs-amber);
+  color: var(--rs-dark);
+  transform: scale(0.92);
+}
+
+.countdownButton:active:not([data-tapped="true"]) {
+  transform: scale(0.95);
+}
+
+.countdownHint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rs-muted);
+}
+
+/* ── Speed Indicator ── */
+.speedIndicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(232, 93, 74, 0.12);
+  border: 1px solid rgba(232, 93, 74, 0.2);
+}
+
+.speedIndicator[data-fast="true"] {
+  background: rgba(232, 93, 74, 0.25);
+  border-color: rgba(232, 93, 74, 0.4);
+  animation: rs-speed-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes rs-speed-pulse {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+.speedLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rs-coral);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
