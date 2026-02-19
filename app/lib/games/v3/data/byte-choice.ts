@@ -153,12 +153,63 @@ const ES_POOL: PoolRow[] = [
 
 const QUESTIONS_PER_ROUND = 10;
 
-export function getByteChoicePuzzle(language: "en" | "es", seedOverride?: number | null): ByteChoicePuzzle {
+export function getByteChoicePuzzle(
+  language: "en" | "es",
+  seedOverride?: number | null,
+  cefr?: "A1" | "A2" | "B1" | "B2" | null,
+): ByteChoicePuzzle {
   const { seed, puzzleNumber } = getV3RunSeed("byte-choice", language, seedOverride);
   const rng = makeRng(seed);
   const pool = language === "es" ? ES_POOL : EN_POOL;
 
-  // Pick questions across a spread of difficulty bands
+  // Build a weighted pool if CEFR is specified
+  const BANDS: Array<"A1" | "A2" | "B1" | "B2"> = ["A1", "A2", "B1", "B2"];
+
+  function buildWeightedPool(): PoolRow[] {
+    if (!cefr) return [...pool];
+
+    const bandIndex = BANDS.indexOf(cefr);
+    const byBand: Record<string, PoolRow[]> = { A1: [], A2: [], B1: [], B2: [] };
+    for (const row of pool) {
+      byBand[row.band].push(row);
+    }
+
+    // Determine weights based on position
+    let weights: Record<string, number>;
+    if (bandIndex === 0) {
+      // A1: 75% A1, 25% A2
+      weights = { A1: 75, A2: 25, B1: 0, B2: 0 };
+    } else if (bandIndex === BANDS.length - 1) {
+      // B2: 25% B1, 75% B2
+      weights = { A1: 0, A2: 0, B1: 25, B2: 75 };
+    } else {
+      // Middle bands: 60% target, 25% one below, 15% one above
+      weights = { A1: 0, A2: 0, B1: 0, B2: 0 };
+      weights[cefr] = 60;
+      weights[BANDS[bandIndex - 1]] = 25;
+      weights[BANDS[bandIndex + 1]] = 15;
+    }
+
+    // Build weighted pool by repeating rows proportionally
+    const weighted: PoolRow[] = [];
+    for (const band of BANDS) {
+      const w = weights[band];
+      if (w > 0 && byBand[band].length > 0) {
+        // Add each row from this band `w` times for weighting
+        for (const row of byBand[band]) {
+          for (let j = 0; j < w; j++) {
+            weighted.push(row);
+          }
+        }
+      }
+    }
+
+    return weighted.length > 0 ? weighted : [...pool];
+  }
+
+  const weightedPool = buildWeightedPool();
+
+  // Pick questions
   const usedPrompts = new Set<string>();
   const questions: ByteChoiceQuestion[] = [];
 
@@ -166,7 +217,7 @@ export function getByteChoicePuzzle(language: "en" | "es", seedOverride?: number
     let row: PoolRow;
     let attempts = 0;
     do {
-      row = pick(pool, rng);
+      row = pick(weightedPool, rng);
       attempts++;
     } while (usedPrompts.has(row.prompt) && attempts < 60);
     usedPrompts.add(row.prompt);

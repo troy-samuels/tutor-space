@@ -19,6 +19,15 @@ import { computeCognitiveGovernor } from "@/lib/games/v3/adaptation/cognitive-go
 import SharePanel from "@/components/games-v3/core/SharePanel";
 import styles from "./ByteChoiceGame.module.css";
 
+type ByteChoiceBand = "A1" | "A2" | "B1" | "B2";
+
+function clampCefrToBand(level: CefrLevel | null | undefined): ByteChoiceBand | null {
+  if (!level) return null;
+  if (level === "A1" || level === "A2" || level === "B1" || level === "B2") return level;
+  // C1/C2 → cap at B2
+  return "B2";
+}
+
 const UI_VERSION = "v3-byte-choice-2";
 const CURVE_VERSION = "v3-gentle-ramp-1";
 const SHARE_CARD_VERSION = "v3-share-1";
@@ -52,9 +61,10 @@ export default function ByteChoiceGame({
   challengeDifficulty = null,
 }: ByteChoiceGameProps) {
   const copy = React.useMemo(() => getCopy(language), [language]);
+  const cefrBand = React.useMemo(() => clampCefrToBand(cefr), [cefr]);
   const puzzle = React.useMemo(
-    () => getByteChoicePuzzle(language, challengeSeed),
-    [challengeSeed, language],
+    () => getByteChoicePuzzle(language, challengeSeed, cefrBand),
+    [challengeSeed, language, cefrBand],
   );
   const initialDifficulty = React.useMemo(
     () => challengeDifficulty ?? getBaselineDifficulty(cefr),
@@ -346,101 +356,57 @@ export default function ByteChoiceGame({
 
   // Summary / Results
   if (stage === "summary") {
-    const isExcellent = accuracyPct >= 90;
-    const WORDS_COLLAPSED_LIMIT = 6;
-    const hasOverflow = roundResults.length > WORDS_COLLAPSED_LIMIT;
+    const CEFR_BANDS: Array<"A1" | "A2" | "B1" | "B2"> = ["A1", "A2", "B1", "B2"];
+    const currentBand = cefrBand ?? "A2";
+    const bandIndex = CEFR_BANDS.indexOf(currentBand);
+    const didWell = score >= 7;
+    const struggled = score < 5;
+
+    // Determine level-up / level-down target
+    let suggestedBand: "A1" | "A2" | "B1" | "B2" | null = null;
+    if (didWell && bandIndex < CEFR_BANDS.length - 1) {
+      suggestedBand = CEFR_BANDS[bandIndex + 1];
+    } else if (struggled && bandIndex > 0) {
+      suggestedBand = CEFR_BANDS[bandIndex - 1];
+    }
 
     return (
       <div className={styles.arena}>
         <div className={styles.results}>
-          {/* Confetti burst for excellent results */}
-          {isExcellent && (
-            <div className={styles.confettiContainer} aria-hidden="true">
-              {Array.from({ length: 24 }, (_, i) => (
-                <span
-                  key={i}
-                  className={styles.confettiPiece}
-                  style={{
-                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                    ["--ci" as string]: i,
-                    left: `${4 + (i * 17) % 92}%`,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Header — stagger 1 */}
-          <div className={styles.resultsHeader} data-excellent={isExcellent ? "true" : "false"}>
-            <div className={styles.resultsHeaderGlow} aria-hidden="true" />
+          {/* Header */}
+          <div className={styles.resultsHeader}>
             <p className={styles.resultsEmoji}>{getResultEmoji()}</p>
             <h2 className={styles.resultsTitle}>{getResultTitle()}</h2>
             <p className={styles.resultsSubtitle}>{copy.progress}</p>
           </div>
 
-          {/* Stats Grid — stagger 2 */}
+          {/* Two stats: Score + Time */}
           <div className={styles.statsGrid}>
-            {/* Accuracy — radial gauge */}
-            <div className={styles.statCard} data-variant="gauge">
-              <div className={styles.gaugeWrap}>
-                <svg className={styles.gaugeSvg} viewBox="0 0 80 80">
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="34"
-                    fill="none"
-                    stroke="#E2D8CA"
-                    strokeWidth="6"
-                  />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="34"
-                    fill="none"
-                    stroke={accuracyPct >= 70 ? "var(--bc-green)" : "var(--bc-gold)"}
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(accuracyPct / 100) * 213.6} 213.6`}
-                    className={styles.gaugeArc}
-                    transform="rotate(-90 40 40)"
-                  />
-                </svg>
-                <span className={styles.gaugeValue}>{accuracyPct}%</span>
-              </div>
-              <p className={styles.statLabel}>Accuracy</p>
-            </div>
-
-            {/* Best Streak */}
-            <div className={styles.statCard}>
-              <p className={styles.statValueLg} data-accent="gold">
-                {bestStreak}<span className={styles.statIcon}>🔥</span>
-              </p>
-              <p className={styles.statLabel}>Best Streak</p>
-            </div>
-
-            {/* Time */}
-            <div className={styles.statCard}>
-              <p className={styles.statValueLg}>{formatTime(elapsedTotal)}</p>
-              <p className={styles.statLabel}>Time</p>
-            </div>
-
-            {/* Score */}
             <div className={styles.statCard}>
               <p className={styles.statValueLg}>
                 {score}<span className={styles.statDenom}>/{totalQuestions}</span>
               </p>
               <p className={styles.statLabel}>Score</p>
             </div>
+            <div className={styles.statCard}>
+              <p className={styles.statValueLg}>{formatTime(elapsedTotal)}</p>
+              <p className={styles.statLabel}>Time</p>
+            </div>
           </div>
 
-          {/* Words Learned — stagger 3 */}
-          {roundResults.length > 0 && (
-            <WordsSection results={roundResults} limit={WORDS_COLLAPSED_LIMIT} hasOverflow={hasOverflow} />
+          {/* Level nudge */}
+          {suggestedBand && (
+            <div className={styles.levelNudge}>
+              <p className={styles.levelNudgeText}>
+                {didWell
+                  ? `🚀 Ready for harder words? You crushed ${currentBand}!`
+                  : `💡 Try an easier level? Build up from ${suggestedBand}.`}
+              </p>
+            </div>
           )}
 
-          {/* CTAs — stagger 4 */}
+          {/* CTA buttons */}
           <div className={styles.ctaStack}>
-            {/* Primary: Play Again */}
             <button
               type="button"
               className={styles.ctaPrimary}
@@ -449,37 +415,34 @@ export default function ByteChoiceGame({
               Play Again
             </button>
 
-            {/* Secondary: Try Another Game */}
-            <a href="/games" className={styles.ctaSecondary}>
-              Try Another Game
-            </a>
+            {suggestedBand && (
+              <a
+                href={`/games/byte-choice?cefr=${suggestedBand}`}
+                className={styles.ctaSecondary}
+              >
+                Try {suggestedBand} {didWell ? "→" : "←"}
+              </a>
+            )}
 
-            {/* Share Panel */}
-            <div className={styles.shareSection}>
-              <SharePanel
-                gameSlug="byte-choice"
-                seed={puzzle.seed}
-                mode={mode}
-                score={score}
-                streak={bestStreak}
-                difficultyBand={difficulty}
-                locale={language}
-                shareWin={copy.shareWin}
-                shareStumble={copy.shareStumble}
-                uiVersion={UI_VERSION}
-                curveVersion={CURVE_VERSION}
-              />
-            </div>
-
-            {/* Soft conversion CTA */}
-            <a href="/signup" className={styles.tutorCta}>
-              <span className={styles.tutorCtaBrand}>TutorLingua</span>
-              <span className={styles.tutorCtaText}>
-                Want a tutor who teaches like this?
-              </span>
-              <span className={styles.tutorCtaArrow}>→</span>
+            <a href="/games" className={styles.ctaTextLink}>
+              More Games
             </a>
           </div>
+
+          {/* Share */}
+          <SharePanel
+            gameSlug="byte-choice"
+            seed={puzzle.seed}
+            mode={mode}
+            score={score}
+            streak={bestStreak}
+            difficultyBand={difficulty}
+            locale={language}
+            shareWin={copy.shareWin}
+            shareStumble={copy.shareStumble}
+            uiVersion={UI_VERSION}
+            curveVersion={CURVE_VERSION}
+          />
         </div>
       </div>
     );
@@ -559,48 +522,6 @@ export default function ByteChoiceGame({
             })}
           </div>
         </>
-      )}
-    </div>
-  );
-}
-
-/* ── Collapsible words sub-component ── */
-function WordsSection({
-  results,
-  limit,
-  hasOverflow,
-}: {
-  results: RoundResult[];
-  limit: number;
-  hasOverflow: boolean;
-}) {
-  const [expanded, setExpanded] = React.useState(false);
-  const visible = expanded ? results : results.slice(0, limit);
-
-  return (
-    <div className={styles.wordsLearned}>
-      <p className={styles.wordsLearnedTitle}>Words This Round</p>
-      <div className={styles.wordChips}>
-        {visible.map((r, i) => (
-          <span
-            key={`${r.prompt}-${i}`}
-            className={styles.wordChip}
-            data-correct={r.correct ? "true" : "false"}
-          >
-            <span className={styles.wordChipPrompt}>{r.prompt}</span>
-            <span className={styles.wordChipSep}>→</span>
-            <span className={styles.wordChipAnswer}>{r.answer}</span>
-          </span>
-        ))}
-      </div>
-      {hasOverflow && !expanded && (
-        <button
-          type="button"
-          className={styles.showAllBtn}
-          onPointerDown={() => setExpanded(true)}
-        >
-          Show all {results.length} words
-        </button>
       )}
     </div>
   );

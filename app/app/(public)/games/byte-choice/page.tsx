@@ -33,6 +33,15 @@ function getChallengeDifficulty(input: string | null): number | null {
   return Math.trunc(parsed);
 }
 
+function getCefr(input: string | null): "A1" | "A2" | "B1" | "B2" | null {
+  if (!input) return null;
+  const normalized = input.trim().toUpperCase();
+  if (normalized === "A1" || normalized === "A2" || normalized === "B1" || normalized === "B2") {
+    return normalized;
+  }
+  return null;
+}
+
 export default function ByteChoicePage() {
   const searchParams = useSearchParams();
   const language = getLanguage(searchParams.get("lang"));
@@ -40,6 +49,7 @@ export default function ByteChoicePage() {
   const challengeCode = getChallengeCode(searchParams.get("challenge"));
   const challengeSeed = getChallengeSeed(searchParams.get("seed"));
   const challengeDifficulty = getChallengeDifficulty(searchParams.get("di"));
+  const cefr = getCefr(searchParams.get("cefr"));
 
   return (
     <GameShell
@@ -54,6 +64,7 @@ export default function ByteChoicePage() {
       <ByteChoiceGame
         language={language}
         mode={mode}
+        cefr={cefr}
         challengeCode={challengeCode}
         challengeSeed={challengeSeed}
         challengeDifficulty={challengeDifficulty}
