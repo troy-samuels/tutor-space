@@ -568,7 +568,7 @@ export default function ByteChoiceGame({
       </div>
 
       {/* Streak Fire */}
-      <div className={styles.streakBar} data-active={streak >= 2 ? "true" : "false"} style={{ opacity: governor.decorOpacity }}>
+      <div className={styles.streakBar} data-active={streak >= 2 ? "true" : "false"}>
         <span className={styles.streakEmoji}>🔥</span>
         <span className={styles.streakText} data-hot={streak >= 5 ? "true" : "false"}>
           {streak}× streak{streak >= 5 ? "!" : ""}
