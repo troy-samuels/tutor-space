@@ -33,10 +33,10 @@
 
 .progressPip {
   flex: 1;
-  height: 5px;
+  height: 6px;
   border-radius: 3px;
   background: var(--bc-warm-tan);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease, width 0.4s ease;
 }
 
 .progressPip[data-status="done"] {
@@ -54,27 +54,35 @@
 .progressPip[data-status="current"] {
   background: var(--bc-gold-light);
   box-shadow: 0 0 8px rgba(217, 164, 65, 0.5);
+  animation: bc-pip-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bc-pip-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(217, 164, 65, 0.5); }
+  50% { box-shadow: 0 0 14px rgba(217, 164, 65, 0.8); }
 }
 
 /* ── Timer Bar ── */
 .timerTrack {
-  height: 4px;
+  height: 5px;
   background: var(--bc-warm-tan);
-  border-radius: 2px;
+  border-radius: 3px;
   margin-bottom: 20px;
   overflow: hidden;
 }
 
 .timerFill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   background: linear-gradient(90deg, var(--bc-gold), var(--bc-gold-light));
   transition: width 0.1s linear;
   will-change: width;
+  box-shadow: 0 0 8px rgba(217, 164, 65, 0.3);
 }
 
 .timerFill[data-urgent="true"] {
   background: linear-gradient(90deg, var(--bc-red), var(--bc-red-light));
+  box-shadow: 0 0 8px rgba(192, 57, 43, 0.4);
 }
 
 /* ── Streak Fire ── */
@@ -86,13 +94,13 @@
   min-height: 28px;
   margin-bottom: 8px;
   opacity: 0;
-  transform: scale(0.9);
+  transform: translateY(-10px);
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .streakBar[data-active="true"] {
   opacity: 1;
-  transform: scale(1);
+  transform: translateY(0);
 }
 
 .streakEmoji {
@@ -116,6 +124,30 @@
 @keyframes bc-flame-pulse {
   from { transform: scale(1) rotate(-4deg); }
   to { transform: scale(1.15) rotate(4deg); }
+}
+
+/* ── Timeout Indicator ── */
+.timeoutIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-bottom: 8px;
+  animation: bc-timeout-in 0.3s ease both;
+}
+
+.timeoutText {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bc-red);
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+@keyframes bc-timeout-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Prompt Word ── */
@@ -155,6 +187,38 @@
   color: var(--bc-cream);
   font-family: var(--font-mansalva), 'Mansalva', cursive;
   line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(247, 243, 238, 0.15);
+}
+
+/* CEFR badge pill */
+.cefrBadge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bc-gold);
+  background: rgba(217, 164, 65, 0.12);
+  border-radius: 20px;
+  opacity: 0.7;
+}
+
+/* ── Question transition wrapper ── */
+.questionTransition {
+  animation: bc-question-in 0.3s ease both;
+}
+
+@keyframes bc-question-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ── Option Cards ── */
@@ -171,59 +235,40 @@
   padding: 14px 18px;
   border-radius: 12px;
   border: 2px solid #D8CCBD;
-  background: var(--bc-cream);
+  background: linear-gradient(180deg, #FAF6F1, #F3EDE6);
   color: var(--bc-charcoal);
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
   cursor: pointer;
   transition:
-    transform 0.12s ease,
+    transform 0.15s ease,
     border-color 0.15s ease,
     background 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    opacity 0.25s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  overflow: hidden;
-}
-
-.optionCard::before {
-  content: '';
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 2px solid #C4B8A8;
-  background: var(--bc-warm-tan);
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--bc-muted);
-  transition: all 0.15s ease;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 6px rgba(30, 43, 54, 0.06);
 }
 
-.optionCard:nth-child(1)::before { content: 'A'; }
-.optionCard:nth-child(2)::before { content: 'B'; }
-.optionCard:nth-child(3)::before { content: 'C'; }
-
-.optionCard:active:not([data-state="correct"]):not([data-state="wrong"]) {
+.optionCard:active:not([data-state="correct"]):not([data-state="wrong"]):not([data-state="dimmed"]) {
   transform: scale(0.97);
 }
 
 @media (hover: hover) {
-  .optionCard:hover:not([data-state="correct"]):not([data-state="wrong"]) {
+  .optionCard:hover:not([data-state="correct"]):not([data-state="wrong"]):not([data-state="dimmed"]) {
     border-color: var(--bc-gold);
-    box-shadow: 0 2px 12px rgba(217, 164, 65, 0.2);
-  }
-
-  .optionCard:hover:not([data-state="correct"]):not([data-state="wrong"])::before {
-    border-color: var(--bc-gold);
-    color: var(--bc-gold-dim);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 2px 12px rgba(217, 164, 65, 0.2);
+    transform: translateY(-2px);
   }
 }
 
@@ -233,13 +278,9 @@
   background: var(--bc-green);
   color: #fff;
   animation: bc-correct-pulse 0.4s ease;
-}
-
-.optionCard[data-state="correct"]::before {
-  content: '✓';
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  box-shadow:
+    0 0 0 3px rgba(46, 125, 90, 0.15),
+    0 4px 16px rgba(46, 125, 90, 0.2);
 }
 
 @keyframes bc-correct-pulse {
@@ -254,13 +295,7 @@
   background: var(--bc-red);
   color: #fff;
   animation: bc-wrong-shake 0.4s ease;
-}
-
-.optionCard[data-state="wrong"]::before {
-  content: '✗';
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
 }
 
 @keyframes bc-wrong-shake {
@@ -272,17 +307,17 @@
   75% { transform: translateX(-2px); }
 }
 
+/* Dimmed state (non-selected, non-correct options after answer) */
+.optionCard[data-state="dimmed"] {
+  opacity: 0.4;
+  pointer-events: none;
+  transform: scale(0.98);
+}
+
 /* Reveal correct (when a wrong answer is picked, highlight the right one) */
 .optionCard[data-state="reveal"] {
   border-color: var(--bc-green);
   background: rgba(46, 125, 90, 0.12);
-  color: var(--bc-green);
-}
-
-.optionCard[data-state="reveal"]::before {
-  content: '✓';
-  border-color: var(--bc-green);
-  background: rgba(46, 125, 90, 0.15);
   color: var(--bc-green);
 }
 
@@ -372,13 +407,16 @@
   padding: 16px 14px;
   border-radius: 14px;
   border: 1px solid #E2D8CA;
-  background: var(--bc-cream);
+  background: linear-gradient(180deg, #FAF6F1, #F3EDE6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   min-height: 90px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .statLabel {
@@ -431,6 +469,14 @@
   animation-delay: 0.15s;
 }
 
+.levelNudge[data-direction="up"] {
+  border-left: 3px solid var(--bc-gold);
+}
+
+.levelNudge[data-direction="down"] {
+  border-left: 3px solid var(--bc-muted);
+}
+
 .levelNudgeText {
   margin: 0;
   font-size: 14px;
@@ -462,10 +508,25 @@
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   box-shadow: 0 2px 12px rgba(217, 164, 65, 0.25);
+  animation: bc-btn-pulse 2.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.ctaPrimary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  animation: bc-sheen-sweep 3s ease-in-out infinite;
 }
 
 .ctaPrimary:active {
   transform: scale(0.97);
+  animation: none;
 }
 
 @media (hover: hover) {
@@ -534,6 +595,20 @@
   justify-content: center;
   gap: 28px;
   min-height: 360px;
+  position: relative;
+}
+
+.countdown::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 164, 65, 0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .countdownBrief {
@@ -579,16 +654,42 @@
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   letter-spacing: 0.02em;
+  animation: bc-btn-pulse 2.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.playButton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: bc-sheen-sweep 3s ease-in-out infinite;
 }
 
 .playButton:active {
   transform: scale(0.95);
+  animation: none;
 }
 
 @media (hover: hover) {
   .playButton:hover {
     box-shadow: 0 4px 20px rgba(217, 164, 65, 0.35);
   }
+}
+
+@keyframes bc-btn-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes bc-sheen-sweep {
+  0% { left: -100%; }
+  40% { left: 150%; }
+  100% { left: 150%; }
 }
 
 /* Animated countdown number */

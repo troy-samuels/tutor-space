@@ -33,7 +33,8 @@ const CURVE_VERSION = "v3-gentle-ramp-1";
 const SHARE_CARD_VERSION = "v3-share-1";
 
 const TIMER_DURATION_MS = 8000; // 8 seconds per question
-const FEEDBACK_DELAY_MS = 650; // Show answer before moving on
+const FEEDBACK_CORRECT_MS = 400; // Faster pace when winning
+const FEEDBACK_WRONG_MS = 600; // More time to see correct answer
 
 interface ByteChoiceGameProps {
   language: "en" | "es";
@@ -74,11 +75,13 @@ export default function ByteChoiceGame({
   const [stage, setStage] = React.useState<Stage>("countdown");
   const [countdownValue, setCountdownValue] = React.useState<number | null>(null);
   const [questionIndex, setQuestionIndex] = React.useState(0);
+  const [questionKey, setQuestionKey] = React.useState(0);
   const [score, setScore] = React.useState(0);
   const [streak, setStreak] = React.useState(0);
   const [bestStreak, setBestStreak] = React.useState(0);
   const [difficulty, setDifficulty] = React.useState(initialDifficulty);
   const [selection, setSelection] = React.useState<number | null>(null);
+  const [timedOut, setTimedOut] = React.useState(false);
   const [runId, setRunId] = React.useState("local-boot");
   const [firstMeaningfulActionMs, setFirstMeaningfulActionMs] = React.useState<number | null>(null);
   const [firstCorrectMs, setFirstCorrectMs] = React.useState<number | null>(null);
@@ -92,6 +95,7 @@ export default function ByteChoiceGame({
   const questionStartRef = React.useRef<number>(Date.now());
   const resolvedRef = React.useRef(false);
   const timerFrameRef = React.useRef<number>(0);
+  const timeoutHandledRef = React.useRef(false);
 
   const question = puzzle.questions[questionIndex];
   const totalQuestions = puzzle.questions.length;
@@ -127,6 +131,41 @@ export default function ByteChoiceGame({
       .catch(() => setRunId(`local-${crypto.randomUUID()}`));
   }, [cefr, challengeCode, initialDifficulty, language, mode]);
 
+  // ── Handle timeout (timer expiry = auto-wrong) ──
+  const handleTimeout = React.useCallback(() => {
+    if (timeoutHandledRef.current) return;
+    timeoutHandledRef.current = true;
+
+    haptic("error");
+    setSelection(-1); // Special timeout state
+    setTimedOut(true);
+    setStreak(0);
+    setRecentErrors((prev) => prev + 1);
+
+    // Record as wrong
+    setRoundResults((prev) => [
+      ...prev,
+      {
+        prompt: question.prompt,
+        answer: question.options[question.correctIndex],
+        correct: false,
+      },
+    ]);
+
+    // Advance after delay
+    setTimeout(() => {
+      setSelection(null);
+      setTimedOut(false);
+      timeoutHandledRef.current = false;
+      if (questionIndex + 1 >= totalQuestions) {
+        setStage("summary");
+        return;
+      }
+      setQuestionIndex((prev) => prev + 1);
+      setQuestionKey((prev) => prev + 1);
+    }, FEEDBACK_WRONG_MS);
+  }, [question, questionIndex, totalQuestions]);
+
   // ── Per-question timer ──
   React.useEffect(() => {
     if (stage !== "active" || selection !== null) {
@@ -135,6 +174,7 @@ export default function ByteChoiceGame({
     }
 
     questionStartRef.current = Date.now();
+    timeoutHandledRef.current = false;
     setTimerPercent(100);
 
     const tick = () => {
@@ -144,13 +184,15 @@ export default function ByteChoiceGame({
 
       if (remaining > 0) {
         timerFrameRef.current = requestAnimationFrame(tick);
+      } else {
+        // Timer expired — auto-wrong
+        handleTimeout();
       }
-      // Timer expiry doesn't auto-advance — just visual urgency
     };
 
     timerFrameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(timerFrameRef.current);
-  }, [stage, questionIndex, selection]);
+  }, [stage, questionIndex, selection, handleTimeout]);
 
   // ── Complete game run on summary ──
   React.useEffect(() => {
@@ -238,6 +280,7 @@ export default function ByteChoiceGame({
 
       const correct = index === question.correctIndex;
       setSelection(index);
+      setTimedOut(false);
       setRecentResponses((prev) => [...prev.slice(-4), responseMs]);
 
       // Record round result
@@ -282,15 +325,18 @@ export default function ByteChoiceGame({
         setRecentErrors((prev) => prev + 1);
       }
 
-      // Advance after feedback delay
+      // Advance after feedback delay — faster for correct, slower for wrong
+      const delay = correct ? FEEDBACK_CORRECT_MS : FEEDBACK_WRONG_MS;
       setTimeout(() => {
         setSelection(null);
+        setTimedOut(false);
         if (questionIndex + 1 >= totalQuestions) {
           setStage("summary");
           return;
         }
         setQuestionIndex((prev) => prev + 1);
-      }, FEEDBACK_DELAY_MS);
+        setQuestionKey((prev) => prev + 1);
+      }, delay);
     },
     [difficulty, firstCorrectMs, firstMeaningfulActionMs, question, questionIndex, samples, selection, stage, streak, totalQuestions],
   );
@@ -330,7 +376,7 @@ export default function ByteChoiceGame({
           {countdownValue === null ? (
             <>
               <div className={styles.countdownBrief}>
-                <p className={styles.briefIcon}>⚡</p>
+                <p className={styles.briefIcon}>🎯</p>
                 <p className={styles.briefTitle}>Translate the word</p>
                 <p className={styles.briefDesc}>Pick the correct translation from three options. {totalQuestions} rounds, 8 seconds each.</p>
               </div>
@@ -396,7 +442,10 @@ export default function ByteChoiceGame({
 
           {/* Level nudge */}
           {suggestedBand && (
-            <div className={styles.levelNudge}>
+            <div
+              className={styles.levelNudge}
+              data-direction={didWell ? "up" : "down"}
+            >
               <p className={styles.levelNudgeText}>
                 {didWell
                   ? `🚀 Ready for harder words? You crushed ${currentBand}!`
@@ -484,12 +533,22 @@ export default function ByteChoiceGame({
         </span>
       </div>
 
-      {/* Prompt */}
+      {/* Timeout Indicator */}
+      {timedOut && (
+        <div className={styles.timeoutIndicator}>
+          <span className={styles.timeoutText}>⏰ Time&apos;s up!</span>
+        </div>
+      )}
+
+      {/* Prompt + Options with transition */}
       {question && (
-        <>
+        <div key={questionKey} className={styles.questionTransition}>
           <div className={styles.promptSection}>
             <p className={styles.promptLabel}>Translate</p>
             <p className={styles.promptWord}>{question.prompt}</p>
+            {question.band && (
+              <span className={styles.cefrBadge}>{question.band}</span>
+            )}
           </div>
 
           {/* Option Cards */}
@@ -499,9 +558,17 @@ export default function ByteChoiceGame({
               if (selection === null) {
                 state = "idle";
               } else if (index === question.correctIndex) {
+                // Always reveal correct answer
                 state = "correct";
-              } else if (index === selection) {
+              } else if (index === selection && selection !== question.correctIndex) {
+                // Player picked this wrong option
                 state = "wrong";
+              } else if (selection === -1) {
+                // Timeout: dim everything except correct
+                state = "dimmed";
+              } else if (selection !== null) {
+                // Other non-picked, non-correct options
+                state = "dimmed";
               } else {
                 state = "idle";
               }
@@ -521,7 +588,7 @@ export default function ByteChoiceGame({
               );
             })}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
