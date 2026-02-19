@@ -413,7 +413,7 @@
   font-size: 96px;
   font-weight: 800;
   color: var(--rs-amber);
-  font-family: var(--font-mansalva), 'Mansalva', cursive;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   animation: rs-countdown-pop 0.6s ease;
   text-shadow: 0 4px 24px rgba(240, 160, 48, 0.4);
 }

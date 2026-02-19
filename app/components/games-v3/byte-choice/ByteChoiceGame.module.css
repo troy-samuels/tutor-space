@@ -196,7 +196,8 @@
   margin: 0;
   font-size: 34px;
   color: var(--bc-cream);
-  font-family: var(--font-mansalva), 'Mansalva', cursive;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 800;
   line-height: 1.2;
   text-shadow: 0 2px 12px rgba(247, 243, 238, 0.15);
 }
@@ -732,7 +733,7 @@
   font-size: 96px;
   font-weight: 800;
   color: var(--bc-gold);
-  font-family: var(--font-mansalva), 'Mansalva', cursive;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   animation: bc-countdown-pop 0.6s ease;
   text-shadow: 0 4px 24px rgba(217, 164, 65, 0.3);
 }
@@ -1087,8 +1088,9 @@
 .placementResultLevel {
   margin: 0;
   font-size: 36px;
+  font-weight: 800;
   color: var(--bc-charcoal);
-  font-family: var(--font-mansalva), 'Mansalva', cursive;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 .placementResultBadge {

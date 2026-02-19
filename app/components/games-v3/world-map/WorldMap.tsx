@@ -235,7 +235,7 @@ export default function WorldMap() {
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: mastered ? "#2E7D5A" : zone.colour }}>
                     {zone.region}
                   </p>
-                  <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1E2B36", fontFamily: "'Mansalva', cursive" }}>
+                  <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1E2B36", fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                     {zone.name}
                   </p>
                   <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#697B89" }}>
