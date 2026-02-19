@@ -251,6 +251,11 @@ export default function RelaySprintGame({
     return (
       <div className={styles.arena}>
         <div className={styles.countdown}>
+          <div className={styles.countdownBrief}>
+            <p className={styles.briefIcon}>🎯</p>
+            <p className={styles.briefTitle}>Intercept the word</p>
+            <p className={styles.briefDesc}>A word drops down the screen — tap the correct translation from three lanes before it reaches the bottom. 3 lives. Speed increases.</p>
+          </div>
           <div className={styles.countdownNumbers}>
             {[3, 2, 1].map((value) => (
               <button
@@ -265,7 +270,7 @@ export default function RelaySprintGame({
               </button>
             ))}
           </div>
-          <p className={styles.countdownHint}>{copy.loadingAction}</p>
+          <p className={styles.countdownHint}>Tap 3 → 2 → 1 to begin</p>
         </div>
       </div>
     );

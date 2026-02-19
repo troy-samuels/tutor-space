@@ -1,0 +1,14 @@
+{
+  "objective": "Sientelo. Elige el significado mas cercano.",
+  "streak": "Racha activa",
+  "startTap": "Toca para empezar",
+  "correct": "Acierto limpio.",
+  "wrong": "No es esta.",
+  "timeout": "Muy lento.",
+  "progress": "Subiste reconocimiento.",
+  "nextStep": "Prueba una palabra mas dificil.",
+  "shareWin": "Mantuve el ritmo.",
+  "shareStumble": "Me bloquee con esta palabra.",
+  "ghostHint": "Mira una vez y juega.",
+  "loadingAction": "Toca 3, 2, 1"
+}

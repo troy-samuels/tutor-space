@@ -1,0 +1,14 @@
+{
+  "objective": "Feel it. Pick the closest meaning.",
+  "streak": "Streak alive",
+  "startTap": "Tap to start",
+  "correct": "Clean hit.",
+  "wrong": "Not this one.",
+  "timeout": "Too slow.",
+  "progress": "You leveled recognition.",
+  "nextStep": "Try one harder prompt.",
+  "shareWin": "I kept the flow alive.",
+  "shareStumble": "I paused on this word.",
+  "ghostHint": "Watch once, then go.",
+  "loadingAction": "Tap 3, 2, 1"
+}

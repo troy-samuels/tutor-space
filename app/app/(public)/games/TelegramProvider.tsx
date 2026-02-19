@@ -27,47 +27,42 @@ function updateSafeAreaProperties() {
 
 /** Valid game slugs for deep linking */
 const VALID_GAMES = [
-  "connections",
-  "word-ladder",
-  "daily-decode",
-  "missing-piece",
-  "odd-one-out",
-  "synonym-spiral",
-  "neon-intercept",
+  "byte-choice",
+  "pixel-pairs",
+  "relay-sprint",
+  "world-map",
 ];
-const VALID_LANGUAGES = ["en", "es", "fr", "de"];
+const VALID_LANGUAGES = ["en", "es"];
 
 /** Parse Telegram startapp deep link parameter */
 function parseDeepLink(startParam: string | undefined): { path: string; lang?: string } | null {
   if (!startParam) return null;
 
-  // Format: "connections" or "connections_es" or "daily" or "challenge_123"
+  // Format: "byte-choice" or "byte-choice_es" or "daily"
   const parts = startParam.toLowerCase().split("_");
   const gameSlug = parts[0]?.replace(/\s+/g, "-");
 
   // "daily" → go to hub (default experience)
   if (gameSlug === "daily") return null;
 
-  // Check for language suffix: "connections_es"
+  // Check for language suffix: "byte-choice_es"
   const langSuffix = parts[parts.length - 1];
   const lang = VALID_LANGUAGES.includes(langSuffix) ? langSuffix : undefined;
 
   // Map aliases
   const slugMap: Record<string, string> = {
-    connections: "connections",
-    wordladder: "word-ladder",
-    "word-ladder": "word-ladder",
-    decode: "daily-decode",
-    "daily-decode": "daily-decode",
-    "missing-piece": "missing-piece",
-    missingpiece: "missing-piece",
-    "odd-one-out": "odd-one-out",
-    oddoneout: "odd-one-out",
-    "synonym-spiral": "synonym-spiral",
-    synonymspiral: "synonym-spiral",
-    "neon-intercept": "neon-intercept",
-    neonintercept: "neon-intercept",
-    neon: "neon-intercept",
+    "byte-choice": "byte-choice",
+    bytechoice: "byte-choice",
+    byte: "byte-choice",
+    "pixel-pairs": "pixel-pairs",
+    pixelpairs: "pixel-pairs",
+    pairs: "pixel-pairs",
+    "relay-sprint": "relay-sprint",
+    relaysprint: "relay-sprint",
+    relay: "relay-sprint",
+    "world-map": "world-map",
+    worldmap: "world-map",
+    map: "world-map",
   };
 
   const resolvedSlug = slugMap[gameSlug];

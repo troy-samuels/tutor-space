@@ -342,6 +342,11 @@ export default function PixelPairsGame({
     return (
       <div className={styles.arena}>
         <div className={styles.countdown}>
+          <div className={styles.countdownBrief}>
+            <p className={styles.briefIcon}>🃏</p>
+            <p className={styles.briefTitle}>Match word pairs</p>
+            <p className={styles.briefDesc}>Flip two cards at a time. Match each word with its translation. Fewer moves = more stars.</p>
+          </div>
           <div className={styles.countdownNumbers}>
             {[3, 2, 1].map((value) => (
               <button
@@ -356,7 +361,7 @@ export default function PixelPairsGame({
               </button>
             ))}
           </div>
-          <p className={styles.countdownHint}>{copy.loadingAction}</p>
+          <p className={styles.countdownHint}>Tap 3 → 2 → 1 to begin</p>
         </div>
       </div>
     );

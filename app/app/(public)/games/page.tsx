@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import GameHub from "@/components/games/engine/GameHub";
 
 export const metadata: Metadata = {
-  title: "Language Games | Daily Word Games for Learners",
+  title: "Language Games | TutorLingua",
   description:
-    "Play daily language games built for real fluency: Connections, Word Ladder, Neon Intercept, Daily Decode, Synonym Spiral, and more.",
+    "Play daily language games: Byte Choice, Pixel Pairs, and Relay Sprint. Build vocabulary and track your streak.",
   alternates: {
     canonical: "/games",
   },
   openGraph: {
-    title: "Language Games | Daily Word Games for Learners",
-  description:
-    "Train vocabulary, pattern recognition, and natural phrasing with daily language games including Neon Intercept.",
+    title: "Language Games | TutorLingua",
+    description:
+      "Play daily language games — translate words, match pairs, and intercept translations against the clock.",
     url: "/games",
     type: "website",
     images: [
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Language Games | Daily Word Games for Learners",
-  description:
-    "Play Connections, Word Ladder, Neon Intercept, Daily Decode, Synonym Spiral, and more.",
+    title: "Language Games | TutorLingua",
+    description:
+      "Play daily language games — translate, match, and intercept. Difficulty adapts to your level.",
     images: ["/og-image.png?v=2"],
   },
 };

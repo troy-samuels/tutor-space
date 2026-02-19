@@ -51,22 +51,18 @@ async function tgApi(method: string, body: Record<string, unknown>) {
 async function handleStart(chatId: number, firstName: string) {
   await tgApi("sendMessage", {
     chat_id: chatId,
-    text: `Hey ${firstName}! 👋\n\n🎮 *TutorLingua Games* — daily word puzzles for language learners.\n\n6 games · 4 languages · New puzzles every day\n\nTap below to play:`,
+    text: `Hey ${firstName}! 👋\n\n🎮 *TutorLingua Retro Reboot* is live.\n\n3 new games · EN + ES · Daily + Practice\n\nTap below to play:`,
     parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
         [{ text: "🎮 Play Now", web_app: { url: MINI_APP_URL } }],
         [
-          { text: "🧩 Connections", web_app: { url: `${MINI_APP_URL}/connections` } },
-          { text: "🪜 Word Ladder", web_app: { url: `${MINI_APP_URL}/word-ladder` } },
+          { text: "🟦 Byte Choice", web_app: { url: `${MINI_APP_URL}/byte-choice` } },
+          { text: "🟩 Pixel Pairs", web_app: { url: `${MINI_APP_URL}/pixel-pairs` } },
         ],
         [
-          { text: "🔐 Daily Decode", web_app: { url: `${MINI_APP_URL}/daily-decode` } },
-          { text: "🎯 Odd One Out", web_app: { url: `${MINI_APP_URL}/odd-one-out` } },
-        ],
-        [
-          { text: "📝 Missing Piece", web_app: { url: `${MINI_APP_URL}/missing-piece` } },
-          { text: "🌀 Synonym Spiral", web_app: { url: `${MINI_APP_URL}/synonym-spiral` } },
+          { text: "🟪 Relay Sprint", web_app: { url: `${MINI_APP_URL}/relay-sprint` } },
+          { text: "🗺️ World Map", web_app: { url: `${MINI_APP_URL}/world-map` } },
         ],
       ],
     },
@@ -76,17 +72,13 @@ async function handleStart(chatId: number, firstName: string) {
 async function handlePlay(chatId: number) {
   await tgApi("sendMessage", {
     chat_id: chatId,
-    text: "🎮 Today's puzzles are ready! Pick a game:",
+    text: "🎮 Today's retro run is ready! Pick your mode:",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🎮 Open Games Hub", web_app: { url: MINI_APP_URL } }],
+        [{ text: "🎮 Open Retro Hub", web_app: { url: MINI_APP_URL } }],
         [
-          { text: "🇬🇧 English", web_app: { url: `${MINI_APP_URL}/connections?lang=en` } },
-          { text: "🇪🇸 Español", web_app: { url: `${MINI_APP_URL}/connections?lang=es` } },
-        ],
-        [
-          { text: "🇫🇷 Français", web_app: { url: `${MINI_APP_URL}/connections?lang=fr` } },
-          { text: "🇩🇪 Deutsch", web_app: { url: `${MINI_APP_URL}/connections?lang=de` } },
+          { text: "🇬🇧 EN Daily", web_app: { url: `${MINI_APP_URL}/byte-choice?lang=en&mode=daily` } },
+          { text: "🇪🇸 ES Daily", web_app: { url: `${MINI_APP_URL}/byte-choice?lang=es&mode=daily` } },
         ],
       ],
     },
@@ -109,8 +101,6 @@ async function handleLanguage(chatId: number, args: string) {
   const langMap: Record<string, { name: string; flag: string }> = {
     en: { name: "English", flag: "🇬🇧" },
     es: { name: "Español", flag: "🇪🇸" },
-    fr: { name: "Français", flag: "🇫🇷" },
-    de: { name: "Deutsch", flag: "🇩🇪" },
   };
 
   if (lang && langMap[lang]) {
@@ -121,7 +111,7 @@ async function handleLanguage(chatId: number, args: string) {
       parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
-          [{ text: `${flag} Play in ${name}`, web_app: { url: `${MINI_APP_URL}/connections?lang=${lang}` } }],
+          [{ text: `${flag} Play in ${name}`, web_app: { url: `${MINI_APP_URL}/byte-choice?lang=${lang}` } }],
         ],
       },
     });
@@ -135,10 +125,6 @@ async function handleLanguage(chatId: number, args: string) {
             { text: "🇬🇧 English", callback_data: "lang_en" },
             { text: "🇪🇸 Español", callback_data: "lang_es" },
           ],
-          [
-            { text: "🇫🇷 Français", callback_data: "lang_fr" },
-            { text: "🇩🇪 Deutsch", callback_data: "lang_de" },
-          ],
         ],
       },
     });
@@ -148,19 +134,17 @@ async function handleLanguage(chatId: number, args: string) {
 async function handleHelp(chatId: number) {
   await tgApi("sendMessage", {
     chat_id: chatId,
-    text: `📖 *TutorLingua Games — Commands*\n\n/play — Today's puzzles\n/connections — Lingua Connections\n/wordladder — Word Ladder\n/decode — Daily Decode\n/language — Change language\n/streak — Your streak & stats\n/help — This message\n\n💡 *Tip:* Type @tutorlingua\\_games\\_bot in any chat to share your results!`,
+    text: `📖 *TutorLingua Retro — Commands*\n\n/play — Open today's run\n/bytechoice — Byte Choice\n/pixelpairs — Pixel Pairs\n/relaysprint — Relay Sprint\n/worldmap — Progress map\n/language — Change language\n/streak — Your streak & stats\n/help — This message\n\n💡 *Tip:* Type @tutorlingua\\_games\\_bot in any chat to share your challenge links!`,
     parse_mode: "Markdown",
   });
 }
 
 async function handleGameCommand(chatId: number, game: string) {
   const gameMap: Record<string, { name: string; emoji: string; slug: string }> = {
-    connections: { name: "Lingua Connections", emoji: "🧩", slug: "connections" },
-    wordladder: { name: "Word Ladder", emoji: "🪜", slug: "word-ladder" },
-    decode: { name: "Daily Decode", emoji: "🔐", slug: "daily-decode" },
-    oddoneout: { name: "Odd One Out", emoji: "🎯", slug: "odd-one-out" },
-    missingpiece: { name: "Missing Piece", emoji: "📝", slug: "missing-piece" },
-    synonymspiral: { name: "Synonym Spiral", emoji: "🌀", slug: "synonym-spiral" },
+    bytechoice: { name: "Byte Choice", emoji: "🟦", slug: "byte-choice" },
+    pixelpairs: { name: "Pixel Pairs", emoji: "🟩", slug: "pixel-pairs" },
+    relaysprint: { name: "Relay Sprint", emoji: "🟪", slug: "relay-sprint" },
+    worldmap: { name: "World Map", emoji: "🗺️", slug: "world-map" },
   };
 
   const g = gameMap[game];
@@ -190,7 +174,7 @@ async function handleInlineQuery(queryId: string, query: string) {
       description: "Share a link to TutorLingua Games",
       input_message_content: {
         message_text:
-          "🎮 *TutorLingua Games*\n\nDaily word puzzles for language learners — like NYT Games, but in every language!\n\n6 games · 4 languages · Free\n\n👉 Play now: https://t.me/tutorlingua_games_bot",
+          "🎮 *TutorLingua Retro Reboot*\n\nThree sensory language games. Daily runs and challenge links.\n\n👉 Play now: https://t.me/tutorlingua_games_bot",
         parse_mode: "Markdown",
       },
       reply_markup: {
@@ -199,30 +183,30 @@ async function handleInlineQuery(queryId: string, query: string) {
     },
     {
       type: "article",
-      id: "challenge_connections",
-      title: "🧩 Challenge: Connections",
-      description: "Challenge a friend to Lingua Connections",
+      id: "challenge_byte_choice",
+      title: "🟦 Challenge: Byte Choice",
+      description: "Challenge a friend to Byte Choice",
       input_message_content: {
         message_text:
-          "🧩 *Challenge: Lingua Connections*\n\nCan you group 16 words into 4 hidden categories?\n\n👉 Play: https://t.me/tutorlingua_games_bot/games",
+          "🟦 *Challenge: Byte Choice*\n\nFeel the word and pick fast. Can you beat my run?\n\n👉 Play: https://t.me/tutorlingua_games_bot/games",
         parse_mode: "Markdown",
       },
       reply_markup: {
-        inline_keyboard: [[{ text: "🧩 Accept Challenge", url: "https://t.me/tutorlingua_games_bot/games" }]],
+        inline_keyboard: [[{ text: "🟦 Accept Challenge", url: "https://t.me/tutorlingua_games_bot/games" }]],
       },
     },
     {
       type: "article",
-      id: "challenge_wordladder",
-      title: "🪜 Challenge: Word Ladder",
-      description: "Challenge a friend to Word Ladder",
+      id: "challenge_relay_sprint",
+      title: "🟪 Challenge: Relay Sprint",
+      description: "Challenge a friend to Relay Sprint",
       input_message_content: {
         message_text:
-          "🪜 *Challenge: Word Ladder*\n\nChange one letter at a time to reach the target word!\n\n👉 Play: https://t.me/tutorlingua_games_bot/games",
+          "🟪 *Challenge: Relay Sprint*\n\nI stumbled at 4s. Can you beat my rhythm?\n\n👉 Play: https://t.me/tutorlingua_games_bot/games",
         parse_mode: "Markdown",
       },
       reply_markup: {
-        inline_keyboard: [[{ text: "🪜 Accept Challenge", url: "https://t.me/tutorlingua_games_bot/games" }]],
+        inline_keyboard: [[{ text: "🟪 Accept Challenge", url: "https://t.me/tutorlingua_games_bot/games" }]],
       },
     },
   ];
@@ -283,23 +267,17 @@ export async function POST(request: NextRequest) {
           case "/language":
             await handleLanguage(chatId, args.join(" "));
             break;
-          case "/connections":
-            await handleGameCommand(chatId, "connections");
+          case "/bytechoice":
+            await handleGameCommand(chatId, "bytechoice");
             break;
-          case "/wordladder":
-            await handleGameCommand(chatId, "wordladder");
+          case "/pixelpairs":
+            await handleGameCommand(chatId, "pixelpairs");
             break;
-          case "/decode":
-            await handleGameCommand(chatId, "decode");
+          case "/relaysprint":
+            await handleGameCommand(chatId, "relaysprint");
             break;
-          case "/oddoneout":
-            await handleGameCommand(chatId, "oddoneout");
-            break;
-          case "/missingpiece":
-            await handleGameCommand(chatId, "missingpiece");
-            break;
-          case "/synonymspiral":
-            await handleGameCommand(chatId, "synonymspiral");
+          case "/worldmap":
+            await handleGameCommand(chatId, "worldmap");
             break;
           case "/help":
             await handleHelp(chatId);

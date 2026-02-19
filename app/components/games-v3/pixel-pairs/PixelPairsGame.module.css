@@ -271,9 +271,9 @@
 
 .resultsTitle {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 24px;
   color: var(--pp-cream);
+  font-family: 'Mansalva', cursive;
 }
 
 .resultsSubtitle {
@@ -366,7 +366,37 @@
   align-items: center;
   justify-content: center;
   gap: 24px;
-  min-height: 340px;
+  min-height: 360px;
+}
+
+.countdownBrief {
+  text-align: center;
+  max-width: 280px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.briefIcon {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.briefTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pp-charcoal);
+  font-family: 'Mansalva', cursive;
+}
+
+.briefDesc {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pp-muted);
+  line-height: 1.45;
 }
 
 .countdownNumbers {

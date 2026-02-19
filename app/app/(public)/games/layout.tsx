@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { TelegramProvider } from "./TelegramProvider";
 
 export const metadata: Metadata = {
-  title: "Language Games | Free Daily Word Puzzles | TutorLingua",
+  title: "Retro Language Games | TutorLingua",
   description:
-    "Play 7 free daily word games for language learners. Lingua Connections, Word Ladder, Neon Intercept, Daily Decode, and more — in English, Spanish, French, and German. Like NYT Games, but for every language.",
+    "Play TutorLingua's new retro trilogy: Byte Choice, Pixel Pairs, and Relay Sprint.",
   keywords: [
     "language learning games",
     "word games",
@@ -14,9 +14,10 @@ export const metadata: Metadata = {
     "language games online",
     "ESL games",
     "word puzzle",
-    "connections game",
-    "word ladder",
-    "cryptogram puzzle",
+    "retro games",
+    "byte choice",
+    "pixel pairs",
+    "relay sprint",
     "free language games",
     "learn English games",
     "learn Spanish games",
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Daily Language Games — Free Word Puzzles | TutorLingua",
     description:
-      "6 daily word puzzles for language learners. Play in English, Spanish, French, and German. Free, no ads.",
+      "Three retro language games designed for intuitive learning and adaptive progression.",
     url: "/games",
     siteName: "TutorLingua",
     type: "website",
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Daily Language Games — Free Word Puzzles",
     description:
-      "6 word games for language learners. Play in 4 languages. Free, no ads.",
+      "Three retro language games with adaptive difficulty and sensory feedback.",
     images: ["/api/og/games"],
   },
   robots: {
@@ -66,7 +67,7 @@ const jsonLd = {
   name: "TutorLingua Games",
   alternateName: "TutorLingua Language Games",
   description:
-    "Free daily word puzzles for language learners. 7 games in English, Spanish, French, and German.",
+    "Free retro language trilogy for learners in English and Spanish.",
   url: "https://tutorlingua.co/games",
   applicationCategory: "EducationalApplication",
   operatingSystem: "All",
@@ -87,7 +88,7 @@ const jsonLd = {
     name: "TutorLingua",
     url: "https://tutorlingua.co",
   },
-  inLanguage: ["en", "es", "fr", "de"],
+  inLanguage: ["en", "es"],
   educationalLevel: ["Beginner", "Intermediate", "Advanced"],
   learningResourceType: "Game",
   audience: {

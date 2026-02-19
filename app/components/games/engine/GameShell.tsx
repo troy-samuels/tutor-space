@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { Fraunces, Manrope } from "next/font/google";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -34,6 +35,18 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+const neonDisplay = Fraunces({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--n-shell-display",
+});
+
+const neonUi = Manrope({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--n-shell-ui",
+});
+
 export default function GameShell({
   gameName,
   gameSlug,
@@ -45,6 +58,9 @@ export default function GameShell({
   children,
 }: GameShellProps) {
   const router = useRouter();
+  const isV3Theme = gameSlug === "neon-intercept";
+  const isV3Mansalva = gameSlug === "byte-choice" || gameSlug === "pixel-pairs" || gameSlug === "relay-sprint";
+  const contentWidthClass = (isV3Theme || isV3Mansalva) ? "max-w-3xl" : "max-w-lg";
   const [elapsed, setElapsed] = React.useState(0);
   const startTimeRef = React.useRef(Date.now());
   const inTg = React.useMemo(() => typeof window !== "undefined" && isTelegram(), []);
@@ -122,18 +138,26 @@ export default function GameShell({
   return (
     <div
       ref={shellRef}
-      className={cn("min-h-[100dvh] game-canvas game-mode", inTg && "tg-content-safe-top")}
+      className={cn(
+        "min-h-[100dvh] game-canvas game-mode",
+        inTg && "tg-content-safe-top",
+        isV3Theme && neonDisplay.variable,
+        isV3Theme && neonUi.variable,
+      )}
+      style={(isV3Theme || isV3Mansalva)
+        ? {
+            background: "radial-gradient(120% 80% at 50% -10%, rgba(77, 120, 151, 0.14), rgba(247, 243, 238, 0) 55%), #f7f3ee",
+          }
+        : undefined}
       dir={rtl ? "rtl" : "ltr"}
     >
       {/* Nav — hidden in Telegram (BackButton replaces it) */}
       {!inTg && (
         <nav
           className="px-4 py-2.5"
-          style={{
-            borderBottom: "1px solid rgba(45, 42, 38, 0.06)",
-          }}
+          style={{ borderBottom: "1px solid rgba(45, 42, 38, 0.06)" }}
         >
-          <div className="flex items-center justify-between max-w-lg mx-auto">
+          <div className={cn("flex items-center justify-between mx-auto", contentWidthClass)}>
             <Link
               href="/games"
               className="flex items-center gap-1 touch-manipulation min-h-[44px] -ml-2 px-2 rounded-lg active:bg-black/[0.04] transition-colors"
@@ -161,19 +185,29 @@ export default function GameShell({
 
       {/* Game header — clean, minimal */}
       <header className={cn(
-        "game-header px-4 pb-2 max-w-lg mx-auto",
+        "game-header px-4 pb-2 mx-auto",
+        contentWidthClass,
         inTg ? "pt-2" : "pt-3",
       )}>
         <div className="flex items-baseline justify-between">
           <h1
-            className="truncate text-lg"
-            style={{ color: "var(--game-text-primary)", fontFamily: "'Mansalva', cursive" }}
+            className={cn("truncate", (isV3Theme || isV3Mansalva) ? "text-2xl leading-tight" : "text-lg")}
+            style={isV3Theme
+              ? {
+                  color: "var(--game-text-primary)",
+                  fontFamily: "var(--n-shell-display), 'Fraunces', serif",
+                  fontWeight: 650,
+                  letterSpacing: "0.01em",
+                }
+              : { color: "var(--game-text-primary)", fontFamily: "'Mansalva', cursive" }}
           >
             {gameName}
           </h1>
           <div
             className="flex items-center gap-1.5 text-[11px] flex-shrink-0 tabular-nums font-semibold"
-            style={{ color: "var(--game-text-muted)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            style={(isV3Theme && !isV3Mansalva)
+              ? { color: "var(--game-text-muted)", fontFamily: "var(--n-shell-ui), 'Manrope', sans-serif" }
+              : { color: "var(--game-text-muted)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             <span>#{puzzleNumber}</span>
             <span style={{ opacity: 0.35 }}>·</span>
@@ -186,7 +220,7 @@ export default function GameShell({
 
       {/* Game Content — constrained on desktop, safe-area aware */}
       <main
-        className={cn("game-content px-4 pt-3 max-w-lg mx-auto")}
+        className={cn("game-content px-4 pt-3 mx-auto", contentWidthClass)}
         style={{
           paddingBottom: inTg
             ? "max(5rem, calc(2rem + env(safe-area-inset-bottom, 0px)))"

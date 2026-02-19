@@ -311,6 +311,11 @@ export default function ByteChoiceGame({
     return (
       <div className={styles.arena}>
         <div className={styles.countdown}>
+          <div className={styles.countdownBrief}>
+            <p className={styles.briefIcon}>⚡</p>
+            <p className={styles.briefTitle}>Translate the word</p>
+            <p className={styles.briefDesc}>You&apos;ll see a word — pick the correct translation from three options. {totalQuestions} rounds, 8 seconds each.</p>
+          </div>
           <div className={styles.countdownNumbers}>
             {[3, 2, 1].map((value) => (
               <button
@@ -325,7 +330,7 @@ export default function ByteChoiceGame({
               </button>
             ))}
           </div>
-          <p className={styles.countdownHint}>{copy.loadingAction}</p>
+          <p className={styles.countdownHint}>Tap 3 → 2 → 1 to begin</p>
         </div>
       </div>
     );

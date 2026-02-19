@@ -14,8 +14,9 @@ import type { NeonInterceptPuzzle } from "@/lib/games/data/neon-intercept";
 
 const SESSION_MS = 90_000;
 const START_LIVES = 3;
-const LOOP_INTERVAL_MS = 80;
+const LOOP_INTERVAL_MS = 50;
 const RESOLVE_DELAY_MS = 420;
+const FALL_DISTANCE_PX = 150;
 
 type LaneIndex = 0 | 1 | 2;
 type FeedbackState = "idle" | "correct" | "wrong" | "timeout";
@@ -536,7 +537,7 @@ export default function NeonInterceptGame({
     await shareResult(text, "Neon Intercept", setCopied, copyTimeoutRef);
   }, [runtime, puzzle.number, puzzle.language, ui]);
 
-  const fallingOffsetPx = Math.round(waveProgress * 120);
+  const fallingOffsetPx = Math.round(waveProgress * FALL_DISTANCE_PX);
   const isDanger = timeLeftMs < 10_000;
 
   return (
@@ -673,11 +674,12 @@ export default function NeonInterceptGame({
                   background: "rgba(255,255,255,0.65)",
                 }}
               >
-                <motion.div
-                  animate={{ y: fallingOffsetPx }}
-                  transition={{ duration: LOOP_INTERVAL_MS / 1000, ease: "linear" }}
+                <div
                   className="absolute inset-x-1 top-2 rounded-lg border px-1 py-2 text-center text-[12px] font-semibold leading-tight"
                   style={{
+                    transform: `translate3d(0, ${fallingOffsetPx}px, 0)`,
+                    transition: `transform ${LOOP_INTERVAL_MS}ms linear`,
+                    willChange: "transform",
                     borderColor: showSuccess
                       ? "rgba(62,86,65,0.45)"
                       : showFailure
@@ -692,7 +694,7 @@ export default function NeonInterceptGame({
                   }}
                 >
                   {option}
-                </motion.div>
+                </div>
               </div>
             );
           })}

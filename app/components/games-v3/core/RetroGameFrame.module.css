@@ -1,0 +1,131 @@
+.frame {
+  --v3-space-4: 4px;
+  --v3-space-8: 8px;
+  --v3-space-12: 12px;
+  --v3-space-16: 16px;
+  --v3-space-24: 24px;
+  --v3-space-32: 32px;
+  --v3-radius-8: 8px;
+  --v3-radius-12: 12px;
+  --v3-radius-16: 16px;
+
+  display: grid;
+  gap: var(--v3-space-12);
+  background: #f7f3ee;
+  border: 1px solid #e2d8ca;
+  border-radius: var(--v3-radius-16);
+  padding: var(--v3-space-12);
+  box-shadow: 0 8px 20px rgba(30, 43, 54, 0.08);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--v3-space-8);
+  align-items: center;
+}
+
+.objective {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2b36;
+}
+
+.mode {
+  padding: var(--v3-space-4) var(--v3-space-8);
+  border-radius: var(--v3-radius-8);
+  border: 1px solid #24577a;
+  color: #24577a;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hud {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--v3-space-8);
+}
+
+.hudCard {
+  border-radius: var(--v3-radius-8);
+  border: 1px solid #e2d8ca;
+  background: #efe8de;
+  padding: var(--v3-space-8);
+}
+
+.hudLabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #697b89;
+}
+
+.hudValue {
+  margin: 4px 0 0;
+  font-size: 19px;
+  font-family: var(--font-geist-mono), "JetBrains Mono", monospace;
+  font-weight: 700;
+  color: #1e2b36;
+}
+
+.feedback {
+  margin: 0;
+  min-height: 20px;
+  color: #3e4e5c;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.content {
+  min-height: 260px;
+}
+
+.countdown {
+  display: flex;
+  gap: var(--v3-space-8);
+  justify-content: center;
+  align-items: center;
+  padding: var(--v3-space-16);
+}
+
+.countdownButton {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--v3-radius-12);
+  border: 1px solid #24577a;
+  background: #efe8de;
+  color: #24577a;
+  font-weight: 800;
+  font-size: 24px;
+}
+
+.actions {
+  display: grid;
+  gap: var(--v3-space-8);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.actionButton {
+  min-height: 48px;
+  border-radius: var(--v3-radius-8);
+  border: 1px solid #24577a;
+  background: #24577a;
+  color: #f7f3ee;
+  font-weight: 700;
+}
+
+.secondary {
+  background: #efe8de;
+  color: #24577a;
+}
+
+@media (max-width: 640px) {
+  .hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

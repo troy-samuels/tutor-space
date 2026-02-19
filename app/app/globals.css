@@ -409,6 +409,9 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   --game-bg-surface: #FFFFFF;
   --game-bg-elevated: #F5EDE8;
   --game-bg-active: #EDE3DC;
+  --surface-base: #FDF8F5;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #F5EDE8;
 
   /* Category colours — warmer tones matching brand */
   --game-yellow: #D4A843;
@@ -427,6 +430,17 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   --game-text-secondary: #6B6560;
   --game-text-muted: #9C9590;
   --game-text-accent: #D36135;
+  --text-primary: #2D2A26;
+  --text-secondary: #6B6560;
+  --text-muted: #9C9590;
+  --action-primary: #D36135;
+  --semantic-success: #3E5641;
+  --semantic-warning: #D4A843;
+  --semantic-error: #A24936;
+  --semantic-info: #5A8AB5;
+  --neon-cyan: #3CCBFF;
+  --neon-lime: #A9FF3C;
+  --neon-pink: #FF5CA8;
 
   /* Depth — warm shadows */
   --game-glow-primary: none;
@@ -642,4 +656,17 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   margin-top: 16px !important;
   margin-left: 12px !important;
   margin-right: 12px !important;
+}
+
+@keyframes v3-hand-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.84;
+  }
+
+  50% {
+    transform: translateY(4px) scale(1.05);
+    opacity: 1;
+  }
 }
