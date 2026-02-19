@@ -1,5 +1,6 @@
 import { isTelegram, tgShareInline } from "@/lib/telegram";
 import { haptic } from "@/lib/games/haptics";
+import { awardShareBonus } from "@/lib/games/tokens";
 
 /**
  * Shared share utility for all TutorLingua games.
@@ -9,6 +10,7 @@ import { haptic } from "@/lib/games/haptics";
  *   2. Web Share API (navigator.share) — mobile native sheet
  *   3. Clipboard fallback — sets `copied` state via `setCopied`
  *
+ * Awards token bonus for sharing (once per game per day).
  * Ref-based timeout is handled here so callers don't need to manage it.
  */
 export async function shareResult(
@@ -16,8 +18,14 @@ export async function shareResult(
   title: string,
   setCopied: (v: boolean) => void,
   copyTimeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+  /** Game slug for token tracking — extracted from title if not provided */
+  gameSlug?: string,
 ): Promise<void> {
   haptic("shareGenerated");
+
+  // Award share bonus tokens (once per game per day)
+  const slug = gameSlug || title.toLowerCase().replace(/\s+/g, "-");
+  awardShareBonus(slug);
 
   // 1. Telegram-native share
   if (isTelegram()) {

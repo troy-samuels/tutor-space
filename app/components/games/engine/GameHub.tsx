@@ -5,10 +5,18 @@ import Link from "next/link";
 import { getStreakData } from "@/lib/games/streaks";
 import { getDailyProgress, type GameStatus } from "@/lib/games/progress";
 import { haptic } from "@/lib/games/haptics";
+import {
+  getTokenState,
+  unlockGame,
+  getNextUnlockable,
+  GAME_UNLOCK_COSTS,
+  TOKEN_REWARDS,
+  type TokenState,
+} from "@/lib/games/tokens";
 import { GAME_ICON_MAP } from "./GameIcons";
 
 /* ——————————————————————————————————————————————
-   Game definitions — live + coming soon
+   Game definitions
    —————————————————————————————————————————————— */
 
 interface GameDef {
@@ -21,118 +29,20 @@ interface GameDef {
 }
 
 const GAMES: GameDef[] = [
-  {
-    slug: "byte-choice",
-    name: "Byte Choice",
-    description: "Translate words against the clock",
-    colour: "#24577A",
-    colourLight: "rgba(36,87,122,0.08)",
-    live: true,
-  },
-  {
-    slug: "pixel-pairs",
-    name: "Pixel Pairs",
-    description: "Flip cards and match word pairs",
-    colour: "#1A7A6A",
-    colourLight: "rgba(26,122,106,0.08)",
-    live: true,
-  },
-  {
-    slug: "relay-sprint",
-    name: "Relay Sprint",
-    description: "Pick the right translation before it drops",
-    colour: "#304B78",
-    colourLight: "rgba(48,75,120,0.08)",
-    live: true,
-  },
-  {
-    slug: "connections",
-    name: "Connections",
-    description: "Group four words that share a hidden link",
-    colour: "#D4A843",
-    colourLight: "rgba(212,168,67,0.08)",
-    live: true,
-  },
-  {
-    slug: "daily-decode",
-    name: "Daily Decode",
-    description: "Crack the cipher to reveal a quote",
-    colour: "#D36135",
-    colourLight: "rgba(211,97,53,0.08)",
-    live: true,
-  },
-  {
-    slug: "word-ladder",
-    name: "Word Ladder",
-    description: "Change one letter at a time to reach the target",
-    colour: "#3E5641",
-    colourLight: "rgba(62,86,65,0.08)",
-    live: true,
-  },
-  {
-    slug: "synonym-spiral",
-    name: "Synonym Spiral",
-    description: "Climb the tower by finding synonyms",
-    colour: "#8B5CB5",
-    colourLight: "rgba(139,92,181,0.08)",
-    live: true,
-  },
-  {
-    slug: "missing-piece",
-    name: "Missing Piece",
-    description: "Fill the gap in the sentence",
-    colour: "#5A8AB5",
-    colourLight: "rgba(90,138,181,0.08)",
-    live: true,
-  },
-  {
-    slug: "odd-one-out",
-    name: "Odd One Out",
-    description: "Find the word that doesn't belong",
-    colour: "#D36135",
-    colourLight: "rgba(211,97,53,0.08)",
-    live: true,
-  },
-  {
-    slug: "neon-intercept",
-    name: "Neon Intercept",
-    description: "Intercept translations in neon lanes",
-    colour: "#D36135",
-    colourLight: "rgba(211,97,53,0.08)",
-    live: true,
-  },
-  {
-    slug: "grammar-rush",
-    name: "Grammar Rush",
-    description: "Race through grammar challenges",
-    colour: "#B0A99F",
-    colourLight: "rgba(176,169,159,0.06)",
-    live: false,
-  },
-  {
-    slug: "accent-match",
-    name: "Accent Match",
-    description: "Match words to their correct pronunciation",
-    colour: "#B0A99F",
-    colourLight: "rgba(176,169,159,0.06)",
-    live: false,
-  },
-  {
-    slug: "idiom-hunt",
-    name: "Idiom Hunt",
-    description: "Discover hidden idioms in the word grid",
-    colour: "#B0A99F",
-    colourLight: "rgba(176,169,159,0.06)",
-    live: false,
-  },
-  {
-    slug: "tense-twist",
-    name: "Tense Twist",
-    description: "Transform sentences between tenses",
-    colour: "#B0A99F",
-    colourLight: "rgba(176,169,159,0.06)",
-    live: false,
-  },
+  { slug: "byte-choice", name: "Byte Choice", description: "Translate words against the clock", colour: "#24577A", colourLight: "rgba(36,87,122,0.08)", live: true },
+  { slug: "pixel-pairs", name: "Pixel Pairs", description: "Flip cards and match word pairs", colour: "#1A7A6A", colourLight: "rgba(26,122,106,0.08)", live: true },
+  { slug: "relay-sprint", name: "Relay Sprint", description: "Pick the right translation before it drops", colour: "#304B78", colourLight: "rgba(48,75,120,0.08)", live: true },
+  { slug: "connections", name: "Connections", description: "Group four words that share a hidden link", colour: "#D4A843", colourLight: "rgba(212,168,67,0.08)", live: true },
+  { slug: "daily-decode", name: "Daily Decode", description: "Crack the cipher to reveal a quote", colour: "#D36135", colourLight: "rgba(211,97,53,0.08)", live: true },
+  { slug: "word-ladder", name: "Word Ladder", description: "Change one letter at a time to reach the target", colour: "#3E5641", colourLight: "rgba(62,86,65,0.08)", live: true },
+  { slug: "synonym-spiral", name: "Synonym Spiral", description: "Climb the tower by finding synonyms", colour: "#8B5CB5", colourLight: "rgba(139,92,181,0.08)", live: true },
+  { slug: "missing-piece", name: "Missing Piece", description: "Fill the gap in the sentence", colour: "#5A8AB5", colourLight: "rgba(90,138,181,0.08)", live: true },
+  { slug: "odd-one-out", name: "Odd One Out", description: "Find the word that doesn't belong", colour: "#D36135", colourLight: "rgba(211,97,53,0.08)", live: true },
+  { slug: "neon-intercept", name: "Neon Intercept", description: "Intercept translations in neon lanes", colour: "#D36135", colourLight: "rgba(211,97,53,0.08)", live: true },
+  { slug: "grammar-rush", name: "Grammar Rush", description: "Race through grammar challenges", colour: "#B0A99F", colourLight: "rgba(176,169,159,0.06)", live: false },
+  { slug: "accent-match", name: "Accent Match", description: "Match words to their correct pronunciation", colour: "#B0A99F", colourLight: "rgba(176,169,159,0.06)", live: false },
+  { slug: "idiom-hunt", name: "Idiom Hunt", description: "Discover hidden idioms in the word grid", colour: "#B0A99F", colourLight: "rgba(176,169,159,0.06)", live: false },
+  { slug: "tense-twist", name: "Tense Twist", description: "Transform sentences between tenses", colour: "#B0A99F", colourLight: "rgba(176,169,159,0.06)", live: false },
 ];
 
 /* ——————————————————————————————————————————————
@@ -152,7 +62,7 @@ function statusDot(status: GameStatus, colour: string): React.CSSProperties {
 }
 
 /* ——————————————————————————————————————————————
-   Keyframe injection (once)
+   Keyframe injection
    —————————————————————————————————————————————— */
 
 const KEYFRAMES_ID = "game-hub-keyframes";
@@ -171,20 +81,50 @@ function injectKeyframes() {
       0% { background-position: -200% 0; }
       100% { background-position: 200% 0; }
     }
-    @keyframes hub-breathe {
-      0%, 100% { opacity: 0.55; }
-      50% { opacity: 0.85; }
-    }
-    @keyframes hub-pulse-ring {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.3); }
-      50% { box-shadow: 0 0 0 6px rgba(212,168,67,0); }
-    }
     @keyframes hub-streak-glow {
       0%, 100% { text-shadow: 0 0 4px rgba(212,164,65,0.4); }
       50% { text-shadow: 0 0 12px rgba(212,164,65,0.7); }
     }
+    @keyframes hub-token-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    @keyframes hub-unlock-pop {
+      0% { transform: scale(0.9); opacity: 0; }
+      60% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes hub-lock-breathe {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.7; }
+    }
   `;
   document.head.appendChild(style);
+}
+
+/* ——————————————————————————————————————————————
+   Token display icon (coin SVG)
+   —————————————————————————————————————————————— */
+
+function CoinIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="9" fill="#D9A441" />
+      <circle cx="10" cy="10" r="7" fill="#F5D76E" opacity="0.4" />
+      <circle cx="10" cy="10" r="6" stroke="#D9A441" strokeWidth="1" fill="none" opacity="0.6" />
+      <text x="10" y="13.5" fill="#A37E28" fontSize="9" fontWeight="800" textAnchor="middle" fontFamily="system-ui">T</text>
+    </svg>
+  );
+}
+
+function LockIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <rect x="4" y="9" width="12" height="9" rx="2.5" fill="#9C9590" opacity="0.5" />
+      <path d="M7 9V7a3 3 0 0 1 6 0v2" stroke="#9C9590" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
+      <circle cx="10" cy="13" r="1.2" fill="white" opacity="0.6" />
+    </svg>
+  );
 }
 
 /* ——————————————————————————————————————————————
@@ -195,32 +135,42 @@ function GameCard({
   game,
   status,
   index,
+  isUnlocked,
+  unlockCost,
+  tokenBalance,
+  onUnlock,
 }: {
   game: GameDef;
   status: GameStatus;
   index: number;
+  isUnlocked: boolean;
+  unlockCost: number;
+  tokenBalance: number;
+  onUnlock: (slug: string) => void;
 }) {
   const IconComponent = GAME_ICON_MAP[game.slug];
   const isComingSoon = !game.live;
+  const isLocked = !isComingSoon && !isUnlocked;
+  const canAfford = tokenBalance >= unlockCost;
   const [pressed, setPressed] = React.useState(false);
 
   const cardStyle: React.CSSProperties = {
     position: "relative",
     borderRadius: 16,
-    border: `1px solid ${isComingSoon ? "#E2D8CA" : "#E2D8CA"}`,
-    borderLeft: `3px solid ${isComingSoon ? "#D5D0CA" : game.colour}`,
-    background: isComingSoon ? "#F2EDE7" : "#FFFFFF",
+    border: `1px solid ${isComingSoon || isLocked ? "#E2D8CA" : "#E2D8CA"}`,
+    borderLeft: `3px solid ${isComingSoon ? "#D5D0CA" : isLocked ? "#C5BFB8" : game.colour}`,
+    background: isComingSoon ? "#F2EDE7" : isLocked ? "#F5F0EA" : "#FFFFFF",
     padding: "16px 14px",
     display: "flex",
     flexDirection: "column",
     gap: 10,
     textDecoration: "none",
     color: "#1E2B36",
-    cursor: isComingSoon ? "default" : "pointer",
-    opacity: isComingSoon ? 0.55 : 1,
-    filter: isComingSoon ? "saturate(0.3)" : "none",
+    cursor: isComingSoon ? "default" : isLocked ? "pointer" : "pointer",
+    opacity: isComingSoon ? 0.55 : isLocked ? 0.75 : 1,
+    filter: isComingSoon ? "saturate(0.3)" : isLocked ? "saturate(0.5)" : "none",
     transform: pressed ? "scale(0.97)" : "scale(1)",
-    transition: "transform 80ms ease-out, box-shadow 80ms ease-out",
+    transition: "transform 80ms ease-out, box-shadow 80ms ease-out, opacity 250ms ease-out",
     boxShadow: pressed
       ? "none"
       : "0 1px 3px rgba(30,43,54,0.06), 0 1px 2px rgba(30,43,54,0.04)",
@@ -230,8 +180,8 @@ function GameCard({
     touchAction: "manipulation",
   };
 
-  /* Shimmer overlay for live cards */
-  const shimmerOverlay: React.CSSProperties = !isComingSoon
+  /* Shimmer overlay for unlocked live cards */
+  const shimmerOverlay: React.CSSProperties = !isComingSoon && isUnlocked
     ? {
         position: "absolute",
         inset: 0,
@@ -243,60 +193,59 @@ function GameCard({
       }
     : {};
 
+  const handleUnlockClick = (e: React.MouseEvent) => {
+    if (isLocked && canAfford) {
+      e.preventDefault();
+      haptic("tap");
+      onUnlock(game.slug);
+    }
+  };
+
   const inner = (
     <div
       style={cardStyle}
       onPointerDown={() => !isComingSoon && setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
+      onClick={isLocked ? handleUnlockClick : undefined}
     >
-      {/* Shimmer overlay */}
-      {!isComingSoon && <div style={shimmerOverlay} />}
+      {/* Shimmer */}
+      {!isComingSoon && isUnlocked && <div style={shimmerOverlay} />}
 
-      {/* Top row: icon + status */}
+      {/* Top row: icon + badge */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
-        {/* Icon */}
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
+        <div style={{ width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {IconComponent ? <IconComponent size={48} /> : <div style={{ width: 48, height: 48, borderRadius: 12, background: game.colourLight }} />}
         </div>
 
-        {/* Status indicator or Coming Soon badge */}
+        {/* Badge: Coming Soon / Locked / Status */}
         {isComingSoon ? (
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "#9C9590",
-              background: "#E8E2DA",
-              padding: "3px 8px",
-              borderRadius: 9999,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <span style={{
+            fontSize: 10, fontWeight: 700, color: "#9C9590", background: "#E8E2DA",
+            padding: "3px 8px", borderRadius: 9999, letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap",
+          }}>
             Coming Soon
           </span>
+        ) : isLocked ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 4,
+            padding: "3px 8px", borderRadius: 9999,
+            background: canAfford ? "rgba(217,164,65,0.12)" : "rgba(156,149,144,0.1)",
+            border: canAfford ? "1px solid rgba(217,164,65,0.3)" : "1px solid rgba(156,149,144,0.2)",
+            animation: isLocked ? "hub-lock-breathe 3s ease-in-out infinite" : undefined,
+          }}>
+            <CoinIcon size={12} />
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              color: canAfford ? "#D9A441" : "#9C9590",
+              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            }}>
+              {unlockCost}
+            </span>
+          </div>
         ) : status !== "unplayed" ? (
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 9999,
-                ...statusDot(status, game.colour),
-              }}
-            />
+            <div style={{ width: 8, height: 8, borderRadius: 9999, ...statusDot(status, game.colour) }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: status === "won" ? "#2E7D5A" : game.colour }}>
               {statusText(status)}
             </span>
@@ -306,41 +255,64 @@ function GameCard({
 
       {/* Name + description */}
       <div style={{ display: "grid", gap: 3, position: "relative" }}>
-        <p
-          style={{
-            margin: 0,
-            fontWeight: 800,
-            fontSize: 16,
-            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-            color: isComingSoon ? "#9C9590" : "#1E2B36",
-            lineHeight: 1.25,
-          }}
-        >
+        <p style={{
+          margin: 0, fontWeight: 800, fontSize: 16, lineHeight: 1.25,
+          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          color: isComingSoon ? "#9C9590" : isLocked ? "#7A7470" : "#1E2B36",
+        }}>
           {game.name}
         </p>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 12,
-            fontWeight: 500,
-            color: isComingSoon ? "#B0A99F" : "#697B89",
-            lineHeight: 1.4,
-          }}
-        >
+        <p style={{
+          margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.4,
+          color: isComingSoon ? "#B0A99F" : isLocked ? "#9C9590" : "#697B89",
+        }}>
           {game.description}
         </p>
       </div>
+
+      {/* Unlock button for locked, affordable games */}
+      {isLocked && canAfford && (
+        <button
+          onClick={handleUnlockClick}
+          style={{
+            marginTop: 2, padding: "8px 0", borderRadius: 10,
+            border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg, #D9A441, #C49835)",
+            color: "#FFFFFF", fontSize: 12, fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <CoinIcon size={14} />
+          Unlock for {unlockCost}
+        </button>
+      )}
+
+      {/* Lock overlay for locked, can't-afford games */}
+      {isLocked && !canAfford && (
+        <div style={{
+          marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+          padding: "6px 0", borderRadius: 10,
+          background: "rgba(156,149,144,0.08)", border: "1px dashed #D5D0CA",
+        }}>
+          <LockIcon size={14} />
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#9C9590" }}>
+            {unlockCost - tokenBalance} more to unlock
+          </span>
+        </div>
+      )}
     </div>
   );
 
+  // Coming soon — not clickable
   if (isComingSoon) return inner;
 
+  // Locked — clicking triggers unlock (handled in the div)
+  if (isLocked) return inner;
+
+  // Unlocked — link to game
   return (
-    <Link
-      href={`/games/${game.slug}`}
-      onClick={() => haptic("tap")}
-      style={{ textDecoration: "none", color: "inherit" }}
-    >
+    <Link href={`/games/${game.slug}`} onClick={() => haptic("tap")} style={{ textDecoration: "none", color: "inherit" }}>
       {inner}
     </Link>
   );
@@ -353,36 +325,102 @@ function GameCard({
 function StreakDisplay({ streak }: { streak: number }) {
   if (streak < 1) return null;
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        animation: streak >= 3 ? "hub-streak-glow 2s ease-in-out infinite" : undefined,
-      }}
-    >
+    <div style={{ display: "flex", alignItems: "center", gap: 4, animation: streak >= 3 ? "hub-streak-glow 2s ease-in-out infinite" : undefined }}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M12 2C12 2 4 10 4 15a8 8 0 0 0 16 0c0-5-8-13-8-13z"
-          fill="#D9A441"
-          opacity="0.9"
-        />
-        <path
-          d="M12 10c0 0-3 3.5-3 5.5a3 3 0 0 0 6 0c0-2-3-5.5-3-5.5z"
-          fill="#F5D76E"
-          opacity="0.8"
-        />
+        <path d="M12 2C12 2 4 10 4 15a8 8 0 0 0 16 0c0-5-8-13-8-13z" fill="#D9A441" opacity="0.9" />
+        <path d="M12 10c0 0-3 3.5-3 5.5a3 3 0 0 0 6 0c0-2-3-5.5-3-5.5z" fill="#F5D76E" opacity="0.8" />
       </svg>
-      <span
-        style={{
-          fontSize: 18,
-          fontWeight: 800,
-          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-          color: "#D9A441",
-        }}
-      >
+      <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'JetBrains Mono', ui-monospace, monospace", color: "#D9A441" }}>
         {streak}
       </span>
+    </div>
+  );
+}
+
+/* ——————————————————————————————————————————————
+   Token Balance Display
+   —————————————————————————————————————————————— */
+
+function TokenBalanceBar({ tokens, nextUnlock }: { tokens: TokenState; nextUnlock: { slug: string; unlockCost: number } | null }) {
+  const gameName = nextUnlock ? GAMES.find((g) => g.slug === nextUnlock.slug)?.name ?? "Next game" : null;
+  const progress = nextUnlock ? Math.min(100, (tokens.balance / nextUnlock.unlockCost) * 100) : 100;
+
+  return (
+    <div style={{
+      borderRadius: 14, padding: "14px 16px",
+      background: "linear-gradient(135deg, #1E2B36 0%, #2A3A48 100%)",
+      display: "grid", gap: 10, position: "relative", overflow: "hidden",
+    }}>
+      {/* Gold accent */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, #D9A441, transparent)" }} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ animation: "hub-token-pulse 2s ease-in-out infinite" }}>
+            <CoinIcon size={22} />
+          </div>
+          <div>
+            <span style={{
+              fontSize: 22, fontWeight: 800, color: "#F5D76E",
+              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            }}>
+              {tokens.balance}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#697B89", marginLeft: 6 }}>tokens</span>
+          </div>
+        </div>
+
+        {/* Share bonus callout */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 4,
+          padding: "4px 10px", borderRadius: 9999,
+          background: "rgba(217,164,65,0.12)", border: "1px solid rgba(217,164,65,0.2)",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M4 8l4-6v4h4l-4 6V8H4z" fill="#D9A441" />
+          </svg>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#D9A441", letterSpacing: "0.02em" }}>
+            +{TOKEN_REWARDS.SHARE_BONUS} per share
+          </span>
+        </div>
+      </div>
+
+      {/* Next unlock progress */}
+      {nextUnlock && (
+        <div style={{ display: "grid", gap: 5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#697B89" }}>
+              Next unlock: {gameName}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#D9A441", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+              {tokens.balance}/{nextUnlock.unlockCost}
+            </span>
+          </div>
+          <div style={{ height: 5, borderRadius: 9999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+            <div style={{
+              height: "100%", width: `${progress}%`, borderRadius: 9999,
+              background: progress >= 100 ? "linear-gradient(90deg, #D9A441, #F5D76E)" : "linear-gradient(90deg, #D9A441, #C49835)",
+              transition: "width 500ms cubic-bezier(0.16, 1, 0.3, 1)",
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* Earn tokens hint */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {[
+          { label: "Play", value: `+${TOKEN_REWARDS.GAME_COMPLETE}` },
+          { label: "Master", value: `+${TOKEN_REWARDS.GAME_MASTERED}` },
+          { label: "Share", value: `+${TOKEN_REWARDS.SHARE_BONUS}` },
+        ].map((item) => (
+          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 500, color: "#697B89" }}>{item.label}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#F5D76E", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+              {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -393,91 +431,28 @@ function StreakDisplay({ streak }: { streak: number }) {
 
 function SaveProgressBanner() {
   return (
-    <div
-      style={{
-        borderRadius: 12,
-        background: "linear-gradient(135deg, rgba(36,87,122,0.06) 0%, rgba(212,168,67,0.06) 100%)",
-        border: "1px solid #E2D8CA",
-        padding: "12px 16px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12,
-      }}
-    >
+    <div style={{
+      borderRadius: 12,
+      background: "linear-gradient(135deg, rgba(36,87,122,0.06) 0%, rgba(212,168,67,0.06) 100%)",
+      border: "1px solid #E2D8CA", padding: "12px 16px",
+      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+    }}>
       <div style={{ display: "grid", gap: 2 }}>
         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1E2B36" }}>
           Save your progress
         </p>
         <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: "#697B89" }}>
-          Sign in to track scores and compete on leaderboards
+          Sign in to sync scores across devices &amp; compete on leaderboards
         </p>
       </div>
-      <Link
-        href="/login"
-        onClick={() => haptic("tap")}
-        style={{
-          padding: "8px 16px",
-          borderRadius: 9999,
-          background: "#24577A",
-          color: "#F7F3EE",
-          fontSize: 12,
-          fontWeight: 700,
-          textDecoration: "none",
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-          touchAction: "manipulation",
-        }}
-      >
+      <Link href="/login" onClick={() => haptic("tap")} style={{
+        padding: "8px 16px", borderRadius: 9999, background: "#24577A", color: "#F7F3EE",
+        fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
+        touchAction: "manipulation",
+      }}>
         Sign in
       </Link>
     </div>
-  );
-}
-
-/* ——————————————————————————————————————————————
-   Leaderboard Teaser
-   —————————————————————————————————————————————— */
-
-function LeaderboardTeaser() {
-  return (
-    <Link
-      href="/games/world-map"
-      onClick={() => haptic("tap")}
-      style={{
-        borderRadius: 12,
-        border: "1px solid #E2D8CA",
-        background: "#FFFFFF",
-        padding: "14px 16px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12,
-        textDecoration: "none",
-        color: "#1E2B36",
-        touchAction: "manipulation",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {/* Trophy icon */}
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
-          <path d="M7 5h14v8a7 7 0 0 1-14 0V5z" fill="#D9A441" opacity="0.2" />
-          <path d="M7 5h14v8a7 7 0 0 1-14 0V5z" stroke="#D9A441" strokeWidth="1.5" fill="none" />
-          <path d="M7 7H4a2 2 0 0 0-2 2v1a4 4 0 0 0 4 4h1" stroke="#D9A441" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.5" />
-          <path d="M21 7h3a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1" stroke="#D9A441" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.5" />
-          <rect x="11" y="19" width="6" height="3" rx="1" fill="#D9A441" opacity="0.3" />
-          <rect x="9" y="22" width="10" height="2" rx="1" fill="#D9A441" opacity="0.2" />
-        </svg>
-        <div style={{ display: "grid", gap: 1 }}>
-          <span style={{ fontSize: 14, fontWeight: 700 }}>Leaderboards &amp; World Map</span>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#697B89" }}>See how you compare to other learners</span>
-        </div>
-      </div>
-      {/* Arrow */}
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-        <path d="M6 3l5 5-5 5" stroke="#9C9590" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </Link>
   );
 }
 
@@ -488,12 +463,15 @@ function LeaderboardTeaser() {
 export default function GameHub() {
   const [streak, setStreak] = React.useState(0);
   const [statuses, setStatuses] = React.useState<Record<string, GameStatus>>({});
+  const [tokens, setTokens] = React.useState<TokenState>(() => ({
+    totalEarned: 0, balance: 0, unlockedGames: ["byte-choice", "pixel-pairs", "relay-sprint"], shareLog: {},
+  }));
 
   React.useEffect(() => {
     injectKeyframes();
-    const streakData = getStreakData();
-    setStreak(streakData.current);
+    setStreak(getStreakData().current);
     setStatuses(getDailyProgress().games);
+    setTokens(getTokenState());
   }, []);
 
   const liveGames = GAMES.filter((g) => g.live);
@@ -502,36 +480,29 @@ export default function GameHub() {
     return s === "played" || s === "won";
   }).length;
 
+  const nextUnlockable = getNextUnlockable(tokens);
+  const nextUnlock = nextUnlockable.length > 0 ? nextUnlockable[0] : null;
+
+  const handleUnlock = React.useCallback((slug: string) => {
+    const success = unlockGame(slug);
+    if (success) {
+      haptic("success");
+      setTokens(getTokenState());
+    }
+  }, []);
+
   return (
     <div style={{ minHeight: "100dvh", background: "#F7F3EE" }}>
-      <div
-        style={{
-          maxWidth: 760,
-          margin: "0 auto",
-          padding: "24px 16px 96px",
-          display: "grid",
-          gap: 20,
-        }}
-      >
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 96px", display: "grid", gap: 20 }}>
+
         {/* ——— Header ——— */}
         <header style={{ display: "grid", gap: 14 }}>
-          {/* Title row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h1
-              style={{
-                margin: 0,
-                color: "#1E2B36",
-                fontSize: 32,
-                fontFamily: "'Mansalva', cursive",
-                lineHeight: 1.1,
-              }}
-            >
+            <h1 style={{ margin: 0, color: "#1E2B36", fontSize: 32, fontFamily: "'Mansalva', cursive", lineHeight: 1.1 }}>
               Language Games
             </h1>
             <StreakDisplay streak={streak} />
           </div>
-
-          {/* Subtitle */}
           <p style={{ margin: 0, color: "#3E4E5C", fontWeight: 500, fontSize: 14, lineHeight: 1.4 }}>
             Play daily. Build vocabulary. Track your streak.
           </p>
@@ -539,64 +510,47 @@ export default function GameHub() {
           {/* Progress bar */}
           <div style={{ display: "grid", gap: 6 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#697B89" }}>
-                Today&apos;s progress
-              </span>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "#24577A",
-                  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                }}
-              >
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#697B89" }}>Today&apos;s progress</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#24577A", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
                 {completed}/{liveGames.length}
               </span>
             </div>
-            <div
-              style={{
-                height: 6,
-                borderRadius: 9999,
-                background: "#E2D8CA",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${(completed / liveGames.length) * 100}%`,
-                  borderRadius: 9999,
-                  background: "linear-gradient(90deg, #24577A, #2E7D5A)",
-                  transition: "width 500ms cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              />
+            <div style={{ height: 6, borderRadius: 9999, background: "#E2D8CA", overflow: "hidden" }}>
+              <div style={{
+                height: "100%", width: `${liveGames.length > 0 ? (completed / liveGames.length) * 100 : 0}%`, borderRadius: 9999,
+                background: "linear-gradient(90deg, #24577A, #2E7D5A)", transition: "width 500ms cubic-bezier(0.16, 1, 0.3, 1)",
+              }} />
             </div>
           </div>
         </header>
+
+        {/* ——— Token Balance ——— */}
+        <TokenBalanceBar tokens={tokens} nextUnlock={nextUnlock} />
 
         {/* ——— Save Progress CTA ——— */}
         <SaveProgressBanner />
 
         {/* ——— Game Grid ——— */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {GAMES.map((game, i) => (
-            <GameCard
-              key={game.slug}
-              game={game}
-              status={statuses[game.slug] ?? "unplayed"}
-              index={i}
-            />
-          ))}
-        </section>
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+          {GAMES.map((game, i) => {
+            const unlockDef = GAME_UNLOCK_COSTS.find((g) => g.slug === game.slug);
+            const unlockCost = unlockDef?.unlockCost ?? 0;
+            const isUnlocked = tokens.unlockedGames.includes(game.slug);
 
-        {/* ——— Leaderboard Teaser ——— */}
-        <LeaderboardTeaser />
+            return (
+              <GameCard
+                key={game.slug}
+                game={game}
+                status={statuses[game.slug] ?? "unplayed"}
+                index={i}
+                isUnlocked={isUnlocked}
+                unlockCost={unlockCost}
+                tokenBalance={tokens.balance}
+                onUnlock={handleUnlock}
+              />
+            );
+          })}
+        </section>
       </div>
     </div>
   );

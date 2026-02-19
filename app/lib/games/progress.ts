@@ -1,7 +1,10 @@
 /**
  * Per-game daily progress tracking (localStorage).
  * Used by the game hub to show played/won status rings.
+ * Also awards tokens on game completion.
  */
+
+import { awardGameComplete } from "@/lib/games/tokens";
 
 const STORAGE_KEY = "tl-game-progress";
 
@@ -41,16 +44,25 @@ export function getDailyProgress(): DailyGameProgress {
 
 /**
  * Record a game result for today.
+ * Also awards tokens: +20 for mastery (won), +10 for completion.
  */
 export function recordDailyProgress(
   gameSlug: string,
   won: boolean
 ): DailyGameProgress {
   const progress = getDailyProgress();
+  const previousStatus = progress.games[gameSlug];
+
   progress.games[gameSlug] = won ? "won" : "played";
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
   }
+
+  // Award tokens for first completion of this game today
+  if (!previousStatus || previousStatus === "unplayed") {
+    awardGameComplete(won);
+  }
+
   return progress;
 }
 
