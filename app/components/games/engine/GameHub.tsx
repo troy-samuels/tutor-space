@@ -9,8 +9,12 @@ import {
   getTokenState,
   unlockGame,
   getNextUnlockable,
+  getCurrentPrizeTier,
+  getNextPrizeTier,
+  awardEmailSignup,
   GAME_UNLOCK_COSTS,
   TOKEN_REWARDS,
+  PRIZE_TIERS,
   type TokenState,
 } from "@/lib/games/tokens";
 import { GAME_ICON_MAP } from "./GameIcons";
@@ -412,6 +416,7 @@ function TokenBalanceBar({ tokens, nextUnlock }: { tokens: TokenState; nextUnloc
           { label: "Play", value: `+${TOKEN_REWARDS.GAME_COMPLETE}` },
           { label: "Master", value: `+${TOKEN_REWARDS.GAME_MASTERED}` },
           { label: "Share", value: `+${TOKEN_REWARDS.SHARE_BONUS}` },
+          { label: "Email", value: `+${TOKEN_REWARDS.EMAIL_SIGNUP}` },
         ].map((item) => (
           <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: 10, fontWeight: 500, color: "#697B89" }}>{item.label}</span>
@@ -426,32 +431,201 @@ function TokenBalanceBar({ tokens, nextUnlock }: { tokens: TokenState; nextUnloc
 }
 
 /* ——————————————————————————————————————————————
-   Save Progress / Login CTA
+   Email Signup — earns tokens + saves progress
    —————————————————————————————————————————————— */
 
-function SaveProgressBanner() {
+function EmailSignupBanner({ emailClaimed, onEmailClaimed }: { emailClaimed: boolean; onEmailClaimed: () => void }) {
+  const [email, setEmail] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  if (emailClaimed || submitted) {
+    return (
+      <div style={{
+        borderRadius: 12, padding: "12px 16px",
+        background: "rgba(46,125,90,0.06)", border: "1px solid rgba(46,125,90,0.15)",
+        display: "flex", alignItems: "center", gap: 10,
+      }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+          <circle cx="10" cy="10" r="9" fill="#2E7D5A" opacity="0.15" />
+          <path d="M6.5 10.5l2.5 2.5 5-5" stroke="#2E7D5A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <div>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#2E7D5A" }}>
+            +{TOKEN_REWARDS.EMAIL_SIGNUP} tokens earned!
+          </p>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: "#697B89" }}>
+            Progress saved. You&apos;ll get notified about new games &amp; prizes.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError("Enter a valid email");
+      return;
+    }
+    setError("");
+
+    // TODO: POST to /api/games/meta/email or similar
+    // For now, just award tokens locally
+    awardEmailSignup();
+    setSubmitted(true);
+    haptic("success");
+    onEmailClaimed();
+  };
+
   return (
     <div style={{
       borderRadius: 12,
-      background: "linear-gradient(135deg, rgba(36,87,122,0.06) 0%, rgba(212,168,67,0.06) 100%)",
-      border: "1px solid #E2D8CA", padding: "12px 16px",
-      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+      background: "linear-gradient(135deg, rgba(217,164,65,0.06) 0%, rgba(36,87,122,0.06) 100%)",
+      border: "1px solid #E2D8CA", padding: "14px 16px",
+      display: "grid", gap: 10,
     }}>
-      <div style={{ display: "grid", gap: 2 }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1E2B36" }}>
-          Save your progress
-        </p>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: "#697B89" }}>
-          Sign in to sync scores across devices &amp; compete on leaderboards
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "grid", gap: 2 }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1E2B36" }}>
+            Add your email for +{TOKEN_REWARDS.EMAIL_SIGNUP} tokens
+          </p>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: "#697B89" }}>
+            Save progress, unlock prizes, and get notified about new games
+          </p>
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 3,
+          padding: "3px 8px", borderRadius: 9999,
+          background: "rgba(217,164,65,0.12)", border: "1px solid rgba(217,164,65,0.25)",
+          flexShrink: 0,
+        }}>
+          <CoinIcon size={12} />
+          <span style={{ fontSize: 11, fontWeight: 800, color: "#D9A441", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+            +{TOKEN_REWARDS.EMAIL_SIGNUP}
+          </span>
+        </div>
       </div>
-      <Link href="/login" onClick={() => haptic("tap")} style={{
-        padding: "8px 16px", borderRadius: 9999, background: "#24577A", color: "#F7F3EE",
-        fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-        touchAction: "manipulation",
-      }}>
-        Sign in
-      </Link>
+
+      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8 }}>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setError(""); }}
+          placeholder="your@email.com"
+          style={{
+            flex: 1, padding: "10px 14px", borderRadius: 10,
+            border: error ? "1.5px solid #A34C44" : "1px solid #E2D8CA",
+            background: "#FFFFFF", fontSize: 14, fontWeight: 500,
+            color: "#1E2B36", outline: "none",
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg, #D9A441, #C49835)",
+            color: "#FFFFFF", fontSize: 13, fontWeight: 700,
+            touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Claim
+        </button>
+      </form>
+      {error && <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: "#A34C44" }}>{error}</p>}
+    </div>
+  );
+}
+
+/* ——————————————————————————————————————————————
+   Prize Tiers
+   —————————————————————————————————————————————— */
+
+function PrizeTiersSection({ tokens }: { tokens: TokenState }) {
+  const currentTier = getCurrentPrizeTier(tokens);
+  const nextTier = getNextPrizeTier(tokens);
+
+  return (
+    <div style={{
+      borderRadius: 14, padding: "16px",
+      background: "#FFFFFF", border: "1px solid #E2D8CA",
+      display: "grid", gap: 12,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1E2B36", fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+          Prizes &amp; Rewards
+        </h2>
+        {currentTier && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: "#D9A441",
+            padding: "3px 8px", borderRadius: 9999,
+            background: "rgba(217,164,65,0.1)", border: "1px solid rgba(217,164,65,0.2)",
+          }}>
+            {currentTier.emoji} {currentTier.name}
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        {PRIZE_TIERS.map((tier) => {
+          const reached = tokens.totalEarned >= tier.threshold;
+          const isCurrent = currentTier?.threshold === tier.threshold;
+          const isNext = nextTier?.threshold === tier.threshold;
+          const progress = Math.min(100, (tokens.totalEarned / tier.threshold) * 100);
+
+          return (
+            <div
+              key={tier.threshold}
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "10px 12px", borderRadius: 10,
+                background: reached ? "rgba(46,125,90,0.04)" : isNext ? "rgba(217,164,65,0.04)" : "rgba(0,0,0,0.01)",
+                border: isCurrent ? "1px solid rgba(46,125,90,0.2)" : isNext ? "1px solid rgba(217,164,65,0.15)" : "1px solid transparent",
+                opacity: reached ? 1 : 0.7,
+              }}
+            >
+              {/* Emoji */}
+              <span style={{ fontSize: 22, width: 32, textAlign: "center", filter: reached ? "none" : "grayscale(0.8)" }}>
+                {tier.emoji}
+              </span>
+
+              {/* Info */}
+              <div style={{ flex: 1, display: "grid", gap: 3 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700,
+                    color: reached ? "#2E7D5A" : "#1E2B36",
+                  }}>
+                    {tier.name}
+                  </span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                    color: reached ? "#2E7D5A" : "#9C9590",
+                  }}>
+                    {reached ? "✓ Unlocked" : `${tier.threshold} tokens`}
+                  </span>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#697B89" }}>
+                  {tier.description}
+                </span>
+                {/* Progress bar for next tier */}
+                {isNext && !reached && (
+                  <div style={{ height: 3, borderRadius: 9999, background: "#E2D8CA", overflow: "hidden", marginTop: 2 }}>
+                    <div style={{
+                      height: "100%", width: `${progress}%`, borderRadius: 9999,
+                      background: "linear-gradient(90deg, #D9A441, #F5D76E)",
+                      transition: "width 500ms cubic-bezier(0.16, 1, 0.3, 1)",
+                    }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -464,7 +638,7 @@ export default function GameHub() {
   const [streak, setStreak] = React.useState(0);
   const [statuses, setStatuses] = React.useState<Record<string, GameStatus>>({});
   const [tokens, setTokens] = React.useState<TokenState>(() => ({
-    totalEarned: 0, balance: 0, unlockedGames: ["byte-choice", "pixel-pairs", "relay-sprint"], shareLog: {},
+    totalEarned: 0, balance: 0, unlockedGames: ["byte-choice", "pixel-pairs", "relay-sprint"], shareLog: {}, emailClaimed: false,
   }));
 
   React.useEffect(() => {
@@ -527,8 +701,11 @@ export default function GameHub() {
         {/* ——— Token Balance ——— */}
         <TokenBalanceBar tokens={tokens} nextUnlock={nextUnlock} />
 
-        {/* ——— Save Progress CTA ——— */}
-        <SaveProgressBanner />
+        {/* ——— Email Signup for Bonus Tokens ——— */}
+        <EmailSignupBanner
+          emailClaimed={tokens.emailClaimed}
+          onEmailClaimed={() => setTokens(getTokenState())}
+        />
 
         {/* ——— Game Grid ——— */}
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
@@ -551,6 +728,9 @@ export default function GameHub() {
             );
           })}
         </section>
+
+        {/* ——— Prizes & Rewards ——— */}
+        <PrizeTiersSection tokens={tokens} />
       </div>
     </div>
   );

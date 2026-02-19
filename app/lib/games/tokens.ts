@@ -24,9 +24,27 @@ export const TOKEN_REWARDS = {
   GAME_MASTERED: 20,
   /** Sharing a game result */
   SHARE_BONUS: 15,
+  /** Adding your email — one-time bonus */
+  EMAIL_SIGNUP: 50,
   /** Per-day streak bonus (multiplied by streak count) */
   STREAK_BONUS: 5,
 } as const;
+
+/* ——— Prize tiers ——— */
+export interface PrizeTier {
+  /** Total lifetime tokens needed to reach this tier */
+  threshold: number;
+  name: string;
+  description: string;
+  emoji: string;
+}
+
+export const PRIZE_TIERS: PrizeTier[] = [
+  { threshold: 50, name: "Word Wanderer", description: "Unlock your first bonus game", emoji: "🌱" },
+  { threshold: 150, name: "Phrase Pioneer", description: "Exclusive word pack + avatar badge", emoji: "🧭" },
+  { threshold: 300, name: "Vocab Voyager", description: "Early access to new games", emoji: "🚀" },
+  { threshold: 500, name: "Lingua Legend", description: "Custom challenge creator + leaderboard crown", emoji: "👑" },
+];
 
 /* ——— Game unlock costs ——— */
 export interface GameUnlockDef {
@@ -72,6 +90,8 @@ export interface TokenState {
   unlockedGames: string[];
   /** Track share bonuses per game per day to prevent spam */
   shareLog: Record<string, string>; // slug → last-share-date
+  /** Whether the email signup bonus has been claimed */
+  emailClaimed: boolean;
 }
 
 function defaultState(): TokenState {
@@ -80,6 +100,7 @@ function defaultState(): TokenState {
     balance: 0,
     unlockedGames: ["byte-choice", "pixel-pairs", "relay-sprint"],
     shareLog: {},
+    emailClaimed: false,
   };
 }
 
@@ -149,6 +170,53 @@ export function awardShareBonus(gameSlug: string): number {
   state.totalEarned += TOKEN_REWARDS.SHARE_BONUS;
   saveTokenState(state);
   return TOKEN_REWARDS.SHARE_BONUS;
+}
+
+/**
+ * Award tokens for adding email (one-time).
+ * @returns The number of tokens awarded (0 if already claimed).
+ */
+export function awardEmailSignup(): number {
+  const state = getTokenState();
+  if (state.emailClaimed) return 0;
+
+  state.emailClaimed = true;
+  state.balance += TOKEN_REWARDS.EMAIL_SIGNUP;
+  state.totalEarned += TOKEN_REWARDS.EMAIL_SIGNUP;
+  saveTokenState(state);
+  return TOKEN_REWARDS.EMAIL_SIGNUP;
+}
+
+/**
+ * Check whether the email bonus has been claimed.
+ */
+export function hasClaimedEmailBonus(): boolean {
+  return getTokenState().emailClaimed;
+}
+
+/**
+ * Get the user's current prize tier based on lifetime tokens.
+ */
+export function getCurrentPrizeTier(state: TokenState): PrizeTier | null {
+  let current: PrizeTier | null = null;
+  for (const tier of PRIZE_TIERS) {
+    if (state.totalEarned >= tier.threshold) {
+      current = tier;
+    }
+  }
+  return current;
+}
+
+/**
+ * Get the next prize tier the user is working towards.
+ */
+export function getNextPrizeTier(state: TokenState): PrizeTier | null {
+  for (const tier of PRIZE_TIERS) {
+    if (state.totalEarned < tier.threshold) {
+      return tier;
+    }
+  }
+  return null;
 }
 
 /**
