@@ -72,7 +72,7 @@ export default function PixelPairsGame({
   }, [pairCount]);
 
   const [stage, setStage] = React.useState<Stage>("countdown");
-  const [countdownProgress, setCountdownProgress] = React.useState(0);
+  const [countdownValue, setCountdownValue] = React.useState<number | null>(null);
   const [cards, setCards] = React.useState<CardData[]>(() =>
     puzzle.tiles.map((tile) => ({
       ...tile,
@@ -186,22 +186,24 @@ export default function PixelPairsGame({
   }, [cefr, challengeCode, difficulty, firstCorrectMs, firstMeaningfulActionMs, governor.state, initialDifficulty, language, matchedCount, mode, moveCount, pairCount, puzzle.puzzleNumber, puzzle.seed, runId, stage, streak, totalPairs]);
 
   // ── Countdown ──
-  const handleCountdownTap = React.useCallback(
-    (value: number) => {
-      const expected = 3 - countdownProgress;
-      if (value !== expected) {
-        haptic("error");
-        return;
-      }
+  const handleStartTap = React.useCallback(() => {
+    if (countdownValue !== null) return;
+    haptic("tap");
+    setCountdownValue(3);
+  }, [countdownValue]);
+
+  React.useEffect(() => {
+    if (countdownValue === null || stage !== "countdown") return;
+    if (countdownValue <= 0) {
+      setStage("active");
+      return;
+    }
+    const timer = setTimeout(() => {
       haptic("tap");
-      const next = countdownProgress + 1;
-      setCountdownProgress(next);
-      if (next >= 3) {
-        setStage("active");
-      }
-    },
-    [countdownProgress],
-  );
+      setCountdownValue(countdownValue - 1);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [countdownValue, stage]);
 
   // ── Card tap handler ──
   const handleCardTap = React.useCallback(
@@ -342,26 +344,28 @@ export default function PixelPairsGame({
     return (
       <div className={styles.arena}>
         <div className={styles.countdown}>
-          <div className={styles.countdownBrief}>
-            <p className={styles.briefIcon}>🃏</p>
-            <p className={styles.briefTitle}>Match word pairs</p>
-            <p className={styles.briefDesc}>Flip two cards at a time. Match each word with its translation. Fewer moves = more stars.</p>
-          </div>
-          <div className={styles.countdownNumbers}>
-            {[3, 2, 1].map((value) => (
+          {countdownValue === null ? (
+            <>
+              <div className={styles.countdownBrief}>
+                <p className={styles.briefIcon}>🃏</p>
+                <p className={styles.briefTitle}>Match word pairs</p>
+                <p className={styles.briefDesc}>Flip two cards at a time. Match each word with its translation. Fewer moves = more stars.</p>
+              </div>
               <button
-                key={value}
                 type="button"
-                className={styles.countdownButton}
-                data-tapped={countdownProgress >= 4 - value ? "true" : "false"}
-                onPointerDown={() => handleCountdownTap(value)}
-                aria-label={`Tap ${value} to start`}
+                className={styles.playButton}
+                onPointerDown={handleStartTap}
               >
-                {value}
+                Tap to Play
               </button>
-            ))}
-          </div>
-          <p className={styles.countdownHint}>Tap 3 → 2 → 1 to begin</p>
+            </>
+          ) : (
+            <div className={styles.countdownTimer}>
+              <p className={styles.countdownNumber} key={countdownValue}>
+                {countdownValue > 0 ? countdownValue : "GO!"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );

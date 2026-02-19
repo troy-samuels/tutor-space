@@ -365,7 +365,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 28px;
   min-height: 360px;
 }
 
@@ -385,8 +385,7 @@
 
 .briefTitle {
   margin: 0;
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 22px;
   color: var(--pp-charcoal);
   font-family: 'Mansalva', cursive;
 }
@@ -399,42 +398,53 @@
   line-height: 1.45;
 }
 
-.countdownNumbers {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.countdownButton {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  border: 2px solid var(--pp-violet-dim);
-  background: var(--pp-indigo);
+.playButton {
+  min-width: 200px;
+  min-height: 56px;
+  border-radius: 14px;
+  border: none;
+  background: var(--pp-violet);
   color: #fff;
+  font-size: 18px;
   font-weight: 800;
-  font-size: 28px;
   cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  letter-spacing: 0.02em;
 }
 
-.countdownButton[data-tapped="true"] {
-  background: var(--pp-violet);
-  border-color: var(--pp-violet);
-  transform: scale(0.92);
-}
-
-.countdownButton:active:not([data-tapped="true"]) {
+.playButton:active {
   transform: scale(0.95);
 }
 
-.countdownHint {
+@media (hover: hover) {
+  .playButton:hover {
+    box-shadow: 0 4px 20px rgba(108, 92, 231, 0.35);
+  }
+}
+
+.countdownTimer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.countdownNumber {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--pp-muted);
+  font-size: 96px;
+  font-weight: 800;
+  color: var(--pp-violet);
+  font-family: 'Mansalva', cursive;
+  animation: pp-countdown-pop 0.6s ease;
+  text-shadow: 0 4px 24px rgba(108, 92, 231, 0.3);
+}
+
+@keyframes pp-countdown-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ── Match celebration particles ── */
