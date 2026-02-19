@@ -3,10 +3,10 @@
 import * as React from "react";
 import { haptic } from "@/lib/games/haptics";
 import { recordDailyProgress } from "@/lib/games/progress";
-import { recordWordResult, recordGamePlayed } from "@/lib/games/v3/progress/word-tracker";
+import { recordWordResult, recordGamePlayed, getStoredLevel, setStoredLevel } from "@/lib/games/v3/progress/word-tracker";
 import { startGameRun, completeGameRun } from "@/lib/games/runtime/run-lifecycle";
 import type { DifficultyTier } from "@/lib/games/runtime/types";
-import { getByteChoicePuzzle, type GameLanguage } from "@/lib/games/v3/data/byte-choice";
+import { getByteChoicePuzzle, type GameLanguage, type ByteChoiceQuestion } from "@/lib/games/v3/data/byte-choice";
 import {
   buildSkillTrackDeltas,
   calibrateDifficulty,
@@ -15,6 +15,8 @@ import {
   type CalibrationSample,
   type CefrLevel,
 } from "@/lib/games/v3/adaptation/engine";
+import { getPool, type PoolRow } from "@/lib/games/v3/data/pools/index";
+import { makeRng } from "@/lib/games/v3/data/shared";
 import { computeCognitiveGovernor } from "@/lib/games/v3/adaptation/cognitive-governor";
 import styles from "./ByteChoiceGame.module.css";
 
@@ -60,7 +62,54 @@ interface ByteChoiceGameProps {
   challengeDifficulty?: number | null;
 }
 
-type Stage = "countdown" | "active" | "summary";
+type Stage = "placement" | "countdown" | "active" | "summary";
+
+type PlacementPhase = "intro" | "testing" | "result";
+
+// Band order for placement: A1, A2, B1, B2, A2 (safety repeat)
+const PLACEMENT_BAND_ORDER: Array<"A1" | "A2" | "B1" | "B2"> = ["A1", "A2", "B1", "B2", "A2"];
+
+function getPlacementQuestions(pool: PoolRow[], rng: () => number): ByteChoiceQuestion[] {
+  const byBand: Record<string, PoolRow[]> = { A1: [], A2: [], B1: [], B2: [] };
+  for (const row of pool) {
+    byBand[row.band].push(row);
+  }
+
+  const questions: ByteChoiceQuestion[] = [];
+  const usedPrompts = new Set<string>();
+
+  for (const band of PLACEMENT_BAND_ORDER) {
+    const candidates = byBand[band].filter((r) => !usedPrompts.has(r.prompt));
+    if (candidates.length === 0) continue;
+
+    const idx = Math.floor(rng() * candidates.length);
+    const row = candidates[idx];
+    usedPrompts.add(row.prompt);
+
+    const optionBag = [row.correct, ...row.distractors] as const;
+    const shuffled = [...optionBag].sort(() => rng() - 0.5) as [string, string, string];
+    const correctIndex = shuffled.findIndex((v) => v === row.correct) as 0 | 1 | 2;
+
+    questions.push({
+      prompt: row.prompt,
+      options: shuffled,
+      correctIndex,
+      track: "recognition",
+      band: row.band,
+    });
+  }
+
+  return questions;
+}
+
+function scorePlacement(results: boolean[]): "A1" | "A2" | "B1" | "B2" {
+  // results[0]=A1, results[1]=A2, results[2]=B1, results[3]=B2, results[4]=A2 backup
+  if (!results[0]) return "A1"; // Got A1 wrong
+  if (!results[1]) return "A1"; // Got A1 right, A2 wrong
+  if (!results[2]) return "A2"; // Got A1+A2 right, B1 wrong
+  if (!results[3]) return "B1"; // Got A1+A2+B1 right, B2 wrong
+  return "B2"; // Got all right
+}
 
 interface RoundResult {
   prompt: string;
@@ -76,17 +125,69 @@ export default function ByteChoiceGame({
   challengeSeed = null,
   challengeDifficulty = null,
 }: ByteChoiceGameProps) {
-  const cefrBand = React.useMemo(() => clampCefrToBand(cefr), [cefr]);
+  // ── Placement + level resolution ──
+  const [resolvedCefr, setResolvedCefr] = React.useState<CefrLevel | null | undefined>(cefr);
+  const [needsPlacement, setNeedsPlacement] = React.useState(false);
+
+  // Check localStorage on mount to decide if placement is needed
+  React.useEffect(() => {
+    if (cefr) {
+      // URL param provided — skip placement
+      setResolvedCefr(cefr);
+      setNeedsPlacement(false);
+      return;
+    }
+    const stored = getStoredLevel();
+    if (stored) {
+      setResolvedCefr(stored);
+      setNeedsPlacement(false);
+    } else {
+      setNeedsPlacement(true);
+    }
+  }, [cefr]);
+
+  const cefrBand = React.useMemo(() => clampCefrToBand(resolvedCefr), [resolvedCefr]);
   const puzzle = React.useMemo(
     () => getByteChoicePuzzle(language, challengeSeed, cefrBand),
     [challengeSeed, language, cefrBand],
   );
   const initialDifficulty = React.useMemo(
-    () => challengeDifficulty ?? getBaselineDifficulty(cefr),
-    [cefr, challengeDifficulty],
+    () => challengeDifficulty ?? getBaselineDifficulty(resolvedCefr),
+    [resolvedCefr, challengeDifficulty],
   );
 
-  const [stage, setStage] = React.useState<Stage>("countdown");
+  // Placement questions (generated once on mount)
+  const placementQuestions = React.useMemo(() => {
+    if (typeof window === "undefined") return [];
+    const pool = getPool(language);
+    const rng = makeRng(Date.now());
+    return getPlacementQuestions(pool, rng);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
+
+  const [stage, setStage] = React.useState<Stage>(() =>
+    // Initial stage determined after hydration via useEffect
+    "countdown",
+  );
+  const [placementPhase, setPlacementPhase] = React.useState<PlacementPhase>("intro");
+  const [placementIndex, setPlacementIndex] = React.useState(0);
+  const [placementResults, setPlacementResults] = React.useState<boolean[]>([]);
+  const [placementSelection, setPlacementSelection] = React.useState<number | null>(null);
+  const [placementLevel, setPlacementLevel] = React.useState<"A1" | "A2" | "B1" | "B2" | null>(null);
+
+  // Set initial stage after mount (needs localStorage check)
+  React.useEffect(() => {
+    if (cefr) {
+      setStage("countdown");
+      return;
+    }
+    const stored = getStoredLevel();
+    if (stored) {
+      setStage("countdown");
+    } else {
+      setStage("placement");
+    }
+  }, [cefr]);
   const [countdownValue, setCountdownValue] = React.useState<number | null>(null);
   const [questionIndex, setQuestionIndex] = React.useState(0);
   const [questionKey, setQuestionKey] = React.useState(0);
@@ -362,6 +463,40 @@ export default function ByteChoiceGame({
     [difficulty, firstCorrectMs, firstMeaningfulActionMs, language, question, questionIndex, samples, selection, stage, streak, totalQuestions],
   );
 
+  // ── Placement answer handler ──
+  const handlePlacementAnswer = React.useCallback(
+    (index: number) => {
+      if (placementSelection !== null) return;
+      if (placementPhase !== "testing") return;
+
+      const q = placementQuestions[placementIndex];
+      if (!q) return;
+
+      const correct = index === q.correctIndex;
+      setPlacementSelection(index);
+
+      const newResults = [...placementResults, correct];
+      setPlacementResults(newResults);
+
+      // Brief 200ms flash then advance
+      setTimeout(() => {
+        setPlacementSelection(null);
+        const nextIdx = placementIndex + 1;
+        if (nextIdx >= placementQuestions.length) {
+          // Placement complete — score it
+          const level = scorePlacement(newResults);
+          setPlacementLevel(level);
+          setStoredLevel(level);
+          setResolvedCefr(level);
+          setPlacementPhase("result");
+        } else {
+          setPlacementIndex(nextIdx);
+        }
+      }, 200);
+    },
+    [placementSelection, placementPhase, placementQuestions, placementIndex, placementResults],
+  );
+
   // ── Results data ──
   // ── Share handler (replaces SharePanel) ──
   const handleShare = React.useCallback(async () => {
@@ -405,6 +540,111 @@ export default function ByteChoiceGame({
   }
 
   // ═══ RENDER ═══
+
+  // Placement test
+  if (stage === "placement") {
+    // Intro screen
+    if (placementPhase === "intro") {
+      return (
+        <div className={styles.arena}>
+          <div className={styles.placementIntro}>
+            <p className={styles.placementIcon}>🎯</p>
+            <h2 className={styles.placementTitle}>Let&apos;s find your level</h2>
+            <p className={styles.placementSubtitle}>
+              5 quick questions to match your vocabulary
+            </p>
+            <button
+              type="button"
+              className={styles.playButton}
+              onPointerDown={() => {
+                haptic("tap");
+                setPlacementPhase("testing");
+              }}
+            >
+              Start
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Result screen
+    if (placementPhase === "result" && placementLevel) {
+      const friendlyLevel = CEFR_FRIENDLY[placementLevel] ?? placementLevel;
+      return (
+        <div className={styles.arena}>
+          <div className={styles.placementResult}>
+            <p className={styles.placementIcon}>🎯</p>
+            <h2 className={styles.placementTitle}>Your level: {friendlyLevel}</h2>
+            <span className={styles.placementResultBadge}>{placementLevel}</span>
+            <button
+              type="button"
+              className={styles.playButton}
+              onPointerDown={() => {
+                haptic("tap");
+                setStage("countdown");
+              }}
+            >
+              Let&apos;s play!
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Testing phase — show placement questions
+    const pq = placementQuestions[placementIndex];
+    if (!pq) {
+      // Safety fallback
+      setStage("countdown");
+      return null;
+    }
+
+    return (
+      <div className={styles.arena}>
+        <p className={styles.placementProgress}>
+          Question {placementIndex + 1} of {placementQuestions.length}
+        </p>
+
+        <div className={styles.questionTransition} key={placementIndex}>
+          <div className={styles.promptSection}>
+            <p className={styles.directionHint}>{directionLabel}</p>
+            <p className={styles.promptLabel}>Translate</p>
+            <p className={styles.promptWord}>{pq.prompt}</p>
+          </div>
+
+          <div className={styles.options}>
+            {pq.options.map((option, index) => {
+              let state: string;
+              if (placementSelection === null) {
+                state = "idle";
+              } else if (index === pq.correctIndex) {
+                state = "correct";
+              } else if (index === placementSelection && placementSelection !== pq.correctIndex) {
+                state = "wrong";
+              } else {
+                state = "dimmed";
+              }
+
+              return (
+                <button
+                  key={`placement-${pq.prompt}-${option}-${index}`}
+                  type="button"
+                  className={styles.optionCard}
+                  data-state={state}
+                  onPointerDown={() => handlePlacementAnswer(index)}
+                  disabled={placementSelection !== null}
+                  style={{ touchAction: "none" }}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Countdown
   if (stage === "countdown") {

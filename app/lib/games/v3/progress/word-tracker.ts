@@ -178,6 +178,42 @@ export function recordGamePlayed(languagePair: string): void {
   writeStore(store);
 }
 
+// ── Stored CEFR level helpers ──
+
+const LEVEL_STORAGE_KEY = "tl-byte-choice-level";
+
+export function getStoredLevel(): "A1" | "A2" | "B1" | "B2" | null {
+  if (isServer()) return null;
+  try {
+    const raw = localStorage.getItem(LEVEL_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { level?: string; timestamp?: number };
+    if (
+      parsed.level === "A1" ||
+      parsed.level === "A2" ||
+      parsed.level === "B1" ||
+      parsed.level === "B2"
+    ) {
+      return parsed.level;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredLevel(level: "A1" | "A2" | "B1" | "B2"): void {
+  if (isServer()) return;
+  try {
+    localStorage.setItem(
+      LEVEL_STORAGE_KEY,
+      JSON.stringify({ level, timestamp: Date.now() }),
+    );
+  } catch {
+    // localStorage full or blocked — silently fail
+  }
+}
+
 /** Get summary stats for display */
 export function getProgressSummary(languagePair: string): {
   totalWords: number;

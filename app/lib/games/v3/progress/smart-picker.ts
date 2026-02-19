@@ -22,9 +22,9 @@ export interface PickerConfig {
 const BANDS: Array<"A1" | "A2" | "B1" | "B2"> = ["A1", "A2", "B1", "B2"];
 
 /**
- * Build a weighted pool filtered by CEFR band.
- * 60% target band, 25% one below, 15% one above.
- * Edge bands (A1, B2) get adjusted distributions.
+ * Filter pool by CEFR band.
+ * 100% from the target band. Only falls back to adjacent bands
+ * if the target band has fewer words than needed.
  */
 function filterByBand(
   pool: PoolRow[],
@@ -32,38 +32,30 @@ function filterByBand(
 ): PoolRow[] {
   if (!cefr) return [...pool];
 
+  // Try target band first — all questions from one level
+  const targetRows = pool.filter((r) => r.band === cefr);
+  if (targetRows.length >= 10) return targetRows;
+
+  // Not enough in target band — add adjacent bands to fill
   const bandIndex = BANDS.indexOf(cefr);
-  const byBand: Record<string, PoolRow[]> = { A1: [], A2: [], B1: [], B2: [] };
-  for (const row of pool) {
-    byBand[row.band].push(row);
-  }
+  const result = [...targetRows];
+  const usedPrompts = new Set(result.map((r) => r.prompt));
 
-  let weights: Record<string, number>;
-  if (bandIndex === 0) {
-    weights = { A1: 75, A2: 25, B1: 0, B2: 0 };
-  } else if (bandIndex === BANDS.length - 1) {
-    weights = { A1: 0, A2: 0, B1: 25, B2: 75 };
-  } else {
-    weights = { A1: 0, A2: 0, B1: 0, B2: 0 };
-    weights[cefr] = 60;
-    weights[BANDS[bandIndex - 1]] = 25;
-    weights[BANDS[bandIndex + 1]] = 15;
-  }
+  // Try one below, then one above
+  const adjacent = [bandIndex - 1, bandIndex + 1].filter(
+    (i) => i >= 0 && i < BANDS.length,
+  );
 
-  // Build weighted pool by repeating rows proportionally
-  const weighted: PoolRow[] = [];
-  for (const band of BANDS) {
-    const w = weights[band];
-    if (w > 0 && byBand[band].length > 0) {
-      for (const row of byBand[band]) {
-        for (let j = 0; j < w; j++) {
-          weighted.push(row);
-        }
+  for (const adjIdx of adjacent) {
+    for (const row of pool) {
+      if (row.band === BANDS[adjIdx] && !usedPrompts.has(row.prompt)) {
+        result.push(row);
+        usedPrompts.add(row.prompt);
       }
     }
   }
 
-  return weighted.length > 0 ? weighted : [...pool];
+  return result.length > 0 ? result : [...pool];
 }
 
 // ── Progress-based scoring ──

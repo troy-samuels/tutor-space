@@ -90,37 +90,27 @@ function pickRandomFallback(
   function buildWeightedPool(): PoolRow[] {
     if (!cefr) return [...pool];
 
+    // 100% from target band; only fall back to adjacent if not enough words
+    const targetRows = pool.filter((r) => r.band === cefr);
+    if (targetRows.length >= count) return targetRows;
+
+    // Not enough — add adjacent bands
     const bandIndex = BANDS.indexOf(cefr);
-    const byBand: Record<string, PoolRow[]> = { A1: [], A2: [], B1: [], B2: [] };
-    for (const row of pool) {
-      byBand[row.band].push(row);
-    }
-
-    let weights: Record<string, number>;
-    if (bandIndex === 0) {
-      weights = { A1: 75, A2: 25, B1: 0, B2: 0 };
-    } else if (bandIndex === BANDS.length - 1) {
-      weights = { A1: 0, A2: 0, B1: 25, B2: 75 };
-    } else {
-      weights = { A1: 0, A2: 0, B1: 0, B2: 0 };
-      weights[cefr] = 60;
-      weights[BANDS[bandIndex - 1]] = 25;
-      weights[BANDS[bandIndex + 1]] = 15;
-    }
-
-    const weighted: PoolRow[] = [];
-    for (const band of BANDS) {
-      const w = weights[band];
-      if (w > 0 && byBand[band].length > 0) {
-        for (const row of byBand[band]) {
-          for (let j = 0; j < w; j++) {
-            weighted.push(row);
-          }
+    const result = [...targetRows];
+    const usedPrompts = new Set(result.map((r) => r.prompt));
+    const adjacent = [bandIndex - 1, bandIndex + 1].filter(
+      (i) => i >= 0 && i < BANDS.length,
+    );
+    for (const adjIdx of adjacent) {
+      for (const row of pool) {
+        if (row.band === BANDS[adjIdx] && !usedPrompts.has(row.prompt)) {
+          result.push(row);
+          usedPrompts.add(row.prompt);
         }
       }
     }
 
-    return weighted.length > 0 ? weighted : [...pool];
+    return result.length > 0 ? result : [...pool];
   }
 
   const weightedPool = buildWeightedPool();
