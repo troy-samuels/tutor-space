@@ -162,7 +162,6 @@ function GameCard({
     position: "relative",
     borderRadius: 16,
     border: `1px solid ${isComingSoon || isLocked ? "#E2D8CA" : "#E2D8CA"}`,
-    borderLeft: `3px solid ${isComingSoon ? "#D5D0CA" : isLocked ? "#C5BFB8" : game.colour}`,
     background: isComingSoon ? "#F2EDE7" : isLocked ? "#F5F0EA" : "#FFFFFF",
     padding: "16px 14px",
     display: "flex",
