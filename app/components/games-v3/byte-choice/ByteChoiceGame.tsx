@@ -3,7 +3,7 @@
 import * as React from "react";
 import { haptic } from "@/lib/games/haptics";
 import { recordDailyProgress } from "@/lib/games/progress";
-import { recordWordResult, recordGamePlayed, getStoredLevel, setStoredLevel } from "@/lib/games/v3/progress/word-tracker";
+import { recordWordResult, recordGamePlayed, getStoredLevel, setStoredLevel, getStoredLanguage, setStoredLanguage, getStoredEmail, setStoredEmail } from "@/lib/games/v3/progress/word-tracker";
 import { startGameRun, completeGameRun } from "@/lib/games/runtime/run-lifecycle";
 import type { DifficultyTier } from "@/lib/games/runtime/types";
 import { getByteChoicePuzzle, type GameLanguage, type ByteChoiceQuestion } from "@/lib/games/v3/data/byte-choice";
@@ -49,6 +49,17 @@ const UI_VERSION = "v3-byte-choice-2";
 const CURVE_VERSION = "v3-gentle-ramp-1";
 const SHARE_CARD_VERSION = "v3-share-1";
 
+const LANGUAGE_OPTIONS: Array<{ code: GameLanguage; flag: string; label: string }> = [
+  { code: "es", flag: "🇪🇸", label: "Spanish" },
+  { code: "fr", flag: "🇫🇷", label: "French" },
+  { code: "de", flag: "🇩🇪", label: "German" },
+  { code: "it", flag: "🇮🇹", label: "Italian" },
+  { code: "pt", flag: "🇧🇷", label: "Portuguese" },
+  { code: "en", flag: "🇬🇧", label: "English" },
+];
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const TIMER_DURATION_MS = 8000; // 8 seconds per question
 const FEEDBACK_CORRECT_MS = 400; // Faster pace when winning
 const FEEDBACK_WRONG_MS = 600; // More time to see correct answer
@@ -60,9 +71,11 @@ interface ByteChoiceGameProps {
   challengeCode?: string | null;
   challengeSeed?: number | null;
   challengeDifficulty?: number | null;
+  /** Whether the language was explicitly set via URL param */
+  hasUrlLang?: boolean;
 }
 
-type Stage = "placement" | "countdown" | "active" | "summary";
+type Stage = "language-select" | "placement" | "email-capture" | "countdown" | "active" | "summary";
 
 type PlacementPhase = "intro" | "testing" | "result";
 
@@ -124,7 +137,14 @@ export default function ByteChoiceGame({
   challengeCode = null,
   challengeSeed = null,
   challengeDifficulty = null,
+  hasUrlLang = false,
 }: ByteChoiceGameProps) {
+  // ── Language selection state ──
+  const [selectedLanguage, setSelectedLanguage] = React.useState<GameLanguage>(language);
+
+  // ── Email capture state ──
+  const [emailInput, setEmailInput] = React.useState("");
+  const [emailError, setEmailError] = React.useState<string | null>(null);
   // ── Placement + level resolution ──
   const [resolvedCefr, setResolvedCefr] = React.useState<CefrLevel | null | undefined>(cefr);
   const [needsPlacement, setNeedsPlacement] = React.useState(false);
@@ -146,24 +166,37 @@ export default function ByteChoiceGame({
     }
   }, [cefr]);
 
+  // Sync selectedLanguage from localStorage on mount
+  React.useEffect(() => {
+    if (hasUrlLang) {
+      // URL param takes precedence
+      setSelectedLanguage(language);
+      return;
+    }
+    const stored = getStoredLanguage();
+    if (stored) {
+      setSelectedLanguage(stored);
+    }
+  }, [hasUrlLang, language]);
+
   const cefrBand = React.useMemo(() => clampCefrToBand(resolvedCefr), [resolvedCefr]);
   const puzzle = React.useMemo(
-    () => getByteChoicePuzzle(language, challengeSeed, cefrBand),
-    [challengeSeed, language, cefrBand],
+    () => getByteChoicePuzzle(selectedLanguage, challengeSeed, cefrBand),
+    [challengeSeed, selectedLanguage, cefrBand],
   );
   const initialDifficulty = React.useMemo(
     () => challengeDifficulty ?? getBaselineDifficulty(resolvedCefr),
     [resolvedCefr, challengeDifficulty],
   );
 
-  // Placement questions (generated once on mount)
+  // Placement questions (generated once per selected language)
   const placementQuestions = React.useMemo(() => {
     if (typeof window === "undefined") return [];
-    const pool = getPool(language);
+    const pool = getPool(selectedLanguage);
     const rng = makeRng(Date.now());
     return getPlacementQuestions(pool, rng);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language]);
+  }, [selectedLanguage]);
 
   const [stage, setStage] = React.useState<Stage>(() =>
     // Initial stage determined after hydration via useEffect
@@ -177,17 +210,23 @@ export default function ByteChoiceGame({
 
   // Set initial stage after mount (needs localStorage check)
   React.useEffect(() => {
-    if (cefr) {
-      setStage("countdown");
-      return;
-    }
-    const stored = getStoredLevel();
-    if (stored) {
-      setStage("countdown");
-    } else {
+    // Determine language status
+    const hasLang = hasUrlLang || !!getStoredLanguage();
+    // Determine level status
+    const hasLevel = !!cefr || !!getStoredLevel();
+    // Determine email status
+    const hasEmail = !!getStoredEmail();
+
+    if (!hasLang) {
+      setStage("language-select");
+    } else if (!hasLevel) {
       setStage("placement");
+    } else if (!hasEmail) {
+      setStage("email-capture");
+    } else {
+      setStage("countdown");
     }
-  }, [cefr]);
+  }, [cefr, hasUrlLang]);
   const [countdownValue, setCountdownValue] = React.useState<number | null>(null);
   const [questionIndex, setQuestionIndex] = React.useState(0);
   const [questionKey, setQuestionKey] = React.useState(0);
@@ -234,7 +273,7 @@ export default function ByteChoiceGame({
     void startGameRun({
       gameSlug: "byte-choice",
       mode,
-      language,
+      language: selectedLanguage,
       deviceClass: "mobile",
       gameVersion: "v3",
       startingCefr: cefr,
@@ -244,7 +283,7 @@ export default function ByteChoiceGame({
     })
       .then((response) => setRunId(response.runId))
       .catch(() => setRunId(`local-${crypto.randomUUID()}`));
-  }, [cefr, challengeCode, initialDifficulty, language, mode]);
+  }, [cefr, challengeCode, initialDifficulty, selectedLanguage, mode]);
 
   // ── Handle timeout (timer expiry = auto-wrong) ──
   const handleTimeout = React.useCallback(() => {
@@ -268,7 +307,7 @@ export default function ByteChoiceGame({
     ]);
 
     // Track word progress for spaced repetition
-    recordWordResult(language, question.prompt, false);
+    recordWordResult(selectedLanguage, question.prompt, false);
 
     // Advance after delay
     setTimeout(() => {
@@ -282,7 +321,7 @@ export default function ByteChoiceGame({
       setQuestionIndex((prev) => prev + 1);
       setQuestionKey((prev) => prev + 1);
     }, FEEDBACK_WRONG_MS);
-  }, [language, question, questionIndex, totalQuestions]);
+  }, [selectedLanguage, question, questionIndex, totalQuestions]);
 
   // ── Per-question timer ──
   React.useEffect(() => {
@@ -322,7 +361,7 @@ export default function ByteChoiceGame({
     const accuracy = total <= 0 ? 0 : Math.round((score / total) * 100);
 
     recordDailyProgress("byte-choice", accuracy >= 70);
-    recordGamePlayed(language);
+    recordGamePlayed(selectedLanguage);
 
     void completeGameRun({
       runId,
@@ -355,12 +394,12 @@ export default function ByteChoiceGame({
       metadata: {
         seed: puzzle.seed,
         puzzleNumber: puzzle.puzzleNumber,
-        language,
+        language: selectedLanguage,
         mode,
         challengeCode,
       },
     }).catch(() => {});
-  }, [bestStreak, cefr, challengeCode, difficulty, firstCorrectMs, firstMeaningfulActionMs, governor.state, initialDifficulty, language, mode, puzzle.puzzleNumber, puzzle.seed, questionIndex, runId, score, stage, totalQuestions]);
+  }, [bestStreak, cefr, challengeCode, difficulty, firstCorrectMs, firstMeaningfulActionMs, governor.state, initialDifficulty, selectedLanguage, mode, puzzle.puzzleNumber, puzzle.seed, questionIndex, runId, score, stage, totalQuestions]);
 
   // ── Countdown ──
   const handleStartTap = React.useCallback(() => {
@@ -409,7 +448,7 @@ export default function ByteChoiceGame({
       ]);
 
       // Track word progress for spaced repetition
-      recordWordResult(language, question.prompt, correct);
+      recordWordResult(selectedLanguage, question.prompt, correct);
 
       // Calibration
       const nextSamples =
@@ -460,7 +499,7 @@ export default function ByteChoiceGame({
         setQuestionKey((prev) => prev + 1);
       }, delay);
     },
-    [difficulty, firstCorrectMs, firstMeaningfulActionMs, language, question, questionIndex, samples, selection, stage, streak, totalQuestions],
+    [difficulty, firstCorrectMs, firstMeaningfulActionMs, selectedLanguage, question, questionIndex, samples, selection, stage, streak, totalQuestions],
   );
 
   // ── Placement answer handler ──
@@ -511,8 +550,8 @@ export default function ByteChoiceGame({
   }, [score, totalQuestions]);
 
   // ── Language direction labels ──
-  const targetLabel = LANGUAGE_LABELS[language] ?? language.toUpperCase();
-  const sourceLabel = language === "en" ? "Spanish" : "English";
+  const targetLabel = LANGUAGE_LABELS[selectedLanguage] ?? selectedLanguage.toUpperCase();
+  const sourceLabel = selectedLanguage === "en" ? "Spanish" : "English";
   const directionLabel = `${sourceLabel} → ${targetLabel}`;
 
   const elapsedTotal = Date.now() - startedAtRef.current;
@@ -540,6 +579,129 @@ export default function ByteChoiceGame({
   }
 
   // ═══ RENDER ═══
+
+  // Language selection
+  if (stage === "language-select") {
+    return (
+      <div className={styles.arena}>
+        <div className={styles.langSelect}>
+          <h2 className={styles.langSelectTitle}>What are you learning?</h2>
+          <p className={styles.langSelectSubtitle}>
+            Pick your language and we&apos;ll personalise your experience
+          </p>
+          <div className={styles.langGrid}>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.code}
+                type="button"
+                className={styles.langCard}
+                data-selected={selectedLanguage === opt.code ? "true" : "false"}
+                onPointerDown={() => {
+                  haptic("tap");
+                  setSelectedLanguage(opt.code);
+                }}
+              >
+                <span className={styles.langCardFlag}>{opt.flag}</span>
+                <span className={styles.langCardLabel}>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className={styles.playButton}
+            onPointerDown={() => {
+              haptic("tap");
+              setStoredLanguage(selectedLanguage);
+              const hasLevel = !!cefr || !!getStoredLevel();
+              if (hasLevel) {
+                const hasEmail = !!getStoredEmail();
+                setStage(hasEmail ? "countdown" : "email-capture");
+              } else {
+                setStage("placement");
+              }
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Email capture
+  if (stage === "email-capture") {
+    const friendlyLevel = placementLevel
+      ? (CEFR_FRIENDLY[placementLevel] ?? placementLevel)
+      : resolvedCefr
+        ? (CEFR_FRIENDLY[resolvedCefr] ?? resolvedCefr)
+        : null;
+
+    return (
+      <div className={styles.arena}>
+        <div className={styles.emailCapture}>
+          {friendlyLevel && (
+            <span className={styles.emailLevelBadge}>Your level: {friendlyLevel} 🎯</span>
+          )}
+          <div className={styles.emailCard}>
+            <span className={styles.emailIcon}>📧</span>
+            <h2 className={styles.emailTitle}>Save your progress</h2>
+            <p className={styles.emailSubtitle}>
+              Enter your email so you never lose your vocabulary progress
+            </p>
+            <input
+              type="email"
+              className={styles.emailInput}
+              placeholder="you@example.com"
+              value={emailInput}
+              onChange={(e) => {
+                setEmailInput(e.target.value);
+                if (emailError) setEmailError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!EMAIL_REGEX.test(emailInput)) {
+                    setEmailError("Please enter a valid email");
+                    return;
+                  }
+                  setStoredEmail(emailInput.trim());
+                  haptic("success");
+                  setStage("countdown");
+                }
+              }}
+            />
+            {emailError && <p className={styles.emailErrorText}>{emailError}</p>}
+            <button
+              type="button"
+              className={styles.emailSubmit}
+              onPointerDown={() => {
+                if (!EMAIL_REGEX.test(emailInput)) {
+                  setEmailError("Please enter a valid email");
+                  haptic("error");
+                  return;
+                }
+                setStoredEmail(emailInput.trim());
+                haptic("success");
+                setStage("countdown");
+              }}
+            >
+              Save &amp; Play
+            </button>
+            <button
+              type="button"
+              className={styles.emailSkip}
+              onPointerDown={() => {
+                haptic("tap");
+                setStage("countdown");
+              }}
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Placement test
   if (stage === "placement") {
@@ -582,7 +744,8 @@ export default function ByteChoiceGame({
               className={styles.playButton}
               onPointerDown={() => {
                 haptic("tap");
-                setStage("countdown");
+                const hasEmail = !!getStoredEmail();
+                setStage(hasEmail ? "countdown" : "email-capture");
               }}
             >
               Let&apos;s play!

@@ -48,7 +48,9 @@ function getCefr(input: string | null): "A1" | "A2" | "B1" | "B2" | null {
 
 export default function ByteChoicePage() {
   const searchParams = useSearchParams();
-  const language = getLanguage(searchParams.get("lang"));
+  const langParam = searchParams.get("lang");
+  const language = getLanguage(langParam);
+  const hasUrlLang = langParam !== null && VALID_LANGUAGES.has(langParam as GameLanguage);
   const mode = getMode(searchParams.get("mode"));
   const challengeCode = getChallengeCode(searchParams.get("challenge"));
   const challengeSeed = getChallengeSeed(searchParams.get("seed"));
@@ -72,6 +74,7 @@ export default function ByteChoicePage() {
         challengeCode={challengeCode}
         challengeSeed={challengeSeed}
         challengeDifficulty={challengeDifficulty}
+        hasUrlLang={hasUrlLang}
       />
     </GameShell>
   );

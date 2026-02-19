@@ -214,6 +214,71 @@ export function setStoredLevel(level: "A1" | "A2" | "B1" | "B2"): void {
   }
 }
 
+// ── Stored language helpers ──
+
+import type { GameLanguage } from "../data/pools/index";
+
+const LANGUAGE_STORAGE_KEY = "tl-byte-choice-language";
+
+export function getStoredLanguage(): GameLanguage | null {
+  if (isServer()) return null;
+  try {
+    const raw = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { language?: string; timestamp?: number };
+    const valid = new Set<string>(["en", "es", "fr", "de", "it", "pt"]);
+    if (parsed.language && valid.has(parsed.language)) {
+      return parsed.language as GameLanguage;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredLanguage(language: GameLanguage): void {
+  if (isServer()) return;
+  try {
+    localStorage.setItem(
+      LANGUAGE_STORAGE_KEY,
+      JSON.stringify({ language, timestamp: Date.now() }),
+    );
+  } catch {
+    // localStorage full or blocked — silently fail
+  }
+}
+
+// ── Stored email helpers ──
+
+const EMAIL_STORAGE_KEY = "tl-byte-choice-email";
+
+export function getStoredEmail(): string | null {
+  if (isServer()) return null;
+  try {
+    const raw = localStorage.getItem(EMAIL_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { email?: string; timestamp?: number };
+    if (parsed.email && typeof parsed.email === "string") {
+      return parsed.email;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredEmail(email: string): void {
+  if (isServer()) return;
+  try {
+    localStorage.setItem(
+      EMAIL_STORAGE_KEY,
+      JSON.stringify({ email, timestamp: Date.now() }),
+    );
+  } catch {
+    // localStorage full or blocked — silently fail
+  }
+}
+
 /** Get summary stats for display */
 export function getProgressSummary(languagePair: string): {
   totalWords: number;

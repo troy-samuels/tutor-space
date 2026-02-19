@@ -744,6 +744,287 @@
 }
 
 /* ═══════════════════════════════════════════════
+   LANGUAGE SELECTION
+   ═══════════════════════════════════════════════ */
+
+.langSelect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 360px;
+  text-align: center;
+  position: relative;
+  animation: bc-stagger-in 0.35s ease both;
+}
+
+.langSelect::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(217, 164, 65, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.langSelectTitle {
+  margin: 0;
+  font-size: 26px;
+  color: var(--bc-charcoal);
+  font-family: var(--font-mansalva), 'Mansalva', cursive;
+}
+
+.langSelectSubtitle {
+  margin: -8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bc-muted);
+  line-height: 1.45;
+  max-width: 260px;
+}
+
+.langGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.langCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid #D4C9BB;
+  background: linear-gradient(180deg, #FDFAF7, #F5EDE6);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 6px rgba(30, 43, 54, 0.06);
+}
+
+.langCard:active {
+  transform: scale(0.97);
+}
+
+.langCard[data-selected="true"] {
+  border-color: var(--bc-gold);
+  background: linear-gradient(180deg, #FDF8F0, #F9F1E6);
+  box-shadow:
+    0 0 0 1px rgba(217, 164, 65, 0.3),
+    0 2px 12px rgba(217, 164, 65, 0.15);
+}
+
+@media (hover: hover) {
+  .langCard:hover {
+    border-color: var(--bc-gold);
+    transform: translateY(-1px);
+  }
+}
+
+.langCardFlag {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.langCardLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bc-charcoal);
+}
+
+/* ═══════════════════════════════════════════════
+   EMAIL CAPTURE
+   ═══════════════════════════════════════════════ */
+
+.emailCapture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 360px;
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  animation: bc-stagger-in 0.35s ease both;
+}
+
+.emailCapture::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(217, 164, 65, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.emailLevelBadge {
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bc-gold-dim);
+  background: rgba(217, 164, 65, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(217, 164, 65, 0.2);
+}
+
+.emailCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px;
+  border-radius: 16px;
+  border: 1px solid #E2D8CA;
+  background: linear-gradient(180deg, #FAF6F1, #F3EDE6);
+  width: 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 12px rgba(30, 43, 54, 0.06);
+}
+
+.emailIcon {
+  font-size: 36px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.emailTitle {
+  margin: 0;
+  font-size: 22px;
+  color: var(--bc-charcoal);
+  font-family: var(--font-mansalva), 'Mansalva', cursive;
+}
+
+.emailSubtitle {
+  margin: -4px 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bc-muted);
+  line-height: 1.45;
+  max-width: 280px;
+}
+
+.emailInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid #D4C9BB;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--bc-charcoal);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.emailInput::placeholder {
+  color: #B5ADA3;
+  font-weight: 400;
+}
+
+.emailInput:focus {
+  border-color: var(--bc-gold);
+  box-shadow: 0 0 0 3px rgba(217, 164, 65, 0.15);
+}
+
+.emailErrorText {
+  margin: -4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bc-red);
+}
+
+.emailSubmit {
+  width: 100%;
+  min-height: 54px;
+  border-radius: 14px;
+  border: none;
+  background: var(--bc-gold);
+  color: var(--bc-charcoal);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  box-shadow: 0 2px 12px rgba(217, 164, 65, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.emailSubmit::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  animation: bc-sheen-sweep 3s ease-in-out infinite;
+}
+
+.emailSubmit:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .emailSubmit:hover {
+    box-shadow: 0 4px 20px rgba(217, 164, 65, 0.4);
+  }
+}
+
+.emailSkip {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bc-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+
+.emailSkip:active {
+  color: var(--bc-charcoal);
+}
+
+@media (hover: hover) {
+  .emailSkip:hover {
+    color: var(--bc-charcoal);
+  }
+}
+
+/* ═══════════════════════════════════════════════
    PLACEMENT TEST
    ═══════════════════════════════════════════════ */
 
