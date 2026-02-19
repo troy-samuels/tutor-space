@@ -1,8 +1,8 @@
 import { getV3RunSeed, makeRng, pick } from "./shared";
 import { pickSmartQuestions } from "../progress/smart-picker";
-import { getPool, type PoolRow, type GameLanguage } from "./pools/index";
+import { getPool, type PoolRow, type GameLanguage, type SourceLanguage } from "./pools/index";
 
-export type { PoolRow, GameLanguage };
+export type { PoolRow, GameLanguage, SourceLanguage };
 
 export interface ByteChoiceQuestion {
   prompt: string;
@@ -26,11 +26,12 @@ export function getByteChoicePuzzle(
   language: GameLanguage,
   seedOverride?: number | null,
   cefr?: "A1" | "A2" | "B1" | "B2" | null,
+  sourceLanguage?: SourceLanguage,
 ): ByteChoicePuzzle {
   const { seed, puzzleNumber } = getV3RunSeed("byte-choice", language, seedOverride);
   const rng = makeRng(seed);
 
-  const pool = getPool(language);
+  const pool = getPool(language, sourceLanguage);
 
   // Client-side: use smart picker with spaced repetition
   // Server-side (SSR): fall back to random selection (no localStorage)
