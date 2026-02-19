@@ -3,10 +3,11 @@
 import * as React from "react";
 import { haptic } from "@/lib/games/haptics";
 import { recordDailyProgress } from "@/lib/games/progress";
+import { recordWordResult, recordGamePlayed } from "@/lib/games/v3/progress/word-tracker";
 import { startGameRun, completeGameRun } from "@/lib/games/runtime/run-lifecycle";
 import type { DifficultyTier } from "@/lib/games/runtime/types";
 import { getCopy } from "@/lib/games/v3/copy";
-import { getByteChoicePuzzle } from "@/lib/games/v3/data/byte-choice";
+import { getByteChoicePuzzle, type GameLanguage } from "@/lib/games/v3/data/byte-choice";
 import {
   buildSkillTrackDeltas,
   calibrateDifficulty,
@@ -37,7 +38,7 @@ const FEEDBACK_CORRECT_MS = 400; // Faster pace when winning
 const FEEDBACK_WRONG_MS = 600; // More time to see correct answer
 
 interface ByteChoiceGameProps {
-  language: "en" | "es";
+  language: GameLanguage;
   mode: "daily" | "practice";
   cefr?: CefrLevel | null;
   challengeCode?: string | null;
@@ -152,6 +153,9 @@ export default function ByteChoiceGame({
       },
     ]);
 
+    // Track word progress for spaced repetition
+    recordWordResult(language, question.prompt, false);
+
     // Advance after delay
     setTimeout(() => {
       setSelection(null);
@@ -164,7 +168,7 @@ export default function ByteChoiceGame({
       setQuestionIndex((prev) => prev + 1);
       setQuestionKey((prev) => prev + 1);
     }, FEEDBACK_WRONG_MS);
-  }, [question, questionIndex, totalQuestions]);
+  }, [language, question, questionIndex, totalQuestions]);
 
   // ── Per-question timer ──
   React.useEffect(() => {
@@ -204,6 +208,7 @@ export default function ByteChoiceGame({
     const accuracy = total <= 0 ? 0 : Math.round((score / total) * 100);
 
     recordDailyProgress("byte-choice", accuracy >= 70);
+    recordGamePlayed(language);
 
     void completeGameRun({
       runId,
@@ -289,6 +294,9 @@ export default function ByteChoiceGame({
         { prompt: question.prompt, answer: question.options[question.correctIndex], correct },
       ]);
 
+      // Track word progress for spaced repetition
+      recordWordResult(language, question.prompt, correct);
+
       // Calibration
       const nextSamples =
         samples.length < 6
@@ -338,7 +346,7 @@ export default function ByteChoiceGame({
         setQuestionKey((prev) => prev + 1);
       }, delay);
     },
-    [difficulty, firstCorrectMs, firstMeaningfulActionMs, question, questionIndex, samples, selection, stage, streak, totalQuestions],
+    [difficulty, firstCorrectMs, firstMeaningfulActionMs, language, question, questionIndex, samples, selection, stage, streak, totalQuestions],
   );
 
   // ── Results data ──
@@ -486,7 +494,7 @@ export default function ByteChoiceGame({
             score={score}
             streak={bestStreak}
             difficultyBand={difficulty}
-            locale={language}
+            locale={language as "en" | "es"}
             shareWin={copy.shareWin}
             shareStumble={copy.shareStumble}
             uiVersion={UI_VERSION}

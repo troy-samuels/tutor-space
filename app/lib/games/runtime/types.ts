@@ -11,7 +11,7 @@ export type CognitiveLoadState = "focused" | "balanced" | "boosted";
 export interface GameRunStartPayload {
   gameSlug: string;
   mode: GameMode;
-  language: "en" | "es" | "fr" | "de";
+  language: "en" | "es" | "fr" | "de" | "it" | "pt";
   deviceClass: DeviceClass;
   gameVersion?: "v3";
   startingCefr?: CefrLevel | null;

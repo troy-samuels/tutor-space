@@ -4,9 +4,13 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import GameShell from "@/components/games/engine/GameShell";
 import ByteChoiceGame from "@/components/games-v3/byte-choice/ByteChoiceGame";
+import type { GameLanguage } from "@/lib/games/v3/data/byte-choice";
 
-function getLanguage(input: string | null): "en" | "es" {
-  return input === "es" ? "es" : "en";
+const VALID_LANGUAGES = new Set<GameLanguage>(["en", "es", "fr", "de", "it", "pt"]);
+
+function getLanguage(input: string | null): GameLanguage {
+  if (input && VALID_LANGUAGES.has(input as GameLanguage)) return input as GameLanguage;
+  return "en";
 }
 
 function getMode(input: string | null): "daily" | "practice" {

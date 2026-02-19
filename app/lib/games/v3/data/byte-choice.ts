@@ -1,4 +1,5 @@
 import { getV3RunSeed, makeRng, pick } from "./shared";
+import { pickSmartQuestions } from "../progress/smart-picker";
 
 export interface ByteChoiceQuestion {
   prompt: string;
@@ -16,12 +17,14 @@ export interface ByteChoicePuzzle {
   questions: ByteChoiceQuestion[];
 }
 
-interface PoolRow {
+export interface PoolRow {
   prompt: string;
   correct: string;
   distractors: [string, string];
   band: "A1" | "A2" | "B1" | "B2";
 }
+
+export type GameLanguage = "en" | "es" | "fr" | "de" | "it" | "pt";
 
 // ──────────────────────────────────────────────
 // 50 EN→ES pairs across A1–B2 difficulty bands
@@ -154,15 +157,68 @@ const ES_POOL: PoolRow[] = [
 const QUESTIONS_PER_ROUND = 10;
 
 export function getByteChoicePuzzle(
-  language: "en" | "es",
+  language: GameLanguage,
   seedOverride?: number | null,
   cefr?: "A1" | "A2" | "B1" | "B2" | null,
 ): ByteChoicePuzzle {
   const { seed, puzzleNumber } = getV3RunSeed("byte-choice", language, seedOverride);
   const rng = makeRng(seed);
+
+  // For now, only EN and ES have pools — others fall back to EN
   const pool = language === "es" ? ES_POOL : EN_POOL;
 
-  // Build a weighted pool if CEFR is specified
+  // Client-side: use smart picker with spaced repetition
+  // Server-side (SSR): fall back to random selection (no localStorage)
+  const useSmartPicker = typeof window !== "undefined";
+
+  let selectedRows: PoolRow[];
+
+  if (useSmartPicker) {
+    selectedRows = pickSmartQuestions(pool, {
+      languagePair: language,
+      cefrBand: cefr,
+      count: QUESTIONS_PER_ROUND,
+      rng,
+    });
+  } else {
+    // SSR fallback: random selection with CEFR band weighting
+    selectedRows = pickRandomFallback(pool, cefr, QUESTIONS_PER_ROUND, rng);
+  }
+
+  // Convert selected rows to questions
+  const questions: ByteChoiceQuestion[] = selectedRows.map((row) => {
+    const optionBag = [row.correct, ...row.distractors] as const;
+    const shuffled = [...optionBag].sort(() => rng() - 0.5) as [string, string, string];
+    const correctIndex = shuffled.findIndex((value) => value === row.correct) as 0 | 1 | 2;
+
+    return {
+      prompt: row.prompt,
+      options: shuffled,
+      correctIndex,
+      track: row.distractors.some((d) => d.startsWith(row.correct.slice(0, 2)))
+        ? "false-friends"
+        : "recognition",
+      band: row.band,
+    };
+  });
+
+  return {
+    gameSlug: "byte-choice",
+    language,
+    puzzleNumber,
+    seed,
+    questions,
+  };
+}
+
+// ── SSR fallback: random selection with CEFR band weighting ──
+
+function pickRandomFallback(
+  pool: PoolRow[],
+  cefr: "A1" | "A2" | "B1" | "B2" | null | undefined,
+  count: number,
+  rng: () => number,
+): PoolRow[] {
   const BANDS: Array<"A1" | "A2" | "B1" | "B2"> = ["A1", "A2", "B1", "B2"];
 
   function buildWeightedPool(): PoolRow[] {
@@ -174,28 +230,22 @@ export function getByteChoicePuzzle(
       byBand[row.band].push(row);
     }
 
-    // Determine weights based on position
     let weights: Record<string, number>;
     if (bandIndex === 0) {
-      // A1: 75% A1, 25% A2
       weights = { A1: 75, A2: 25, B1: 0, B2: 0 };
     } else if (bandIndex === BANDS.length - 1) {
-      // B2: 25% B1, 75% B2
       weights = { A1: 0, A2: 0, B1: 25, B2: 75 };
     } else {
-      // Middle bands: 60% target, 25% one below, 15% one above
       weights = { A1: 0, A2: 0, B1: 0, B2: 0 };
       weights[cefr] = 60;
       weights[BANDS[bandIndex - 1]] = 25;
       weights[BANDS[bandIndex + 1]] = 15;
     }
 
-    // Build weighted pool by repeating rows proportionally
     const weighted: PoolRow[] = [];
     for (const band of BANDS) {
       const w = weights[band];
       if (w > 0 && byBand[band].length > 0) {
-        // Add each row from this band `w` times for weighting
         for (const row of byBand[band]) {
           for (let j = 0; j < w; j++) {
             weighted.push(row);
@@ -208,12 +258,10 @@ export function getByteChoicePuzzle(
   }
 
   const weightedPool = buildWeightedPool();
-
-  // Pick questions
   const usedPrompts = new Set<string>();
-  const questions: ByteChoiceQuestion[] = [];
+  const rows: PoolRow[] = [];
 
-  for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+  for (let i = 0; i < count; i++) {
     let row: PoolRow;
     let attempts = 0;
     do {
@@ -221,27 +269,8 @@ export function getByteChoicePuzzle(
       attempts++;
     } while (usedPrompts.has(row.prompt) && attempts < 60);
     usedPrompts.add(row.prompt);
-
-    const optionBag = [row.correct, ...row.distractors] as const;
-    const shuffled = [...optionBag].sort(() => rng() - 0.5) as [string, string, string];
-    const correctIndex = shuffled.findIndex((value) => value === row.correct) as 0 | 1 | 2;
-
-    questions.push({
-      prompt: row.prompt,
-      options: shuffled,
-      correctIndex,
-      track: row.distractors.some((d) => d.startsWith(row.correct.slice(0, 2)))
-        ? "false-friends"
-        : "recognition",
-      band: row.band,
-    });
+    rows.push(row);
   }
 
-  return {
-    gameSlug: "byte-choice",
-    language,
-    puzzleNumber,
-    seed,
-    questions,
-  };
+  return rows;
 }
