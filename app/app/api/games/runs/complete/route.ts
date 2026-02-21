@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { completeGameRunSchema } from "@/lib/games/runtime/validation";
 
-export const COMPLETE_SCHEMA = completeGameRunSchema;
+const COMPLETE_SCHEMA = completeGameRunSchema;
 
 type ProfileRow = {
   id: string;
