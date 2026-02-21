@@ -1,5 +1,13 @@
 import type * as PhaserTypes from "phaser";
 import type { RelaySprintPuzzle } from "@/lib/games/v3/data/relay-sprint";
+import {
+  sfxCorrect,
+  sfxWrong,
+  sfxDrop,
+  sfxCombo,
+  sfxTimeout,
+  sfxGameOver,
+} from "./relay-audio";
 
 type PhaserModule = typeof PhaserTypes;
 
@@ -17,9 +25,11 @@ interface RelaySceneOptions {
   puzzle: RelaySprintPuzzle;
   width: number;
   height: number;
+  audioEnabled: boolean;
   onHud: (hud: RelayHudState) => void;
   onMeaningfulAction: (ms: number) => void;
   onFirstCorrect: (ms: number) => void;
+  onStreakMilestone: (streak: number) => void;
   onComplete: (payload: {
     score: number;
     mistakes: number;
@@ -29,38 +39,44 @@ interface RelaySceneOptions {
   }) => void;
 }
 
-// ── Dark arcade palette ──
-const BG = 0x1a2634;
-const CATCHER_FILL = 0x1e2b36;
-const CATCHER_BORDER = 0x2a3c4e;
-const CATCHER_WALL = 0x344a5e;
-const TEXT_CLUE = 0xf0a030;
-const TEXT_OPTION = 0xc0bdd6;
-const CORRECT_COLOR = 0x3da672;
-const WRONG_COLOR = 0xe85d4a;
-const GUIDE_COLOR = 0x2a3c4e;
-const GLOW_BG = 0x3a2a10;
+// ── Palette ──
+const BG_START = 0x1a2634;
+const BG_MID = 0x1e1a34;
+const BG_END = 0x2a1424;
+const CATCHER_BODY = 0x1e2b3a;
+const CATCHER_INNER = 0x162230;
+const CATCHER_RIM = 0x3a5068;
+const CATCHER_HIGHLIGHT = 0x4a6a88;
+const AMBER = 0xf0a030;
+const AMBER_DIM = 0xb87a20;
+const GOLD_PARTICLE = 0xffd060;
+const CORAL = 0xe85d4a;
+const GREEN = 0x3da672;
+const GREEN_BRIGHT = 0x50d890;
+const WHITE = 0xf7f3ee;
+const MUTED = 0x4a5c6c;
+const DUST = 0x3a4c5c;
 
-// ── Layout constants (360×520) ──
+// ── Layout (360×520) ──
 const W = 360;
-const CLUE_Y = 42;
-const DROP_START_Y = 80;
-const CATCHER_TOP_Y = 370;
-const CATCHER_W = 100;
-const CATCHER_H = 70;
+const H = 520;
+const DROP_START_Y = 56;
+const CATCHER_TOP_Y = 380;
+const CATCHER_W = 98;
+const CATCHER_H = 60;
+const CATCHER_RIM_H = 8;
 const CATCHER_GAP = 12;
-const TOTAL_CATCHERS_W = 3 * CATCHER_W + 2 * CATCHER_GAP; // 324
-const FIRST_CATCHER_X = (W - TOTAL_CATCHERS_W) / 2 + CATCHER_W / 2; // 68
-const WALL_THICKNESS = 6;
-const WALL_HEIGHT = 14;
+const TOTAL_W = 3 * CATCHER_W + 2 * CATCHER_GAP;
+const FIRST_CX = (W - TOTAL_W) / 2 + CATCHER_W / 2;
+const FLOOR_Y = CATCHER_TOP_Y + CATCHER_H + 50;
 
-interface CatcherGroup {
-  base: PhaserTypes.GameObjects.Rectangle;
-  wallL: PhaserTypes.GameObjects.Rectangle;
-  wallR: PhaserTypes.GameObjects.Rectangle;
-  floor: PhaserTypes.GameObjects.Rectangle;
+// ── Streak milestones ──
+const STREAK_MILESTONES = [3, 5, 8, 12];
+
+interface Catcher {
+  body: PhaserTypes.GameObjects.Graphics;
   label: PhaserTypes.GameObjects.Text;
-  hintGlow: PhaserTypes.GameObjects.Rectangle;
+  glowRing: PhaserTypes.GameObjects.Graphics;
   hitZone: PhaserTypes.GameObjects.Rectangle;
   cx: number;
   cy: number;
@@ -70,13 +86,22 @@ export function createRelaySprintScene(
   Phaser: PhaserModule,
   options: RelaySceneOptions,
 ): PhaserTypes.Scene {
-  class RelayScene extends Phaser.Scene {
-    private catchers: CatcherGroup[] = [];
-    private dropText?: PhaserTypes.GameObjects.Text;
-    private dropGlow?: PhaserTypes.GameObjects.Rectangle;
-    private clueLabel?: PhaserTypes.GameObjects.Text;
-    private guideLine?: PhaserTypes.GameObjects.Rectangle;
+  const audio = options.audioEnabled;
 
+  class RelayScene extends Phaser.Scene {
+    // ── Game objects ──
+    private catchers: Catcher[] = [];
+    private dropWord?: PhaserTypes.GameObjects.Text;
+    private dropShadow?: PhaserTypes.GameObjects.Ellipse;
+    private dropTrail: PhaserTypes.GameObjects.Ellipse[] = [];
+    private bgRect?: PhaserTypes.GameObjects.Rectangle;
+    private dustParticles: PhaserTypes.GameObjects.Ellipse[] = [];
+    private dangerVignette?: PhaserTypes.GameObjects.Graphics;
+    private clueLabel?: PhaserTypes.GameObjects.Text;
+    private clueBg?: PhaserTypes.GameObjects.Graphics;
+    private waveProgress?: PhaserTypes.GameObjects.Graphics;
+
+    // ── State ──
     private waveIndex = 0;
     private lives = 3;
     private score = 0;
@@ -91,217 +116,405 @@ export function createRelaySprintScene(
     private firstActionFired = false;
     private firstCorrectFired = false;
     private locked = false;
-    private hintWavesRemaining = 3;
+    private hintWavesRemaining = 2;
+    private trailTimer = 0;
+    private lastMilestoneStreak = 0;
 
     private get wave() {
       return options.puzzle.waves[this.waveIndex % options.puzzle.waves.length];
     }
 
+    private get waveProgress01() {
+      return this.waveIndex / Math.max(1, options.puzzle.waves.length - 1);
+    }
+
     create() {
       this.startedAt = this.time.now;
 
-      // Full dark background
-      this.add.rectangle(W / 2, options.height / 2, W, options.height, BG, 1);
+      // ── Background ──
+      this.bgRect = this.add.rectangle(W / 2, H / 2, W, H, BG_START);
 
-      // ── Clue zone: subtle bar + label ──
-      this.add
-        .rectangle(W / 2, CLUE_Y, W - 24, 40, CATCHER_FILL, 0.8)
-        .setStrokeStyle(1, TEXT_CLUE, 0.15);
+      // ── Atmospheric dust particles ──
+      for (let i = 0; i < 20; i++) {
+        const x = Phaser.Math.Between(10, W - 10);
+        const y = Phaser.Math.Between(10, H - 10);
+        const r = Phaser.Math.FloatBetween(1, 2.5);
+        const dot = this.add.ellipse(x, y, r, r, DUST, 0.15);
+        this.dustParticles.push(dot);
+        // Drift upward slowly
+        this.tweens.add({
+          targets: dot,
+          y: y - Phaser.Math.Between(40, 100),
+          alpha: { from: 0.15, to: 0 },
+          duration: Phaser.Math.Between(4000, 8000),
+          ease: "Sine.easeInOut",
+          repeat: -1,
+          yoyo: true,
+        });
+      }
+
+      // ── Danger vignette (intensifies as waves progress) ──
+      this.dangerVignette = this.add.graphics();
+      this.drawVignette(0);
+
+      // ── Wave progress bar (thin line at very top) ──
+      this.waveProgress = this.add.graphics();
+      this.drawWaveProgress();
+
+      // ── Clue zone ──
+      this.clueBg = this.add.graphics();
+      this.clueBg.fillStyle(0x141c24, 0.7);
+      this.clueBg.fillRoundedRect(24, 18, W - 48, 36, 8);
+      this.clueBg.lineStyle(1, AMBER, 0.15);
+      this.clueBg.strokeRoundedRect(24, 18, W - 48, 36, 8);
 
       this.clueLabel = this.add
-        .text(W / 2, CLUE_Y, "", {
+        .text(W / 2, 36, "", {
           color: "#f0a030",
-          fontFamily: "Geist, Manrope, sans-serif",
-          fontSize: "13px",
+          fontFamily: "'Plus Jakarta Sans', Geist, sans-serif",
+          fontSize: "12px",
           fontStyle: "700",
+          letterSpacing: 1,
         })
         .setOrigin(0.5)
-        .setAlpha(0.6);
-
-      // ── Subtle vertical guide line ──
-      this.guideLine = this.add.rectangle(
-        W / 2,
-        (DROP_START_Y + CATCHER_TOP_Y) / 2,
-        1,
-        CATCHER_TOP_Y - DROP_START_Y - 20,
-        GUIDE_COLOR,
-        0.12,
-      );
+        .setAlpha(0.7);
 
       // ── Build 3 catchers ──
       for (let i = 0; i < 3; i++) {
-        const cx = FIRST_CATCHER_X + i * (CATCHER_W + CATCHER_GAP);
+        const cx = FIRST_CX + i * (CATCHER_W + CATCHER_GAP);
         const cy = CATCHER_TOP_Y + CATCHER_H / 2;
 
-        // Hint glow (behind everything, pulsing for onboarding)
-        const hintGlow = this.add
-          .rectangle(cx, cy, CATCHER_W + 6, CATCHER_H + 6, CORRECT_COLOR, 0)
-          .setStrokeStyle(2, CORRECT_COLOR, 0);
+        // Glow ring (behind everything)
+        const glowRing = this.add.graphics();
+        glowRing.setAlpha(0);
 
-        // Main base (the "cup" body)
-        const base = this.add.rectangle(
-          cx,
-          cy,
-          CATCHER_W,
-          CATCHER_H,
-          CATCHER_FILL,
-          0.95,
-        );
-        base.setStrokeStyle(1.5, CATCHER_BORDER, 0.6);
+        // Catcher body (drawn as graphics for trapezoid cup shape)
+        const body = this.add.graphics();
+        this.drawCatcher(body, cx, cy, CATCHER_BODY, CATCHER_RIM, 1);
 
-        // Floor highlight (slightly brighter bottom to give depth)
-        const floor = this.add.rectangle(
-          cx,
-          cy + CATCHER_H / 2 - 3,
-          CATCHER_W - WALL_THICKNESS * 2,
-          6,
-          CATCHER_BORDER,
-          0.3,
-        );
-
-        // Left wall (raised above the base top)
-        const wallL = this.add.rectangle(
-          cx - CATCHER_W / 2 + WALL_THICKNESS / 2,
-          cy - CATCHER_H / 2 - WALL_HEIGHT / 2 + 2,
-          WALL_THICKNESS,
-          WALL_HEIGHT,
-          CATCHER_WALL,
-          0.9,
-        );
-
-        // Right wall
-        const wallR = this.add.rectangle(
-          cx + CATCHER_W / 2 - WALL_THICKNESS / 2,
-          cy - CATCHER_H / 2 - WALL_HEIGHT / 2 + 2,
-          WALL_THICKNESS,
-          WALL_HEIGHT,
-          CATCHER_WALL,
-          0.9,
-        );
-
-        // Option label (centred in catcher)
+        // Option label
         const label = this.add
-          .text(cx, cy + 4, "", {
-            color: `#${TEXT_OPTION.toString(16).padStart(6, "0")}`,
-            fontFamily: "Geist, Manrope, sans-serif",
+          .text(cx, cy + 6, "", {
+            color: "#c0bdd6",
+            fontFamily: "'Plus Jakarta Sans', Geist, sans-serif",
             fontSize: "14px",
             fontStyle: "700",
             align: "center",
-            wordWrap: { width: CATCHER_W - 14 },
+            wordWrap: { width: CATCHER_W - 18 },
           })
           .setOrigin(0.5);
 
-        // Invisible interactive hit zone (covers catcher + walls)
+        // Hit zone
         const hitZone = this.add
-          .rectangle(cx, cy - 4, CATCHER_W + 8, CATCHER_H + WALL_HEIGHT + 8, 0x000000, 0)
+          .rectangle(cx, cy, CATCHER_W + 10, CATCHER_H + 20, 0x000000, 0)
           .setInteractive({ useHandCursor: true });
         hitZone.on("pointerdown", () => this.resolve(i as 0 | 1 | 2));
 
-        this.catchers.push({ base, wallL, wallR, floor, label, hintGlow, hitZone, cx, cy });
+        this.catchers.push({ body, label, glowRing, hitZone, cx, cy });
       }
 
-      // ── Falling word (amber glow + text) ──
-      this.dropGlow = this.add
-        .rectangle(W / 2, DROP_START_Y, 10, 36, GLOW_BG, 0.5)
-        .setOrigin(0.5);
+      // ── Drop shadow (on the "floor" below catchers) ──
+      this.dropShadow = this.add.ellipse(W / 2, CATCHER_TOP_Y - 6, 50, 8, 0x000000, 0.12);
 
-      this.dropText = this.add
+      // ── Trail particles (pre-allocated pool) ──
+      for (let i = 0; i < 8; i++) {
+        const dot = this.add.ellipse(0, 0, 4, 4, AMBER, 0).setDepth(5);
+        this.dropTrail.push(dot);
+      }
+
+      // ── Falling word ──
+      this.dropWord = this.add
         .text(W / 2, DROP_START_Y, "", {
           color: "#f0a030",
-          fontFamily: "Geist, Manrope, sans-serif",
-          fontSize: "28px",
+          fontFamily: "'Plus Jakarta Sans', Geist, sans-serif",
+          fontSize: "26px",
           fontStyle: "800",
+          shadow: {
+            offsetX: 0,
+            offsetY: 0,
+            color: "rgba(240,160,48,0.35)",
+            blur: 12,
+            stroke: false,
+            fill: true,
+          },
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setDepth(10);
 
       this.spawnWave();
     }
 
     update(_time: number, delta: number) {
-      if (!this.dropText || !this.dropGlow || this.locked || this.lives <= 0) return;
+      if (!this.dropWord || this.locked || this.lives <= 0) return;
 
-      // Gravity-like fall
-      const targetY = CATCHER_TOP_Y + CATCHER_H + 40; // past catchers = timeout
+      // ── Fall ──
+      const targetY = FLOOR_Y;
       const distance = targetY - DROP_START_Y;
       const pxPerMs = distance / this.speedMs;
       this.dropY += pxPerMs * delta;
 
-      this.dropText.setY(this.dropY);
-      this.dropGlow.setY(this.dropY);
+      this.dropWord.setY(this.dropY);
 
-      // Approaching danger — text goes red
-      if (this.dropY > CATCHER_TOP_Y - 20) {
-        this.dropText.setColor("#e85d4a");
-      } else {
-        this.dropText.setColor("#f0a030");
+      // ── Trail ──
+      this.trailTimer += delta;
+      if (this.trailTimer > 40) {
+        this.trailTimer = 0;
+        this.emitTrailDot(this.dropWord.x, this.dropY);
       }
 
+      // ── Shadow scales with proximity ──
+      if (this.dropShadow) {
+        const progress = Math.min(1, (this.dropY - DROP_START_Y) / (CATCHER_TOP_Y - DROP_START_Y));
+        this.dropShadow.setScale(0.4 + progress * 0.8, 0.3 + progress * 0.5);
+        this.dropShadow.setAlpha(0.05 + progress * 0.15);
+        this.dropShadow.setX(this.dropWord.x);
+      }
+
+      // ── Danger proximity glow on catchers ──
+      if (this.dropY > CATCHER_TOP_Y - 80) {
+        const proximity = Math.min(1, (this.dropY - (CATCHER_TOP_Y - 80)) / 80);
+        // Word colour shifts to danger
+        const r = Math.round(240 + (232 - 240) * proximity);
+        const g = Math.round(160 - 160 * proximity * 0.6);
+        const b = Math.round(48 + (74 - 48) * proximity);
+        this.dropWord.setColor(`rgb(${r},${g},${b})`);
+
+        // Correct catcher glows to hint
+        if (this.hintWavesRemaining > 0) {
+          const correctIdx = this.wave.correctIndex;
+          const c = this.catchers[correctIdx];
+          this.drawCatcherGlow(c.glowRing, c.cx, c.cy, GREEN, proximity * 0.3);
+          c.glowRing.setAlpha(proximity * 0.5);
+        }
+      } else {
+        this.dropWord.setColor("#f0a030");
+      }
+
+      // ── Timeout ──
       if (this.dropY >= targetY) {
-        this.resolve(null); // timeout
+        this.resolve(null);
       }
     }
 
+    // ── Trail dot from pool ──
+    private trailIdx = 0;
+    private emitTrailDot(x: number, y: number) {
+      const dot = this.dropTrail[this.trailIdx % this.dropTrail.length];
+      this.trailIdx++;
+      dot.setPosition(x + Phaser.Math.FloatBetween(-3, 3), y - 8);
+      dot.setAlpha(0.4);
+      dot.setScale(1);
+      this.tweens.add({
+        targets: dot,
+        alpha: 0,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        y: y - 24,
+        duration: 350,
+        ease: "Quad.easeOut",
+      });
+    }
+
+    // ── Draw catcher as a cup/bucket shape ──
+    private drawCatcher(
+      g: PhaserTypes.GameObjects.Graphics,
+      cx: number,
+      cy: number,
+      fillColor: number,
+      rimColor: number,
+      alpha: number,
+    ) {
+      g.clear();
+      const hw = CATCHER_W / 2;
+      const hh = CATCHER_H / 2;
+      const topInset = 4; // top is slightly narrower than bottom for cup feel
+      const rimH = CATCHER_RIM_H;
+
+      // Cup body (slightly tapered)
+      g.fillStyle(fillColor, alpha * 0.95);
+      g.beginPath();
+      g.moveTo(cx - hw + topInset, cy - hh);
+      g.lineTo(cx + hw - topInset, cy - hh);
+      g.lineTo(cx + hw, cy + hh);
+      g.lineTo(cx - hw, cy + hh);
+      g.closePath();
+      g.fill();
+
+      // Inner shadow (darker)
+      g.fillStyle(CATCHER_INNER, alpha * 0.8);
+      g.beginPath();
+      g.moveTo(cx - hw + topInset + 4, cy - hh + rimH);
+      g.lineTo(cx + hw - topInset - 4, cy - hh + rimH);
+      g.lineTo(cx + hw - 4, cy + hh - 4);
+      g.lineTo(cx - hw + 4, cy + hh - 4);
+      g.closePath();
+      g.fill();
+
+      // Rim (top edge, slightly lighter)
+      g.fillStyle(rimColor, alpha);
+      g.fillRoundedRect(cx - hw + topInset - 2, cy - hh - 2, CATCHER_W - topInset * 2 + 4, rimH, 3);
+
+      // Rim highlight (thin bright line)
+      g.fillStyle(CATCHER_HIGHLIGHT, alpha * 0.6);
+      g.fillRect(cx - hw + topInset + 6, cy - hh - 1, CATCHER_W - topInset * 2 - 12, 2);
+
+      // Subtle bottom highlight (depth cue)
+      g.fillStyle(0x2a3c50, alpha * 0.4);
+      g.fillRect(cx - hw + 6, cy + hh - 3, CATCHER_W - 12, 2);
+    }
+
+    // ── Catcher glow ring ──
+    private drawCatcherGlow(
+      g: PhaserTypes.GameObjects.Graphics,
+      cx: number,
+      cy: number,
+      color: number,
+      alpha: number,
+    ) {
+      g.clear();
+      g.lineStyle(3, color, alpha);
+      const hw = CATCHER_W / 2 + 3;
+      const hh = CATCHER_H / 2 + 3;
+      g.strokeRoundedRect(cx - hw, cy - hh, hw * 2, hh * 2, 8);
+    }
+
+    // ── Danger vignette ──
+    private drawVignette(intensity: number) {
+      if (!this.dangerVignette) return;
+      this.dangerVignette.clear();
+      if (intensity <= 0) return;
+      // Red gradient from edges
+      const alpha = Math.min(0.25, intensity * 0.25);
+      this.dangerVignette.fillStyle(CORAL, alpha);
+      // Top edge
+      this.dangerVignette.fillRect(0, 0, W, 3);
+      // Bottom edge
+      this.dangerVignette.fillRect(0, H - 3, W, 3);
+      // Side edges
+      this.dangerVignette.fillRect(0, 0, 3, H);
+      this.dangerVignette.fillRect(W - 3, 0, 3, H);
+    }
+
+    // ── Wave progress bar ──
+    private drawWaveProgress() {
+      if (!this.waveProgress) return;
+      this.waveProgress.clear();
+      // Background track
+      this.waveProgress.fillStyle(0x0a1018, 0.6);
+      this.waveProgress.fillRect(0, 0, W, 3);
+      // Fill
+      const fillW = W * this.waveProgress01;
+      this.waveProgress.fillStyle(AMBER, 0.7);
+      this.waveProgress.fillRect(0, 0, fillW, 3);
+    }
+
+    // ── Background colour lerp based on wave progress ──
+    private updateBackground() {
+      if (!this.bgRect) return;
+      const p = this.waveProgress01;
+      const color = p < 0.5
+        ? Phaser.Display.Color.Interpolate.ColorWithColor(
+            Phaser.Display.Color.IntegerToColor(BG_START),
+            Phaser.Display.Color.IntegerToColor(BG_MID),
+            100,
+            Math.round(p * 2 * 100),
+          )
+        : Phaser.Display.Color.Interpolate.ColorWithColor(
+            Phaser.Display.Color.IntegerToColor(BG_MID),
+            Phaser.Display.Color.IntegerToColor(BG_END),
+            100,
+            Math.round((p - 0.5) * 2 * 100),
+          );
+      this.bgRect.setFillStyle(
+        Phaser.Display.Color.GetColor(
+          Math.round(color.r),
+          Math.round(color.g),
+          Math.round(color.b),
+        ),
+      );
+    }
+
+    // ── Spawn wave ──
     private spawnWave() {
-      if (!this.dropText || !this.dropGlow) return;
+      if (!this.dropWord) return;
       this.locked = false;
       this.feedback = "idle";
       this.dropY = DROP_START_Y;
 
-      // Set clue label
+      // Update background + progress
+      this.updateBackground();
+      this.drawWaveProgress();
+      this.drawVignette(this.waveProgress01 * 0.6);
+
+      // Clue
       if (this.clueLabel) {
-        this.clueLabel.setText(`translate: ${this.wave.clue}`);
+        const langFlag = "🇬🇧";
+        this.clueLabel.setText(`${langFlag}  ${this.wave.clue.toUpperCase()}`);
       }
 
-      // Set drop text
-      this.dropText.setText(this.wave.clue);
-      this.dropText.setY(this.dropY);
-      this.dropText.setAlpha(1);
-      this.dropText.setScale(1);
-      this.dropText.setColor("#f0a030");
+      // Drop word — entrance animation
+      this.dropWord.setText(this.wave.clue);
+      this.dropWord.setPosition(W / 2, DROP_START_Y - 20);
+      this.dropWord.setAlpha(0);
+      this.dropWord.setScale(0.6);
+      this.dropWord.setColor("#f0a030");
 
-      // Size the glow behind the text
-      const tw = this.dropText.width + 24;
-      this.dropGlow.setSize(tw, 38);
-      this.dropGlow.setY(this.dropY);
-      this.dropGlow.setAlpha(0.5);
+      this.tweens.add({
+        targets: this.dropWord,
+        y: DROP_START_Y,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 250,
+        ease: "Back.easeOut",
+        onComplete: () => {
+          if (audio) sfxDrop();
+        },
+      });
+
+      // Shadow reset
+      if (this.dropShadow) {
+        this.dropShadow.setAlpha(0);
+        this.dropShadow.setX(W / 2);
+      }
 
       // Update catchers
       this.wave.options.forEach((option, idx) => {
         const c = this.catchers[idx];
         c.label.setText(option);
-        c.label.setColor(`#${TEXT_OPTION.toString(16).padStart(6, "0")}`);
-        c.base.setFillStyle(CATCHER_FILL, 0.95);
-        c.base.setStrokeStyle(1.5, CATCHER_BORDER, 0.6);
+        c.label.setColor("#c0bdd6");
+        c.label.setAlpha(1);
+        this.drawCatcher(c.body, c.cx, c.cy, CATCHER_BODY, CATCHER_RIM, 1);
+        c.glowRing.clear();
+        c.glowRing.setAlpha(0);
       });
 
-      // Onboarding hints: pulse the correct catcher
-      this.updateHints();
+      // Onboarding hint — subtle glow on correct for first few waves
+      if (this.hintWavesRemaining > 0 && this.combo === 0) {
+        const correct = this.catchers[this.wave.correctIndex];
+        this.tweens.add({
+          targets: correct.glowRing,
+          alpha: { from: 0, to: 0.35 },
+          duration: 1200,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+          onUpdate: () => {
+            this.drawCatcherGlow(
+              correct.glowRing,
+              correct.cx,
+              correct.cy,
+              GREEN,
+              correct.glowRing.alpha * 0.5,
+            );
+          },
+        });
+      }
+
       this.emitHud();
     }
 
-    private updateHints() {
-      const showHint = this.hintWavesRemaining > 0 && this.combo === 0;
-      for (let i = 0; i < 3; i++) {
-        const c = this.catchers[i];
-        if (showHint && i === this.wave.correctIndex) {
-          // Subtle pulsing glow on correct catcher
-          c.hintGlow.setStrokeStyle(2, CORRECT_COLOR, 0.35);
-          this.tweens.add({
-            targets: c.hintGlow,
-            alpha: { from: 0.2, to: 0.5 },
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: "Sine.easeInOut",
-          });
-        } else {
-          this.tweens.killTweensOf(c.hintGlow);
-          c.hintGlow.setAlpha(0);
-          c.hintGlow.setStrokeStyle(2, CORRECT_COLOR, 0);
-        }
-      }
-    }
-
+    // ── Resolve answer ──
     private resolve(choice: 0 | 1 | 2 | null) {
       if (this.locked || this.lives <= 0) return;
       this.locked = true;
@@ -315,207 +528,258 @@ export function createRelaySprintScene(
       const correctIdx = this.wave.correctIndex;
 
       if (choice === null) {
-        // ── TIMEOUT: word falls through ──
+        // ── TIMEOUT ──
         this.feedback = "timeout";
-        this.misses += 1;
+        this.misses++;
         this.combo = 0;
-        this.lives -= 1;
+        this.lives--;
         this.speedMs = Math.min(2800, this.speedMs + 80);
+        if (audio) sfxTimeout();
 
-        // Word falls off screen
-        if (this.dropText && this.dropGlow) {
+        // Word crashes through floor
+        if (this.dropWord) {
           this.tweens.add({
-            targets: [this.dropText, this.dropGlow],
-            y: options.height + 40,
+            targets: this.dropWord,
+            y: H + 40,
             alpha: 0,
-            duration: 400,
+            scaleX: 0.5,
+            scaleY: 1.5,
+            duration: 300,
             ease: "Quad.easeIn",
           });
         }
 
-        // Flash correct catcher green briefly
-        this.flashCatcher(correctIdx, CORRECT_COLOR, 400);
+        // Flash correct catcher
+        this.flashCatcher(correctIdx, GREEN, GREEN_BRIGHT, 600);
+        this.shakeScreen(3, 80);
         this.emitHud();
         this.advanceOrEnd();
         return;
       }
 
-      const tappedCatcher = this.catchers[choice];
+      const tapped = this.catchers[choice];
 
       if (correct) {
-        // ── CORRECT: word accelerates into catcher and lands ──
+        // ── CORRECT ──
         this.feedback = "correct";
-        this.score += 1;
-        this.combo += 1;
+        this.score++;
+        this.combo++;
         this.maxCombo = Math.max(this.maxCombo, this.combo);
-        this.hits += 1;
+        this.hits++;
         this.speedMs = Math.max(1400, this.speedMs - 75);
+        if (audio) sfxCorrect();
 
-        // Reduce hint count
-        if (this.hintWavesRemaining > 0) {
-          this.hintWavesRemaining -= 1;
-        }
+        if (this.hintWavesRemaining > 0) this.hintWavesRemaining--;
 
         if (!this.firstCorrectFired) {
           this.firstCorrectFired = true;
           options.onFirstCorrect(this.time.now - this.startedAt);
         }
 
-        // Animate word into catcher centre
-        const landY = tappedCatcher.cy + 4;
-        if (this.dropText && this.dropGlow) {
-          // Word flies to catcher
+        // Animate word into catcher
+        if (this.dropWord) {
           this.tweens.add({
-            targets: this.dropText,
-            x: tappedCatcher.cx,
-            y: landY - 6, // slight overshoot for bounce
-            duration: 150,
+            targets: this.dropWord,
+            x: tapped.cx,
+            y: tapped.cy + 4,
+            scaleX: 0.75,
+            scaleY: 0.75,
+            duration: 140,
             ease: "Quad.easeIn",
             onComplete: () => {
-              // Bounce settle
-              if (this.dropText) {
+              // Settle bounce
+              if (this.dropWord) {
                 this.tweens.add({
-                  targets: this.dropText,
-                  y: landY,
-                  scaleX: 0.85,
-                  scaleY: 0.85,
-                  duration: 120,
+                  targets: this.dropWord,
+                  scaleX: 0.7,
+                  scaleY: 0.7,
+                  y: tapped.cy + 6,
+                  alpha: 0,
+                  duration: 300,
                   ease: "Bounce.easeOut",
                 });
               }
+              // Gold particle burst
+              this.burstParticles(tapped.cx, tapped.cy - 10, GOLD_PARTICLE, 12);
+              this.burstParticles(tapped.cx, tapped.cy - 10, GREEN_BRIGHT, 6);
             },
-          });
-
-          // Fade glow during flight
-          this.tweens.add({
-            targets: this.dropGlow,
-            x: tappedCatcher.cx,
-            y: landY,
-            alpha: 0,
-            duration: 150,
-            ease: "Quad.easeIn",
           });
         }
 
-        // Flash catcher green
-        this.flashCatcher(choice, CORRECT_COLOR, 350);
+        // Flash catcher green + glow
+        this.flashCatcher(choice, GREEN, GREEN_BRIGHT, 400);
 
+        // Streak milestones
+        for (const milestone of STREAK_MILESTONES) {
+          if (this.combo === milestone && this.lastMilestoneStreak < milestone) {
+            this.lastMilestoneStreak = milestone;
+            if (audio) sfxCombo(this.combo);
+            options.onStreakMilestone(this.combo);
+            this.streakFlash();
+            break;
+          }
+        }
       } else {
-        // ── WRONG: word hits wrong catcher and breaks apart ──
+        // ── WRONG ──
         this.feedback = "wrong";
-        this.misses += 1;
+        this.misses++;
         this.combo = 0;
-        this.lives -= 1;
+        this.lastMilestoneStreak = 0;
+        this.lives--;
         this.speedMs = Math.min(2800, this.speedMs + 80);
+        if (audio) sfxWrong();
 
-        // Word flies to wrong catcher
-        const landY = tappedCatcher.cy;
-        if (this.dropText && this.dropGlow) {
+        // Word shatters
+        if (this.dropWord) {
           this.tweens.add({
-            targets: this.dropText,
-            x: tappedCatcher.cx,
-            y: landY,
-            duration: 130,
+            targets: this.dropWord,
+            x: tapped.cx,
+            y: tapped.cy,
+            duration: 120,
             ease: "Quad.easeIn",
             onComplete: () => {
-              // "Break apart" — scale down and fade
-              if (this.dropText) {
-                this.tweens.add({
-                  targets: this.dropText,
-                  scaleX: 1.3,
-                  scaleY: 0.2,
-                  alpha: 0,
-                  duration: 200,
-                  ease: "Quad.easeOut",
-                });
+              // Shatter effect
+              this.burstParticles(tapped.cx, tapped.cy, CORAL, 10);
+              if (this.dropWord) {
+                this.dropWord.setAlpha(0);
               }
             },
           });
-
-          this.tweens.add({
-            targets: this.dropGlow,
-            x: tappedCatcher.cx,
-            y: landY,
-            alpha: 0,
-            duration: 130,
-            ease: "Quad.easeIn",
-          });
         }
 
-        // Flash wrong catcher red, correct catcher green
-        this.flashCatcher(choice, WRONG_COLOR, 350);
+        // Flash wrong red, correct green
+        this.flashCatcher(choice, CORAL, CORAL, 400);
         this.shakeCatcher(choice);
-        this.flashCatcher(correctIdx, CORRECT_COLOR, 500);
+        this.flashCatcher(correctIdx, GREEN, GREEN_BRIGHT, 600);
+        this.shakeScreen(5, 120);
       }
 
       this.emitHud();
       this.advanceOrEnd();
     }
 
-    private flashCatcher(idx: number, color: number, duration: number) {
+    // ── Particle burst ──
+    private burstParticles(x: number, y: number, color: number, count: number) {
+      for (let i = 0; i < count; i++) {
+        const size = Phaser.Math.FloatBetween(2, 5);
+        const p = this.add.ellipse(x, y, size, size, color, 0.8).setDepth(15);
+        const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        const speed = Phaser.Math.FloatBetween(40, 120);
+        const dx = Math.cos(angle) * speed;
+        const dy = Math.sin(angle) * speed - 30; // bias upward
+
+        this.tweens.add({
+          targets: p,
+          x: x + dx,
+          y: y + dy,
+          alpha: 0,
+          scaleX: 0.1,
+          scaleY: 0.1,
+          duration: Phaser.Math.Between(300, 600),
+          ease: "Quad.easeOut",
+          onComplete: () => p.destroy(),
+        });
+      }
+    }
+
+    // ── Flash catcher colour ──
+    private flashCatcher(idx: number, color: number, brightColor: number, duration: number) {
       const c = this.catchers[idx];
-      c.base.setStrokeStyle(2.5, color, 1);
-      c.base.setFillStyle(color, 0.15);
-      c.label.setColor(`#${color.toString(16).padStart(6, "0")}`);
+
+      // Redraw catcher with flash colour
+      this.drawCatcher(c.body, c.cx, c.cy, color, brightColor, 1);
+
+      // Glow ring
+      this.drawCatcherGlow(c.glowRing, c.cx, c.cy, brightColor, 0.6);
+      c.glowRing.setAlpha(0.8);
+
+      // Label colour
+      const hex = `#${brightColor.toString(16).padStart(6, "0")}`;
+      c.label.setColor(hex);
+
+      // Revert after duration
       this.time.delayedCall(duration, () => {
-        c.base.setStrokeStyle(1.5, CATCHER_BORDER, 0.6);
-        c.base.setFillStyle(CATCHER_FILL, 0.95);
-        c.label.setColor(`#${TEXT_OPTION.toString(16).padStart(6, "0")}`);
+        this.drawCatcher(c.body, c.cx, c.cy, CATCHER_BODY, CATCHER_RIM, 1);
+        c.glowRing.setAlpha(0);
+        c.label.setColor("#c0bdd6");
       });
     }
 
+    // ── Shake individual catcher ──
     private shakeCatcher(idx: number) {
       const c = this.catchers[idx];
       const origX = c.cx;
       this.tweens.add({
-        targets: [c.base, c.wallL, c.wallR, c.floor, c.label, c.hitZone],
-        x: { from: origX - 4, to: origX + 4 },
-        duration: 50,
+        targets: [c.body, c.label, c.hitZone, c.glowRing],
+        x: `+=${5}`,
+        duration: 40,
         yoyo: true,
-        repeat: 3,
+        repeat: 4,
         ease: "Sine.easeInOut",
         onComplete: () => {
-          // Reset positions
-          c.base.setX(origX);
+          c.body.setX(0);
           c.label.setX(origX);
           c.hitZone.setX(origX);
-          c.floor.setX(origX);
-          c.wallL.setX(origX - CATCHER_W / 2 + WALL_THICKNESS / 2);
-          c.wallR.setX(origX + CATCHER_W / 2 - WALL_THICKNESS / 2);
+          c.glowRing.setX(0);
         },
       });
     }
 
-    private advanceOrEnd() {
-      if (this.lives <= 0 || this.waveIndex >= options.puzzle.waves.length - 1) {
-        const total = this.hits + this.misses;
-        const accuracy = total === 0 ? 0 : Math.round((this.hits / total) * 100);
+    // ── Screen shake ──
+    private shakeScreen(intensity: number, duration: number) {
+      this.cameras.main.shake(duration, intensity / 1000);
+    }
 
-        this.time.delayedCall(500, () => {
-          options.onComplete({
-            score: this.score,
-            mistakes: this.misses,
-            maxCombo: this.maxCombo,
-            accuracy,
-            timeMs: this.time.now - this.startedAt,
-          });
-        });
+    // ── Full-width streak flash ──
+    private streakFlash() {
+      const flash = this.add
+        .rectangle(W / 2, H / 2, W, H, AMBER, 0.08)
+        .setDepth(20);
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 400,
+        ease: "Quad.easeOut",
+        onComplete: () => flash.destroy(),
+      });
+    }
+
+    // ── Advance or end ──
+    private advanceOrEnd() {
+      if (this.lives <= 0) {
+        if (audio) sfxGameOver();
+        this.endGame();
         return;
       }
 
-      this.waveIndex += 1;
-      this.time.delayedCall(280, () => {
-        // Reset drop position for new wave
-        if (this.dropText) {
-          this.dropText.setX(W / 2);
-          this.dropText.setScale(1);
-          this.dropText.setAlpha(1);
-        }
-        if (this.dropGlow) {
-          this.dropGlow.setX(W / 2);
-          this.dropGlow.setAlpha(0.5);
+      if (this.waveIndex >= options.puzzle.waves.length - 1) {
+        this.endGame();
+        return;
+      }
+
+      this.waveIndex++;
+      this.time.delayedCall(350, () => {
+        if (this.dropWord) {
+          this.dropWord.setX(W / 2);
+          this.dropWord.setScale(1);
+          this.dropWord.setAlpha(1);
         }
         this.spawnWave();
+      });
+    }
+
+    private endGame() {
+      const total = this.hits + this.misses;
+      const accuracy = total === 0 ? 0 : Math.round((this.hits / total) * 100);
+
+      this.time.delayedCall(600, () => {
+        options.onComplete({
+          score: this.score,
+          mistakes: this.misses,
+          maxCombo: this.maxCombo,
+          accuracy,
+          timeMs: this.time.now - this.startedAt,
+        });
       });
     }
 

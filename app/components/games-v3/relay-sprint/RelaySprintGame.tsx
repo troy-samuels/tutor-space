@@ -18,10 +18,11 @@ import {
   createRelaySprintScene,
   type RelayHudState,
 } from "@/lib/games/v3/runtime/phaser/relay-sprint-scene";
+import { sfxTick, sfxGo, sfxScoreTick, sfxStar } from "@/lib/games/v3/runtime/phaser/relay-audio";
 import SharePanel from "@/components/games-v3/core/SharePanel";
 import styles from "./RelaySprintGame.module.css";
 
-const UI_VERSION = "v3-relay-sprint-2";
+const UI_VERSION = "v3-relay-sprint-3";
 const CURVE_VERSION = "v3-gentle-ramp-1";
 const SHARE_CARD_VERSION = "v3-share-1";
 
@@ -42,6 +43,20 @@ interface GameResult {
   maxCombo: number;
   accuracy: number;
   timeMs: number;
+}
+
+const STREAK_LABELS: Record<number, { text: string; emoji: string }> = {
+  3: { text: "NICE!", emoji: "🔥" },
+  5: { text: "ON FIRE!", emoji: "⚡" },
+  8: { text: "UNSTOPPABLE!", emoji: "💥" },
+  12: { text: "LEGENDARY!", emoji: "👑" },
+};
+
+function getStarCount(accuracy: number): number {
+  if (accuracy >= 90) return 3;
+  if (accuracy >= 70) return 2;
+  if (accuracy >= 40) return 1;
+  return 0;
 }
 
 export default function RelaySprintGame({
@@ -71,6 +86,11 @@ export default function RelaySprintGame({
   const [audioOn, setAudioOn] = React.useState(true);
   const [flashState, setFlashState] = React.useState<"none" | "correct" | "wrong">("none");
   const [finalResult, setFinalResult] = React.useState<GameResult | null>(null);
+  const [streakPopup, setStreakPopup] = React.useState<{ text: string; emoji: string } | null>(null);
+  const [showConfetti, setShowConfetti] = React.useState(false);
+  const [revealedStars, setRevealedStars] = React.useState(0);
+  const [countingScore, setCountingScore] = React.useState(0);
+  const [resultReady, setResultReady] = React.useState(false);
   const [hud, setHud] = React.useState<RelayHudState>({
     score: 0,
     streak: 0,
@@ -140,12 +160,56 @@ export default function RelaySprintGame({
     }
   }, [hud.feedback, hud.speedMs, hud.streak]);
 
-  // ── Clear flash after animation ──
+  // ── Clear flash ──
   React.useEffect(() => {
     if (flashState === "none") return;
     const timer = setTimeout(() => setFlashState("none"), 450);
     return () => clearTimeout(timer);
   }, [flashState]);
+
+  // ── Streak popup auto-dismiss ──
+  React.useEffect(() => {
+    if (!streakPopup) return;
+    const timer = setTimeout(() => setStreakPopup(null), 1400);
+    return () => clearTimeout(timer);
+  }, [streakPopup]);
+
+  // ── Results ceremony: score counting + star reveal ──
+  React.useEffect(() => {
+    if (stage !== "summary" || !finalResult) return;
+
+    // Count up score
+    const targetScore = finalResult.score;
+    let current = 0;
+    const scoreInterval = setInterval(() => {
+      current++;
+      if (audioOn) sfxScoreTick();
+      setCountingScore(current);
+      if (current >= targetScore) {
+        clearInterval(scoreInterval);
+        // Reveal stars after score finishes
+        const stars = getStarCount(finalResult.accuracy);
+        let revealed = 0;
+        const starInterval = setInterval(() => {
+          revealed++;
+          if (audioOn) sfxStar();
+          haptic("tap");
+          setRevealedStars(revealed);
+          if (revealed >= stars) {
+            clearInterval(starInterval);
+            setResultReady(true);
+            // Confetti on good performance
+            if (finalResult.accuracy >= 70) {
+              setShowConfetti(true);
+            }
+          }
+        }, 350);
+      }
+    }, 60);
+
+    return () => clearInterval(scoreInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, finalResult]);
 
   // ── Game complete handler ──
   const handleComplete = React.useCallback(
@@ -202,15 +266,27 @@ export default function RelaySprintGame({
   React.useEffect(() => {
     if (countdownValue === null || stage !== "countdown") return;
     if (countdownValue <= 0) {
+      if (audioOn) sfxGo();
+      haptic("success");
       setStage("active");
       return;
     }
     const timer = setTimeout(() => {
+      if (audioOn) sfxTick();
       haptic("tap");
       setCountdownValue(countdownValue - 1);
     }, 700);
     return () => clearTimeout(timer);
-  }, [countdownValue, stage]);
+  }, [audioOn, countdownValue, stage]);
+
+  // ── Streak milestone callback ──
+  const handleStreakMilestone = React.useCallback((streak: number) => {
+    const label = STREAK_LABELS[streak];
+    if (label) {
+      setStreakPopup(label);
+      haptic("success");
+    }
+  }, []);
 
   // ── Phaser scene factory ──
   const sceneFactory = React.useCallback(
@@ -219,6 +295,7 @@ export default function RelaySprintGame({
         puzzle,
         width: 360,
         height: 520,
+        audioEnabled: audioOn,
         onHud: setHud,
         onMeaningfulAction: (ms) => {
           if (firstMeaningfulActionMs === null) {
@@ -230,9 +307,10 @@ export default function RelaySprintGame({
             setFirstCorrectMs(ms);
           }
         },
+        onStreakMilestone: handleStreakMilestone,
         onComplete: handleComplete,
       }),
-    [firstCorrectMs, firstMeaningfulActionMs, handleComplete, puzzle],
+    [audioOn, firstCorrectMs, firstMeaningfulActionMs, handleComplete, handleStreakMilestone, puzzle],
   );
 
   // ── Helpers ──
@@ -245,26 +323,40 @@ export default function RelaySprintGame({
 
   const speedLevel = hud.speedMs < 1800 ? "fast" : hud.speedMs < 2200 ? "medium" : "normal";
 
-  // ═══ RENDER ═══
-
-  // Countdown — dark arcade theme
+  // ═══ COUNTDOWN ═══
   if (stage === "countdown") {
     return (
       <div className={styles.arena}>
         <div className={styles.countdown}>
           {countdownValue === null ? (
             <>
-              <div className={styles.countdownBrief}>
-                <p className={styles.briefIcon}>🎯</p>
-                <p className={styles.briefTitle}>Catch the translation</p>
-                <p className={styles.briefDesc}>A word drops — tap the correct translation to catch it. Miss 3 and it&apos;s game over.</p>
+              <div className={styles.onboarding}>
+                <div className={styles.onboardingDemo}>
+                  <div className={styles.demoWord}>hello</div>
+                  <div className={styles.demoArrow}>↓</div>
+                  <div className={styles.demoCatchers}>
+                    <div className={styles.demoCatcher}>hola</div>
+                    <div className={styles.demoCatcher} data-wrong="true">casa</div>
+                    <div className={styles.demoCatcher} data-wrong="true">gato</div>
+                  </div>
+                  <div className={styles.demoHand}>👆</div>
+                </div>
+                <h2 className={styles.onboardingTitle}>Catch the Translation</h2>
+                <p className={styles.onboardingDesc}>
+                  Words fall — tap the correct translation before they hit the floor. Miss 3 and it&apos;s game over.
+                </p>
+                <div className={styles.onboardingTips}>
+                  <span className={styles.tip}>🔥 Build combos for bonus points</span>
+                  <span className={styles.tip}>⚡ Speed increases as you progress</span>
+                </div>
               </div>
               <button
                 type="button"
                 className={styles.playButton}
                 onPointerDown={handleStartTap}
               >
-                Tap to Play
+                <span className={styles.playButtonText}>TAP TO PLAY</span>
+                <span className={styles.playButtonGlow} />
               </button>
             </>
           ) : (
@@ -272,6 +364,7 @@ export default function RelaySprintGame({
               <p className={styles.countdownNumber} key={countdownValue}>
                 {countdownValue > 0 ? countdownValue : "GO!"}
               </p>
+              <div className={styles.countdownRing} key={`ring-${countdownValue}`} />
             </div>
           )}
         </div>
@@ -279,35 +372,66 @@ export default function RelaySprintGame({
     );
   }
 
-  // Game Over / Results — arcade aesthetic
+  // ═══ RESULTS ═══
   if (stage === "summary" && finalResult) {
+    const stars = getStarCount(finalResult.accuracy);
     return (
       <div className={styles.arena}>
+        {showConfetti && <div className={styles.confettiContainer} aria-hidden="true">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div
+              key={i}
+              className={styles.confettiPiece}
+              style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 0.5}s`,
+                animationDuration: `${1.5 + Math.random() * 1.5}s`,
+                backgroundColor: ["#f0a030", "#3da672", "#e85d4a", "#5090d0", "#d050d0"][i % 5],
+              }}
+            />
+          ))}
+        </div>}
+
         <div className={styles.results}>
+          {/* Stars */}
+          <div className={styles.starsRow}>
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={styles.star}
+                data-earned={n <= revealedStars ? "true" : "false"}
+                data-possible={n <= stars ? "true" : "false"}
+              >
+                ★
+              </div>
+            ))}
+          </div>
+
+          {/* Header */}
           <div className={styles.resultsHeader}>
-            <p className={styles.resultsEmoji}>
-              {finalResult.accuracy >= 80 ? "⚡" : finalResult.accuracy >= 50 ? "🎯" : "💀"}
-            </p>
             <h2 className={styles.resultsTitle}>
               {hud.lives <= 0
                 ? "Game Over"
-                : finalResult.accuracy >= 80
-                  ? "Lightning Fast!"
-                  : "Run Complete"}
+                : finalResult.accuracy >= 90
+                  ? "Perfect Run!"
+                  : finalResult.accuracy >= 70
+                    ? "Great Work!"
+                    : "Run Complete"}
             </h2>
             <p className={styles.resultsSubtitle}>{copy.progress}</p>
           </div>
 
+          {/* Big score */}
+          <div className={styles.bigScore}>
+            <span className={styles.bigScoreLabel}>SCORE</span>
+            <span className={styles.bigScoreValue}>{countingScore}</span>
+          </div>
+
+          {/* Stats grid */}
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
-              <p className={styles.statLabel}>Score</p>
-              <p className={styles.statValue} data-accent="amber">
-                {finalResult.score}
-              </p>
-            </div>
-            <div className={styles.statCard}>
               <p className={styles.statLabel}>Accuracy</p>
-              <p className={styles.statValue} data-accent="green">
+              <p className={styles.statValue} data-accent={finalResult.accuracy >= 70 ? "green" : "coral"}>
                 {finalResult.accuracy}%
               </p>
             </div>
@@ -323,41 +447,58 @@ export default function RelaySprintGame({
                 {formatTime(finalResult.timeMs)}
               </p>
             </div>
+            <div className={styles.statCard}>
+              <p className={styles.statLabel}>Mistakes</p>
+              <p className={styles.statValue} data-accent={finalResult.mistakes <= 1 ? "green" : "coral"}>
+                {finalResult.mistakes}
+              </p>
+            </div>
           </div>
 
-          <SharePanel
-            gameSlug="relay-sprint"
-            seed={puzzle.seed}
-            mode={mode}
-            score={hud.score}
-            streak={hud.streak}
-            difficultyBand={difficulty}
-            locale={language}
-            shareWin={copy.shareWin}
-            shareStumble={copy.shareStumble}
-            uiVersion={UI_VERSION}
-            curveVersion={CURVE_VERSION}
-          />
+          {resultReady && (
+            <div className={styles.resultsActions}>
+              <SharePanel
+                gameSlug="relay-sprint"
+                seed={puzzle.seed}
+                mode={mode}
+                score={hud.score}
+                streak={hud.streak}
+                difficultyBand={difficulty}
+                locale={language}
+                shareWin={copy.shareWin}
+                shareStumble={copy.shareStumble}
+                uiVersion={UI_VERSION}
+                curveVersion={CURVE_VERSION}
+              />
 
-          <button
-            type="button"
-            className={styles.playAgainBtn}
-            onPointerDown={() => location.reload()}
-          >
-            Play Again
-          </button>
+              <button
+                type="button"
+                className={styles.playAgainBtn}
+                onPointerDown={() => location.reload()}
+              >
+                Play Again
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // Active game
+  // ═══ ACTIVE GAME ═══
   return (
-    <div className={styles.arena}>
+    <div className={styles.arena} data-danger={hud.lives <= 1 ? "true" : "false"}>
+      {/* Streak popup overlay */}
+      {streakPopup && (
+        <div className={styles.streakPopup} key={streakPopup.text}>
+          <span className={styles.streakPopupEmoji}>{streakPopup.emoji}</span>
+          <span className={styles.streakPopupText}>{streakPopup.text}</span>
+        </div>
+      )}
+
       {/* HUD */}
       <div className={styles.hud}>
         <div className={styles.hudLeft}>
-          {/* Lives as hearts */}
           <div className={styles.lives}>
             {[0, 1, 2].map((i) => (
               <span
@@ -372,11 +513,20 @@ export default function RelaySprintGame({
           <div className={styles.hudDivider} />
           <div className={styles.hudStat}>
             <span className={styles.hudLabel}>Score</span>
-            <span className={styles.hudValue}>{hud.score}</span>
+            <span className={styles.hudValue} data-bumped={hud.feedback === "correct" ? "true" : "false"}>
+              {hud.score}
+            </span>
           </div>
         </div>
 
         <div className={styles.hudRight}>
+          {/* Combo badge (visible at 2+) */}
+          {hud.streak >= 2 && (
+            <div className={styles.comboBadge} data-hot={hud.streak >= 5 ? "true" : "false"}>
+              <span className={styles.comboFire}>🔥</span>
+              <span className={styles.comboValue}>{hud.streak}×</span>
+            </div>
+          )}
           <div className={styles.hudStat}>
             <span className={styles.hudLabel}>Wave</span>
             <span className={styles.hudValue}>
@@ -384,30 +534,18 @@ export default function RelaySprintGame({
             </span>
           </div>
           <div
-            className={styles.speedIndicator}
-            data-fast={speedLevel === "fast" ? "true" : "false"}
+            className={styles.speedBadge}
+            data-level={speedLevel}
           >
-            <span className={styles.speedLabel}>
-              {speedLevel === "fast" ? "⚡ FAST" : speedLevel === "medium" ? "🔶 MED" : "🔷 STD"}
-            </span>
+            {speedLevel === "fast" ? "⚡" : speedLevel === "medium" ? "🔶" : "🔷"}
           </div>
         </div>
       </div>
 
-      {/* Streak */}
-      <div className={styles.streakBar} data-active={hud.streak >= 2 ? "true" : "false"}>
-        <span className={styles.streakEmoji}>🔥</span>
-        <span className={styles.streakText}>{hud.streak}× combo</span>
-      </div>
-
-      {/* Phaser Canvas — dominant, with flash overlay */}
+      {/* Phaser Canvas */}
       <div
         className={styles.viewport}
         data-flash={flashState}
-        style={{
-          filter: audioOn ? `brightness(${governor.audioLowPass})` : "none",
-          opacity: governor.decorOpacity,
-        }}
       >
         <button
           type="button"
