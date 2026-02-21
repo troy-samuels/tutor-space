@@ -256,8 +256,8 @@ export default function RelaySprintGame({
             <>
               <div className={styles.countdownBrief}>
                 <p className={styles.briefIcon}>🎯</p>
-                <p className={styles.briefTitle}>Intercept the word</p>
-                <p className={styles.briefDesc}>A word drops down — tap the correct translation from three lanes. 3 lives. Speed increases.</p>
+                <p className={styles.briefTitle}>Catch the translation</p>
+                <p className={styles.briefDesc}>A word drops — tap the correct translation to catch it. Miss 3 and it&apos;s game over.</p>
               </div>
               <button
                 type="button"

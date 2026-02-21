@@ -60,7 +60,7 @@ export default function LanguageSelector({
             key={lang.code}
             onClick={() => !disabled && onChange(lang.code)}
             disabled={disabled}
-            className="rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-all touch-manipulation whitespace-nowrap min-h-[40px]"
+            className="rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-all touch-manipulation whitespace-nowrap min-h-[44px]"
             style={
               selected === lang.code
                 ? { background: "#FFFFFF", color: "#2D2A26", boxShadow: "0 1px 3px rgba(45,42,38,0.08)" }

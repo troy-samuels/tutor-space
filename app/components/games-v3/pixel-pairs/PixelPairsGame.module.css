@@ -1,20 +1,20 @@
 /* ═══════════════════════════════════════════════
    PIXEL PAIRS — Memory Match Card Game
-   Colour Identity: Deep Indigo / Violet / Silver
+   Colour Identity: Warm Amber / Gold / Charcoal
+   (Matching Byte Choice design system)
    ═══════════════════════════════════════════════ */
 
 .arena {
-  --pp-indigo: #3D3478;
-  --pp-indigo-light: #5B4FAF;
-  --pp-violet: #6C5CE7;
-  --pp-violet-dim: #4A3D8F;
-  --pp-silver: #C0BDD6;
+  --pp-gold: #D9A441;
+  --pp-gold-light: #F2D888;
+  --pp-gold-dim: #B8872F;
+  --pp-charcoal: #1E2B36;
   --pp-cream: #F7F3EE;
   --pp-warm-tan: #EFE8DE;
-  --pp-charcoal: #1E2B36;
   --pp-muted: #697B89;
   --pp-green: #2E7D5A;
-  --pp-gold: #D9A441;
+  --pp-red: #C0392B;
+  --pp-teal: #1A7A6A; /* game accent */
 
   display: flex;
   flex-direction: column;
@@ -29,11 +29,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: var(--pp-indigo);
+  background: var(--pp-cream);
   border-radius: 12px;
   margin-bottom: 14px;
   position: relative;
   overflow: hidden;
+  border: 1px solid #E2D8CA;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 6px rgba(30, 43, 54, 0.04);
 }
 
 .hud::before {
@@ -43,7 +47,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--pp-violet), transparent);
+  background: linear-gradient(90deg, transparent, var(--pp-gold), transparent);
 }
 
 .hudStat {
@@ -58,21 +62,21 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--pp-silver);
+  color: var(--pp-muted);
   opacity: 0.7;
 }
 
 .hudValue {
   font-size: 18px;
   font-weight: 800;
-  color: #fff;
+  color: var(--pp-charcoal);
   font-variant-numeric: tabular-nums;
 }
 
 .hudDivider {
   width: 1px;
   height: 28px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(30, 43, 54, 0.1);
 }
 
 /* ── Pairs Found ── */
@@ -93,9 +97,9 @@
 }
 
 .pairDot[data-found="true"] {
-  background: var(--pp-violet);
-  border-color: var(--pp-violet);
-  box-shadow: 0 0 8px rgba(108, 92, 231, 0.4);
+  background: var(--pp-gold);
+  border-color: var(--pp-gold);
+  box-shadow: 0 0 8px rgba(217, 164, 65, 0.4);
 }
 
 /* ── Card Grid ── */
@@ -124,12 +128,34 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  perspective: 800px;
+  transform-style: preserve-3d;
+}
+
+.card > * {
+  transition: transform 0.4s ease;
+}
+
+.card[data-flipped="true"] > .cardBack,
+.card[data-flipped="true"] > .cardFront {
+  /* Handled via the card flip wrapper below */
+}
+
+/* Inner wrapper for 3D flip */
+.cardInner {
+  position: absolute;
+  inset: 0;
   transform-style: preserve-3d;
   transition: transform 0.4s ease;
 }
 
-.card[data-flipped="true"] {
-  transform: rotateY(180deg);
+/* We keep the flip on the card itself for compatibility */
+.card[data-flipped="false"] {
+  /* default - no rotation */
+}
+
+.card[data-flipped="true"] .cardFace {
+  /* faces controlled by backface-visibility */
 }
 
 .cardFace {
@@ -143,12 +169,13 @@
   -webkit-backface-visibility: hidden;
   font-weight: 700;
   overflow: hidden;
+  transition: transform 0.4s ease;
 }
 
 /* Card Back — patterned face-down */
 .cardBack {
-  background: var(--pp-indigo);
-  border: 2px solid var(--pp-violet-dim);
+  background: linear-gradient(160deg, #1A2530, var(--pp-charcoal));
+  border: 2px solid rgba(217, 164, 65, 0.25);
   z-index: 1;
 }
 
@@ -158,14 +185,14 @@
   position: absolute;
   inset: 6px;
   border-radius: 6px;
-  border: 2px solid rgba(108, 92, 231, 0.25);
+  border: 2px solid rgba(217, 164, 65, 0.15);
   background:
     repeating-linear-gradient(
       45deg,
       transparent,
       transparent 6px,
-      rgba(108, 92, 231, 0.08) 6px,
-      rgba(108, 92, 231, 0.08) 7px
+      rgba(217, 164, 65, 0.06) 6px,
+      rgba(217, 164, 65, 0.06) 7px
     );
 }
 
@@ -175,7 +202,7 @@
   z-index: 1;
   font-size: 22px;
   font-weight: 800;
-  color: var(--pp-violet);
+  color: var(--pp-gold);
   opacity: 0.4;
 }
 
@@ -192,10 +219,15 @@
   line-height: 1.2;
 }
 
+/* The card itself flips */
+.card[data-flipped="true"] {
+  transform: rotateY(180deg);
+}
+
 /* Selected (face-up, checking) */
 .card[data-state="selected"] .cardFront {
-  border-color: var(--pp-violet);
-  box-shadow: 0 0 12px rgba(108, 92, 231, 0.3);
+  border-color: var(--pp-gold);
+  box-shadow: 0 0 12px rgba(217, 164, 65, 0.3);
 }
 
 /* Matched (stays face-up with glow) */
@@ -214,7 +246,7 @@
 
 /* Mismatched flash before flipping back */
 .card[data-state="mismatched"] .cardFront {
-  border-color: #C0392B;
+  border-color: var(--pp-red);
   box-shadow: 0 0 8px rgba(192, 57, 43, 0.25);
 }
 
@@ -232,25 +264,29 @@
    RESULTS SCREEN
    ═══════════════════════════════════════════════ */
 
+@keyframes pp-stagger-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .results {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  animation: pp-results-enter 0.5s ease;
-}
-
-@keyframes pp-results-enter {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  position: relative;
+  overflow: visible;
+  padding-bottom: 8px;
 }
 
 .resultsHeader {
   text-align: center;
-  padding: 20px 16px;
-  background: var(--pp-indigo);
-  border-radius: 16px;
+  padding: 28px 20px 24px;
+  background: linear-gradient(160deg, #1A2530 0%, var(--pp-charcoal) 40%, #243340 100%);
+  border-radius: 18px;
   position: relative;
   overflow: hidden;
+  animation: pp-stagger-in 0.35s ease both;
+  animation-delay: 0.05s;
 }
 
 .resultsHeader::before {
@@ -260,27 +296,39 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, transparent, var(--pp-violet), transparent);
+  background: linear-gradient(90deg, transparent 5%, var(--pp-gold) 50%, transparent 95%);
+}
+
+.resultsHeader::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, rgba(217, 164, 65, 0.2) 50%, transparent 90%);
 }
 
 .resultsEmoji {
-  font-size: 40px;
-  margin: 0 0 8px;
+  font-size: 48px;
+  margin: 0 0 10px;
   line-height: 1;
 }
 
 .resultsTitle {
   margin: 0;
-  font-size: 24px;
+  font-size: 30px;
   color: var(--pp-cream);
   font-family: var(--font-mansalva), 'Mansalva', cursive;
+  letter-spacing: -0.01em;
 }
 
 .resultsSubtitle {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-size: 13px;
-  color: var(--pp-silver);
+  color: var(--pp-gold);
   font-weight: 600;
+  opacity: 0.9;
 }
 
 /* Stars */
@@ -307,14 +355,19 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
+  animation: pp-stagger-in 0.35s ease both;
+  animation-delay: 0.1s;
 }
 
 .statCard {
-  padding: 14px 10px;
-  border-radius: 12px;
+  padding: 16px 14px;
+  border-radius: 14px;
   border: 1px solid #E2D8CA;
-  background: var(--pp-cream);
+  background: linear-gradient(180deg, #FAF6F1, #F3EDE6);
   text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .statLabel {
@@ -322,7 +375,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--pp-muted);
 }
 
@@ -336,26 +389,43 @@
 
 /* Action Buttons */
 .playAgainBtn {
-  min-height: 52px;
-  border-radius: 12px;
+  min-height: 54px;
+  border-radius: 14px;
   border: none;
-  background: var(--pp-violet);
-  color: #fff;
-  font-size: 16px;
+  background: var(--pp-gold);
+  color: var(--pp-charcoal);
+  font-size: 17px;
   font-weight: 800;
+  letter-spacing: 0.01em;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  box-shadow: 0 2px 12px rgba(217, 164, 65, 0.25);
+  animation: pp-btn-pulse 2.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.playAgainBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  animation: pp-sheen-sweep 3s ease-in-out infinite;
 }
 
 .playAgainBtn:active {
   transform: scale(0.97);
+  animation: none;
 }
 
 @media (hover: hover) {
   .playAgainBtn:hover {
-    box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
+    box-shadow: 0 4px 20px rgba(217, 164, 65, 0.4);
   }
 }
 
@@ -367,6 +437,20 @@
   justify-content: center;
   gap: 28px;
   min-height: 360px;
+  position: relative;
+}
+
+.countdown::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(217, 164, 65, 0.06) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .countdownBrief {
@@ -379,7 +463,7 @@
 
 .briefIcon {
   margin: 0;
-  font-size: 36px;
+  font-size: 42px;
   line-height: 1;
 }
 
@@ -403,8 +487,8 @@
   min-height: 56px;
   border-radius: 14px;
   border: none;
-  background: var(--pp-violet);
-  color: #fff;
+  background: var(--pp-gold);
+  color: var(--pp-charcoal);
   font-size: 18px;
   font-weight: 800;
   cursor: pointer;
@@ -412,16 +496,43 @@
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   letter-spacing: 0.02em;
+  box-shadow: 0 2px 12px rgba(217, 164, 65, 0.25);
+  animation: pp-btn-pulse 2.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.playButton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: pp-sheen-sweep 3s ease-in-out infinite;
 }
 
 .playButton:active {
   transform: scale(0.95);
+  animation: none;
 }
 
 @media (hover: hover) {
   .playButton:hover {
-    box-shadow: 0 4px 20px rgba(108, 92, 231, 0.35);
+    box-shadow: 0 4px 20px rgba(217, 164, 65, 0.35);
   }
+}
+
+@keyframes pp-btn-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes pp-sheen-sweep {
+  0% { left: -100%; }
+  40% { left: 150%; }
+  100% { left: 150%; }
 }
 
 .countdownTimer {
@@ -435,10 +546,10 @@
   margin: 0;
   font-size: 96px;
   font-weight: 800;
-  color: var(--pp-violet);
+  color: var(--pp-gold);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   animation: pp-countdown-pop 0.6s ease;
-  text-shadow: 0 4px 24px rgba(108, 92, 231, 0.3);
+  text-shadow: 0 4px 24px rgba(217, 164, 65, 0.3);
 }
 
 @keyframes pp-countdown-pop {
