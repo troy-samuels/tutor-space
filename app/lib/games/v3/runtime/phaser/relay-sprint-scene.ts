@@ -174,7 +174,6 @@ export function createRelaySprintScene(
           fontFamily: "'Plus Jakarta Sans', Geist, sans-serif",
           fontSize: "12px",
           fontStyle: "700",
-          letterSpacing: 1,
         })
         .setOrigin(0.5)
         .setAlpha(0.7);
@@ -448,8 +447,7 @@ export function createRelaySprintScene(
 
       // Clue
       if (this.clueLabel) {
-        const langFlag = "🇬🇧";
-        this.clueLabel.setText(`${langFlag}  ${this.wave.clue.toUpperCase()}`);
+        this.clueLabel.setText(`TRANSLATE:  ${this.wave.clue.toUpperCase()}`);
       }
 
       // Drop word — entrance animation
