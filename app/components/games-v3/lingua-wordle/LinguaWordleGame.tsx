@@ -484,7 +484,7 @@ function LearnCard({ entry }: { entry: WordEntry }) {
         <span className={styles.learnCefr}>{entry.cefr}</span>
       </div>
       <p className={styles.learnExample}>
-        &ldquo;{entry.example.replace("___", `<strong>${entry.word}</strong>`)}&rdquo;
+        &ldquo;{entry.example.replace("___", entry.word)}&rdquo;
       </p>
       <div className={styles.learnRelated}>
         <span className={styles.learnRelatedLabel}>Related words:</span>
